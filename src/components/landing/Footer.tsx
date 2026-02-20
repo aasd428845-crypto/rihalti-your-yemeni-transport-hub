@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Bus, Mail, Phone, MessageCircle } from "lucide-react";
+import { Bus, Mail, Phone, MessageCircle, Shield } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const footerLinks = {
@@ -111,7 +112,12 @@ const Footer = () => {
           </div>
 
           <div className="text-center text-xs text-primary-foreground/40">
-            <p>© 2024 رحلاتي. جميع الحقوق محفوظة. صنعاء، اليمن 🇾🇪</p>
+            <div className="flex items-center justify-center gap-2">
+              <p>© 2024 رحلاتي. جميع الحقوق محفوظة. صنعاء، اليمن 🇾🇪</p>
+              <Link to="/admin" className="opacity-20 hover:opacity-60 transition-opacity" title="لوحة التحكم">
+                <Shield className="w-3.5 h-3.5" />
+              </Link>
+            </div>
             <div className="flex justify-center gap-4 mt-2">
               {["سياسة الخصوصية", "الشروط والأحكام", "خريطة الموقع", "إمكانية الوصول"].map((l) => (
                 <a key={l} href="#" className="hover:text-secondary transition-colors">{l}</a>
