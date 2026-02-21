@@ -1,25 +1,22 @@
-import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield } from "lucide-react";
+import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield, Mail, XCircle, FileText, Send, Home } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
 const menuItems = [
-  { title: "نظرة عامة", url: "/admin", icon: LayoutDashboard },
+  { title: "لوحة التحكم", url: "/admin", icon: LayoutDashboard },
   { title: "إدارة المستخدمين", url: "/admin/users", icon: Users },
   { title: "الموافقات", url: "/admin/approvals", icon: CheckCircle },
   { title: "الإدارة المالية", url: "/admin/finance", icon: DollarSign },
+  { title: "الدعوات", url: "/admin/invitations", icon: Send },
+  { title: "الإلغاءات", url: "/admin/cancellations", icon: XCircle },
+  { title: "الرسائل", url: "/admin/messages", icon: Mail },
+  { title: "التقارير", url: "/admin/reports", icon: FileText },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
 ];
 
@@ -27,10 +24,7 @@ const AdminSidebar = () => {
   const { signOut, profile } = useAuth();
   const navigate = useNavigate();
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
+  const handleSignOut = async () => { await signOut(); navigate("/"); };
 
   return (
     <Sidebar className="border-l-0 border-r" dir="rtl">
@@ -68,14 +62,12 @@ const AdminSidebar = () => {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-3">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={handleSignOut}
-        >
-          <LogOut className="w-4 h-4" />
-          تسجيل الخروج
+      <SidebarFooter className="p-3 space-y-2">
+        <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" onClick={() => navigate("/")}>
+          <Home className="w-4 h-4" />العودة للرئيسية
+        </Button>
+        <Button variant="ghost" className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleSignOut}>
+          <LogOut className="w-4 h-4" />تسجيل الخروج
         </Button>
       </SidebarFooter>
     </Sidebar>

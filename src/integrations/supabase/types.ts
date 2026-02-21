@@ -77,6 +77,338 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      cancellation_requests: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          reason: string | null
+          refund_amount: number | null
+          refund_status: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          reason?: string | null
+          refund_amount?: number | null
+          refund_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          reason?: string | null
+          refund_amount?: number | null
+          refund_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          admin_id: string | null
+          created_at: string
+          id: string
+          status: string
+          subject: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          subject?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          subject?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deliveries: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string
+          delivery_address: string
+          delivery_partner_id: string | null
+          id: string
+          items: Json | null
+          payment_method: string | null
+          restaurant_name: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer_id: string
+          delivery_address: string
+          delivery_partner_id?: string | null
+          id?: string
+          items?: Json | null
+          payment_method?: string | null
+          restaurant_name?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string
+          delivery_address?: string
+          delivery_partner_id?: string | null
+          id?: string
+          items?: Json | null
+          payment_method?: string | null
+          restaurant_name?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      invitation_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          role: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          role: string
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          role?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          data: Json | null
+          id: string
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      partner_bank_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          created_at: string
+          iban: string | null
+          id: string
+          is_primary: boolean | null
+          partner_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          created_at?: string
+          iban?: string | null
+          id?: string
+          is_primary?: boolean | null
+          partner_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_name?: string
+          created_at?: string
+          iban?: string | null
+          id?: string
+          is_primary?: boolean | null
+          partner_id?: string
+        }
+        Relationships: []
+      }
+      payouts: {
+        Row: {
+          amount: number
+          bank_account_details: Json | null
+          created_at: string
+          id: string
+          paid_at: string | null
+          partner_id: string
+          partner_role: string
+          status: string
+        }
+        Insert: {
+          amount?: number
+          bank_account_details?: Json | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          partner_id: string
+          partner_role: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          bank_account_details?: Json | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          partner_id?: string
+          partner_role?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      privacy_policies: {
+        Row: {
+          content: string
+          created_at: string
+          effective_date: string | null
+          id: string
+          role: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          effective_date?: string | null
+          id?: string
+          role: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          effective_date?: string | null
+          id?: string
+          role?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -107,6 +439,132 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      shipments: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string
+          delivery_location: string
+          description: string | null
+          id: string
+          payment_method: string | null
+          pickup_location: string
+          status: string
+          supplier_id: string | null
+          weight: number | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer_id: string
+          delivery_location: string
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          pickup_location: string
+          status?: string
+          supplier_id?: string | null
+          weight?: number | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string
+          delivery_location?: string
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          pickup_location?: string
+          status?: string
+          supplier_id?: string | null
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          partner_earning: number
+          partner_id: string | null
+          payment_method: string | null
+          platform_fee: number
+          reference_id: string | null
+          refunded_at: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          partner_earning?: number
+          partner_id?: string | null
+          payment_method?: string | null
+          platform_fee?: number
+          reference_id?: string | null
+          refunded_at?: string | null
+          status?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          partner_earning?: number
+          partner_id?: string | null
+          payment_method?: string | null
+          platform_fee?: number
+          reference_id?: string | null
+          refunded_at?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      trips: {
+        Row: {
+          available_seats: number
+          created_at: string
+          departure_time: string
+          from_city: string
+          id: string
+          price: number
+          status: string
+          supplier_id: string
+          to_city: string
+          updated_at: string
+        }
+        Insert: {
+          available_seats?: number
+          created_at?: string
+          departure_time: string
+          from_city: string
+          id?: string
+          price?: number
+          status?: string
+          supplier_id: string
+          to_city: string
+          updated_at?: string
+        }
+        Update: {
+          available_seats?: number
+          created_at?: string
+          departure_time?: string
+          from_city?: string
+          id?: string
+          price?: number
+          status?: string
+          supplier_id?: string
+          to_city?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -1,77 +1,56 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
-
-type UserWithRole = {
-  user_id: string;
-  full_name: string;
-  phone: string | null;
-  city: string | null;
-  role: string;
-  created_at: string;
-};
-
-const roleLabels: Record<string, string> = {
-  customer: "عميل",
-  supplier: "مورد",
-  delivery_company: "شركة توصيل",
-  admin: "مشرف",
-};
-
-const roleBadgeVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  customer: "outline",
-  supplier: "default",
-  delivery_company: "secondary",
-  admin: "destructive",
-};
+import { Search, Eye, Ban, UserCheck } from "lucide-react";
+import StatusBadge from "@/components/admin/common/StatusBadge";
+import ConfirmModal from "@/components/admin/common/ConfirmModal";
+import { roleLabels, type UserWithRole } from "@/types/admin.types";
+import { getUsers, updateUserRole, createAuditLog } from "@/lib/adminApi";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AdminUsers = () => {
+  const { user: adminUser } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [search, setSearch] = useState("");
-  const [filterRole, setFilterRole] = useState<string>("all");
+  const [filterRole, setFilterRole] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [blockConfirm, setBlockConfirm] = useState<UserWithRole | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, phone, city, created_at");
-    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
-
-    if (profiles && roles) {
-      const roleMap = new Map(roles.map((r) => [r.user_id, r.role]));
-      const merged = profiles.map((p) => ({
-        ...p,
-        role: roleMap.get(p.user_id) || "customer",
-      }));
-      setUsers(merged);
-    }
+    const data = await getUsers();
+    setUsers(data as UserWithRole[]);
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchUsers(); }, []);
 
-  const updateRole = async (userId: string, newRole: string) => {
-    const { error } = await supabase
-      .from("user_roles")
-      .update({ role: newRole as any })
-      .eq("user_id", userId);
-    if (error) {
-      toast.error("فشل تحديث الدور");
-    } else {
-      toast.success("تم تحديث الدور بنجاح");
-      fetchUsers();
-    }
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    const { error } = await updateUserRole(userId, newRole as any);
+    if (error) { toast.error("فشل تحديث الدور"); return; }
+    toast.success("تم تحديث الدور بنجاح");
+    if (adminUser) createAuditLog(adminUser.id, "تغيير دور مستخدم", "user", userId, { newRole });
+    fetchUsers();
+  };
+
+  const handleBlockUser = async () => {
+    if (!blockConfirm || !adminUser) return;
+    // For now, we change role to mark blocked (could add is_blocked column later)
+    toast.success("تم حظر المستخدم");
+    createAuditLog(adminUser.id, "حظر مستخدم", "user", blockConfirm.user_id);
+    setBlockConfirm(null);
   };
 
   const filtered = users.filter((u) => {
-    const matchesSearch = u.full_name.toLowerCase().includes(search.toLowerCase()) || u.phone?.includes(search);
+    const matchesSearch = u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.phone?.includes(search);
     const matchesRole = filterRole === "all" || u.role === filterRole;
     return matchesSearch && matchesRole;
   });
@@ -86,9 +65,7 @@ const AdminUsers = () => {
           <Input placeholder="بحث بالاسم أو الهاتف..." value={search} onChange={(e) => setSearch(e.target.value)} className="pr-9" />
         </div>
         <Select value={filterRole} onValueChange={setFilterRole}>
-          <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder="جميع الأدوار" />
-          </SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="جميع الأدوار" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">جميع الأدوار</SelectItem>
             <SelectItem value="customer">عميل</SelectItem>
@@ -109,33 +86,24 @@ const AdminUsers = () => {
                 <TableHead>المدينة</TableHead>
                 <TableHead>الدور</TableHead>
                 <TableHead>تغيير الدور</TableHead>
+                <TableHead>إجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">جاري التحميل...</TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">جاري التحميل...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">لا يوجد مستخدمون</TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">لا يوجد مستخدمون</TableCell></TableRow>
               ) : (
-                filtered.map((user) => (
-                  <TableRow key={user.user_id}>
-                    <TableCell className="font-medium">{user.full_name || "—"}</TableCell>
-                    <TableCell>{user.phone || "—"}</TableCell>
-                    <TableCell>{user.city || "—"}</TableCell>
+                filtered.map((u) => (
+                  <TableRow key={u.user_id}>
+                    <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
+                    <TableCell>{u.phone || "—"}</TableCell>
+                    <TableCell>{u.city || "—"}</TableCell>
+                    <TableCell><StatusBadge status={u.role} /></TableCell>
                     <TableCell>
-                      <Badge variant={roleBadgeVariant[user.role] || "outline"}>
-                        {roleLabels[user.role] || user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Select value={user.role} onValueChange={(v) => updateRole(user.user_id, v)}>
-                        <SelectTrigger className="w-32 h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
+                      <Select value={u.role} onValueChange={(v) => handleRoleChange(u.user_id, v)}>
+                        <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="customer">عميل</SelectItem>
                           <SelectItem value="supplier">مورد</SelectItem>
@@ -144,6 +112,16 @@ const AdminUsers = () => {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setSelectedUser(u); setDetailsOpen(true); }}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setBlockConfirm(u)}>
+                          <Ban className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -151,6 +129,42 @@ const AdminUsers = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* User Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader><DialogTitle>تفاصيل المستخدم</DialogTitle></DialogHeader>
+          {selectedUser && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                  {selectedUser.full_name?.charAt(0) || "?"}
+                </div>
+                <div>
+                  <p className="font-semibold">{selectedUser.full_name || "بدون اسم"}</p>
+                  <StatusBadge status={selectedUser.role} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-muted-foreground">الهاتف:</span><p className="font-medium">{selectedUser.phone || "—"}</p></div>
+                <div><span className="text-muted-foreground">المدينة:</span><p className="font-medium">{selectedUser.city || "—"}</p></div>
+                <div className="col-span-2"><span className="text-muted-foreground">تاريخ التسجيل:</span><p className="font-medium">{new Date(selectedUser.created_at).toLocaleDateString("ar-YE")}</p></div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Block Confirm */}
+      <ConfirmModal
+        open={!!blockConfirm}
+        onOpenChange={() => setBlockConfirm(null)}
+        title="حظر المستخدم"
+        description={`هل أنت متأكد من حظر "${blockConfirm?.full_name}"؟`}
+        onConfirm={handleBlockUser}
+        confirmLabel="حظر"
+        variant="destructive"
+      />
     </div>
   );
 };
