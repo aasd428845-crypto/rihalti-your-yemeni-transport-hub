@@ -1,156 +1,132 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Map, Package, Truck } from "lucide-react";
+import StatusBadge from "@/components/admin/common/StatusBadge";
+import { entityTypeLabels } from "@/types/admin.types";
+import { getPendingApprovals, approveRequest, rejectRequest, createAuditLog } from "@/lib/adminApi";
 import { useAuth } from "@/contexts/AuthContext";
 
 type ApprovalRequest = {
-  id: string;
-  type: string;
-  status: string;
-  data: any;
-  admin_notes: string | null;
-  created_at: string;
-  requester_id: string;
+  id: string; type: string; status: string; data: any;
+  admin_notes: string | null; created_at: string; requester_id: string;
 };
 
-const typeLabels: Record<string, string> = {
-  supplier_registration: "تسجيل مورد",
-  delivery_registration: "تسجيل شركة توصيل",
-  booking: "حجز",
-  shipment: "شحنة",
-};
-
-const statusLabels: Record<string, string> = {
-  pending: "معلق",
-  approved: "مقبول",
-  rejected: "مرفوض",
-};
-
-const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  pending: "secondary",
-  approved: "default",
-  rejected: "destructive",
+const typeIcons: Record<string, any> = {
+  trip: Map, shipment: Package, delivery: Truck,
+  supplier_registration: CheckCircle, delivery_registration: Truck, booking: Clock,
 };
 
 const AdminApprovals = () => {
   const { user } = useAuth();
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [rejectModal, setRejectModal] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
-  const fetchRequests = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("approval_requests")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data } = await getPendingApprovals();
     setRequests(data || []);
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const handleAction = async (id: string, status: "approved" | "rejected") => {
-    const { error } = await supabase
-      .from("approval_requests")
-      .update({
-        status,
-        reviewed_by: user?.id,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-
-    if (error) {
-      toast.error("فشل تحديث الطلب");
-    } else {
-      toast.success(status === "approved" ? "تمت الموافقة" : "تم الرفض");
-      fetchRequests();
-    }
+  const handleApprove = async (id: string) => {
+    if (!user) return;
+    const { error } = await approveRequest(id, user.id);
+    if (error) { toast.error("فشل الموافقة"); return; }
+    toast.success("تمت الموافقة بنجاح");
+    createAuditLog(user.id, "الموافقة على طلب", "approval_request", id);
+    fetchData();
   };
 
-  const filtered = requests.filter((r) => filterStatus === "all" || r.status === filterStatus);
+  const handleReject = async () => {
+    if (!rejectModal || !user) return;
+    const { error } = await rejectRequest(rejectModal, user.id, rejectReason);
+    if (error) { toast.error("فشل الرفض"); return; }
+    toast.success("تم رفض الطلب");
+    createAuditLog(user.id, "رفض طلب", "approval_request", rejectModal, { reason: rejectReason });
+    setRejectModal(null);
+    setRejectReason("");
+    fetchData();
+  };
+
+  const filtered = activeTab === "all" ? requests : requests.filter((r) => r.type === activeTab);
   const pendingCount = requests.filter((r) => r.status === "pending").length;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">الموافقات</h2>
-        {pendingCount > 0 && (
-          <Badge variant="secondary">{pendingCount} طلب معلق</Badge>
-        )}
+        {pendingCount > 0 && <span className="bg-secondary/20 text-secondary-foreground px-3 py-1 rounded-full text-sm font-medium">{pendingCount} طلب معلق</span>}
       </div>
 
-      <Select value={filterStatus} onValueChange={setFilterStatus}>
-        <SelectTrigger className="w-40">
-          <SelectValue placeholder="جميع الحالات" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">جميع الحالات</SelectItem>
-          <SelectItem value="pending">معلق</SelectItem>
-          <SelectItem value="approved">مقبول</SelectItem>
-          <SelectItem value="rejected">مرفوض</SelectItem>
-        </SelectContent>
-      </Select>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-4 w-full max-w-lg">
+          <TabsTrigger value="all">الكل</TabsTrigger>
+          <TabsTrigger value="supplier_registration">موردون</TabsTrigger>
+          <TabsTrigger value="delivery_registration">توصيل</TabsTrigger>
+          <TabsTrigger value="booking">حجوزات</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>النوع</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead>التاريخ</TableHead>
-                <TableHead>إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">جاري التحميل...</TableCell>
-                </TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">لا توجد طلبات</TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((req) => (
-                  <TableRow key={req.id}>
-                    <TableCell className="font-medium">{typeLabels[req.type] || req.type}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariant[req.status]}>{statusLabels[req.status]}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(req.created_at).toLocaleDateString("ar-YE")}
-                    </TableCell>
-                    <TableCell>
-                      {req.status === "pending" ? (
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="default" onClick={() => handleAction(req.id, "approved")}>
-                            <CheckCircle className="w-3 h-3 ml-1" /> قبول
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleAction(req.id, "rejected")}>
-                            <XCircle className="w-3 h-3 ml-1" /> رفض
-                          </Button>
+        <TabsContent value={activeTab} className="mt-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
+          ) : filtered.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-muted-foreground">لا توجد طلبات</CardContent></Card>
+          ) : (
+            <div className="grid gap-4">
+              {filtered.map((req) => {
+                const Icon = typeIcons[req.type] || Clock;
+                return (
+                  <Card key={req.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mt-1">
+                            <Icon className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="font-semibold">{entityTypeLabels[req.type] || req.type}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(req.created_at).toLocaleDateString("ar-YE")} — {new Date(req.created_at).toLocaleTimeString("ar-YE")}</p>
+                            <StatusBadge status={req.status} />
+                            {req.admin_notes && <p className="text-xs text-muted-foreground mt-1">ملاحظات: {req.admin_notes}</p>}
+                          </div>
                         </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">تم المعالجة</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                        {req.status === "pending" && (
+                          <div className="flex gap-2 shrink-0">
+                            <Button size="sm" onClick={() => handleApprove(req.id)}><CheckCircle className="w-3 h-3 ml-1" />قبول</Button>
+                            <Button size="sm" variant="destructive" onClick={() => setRejectModal(req.id)}><XCircle className="w-3 h-3 ml-1" />رفض</Button>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Reject Modal */}
+      <Dialog open={!!rejectModal} onOpenChange={() => setRejectModal(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle>سبب الرفض</DialogTitle></DialogHeader>
+          <Textarea placeholder="أدخل سبب الرفض..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+          <DialogFooter>
+            <Button variant="destructive" onClick={handleReject}>رفض الطلب</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

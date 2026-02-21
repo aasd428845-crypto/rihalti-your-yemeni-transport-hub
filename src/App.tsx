@@ -16,6 +16,10 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminApprovals from "./pages/admin/AdminApprovals";
 import AdminFinance from "./pages/admin/AdminFinance";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminInvitations from "./pages/admin/AdminInvitations";
+import AdminCancellations from "./pages/admin/AdminCancellations";
+import AdminMessages from "./pages/admin/AdminMessages";
+import AdminReports from "./pages/admin/AdminReports";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +42,10 @@ const App = () => (
               <Route path="approvals" element={<AdminApprovals />} />
               <Route path="finance" element={<AdminFinance />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="invitations" element={<AdminInvitations />} />
+              <Route path="cancellations" element={<AdminCancellations />} />
+              <Route path="messages" element={<AdminMessages />} />
+              <Route path="reports" element={<AdminReports />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
