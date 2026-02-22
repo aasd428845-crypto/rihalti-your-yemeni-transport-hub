@@ -20,6 +20,14 @@ import AdminInvitations from "./pages/admin/AdminInvitations";
 import AdminCancellations from "./pages/admin/AdminCancellations";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminReports from "./pages/admin/AdminReports";
+import SupplierLayout from "./components/supplier/SupplierLayout";
+import SupplierDashboard from "./pages/supplier/SupplierDashboard";
+import SupplierTrips from "./pages/supplier/SupplierTrips";
+import SupplierBookings from "./pages/supplier/SupplierBookings";
+import SupplierShipments from "./pages/supplier/SupplierShipments";
+import SupplierFinance from "./pages/supplier/SupplierFinance";
+import SupplierSettings from "./pages/supplier/SupplierSettings";
+import SupplierMessages from "./pages/supplier/SupplierMessages";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +54,15 @@ const App = () => (
               <Route path="cancellations" element={<AdminCancellations />} />
               <Route path="messages" element={<AdminMessages />} />
               <Route path="reports" element={<AdminReports />} />
+            </Route>
+            <Route path="/supplier" element={<SupplierLayout />}>
+              <Route index element={<SupplierDashboard />} />
+              <Route path="trips" element={<SupplierTrips />} />
+              <Route path="bookings" element={<SupplierBookings />} />
+              <Route path="shipments" element={<SupplierShipments />} />
+              <Route path="finance" element={<SupplierFinance />} />
+              <Route path="settings" element={<SupplierSettings />} />
+              <Route path="messages" element={<SupplierMessages />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -107,6 +107,50 @@ export type Database = {
         }
         Relationships: []
       }
+      bookings: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          id: string
+          payment_method: string | null
+          payment_status: string | null
+          seat_count: number
+          status: string | null
+          total_amount: number
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          seat_count?: number
+          status?: string | null
+          total_amount?: number
+          trip_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          seat_count?: number
+          status?: string | null
+          total_amount?: number
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cancellation_requests: {
         Row: {
           created_at: string
@@ -442,6 +486,122 @@ export type Database = {
         }
         Relationships: []
       }
+      regions: {
+        Row: {
+          id: number
+          is_active: boolean | null
+          name_ar: string
+          parent_id: number | null
+          type: string
+        }
+        Insert: {
+          id?: number
+          is_active?: boolean | null
+          name_ar: string
+          parent_id?: number | null
+          type: string
+        }
+        Update: {
+          id?: number
+          is_active?: boolean | null
+          name_ar?: string
+          parent_id?: number | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_requests: {
+        Row: {
+          admin_approved: boolean | null
+          barcode: string | null
+          created_at: string | null
+          customer_id: string
+          delivery_address: string | null
+          delivery_lat: number | null
+          delivery_lng: number | null
+          id: string
+          images: string[] | null
+          item_description: string | null
+          item_dimensions: string | null
+          item_weight: number | null
+          payment_method: string | null
+          pickup_address: string | null
+          pickup_lat: number | null
+          pickup_lng: number | null
+          price: number | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          shipment_type: string
+          status: string | null
+          supplier_id: string
+          supplier_priced: boolean | null
+          tracking_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_approved?: boolean | null
+          barcode?: string | null
+          created_at?: string | null
+          customer_id: string
+          delivery_address?: string | null
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          id?: string
+          images?: string[] | null
+          item_description?: string | null
+          item_dimensions?: string | null
+          item_weight?: number | null
+          payment_method?: string | null
+          pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          price?: number | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          shipment_type: string
+          status?: string | null
+          supplier_id: string
+          supplier_priced?: boolean | null
+          tracking_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_approved?: boolean | null
+          barcode?: string | null
+          created_at?: string | null
+          customer_id?: string
+          delivery_address?: string | null
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          id?: string
+          images?: string[] | null
+          item_description?: string | null
+          item_dimensions?: string | null
+          item_weight?: number | null
+          payment_method?: string | null
+          pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          price?: number | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          shipment_type?: string
+          status?: string | null
+          supplier_id?: string
+          supplier_priced?: boolean | null
+          tracking_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       shipments: {
         Row: {
           amount: number
@@ -483,6 +643,89 @@ export type Database = {
           weight?: number | null
         }
         Relationships: []
+      }
+      supplier_public_images: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string
+          is_default: boolean | null
+          supplier_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url: string
+          is_default?: boolean | null
+          supplier_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string
+          is_default?: boolean | null
+          supplier_id?: string
+        }
+        Relationships: []
+      }
+      supplier_transactions: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string | null
+          date: string
+          description: string | null
+          id: string
+          reference_id: string | null
+          supplier_id: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          supplier_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          supplier_id?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      supplier_working_areas: {
+        Row: {
+          region_id: number
+          supplier_id: string
+        }
+        Insert: {
+          region_id: number
+          supplier_id: string
+        }
+        Update: {
+          region_id?: number
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_working_areas_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {
@@ -529,44 +772,120 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_types: {
+        Row: {
+          id: number
+          name_ar: string
+          slug: string
+        }
+        Insert: {
+          id?: number
+          name_ar: string
+          slug: string
+        }
+        Update: {
+          id?: number
+          name_ar?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       trips: {
         Row: {
+          amenities: Json | null
           available_seats: number
+          bus_company: string | null
+          bus_number: string | null
           created_at: string
           departure_time: string
           from_city: string
+          from_region_id: number | null
           id: string
+          is_offer: boolean | null
+          notes: string | null
+          offer_type: string | null
+          offer_until: string | null
+          offer_value: number | null
+          period: string | null
           price: number
           status: string
           supplier_id: string
           to_city: string
+          to_region_id: number | null
+          type_id: number | null
           updated_at: string
         }
         Insert: {
+          amenities?: Json | null
           available_seats?: number
+          bus_company?: string | null
+          bus_number?: string | null
           created_at?: string
           departure_time: string
           from_city: string
+          from_region_id?: number | null
           id?: string
+          is_offer?: boolean | null
+          notes?: string | null
+          offer_type?: string | null
+          offer_until?: string | null
+          offer_value?: number | null
+          period?: string | null
           price?: number
           status?: string
           supplier_id: string
           to_city: string
+          to_region_id?: number | null
+          type_id?: number | null
           updated_at?: string
         }
         Update: {
+          amenities?: Json | null
           available_seats?: number
+          bus_company?: string | null
+          bus_number?: string | null
           created_at?: string
           departure_time?: string
           from_city?: string
+          from_region_id?: number | null
           id?: string
+          is_offer?: boolean | null
+          notes?: string | null
+          offer_type?: string | null
+          offer_until?: string | null
+          offer_value?: number | null
+          period?: string | null
           price?: number
           status?: string
           supplier_id?: string
           to_city?: string
+          to_region_id?: number | null
+          type_id?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "trips_from_region_id_fkey"
+            columns: ["from_region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_to_region_id_fkey"
+            columns: ["to_region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "trip_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
