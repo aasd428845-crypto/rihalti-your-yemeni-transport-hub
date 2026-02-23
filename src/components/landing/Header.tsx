@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
 const navLinks = [
-  { label: "الرحلات", href: "#trips" },
-  { label: "الشحنات", href: "#shipping" },
-  { label: "التوصيل", href: "#delivery" },
-  { label: "تتبع الشحنة", href: "#tracking" },
+  { label: "الرحلات", href: "/trips" },
+  { label: "الشحنات", href: "/shipments" },
+  { label: "التوصيل", href: "/deliveries" },
+  { label: "تتبع الشحنة", href: "/tracking" },
   { label: "عن المنصة", href: "#about" },
 ];
 
@@ -56,10 +56,15 @@ const Header = () => {
         {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center gap-1">
           {navLinks.map((link) => (
-            <a key={link.href} href={link.href} className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-accent">
+            <a key={link.href} href={link.href} onClick={(e) => { if (link.href.startsWith('/')) { e.preventDefault(); navigate(link.href); } }} className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-accent">
               {link.label}
             </a>
           ))}
+          {user && (
+            <a href="/history" onClick={(e) => { e.preventDefault(); navigate("/history"); }} className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-accent">
+              السجل
+            </a>
+          )}
         </nav>
 
         {/* Actions */}
