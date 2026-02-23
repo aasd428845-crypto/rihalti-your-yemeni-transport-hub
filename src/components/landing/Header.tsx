@@ -31,7 +31,7 @@ const Header = () => {
 
   const getDashboardPath = () => {
     if (role === "supplier") return "/supplier";
-    if (role === "delivery_company") return "/delivery-dashboard";
+    if (role === "delivery_company") return "/delivery";
     if (role === "admin") return "/admin";
     return null;
   };
