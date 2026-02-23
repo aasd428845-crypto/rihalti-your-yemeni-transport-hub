@@ -28,6 +28,14 @@ import SupplierShipments from "./pages/supplier/SupplierShipments";
 import SupplierFinance from "./pages/supplier/SupplierFinance";
 import SupplierSettings from "./pages/supplier/SupplierSettings";
 import SupplierMessages from "./pages/supplier/SupplierMessages";
+import DeliveryLayout from "./components/delivery/DeliveryLayout";
+import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
+import DeliveryRestaurants from "./pages/delivery/DeliveryRestaurants";
+import DeliveryOrders from "./pages/delivery/DeliveryOrders";
+import DeliveryRiders from "./pages/delivery/DeliveryRiders";
+import DeliveryFinance from "./pages/delivery/DeliveryFinance";
+import DeliveryIntegrations from "./pages/delivery/DeliveryIntegrations";
+import DeliverySettings from "./pages/delivery/DeliverySettings";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +71,15 @@ const App = () => (
               <Route path="finance" element={<SupplierFinance />} />
               <Route path="settings" element={<SupplierSettings />} />
               <Route path="messages" element={<SupplierMessages />} />
+            </Route>
+            <Route path="/delivery" element={<DeliveryLayout />}>
+              <Route index element={<DeliveryDashboard />} />
+              <Route path="restaurants" element={<DeliveryRestaurants />} />
+              <Route path="orders" element={<DeliveryOrders />} />
+              <Route path="riders" element={<DeliveryRiders />} />
+              <Route path="finance" element={<DeliveryFinance />} />
+              <Route path="integrations" element={<DeliveryIntegrations />} />
+              <Route path="settings" element={<DeliverySettings />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

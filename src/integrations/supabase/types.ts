@@ -223,6 +223,42 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_links: {
+        Row: {
+          clicks: number | null
+          created_at: string | null
+          delivery_company_id: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          link_token: string
+          merchant_name: string
+          merchant_phone: string | null
+        }
+        Insert: {
+          clicks?: number | null
+          created_at?: string | null
+          delivery_company_id: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          link_token?: string
+          merchant_name: string
+          merchant_phone?: string | null
+        }
+        Update: {
+          clicks?: number | null
+          created_at?: string | null
+          delivery_company_id?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          link_token?: string
+          merchant_name?: string
+          merchant_phone?: string | null
+        }
+        Relationships: []
+      }
       deliveries: {
         Row: {
           amount: number
@@ -262,6 +298,111 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_orders: {
+        Row: {
+          assigned_at: string | null
+          cancellation_reason: string | null
+          created_at: string | null
+          customer_address: string
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string
+          delivered_at: string | null
+          delivery_company_id: string
+          delivery_fee: number
+          delivery_lat: number | null
+          delivery_lng: number | null
+          estimated_delivery_time: string | null
+          id: string
+          items: Json
+          notes: string | null
+          order_type: string | null
+          payment_method: string | null
+          payment_status: string | null
+          picked_up_at: string | null
+          restaurant_id: string | null
+          rider_id: string | null
+          status: string | null
+          subtotal: number
+          tax: number | null
+          total: number
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          cancellation_reason?: string | null
+          created_at?: string | null
+          customer_address: string
+          customer_id?: string | null
+          customer_name: string
+          customer_phone: string
+          delivered_at?: string | null
+          delivery_company_id: string
+          delivery_fee?: number
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          estimated_delivery_time?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_type?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          picked_up_at?: string | null
+          restaurant_id?: string | null
+          rider_id?: string | null
+          status?: string | null
+          subtotal?: number
+          tax?: number | null
+          total?: number
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          cancellation_reason?: string | null
+          created_at?: string | null
+          customer_address?: string
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          delivered_at?: string | null
+          delivery_company_id?: string
+          delivery_fee?: number
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          estimated_delivery_time?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_type?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          picked_up_at?: string | null
+          restaurant_id?: string | null
+          rider_id?: string | null
+          status?: string | null
+          subtotal?: number
+          tax?: number | null
+          total?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_orders_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_orders_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitation_tokens: {
         Row: {
           created_at: string
@@ -294,6 +435,110 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: []
+      }
+      menu_categories: {
+        Row: {
+          id: string
+          is_active: boolean | null
+          name_ar: string
+          name_en: string | null
+          restaurant_id: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean | null
+          name_ar: string
+          name_en?: string | null
+          restaurant_id?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          id?: string
+          is_active?: boolean | null
+          name_ar?: string
+          name_en?: string | null
+          restaurant_id?: string | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_categories_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          discounted_price: number | null
+          id: string
+          image_url: string | null
+          is_available: boolean | null
+          name_ar: string
+          name_en: string | null
+          options: Json | null
+          preparation_time: number | null
+          price: number
+          restaurant_id: string | null
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          discounted_price?: number | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          name_ar: string
+          name_en?: string | null
+          options?: Json | null
+          preparation_time?: number | null
+          price: number
+          restaurant_id?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          discounted_price?: number | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          name_ar?: string
+          name_en?: string | null
+          options?: Json | null
+          preparation_time?: number | null
+          price?: number
+          restaurant_id?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
@@ -357,6 +602,44 @@ export type Database = {
         }
         Relationships: []
       }
+      order_tracking: {
+        Row: {
+          created_at: string | null
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          note: string | null
+          order_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          note?: string | null
+          order_id?: string | null
+          status: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          note?: string | null
+          order_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_tracking_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_bank_accounts: {
         Row: {
           account_name: string
@@ -387,6 +670,48 @@ export type Database = {
           id?: string
           is_primary?: boolean | null
           partner_id?: string
+        }
+        Relationships: []
+      }
+      partner_join_requests: {
+        Row: {
+          address: string | null
+          business_name: string
+          business_type: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string
+          created_at: string | null
+          delivery_company_id: string
+          id: string
+          notes: string | null
+          status: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          business_type?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone: string
+          created_at?: string | null
+          delivery_company_id: string
+          id?: string
+          notes?: string | null
+          status?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          business_type?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string
+          created_at?: string | null
+          delivery_company_id?: string
+          id?: string
+          notes?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -517,6 +842,167 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      restaurants: {
+        Row: {
+          address: string | null
+          commission_rate: number | null
+          cover_image: string | null
+          created_at: string | null
+          delivery_company_id: string
+          id: string
+          is_active: boolean | null
+          location_lat: number | null
+          location_lng: number | null
+          logo_url: string | null
+          name_ar: string
+          name_en: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          commission_rate?: number | null
+          cover_image?: string | null
+          created_at?: string | null
+          delivery_company_id: string
+          id?: string
+          is_active?: boolean | null
+          location_lat?: number | null
+          location_lng?: number | null
+          logo_url?: string | null
+          name_ar: string
+          name_en?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          commission_rate?: number | null
+          cover_image?: string | null
+          created_at?: string | null
+          delivery_company_id?: string
+          id?: string
+          is_active?: boolean | null
+          location_lat?: number | null
+          location_lng?: number | null
+          logo_url?: string | null
+          name_ar?: string
+          name_en?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      rider_rewards: {
+        Row: {
+          achieved_at: string | null
+          amount: number | null
+          delivery_company_id: string
+          description: string | null
+          id: string
+          rider_id: string | null
+          type: string | null
+        }
+        Insert: {
+          achieved_at?: string | null
+          amount?: number | null
+          delivery_company_id: string
+          description?: string | null
+          id?: string
+          rider_id?: string | null
+          type?: string | null
+        }
+        Update: {
+          achieved_at?: string | null
+          amount?: number | null
+          delivery_company_id?: string
+          description?: string | null
+          id?: string
+          rider_id?: string | null
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rider_rewards_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      riders: {
+        Row: {
+          commission_type: string | null
+          commission_value: number | null
+          created_at: string | null
+          current_lat: number | null
+          current_lng: number | null
+          delivery_company_id: string
+          earnings: number | null
+          email: string | null
+          full_name: string
+          id: string
+          id_number: string | null
+          is_active: boolean | null
+          is_online: boolean | null
+          last_location_update: string | null
+          phone: string
+          profile_image: string | null
+          rating: number | null
+          total_deliveries: number | null
+          updated_at: string | null
+          vehicle_plate: string | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          commission_type?: string | null
+          commission_value?: number | null
+          created_at?: string | null
+          current_lat?: number | null
+          current_lng?: number | null
+          delivery_company_id: string
+          earnings?: number | null
+          email?: string | null
+          full_name: string
+          id?: string
+          id_number?: string | null
+          is_active?: boolean | null
+          is_online?: boolean | null
+          last_location_update?: string | null
+          phone: string
+          profile_image?: string | null
+          rating?: number | null
+          total_deliveries?: number | null
+          updated_at?: string | null
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          commission_type?: string | null
+          commission_value?: number | null
+          created_at?: string | null
+          current_lat?: number | null
+          current_lng?: number | null
+          delivery_company_id?: string
+          earnings?: number | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          id_number?: string | null
+          is_active?: boolean | null
+          is_online?: boolean | null
+          last_location_update?: string | null
+          phone?: string
+          profile_image?: string | null
+          rating?: number | null
+          total_deliveries?: number | null
+          updated_at?: string | null
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
+        }
+        Relationships: []
       }
       shipment_requests: {
         Row: {
