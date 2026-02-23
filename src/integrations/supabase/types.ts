@@ -259,6 +259,39 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_addresses: {
+        Row: {
+          address_name: string
+          created_at: string | null
+          customer_id: string
+          full_address: string
+          id: string
+          is_default: boolean | null
+          latitude: number | null
+          longitude: number | null
+        }
+        Insert: {
+          address_name: string
+          created_at?: string | null
+          customer_id: string
+          full_address: string
+          id?: string
+          is_default?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+        }
+        Update: {
+          address_name?: string
+          created_at?: string | null
+          customer_id?: string
+          full_address?: string
+          id?: string
+          is_default?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+        }
+        Relationships: []
+      }
       deliveries: {
         Row: {
           amount: number

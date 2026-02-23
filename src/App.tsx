@@ -36,6 +36,14 @@ import DeliveryRiders from "./pages/delivery/DeliveryRiders";
 import DeliveryFinance from "./pages/delivery/DeliveryFinance";
 import DeliveryIntegrations from "./pages/delivery/DeliveryIntegrations";
 import DeliverySettings from "./pages/delivery/DeliverySettings";
+// Customer Pages
+import TripsPage from "./pages/customer/TripsPage";
+import TripDetailsPage from "./pages/customer/TripDetailsPage";
+import ShipmentsPage from "./pages/customer/ShipmentsPage";
+import DeliveriesPage from "./pages/customer/DeliveriesPage";
+import HistoryPage from "./pages/customer/HistoryPage";
+import AccountPage from "./pages/customer/AccountPage";
+import TrackingPage from "./pages/customer/TrackingPage";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +60,15 @@ const App = () => (
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            {/* Customer Pages */}
+            <Route path="/trips" element={<TripsPage />} />
+            <Route path="/trips/:id" element={<TripDetailsPage />} />
+            <Route path="/shipments" element={<ShipmentsPage />} />
+            <Route path="/deliveries" element={<DeliveriesPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/account" element={<AccountPage />} />
+            <Route path="/tracking" element={<TrackingPage />} />
+            {/* Admin */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminOverview />} />
               <Route path="users" element={<AdminUsers />} />
