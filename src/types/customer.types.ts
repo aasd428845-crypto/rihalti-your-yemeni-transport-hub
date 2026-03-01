@@ -13,6 +13,10 @@ export interface TripSearchParams {
   from_city?: string;
   to_city?: string;
   date?: string;
+  period?: string;
+  min_price?: number;
+  max_price?: number;
+  bus_company?: string;
 }
 
 export interface TripWithSupplier {

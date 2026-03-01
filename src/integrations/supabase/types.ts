@@ -818,6 +818,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          logo_url: string | null
           phone: string | null
           updated_at: string
           user_id: string
@@ -828,6 +829,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          logo_url?: string | null
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -838,6 +840,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          logo_url?: string | null
           phone?: string | null
           updated_at?: string
           user_id?: string
@@ -1320,6 +1323,7 @@ export type Database = {
           from_city: string
           from_region_id: number | null
           id: string
+          image_url: string | null
           is_offer: boolean | null
           notes: string | null
           offer_type: string | null
@@ -1344,6 +1348,7 @@ export type Database = {
           from_city: string
           from_region_id?: number | null
           id?: string
+          image_url?: string | null
           is_offer?: boolean | null
           notes?: string | null
           offer_type?: string | null
@@ -1368,6 +1373,7 @@ export type Database = {
           from_city?: string
           from_region_id?: number | null
           id?: string
+          image_url?: string | null
           is_offer?: boolean | null
           notes?: string | null
           offer_type?: string | null
