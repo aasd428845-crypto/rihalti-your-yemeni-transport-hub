@@ -36,6 +36,39 @@ export const deleteAddress = async (id: string) => {
   if (error) throw error;
 };
 
+// ---- Regions ----
+export const fetchRegions = async () => {
+  const { data, error } = await supabase
+    .from("regions")
+    .select("*")
+    .eq("is_active", true)
+    .order("name_ar");
+  if (error) throw error;
+  return data;
+};
+
+export const fetchRegionsByParent = async (parentId: number) => {
+  const { data, error } = await supabase
+    .from("regions")
+    .select("*")
+    .eq("parent_id", parentId)
+    .eq("is_active", true)
+    .order("name_ar");
+  if (error) throw error;
+  return data;
+};
+
+export const fetchCountries = async () => {
+  const { data, error } = await supabase
+    .from("regions")
+    .select("*")
+    .eq("type", "country")
+    .eq("is_active", true)
+    .order("name_ar");
+  if (error) throw error;
+  return data;
+};
+
 // ---- Trips ----
 export const searchTrips = async (params: TripSearchParams) => {
   let query = supabase
@@ -53,14 +86,28 @@ export const searchTrips = async (params: TripSearchParams) => {
     end.setDate(end.getDate() + 1);
     query = query.gte("departure_time", start.toISOString()).lt("departure_time", end.toISOString());
   }
+  if (params.period) query = query.eq("period", params.period);
+  if (params.min_price) query = query.gte("price", params.min_price);
+  if (params.max_price) query = query.lte("price", params.max_price);
+  if (params.bus_company) query = query.ilike("bus_company", `%${params.bus_company}%`);
 
-  const { data, error } = await query.order("departure_time", { ascending: true });
+  const { data: trips, error } = await query.order("departure_time", { ascending: true });
   if (error) throw error;
-  return data;
+  if (!trips || trips.length === 0) return [];
+
+  // Fetch supplier profiles
+  const supplierIds = [...new Set(trips.map(t => t.supplier_id))];
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("user_id, full_name, logo_url, phone, city")
+    .in("user_id", supplierIds);
+
+  const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+  return trips.map(t => ({ ...t, supplier: profileMap.get(t.supplier_id) || null }));
 };
 
 export const fetchFeaturedTrips = async () => {
-  const { data, error } = await supabase
+  const { data: trips, error } = await supabase
     .from("trips")
     .select("*")
     .eq("status", "approved")
@@ -69,13 +116,33 @@ export const fetchFeaturedTrips = async () => {
     .order("created_at", { ascending: false })
     .limit(6);
   if (error) throw error;
-  return data;
+  if (!trips || trips.length === 0) return [];
+
+  const supplierIds = [...new Set(trips.map(t => t.supplier_id))];
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("user_id, full_name, logo_url")
+    .in("user_id", supplierIds);
+  const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+  return trips.map(t => ({ ...t, supplier: profileMap.get(t.supplier_id) || null }));
 };
 
 export const fetchTripById = async (id: string) => {
-  const { data, error } = await supabase.from("trips").select("*").eq("id", id).single();
+  const { data: trip, error } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("id", id)
+    .single();
   if (error) throw error;
-  return data;
+
+  // Fetch supplier profile separately
+  const { data: supplierProfile } = await supabase
+    .from("profiles")
+    .select("user_id, full_name, logo_url, phone, city")
+    .eq("user_id", trip.supplier_id)
+    .single();
+
+  return { ...trip, supplier: supplierProfile || null };
 };
 
 // ---- Bookings ----
@@ -92,7 +159,6 @@ export const createBooking = async (booking: BookingFormData & { customer_id: st
   if (error) throw error;
 
   // Decrease available seats
-  await supabase.rpc("has_role", { _user_id: booking.customer_id, _role: "customer" }); // dummy to keep auth
   const trip = await fetchTripById(booking.trip_id);
   if (trip) {
     await supabase
@@ -250,13 +316,12 @@ export const createCancellationRequest = async (req: {
   return data;
 };
 
-// ---- Regions ----
-export const fetchRegions = async () => {
+// ---- Supplier Bank Accounts (for trip details page) ----
+export const fetchSupplierBankAccounts = async (supplierId: string) => {
   const { data, error } = await supabase
-    .from("regions")
+    .from("partner_bank_accounts")
     .select("*")
-    .eq("is_active", true)
-    .order("name_ar");
+    .eq("partner_id", supplierId);
   if (error) throw error;
   return data;
 };
@@ -273,6 +338,18 @@ export const fetchHomeStats = async () => {
     suppliersCount: suppliersRes.count || 0,
     deliveryCount: deliveryRes.count || 0,
   };
+};
+
+// ---- Distinct bus companies ----
+export const fetchDistinctBusCompanies = async () => {
+  const { data, error } = await supabase
+    .from("trips")
+    .select("bus_company")
+    .eq("status", "approved")
+    .not("bus_company", "is", null);
+  if (error) throw error;
+  const unique = [...new Set((data || []).map(d => d.bus_company).filter(Boolean))];
+  return unique as string[];
 };
 
 // ---- Profile ----
