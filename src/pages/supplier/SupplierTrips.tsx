@@ -47,6 +47,15 @@ const SupplierTrips = () => {
     offer_value: "",
     offer_until: "",
     image_url: "",
+    departure_days: [] as string[],
+    check_in_time: "",
+    check_in_location: "",
+    luggage_weight: "",
+    description: "",
+    trip_type: "عادي",
+    arrival_time: "",
+    capacity: "",
+    driver_phone: "",
   });
 
   const loadData = async () => {
@@ -110,7 +119,9 @@ const SupplierTrips = () => {
       departure_time: "", period: "morning", price: "", available_seats: "",
       bus_company: "", bus_number: "", amenities: [], notes: "",
       is_offer: false, offer_type: "percentage", offer_value: "", offer_until: "",
-      image_url: "",
+      image_url: "", departure_days: [], check_in_time: "", check_in_location: "",
+      luggage_weight: "", description: "", trip_type: "عادي", arrival_time: "",
+      capacity: "", driver_phone: "",
     });
     setEditTrip(null);
     setImagePreview(null);
@@ -164,6 +175,15 @@ const SupplierTrips = () => {
       offer_until: form.is_offer && form.offer_until ? form.offer_until : null,
       image_url: form.image_url || null,
       status: "pending",
+      departure_days: form.departure_days.length > 0 ? form.departure_days : null,
+      check_in_time: form.check_in_time || null,
+      check_in_location: form.check_in_location || null,
+      luggage_weight: form.luggage_weight || null,
+      description: form.description || null,
+      trip_type: form.trip_type || "عادي",
+      arrival_time: form.arrival_time || null,
+      capacity: Number(form.capacity) || null,
+      driver_phone: form.driver_phone || null,
     };
 
     let result;
@@ -204,6 +224,15 @@ const SupplierTrips = () => {
       offer_value: trip.offer_value?.toString() || "",
       offer_until: trip.offer_until?.slice(0, 16) || "",
       image_url: trip.image_url || "",
+      departure_days: trip.departure_days || [],
+      check_in_time: trip.check_in_time || "",
+      check_in_location: trip.check_in_location || "",
+      luggage_weight: trip.luggage_weight || "",
+      description: trip.description || "",
+      trip_type: trip.trip_type || "عادي",
+      arrival_time: trip.arrival_time || "",
+      capacity: trip.capacity?.toString() || "",
+      driver_phone: trip.driver_phone || "",
     });
     setImagePreview(trip.image_url || null);
     setShowForm(true);
@@ -385,6 +414,53 @@ const SupplierTrips = () => {
                 )}
               </div>
             </div>
+
+            {/* New Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><Label>نوع الرحلة</Label>
+                <Select value={form.trip_type} onValueChange={(v) => setForm({ ...form, trip_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="عادي">عادي</SelectItem>
+                    <SelectItem value="VIP">VIP</SelectItem>
+                    <SelectItem value="اقتصادي">اقتصادي</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>السعة الكلية</Label><Input type="number" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} placeholder="عدد المقاعد الكلي" /></div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><Label>وقت الحضور</Label><Input value={form.check_in_time} onChange={(e) => setForm({ ...form, check_in_time: e.target.value })} placeholder="مثال: 4:00 مساءً" /></div>
+              <div><Label>مكان الحضور</Label><Input value={form.check_in_location} onChange={(e) => setForm({ ...form, check_in_location: e.target.value })} placeholder="مثال: مكتب الشركة - شارع..." /></div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><Label>وقت الوصول</Label><Input value={form.arrival_time} onChange={(e) => setForm({ ...form, arrival_time: e.target.value })} placeholder="مثال: 8:00 صباحاً" /></div>
+              <div><Label>وزن الأمتعة المسموح</Label><Input value={form.luggage_weight} onChange={(e) => setForm({ ...form, luggage_weight: e.target.value })} placeholder="مثال: 25 كجم" /></div>
+            </div>
+
+            <div><Label>رقم هاتف السائق</Label><Input value={form.driver_phone} onChange={(e) => setForm({ ...form, driver_phone: e.target.value })} placeholder="+967 7XX XXX XXX" dir="ltr" /></div>
+
+            {/* Departure Days */}
+            <div>
+              <Label>أيام التشغيل</Label>
+              <div className="flex flex-wrap gap-3 mt-2">
+                {[
+                  { id: "saturday", label: "السبت" }, { id: "sunday", label: "الأحد" }, { id: "monday", label: "الاثنين" },
+                  { id: "tuesday", label: "الثلاثاء" }, { id: "wednesday", label: "الأربعاء" }, { id: "thursday", label: "الخميس" }, { id: "friday", label: "الجمعة" },
+                ].map((d) => (
+                  <label key={d.id} className="flex items-center gap-1.5 text-sm">
+                    <Checkbox checked={form.departure_days.includes(d.id)} onCheckedChange={(checked) => {
+                      setForm({ ...form, departure_days: checked ? [...form.departure_days, d.id] : form.departure_days.filter((x) => x !== d.id) });
+                    }} />
+                    {d.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div><Label>وصف الرحلة</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="وصف مختصر للرحلة" /></div>
 
             {/* Amenities */}
             <div>

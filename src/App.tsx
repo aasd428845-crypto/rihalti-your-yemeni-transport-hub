@@ -10,6 +10,9 @@ import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
+// Admin
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -20,6 +23,7 @@ import AdminInvitations from "./pages/admin/AdminInvitations";
 import AdminCancellations from "./pages/admin/AdminCancellations";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminReports from "./pages/admin/AdminReports";
+// Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
 import SupplierDashboard from "./pages/supplier/SupplierDashboard";
 import SupplierTrips from "./pages/supplier/SupplierTrips";
@@ -28,6 +32,7 @@ import SupplierShipments from "./pages/supplier/SupplierShipments";
 import SupplierFinance from "./pages/supplier/SupplierFinance";
 import SupplierSettings from "./pages/supplier/SupplierSettings";
 import SupplierMessages from "./pages/supplier/SupplierMessages";
+// Delivery
 import DeliveryLayout from "./components/delivery/DeliveryLayout";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
 import DeliveryRestaurants from "./pages/delivery/DeliveryRestaurants";
@@ -39,11 +44,13 @@ import DeliverySettings from "./pages/delivery/DeliverySettings";
 // Customer Pages
 import TripsPage from "./pages/customer/TripsPage";
 import TripDetailsPage from "./pages/customer/TripDetailsPage";
+import CheckoutPage from "./pages/customer/CheckoutPage";
 import ShipmentsPage from "./pages/customer/ShipmentsPage";
 import DeliveriesPage from "./pages/customer/DeliveriesPage";
 import HistoryPage from "./pages/customer/HistoryPage";
 import AccountPage from "./pages/customer/AccountPage";
 import TrackingPage from "./pages/customer/TrackingPage";
+import AddressesPage from "./pages/customer/AddressesPage";
 
 const queryClient = new QueryClient();
 
@@ -60,14 +67,18 @@ const App = () => (
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             {/* Customer Pages */}
             <Route path="/trips" element={<TripsPage />} />
             <Route path="/trips/:id" element={<TripDetailsPage />} />
+            <Route path="/checkout/:tripId" element={<CheckoutPage />} />
             <Route path="/shipments" element={<ShipmentsPage />} />
             <Route path="/deliveries" element={<DeliveriesPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/tracking" element={<TrackingPage />} />
+            <Route path="/addresses" element={<AddressesPage />} />
             {/* Admin */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminOverview />} />
