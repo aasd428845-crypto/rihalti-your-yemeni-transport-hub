@@ -1,14 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Bus } from "lucide-react";
+import { Bus } from "lucide-react";
 import { searchTrips, fetchRegions } from "@/lib/customerApi";
 import TripCard from "@/components/trips/TripCard";
 import TripFilters from "@/components/trips/TripFilters";
 import Header from "@/components/landing/Header";
+import BackButton from "@/components/common/BackButton";
 import type { TripSearchParams } from "@/types/customer.types";
 
 const TripsPage = () => {
-  const [searchParams, setSearchParams] = useState<TripSearchParams>({});
+  const [urlParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useState<TripSearchParams>(() => ({
+    from_city: urlParams.get("from") || urlParams.get("q") || undefined,
+    to_city: urlParams.get("to") || undefined,
+    date: urlParams.get("date") || undefined,
+  }));
+
+  useEffect(() => {
+    const q = urlParams.get("q");
+    const from = urlParams.get("from");
+    const to = urlParams.get("to");
+    if (q || from || to) {
+      setSearchParams((prev) => ({
+        ...prev,
+        from_city: from || q || prev.from_city,
+        to_city: to || prev.to_city,
+      }));
+    }
+  }, [urlParams]);
 
   const { data: regions } = useQuery({
     queryKey: ["regions"],
@@ -24,14 +44,13 @@ const TripsPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       <Header />
       <div className="container mx-auto px-4 pt-24 pb-12">
-        {/* Page Header */}
+        <BackButton />
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">البحث عن رحلة</h1>
           <p className="text-muted-foreground">ابحث عن الرحلات المتاحة واحجز مقعدك الآن</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar Filters */}
           <aside className="w-full lg:w-72 shrink-0">
             <TripFilters
               regions={regions || []}
@@ -40,9 +59,7 @@ const TripsPage = () => {
             />
           </aside>
 
-          {/* Results */}
           <main className="flex-1">
-            {/* Results count */}
             {trips && (
               <p className="text-sm text-muted-foreground mb-4">
                 {trips.length > 0 ? `تم العثور على ${trips.length} رحلة` : ""}

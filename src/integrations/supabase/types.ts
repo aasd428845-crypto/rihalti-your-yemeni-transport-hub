@@ -1315,16 +1315,24 @@ export type Database = {
       trips: {
         Row: {
           amenities: Json | null
+          arrival_time: string | null
           available_seats: number
           bus_company: string | null
           bus_number: string | null
+          capacity: number | null
+          check_in_location: string | null
+          check_in_time: string | null
           created_at: string
+          departure_days: string[] | null
           departure_time: string
+          description: string | null
+          driver_phone: string | null
           from_city: string
           from_region_id: number | null
           id: string
           image_url: string | null
           is_offer: boolean | null
+          luggage_weight: string | null
           notes: string | null
           offer_type: string | null
           offer_until: string | null
@@ -1335,21 +1343,30 @@ export type Database = {
           supplier_id: string
           to_city: string
           to_region_id: number | null
+          trip_type: string | null
           type_id: number | null
           updated_at: string
         }
         Insert: {
           amenities?: Json | null
+          arrival_time?: string | null
           available_seats?: number
           bus_company?: string | null
           bus_number?: string | null
+          capacity?: number | null
+          check_in_location?: string | null
+          check_in_time?: string | null
           created_at?: string
+          departure_days?: string[] | null
           departure_time: string
+          description?: string | null
+          driver_phone?: string | null
           from_city: string
           from_region_id?: number | null
           id?: string
           image_url?: string | null
           is_offer?: boolean | null
+          luggage_weight?: string | null
           notes?: string | null
           offer_type?: string | null
           offer_until?: string | null
@@ -1360,21 +1377,30 @@ export type Database = {
           supplier_id: string
           to_city: string
           to_region_id?: number | null
+          trip_type?: string | null
           type_id?: number | null
           updated_at?: string
         }
         Update: {
           amenities?: Json | null
+          arrival_time?: string | null
           available_seats?: number
           bus_company?: string | null
           bus_number?: string | null
+          capacity?: number | null
+          check_in_location?: string | null
+          check_in_time?: string | null
           created_at?: string
+          departure_days?: string[] | null
           departure_time?: string
+          description?: string | null
+          driver_phone?: string | null
           from_city?: string
           from_region_id?: number | null
           id?: string
           image_url?: string | null
           is_offer?: boolean | null
+          luggage_weight?: string | null
           notes?: string | null
           offer_type?: string | null
           offer_until?: string | null
@@ -1385,6 +1411,7 @@ export type Database = {
           supplier_id?: string
           to_city?: string
           to_region_id?: number | null
+          trip_type?: string | null
           type_id?: number | null
           updated_at?: string
         }

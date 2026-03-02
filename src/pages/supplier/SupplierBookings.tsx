@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/admin/common/StatusBadge";
-import { Check, X, Eye } from "lucide-react";
+import { Check, X, Eye, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -96,9 +96,15 @@ const SupplierBookings = () => {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Button variant="ghost" size="icon" onClick={() => setSelectedBooking(booking)}><Eye className="w-4 h-4" /></Button>
+                            {booking.status === "confirmed" && trip?.driver_phone && (
+                              <Button variant="ghost" size="icon" onClick={() => {
+                                const text = `تفاصيل حجز:\nالعميل: ${profiles[booking.customer_id] || "—"}\nالرحلة: ${trip.from_city} → ${trip.to_city}\nالمقاعد: ${booking.seat_count}\nالمبلغ: ${Number(booking.total_amount).toLocaleString()} ر.ي\nالتاريخ: ${new Date(booking.created_at).toLocaleDateString("ar")}`;
+                                window.open(`https://wa.me/${trip.driver_phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
+                              }} className="text-[hsl(var(--success))]"><MessageCircle className="w-4 h-4" /></Button>
+                            )}
                             {booking.status === "pending_approval" && (
                               <>
-                                <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "confirmed")} className="text-green-600"><Check className="w-4 h-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "confirmed")} className="text-[hsl(var(--success))]"><Check className="w-4 h-4" /></Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "cancelled")} className="text-destructive"><X className="w-4 h-4" /></Button>
                               </>
                             )}
