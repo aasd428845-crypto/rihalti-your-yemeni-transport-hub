@@ -1,112 +1,319 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Clock, Map, Package, Truck } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Map, Package, Truck, Users, Bus, MapPin, Calendar } from "lucide-react";
 import StatusBadge from "@/components/admin/common/StatusBadge";
-import { entityTypeLabels } from "@/types/admin.types";
-import { getPendingApprovals, approveRequest, rejectRequest, createAuditLog } from "@/lib/adminApi";
+import { createAuditLog } from "@/lib/adminApi";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
-type ApprovalRequest = {
-  id: string; type: string; status: string; data: any;
-  admin_notes: string | null; created_at: string; requester_id: string;
+type UnifiedRequest = {
+  id: string;
+  source: "trip" | "shipment" | "delivery_order" | "partner_join" | "approval_request";
+  type_label: string;
+  status: string;
+  created_at: string;
+  details: Record<string, any>;
 };
 
-const typeIcons: Record<string, any> = {
-  trip: Map, shipment: Package, delivery: Truck,
-  supplier_registration: CheckCircle, delivery_registration: Truck, booking: Clock,
+const sourceIcons: Record<string, any> = {
+  trip: Bus,
+  shipment: Package,
+  delivery_order: Truck,
+  partner_join: Users,
+  approval_request: Clock,
 };
 
 const AdminApprovals = () => {
   const { user } = useAuth();
-  const [requests, setRequests] = useState<ApprovalRequest[]>([]);
+  const [requests, setRequests] = useState<UnifiedRequest[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [rejectModal, setRejectModal] = useState<string | null>(null);
+  const [rejectModal, setRejectModal] = useState<UnifiedRequest | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const fetchData = async () => {
+  const fetchAll = async () => {
     setLoading(true);
-    const { data } = await getPendingApprovals();
-    setRequests(data || []);
+    const unified: UnifiedRequest[] = [];
+
+    // 1. Pending trips
+    const { data: trips } = await supabase
+      .from("trips")
+      .select("id, from_city, to_city, price, available_seats, bus_company, supplier_id, status, created_at")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    if (trips) {
+      // fetch supplier names
+      const supplierIds = trips.map(t => t.supplier_id).filter((v, i, a) => a.indexOf(v) === i);
+      const nameMap: Record<string, string> = {};
+      if (supplierIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", supplierIds);
+        for (const p of (profiles || [])) { nameMap[p.user_id] = p.full_name; }
+      }
+
+      for (const t of trips) {
+        unified.push({
+          id: t.id,
+          source: "trip",
+          type_label: "رحلة معلقة",
+          status: t.status,
+          created_at: t.created_at,
+          details: {
+            from: t.from_city,
+            to: t.to_city,
+            price: t.price,
+            seats: t.available_seats,
+            company: t.bus_company,
+            supplier: nameMap[t.supplier_id] || "مورد",
+          },
+        });
+      }
+    }
+
+    // 2. Pending shipment requests
+    const { data: shipments } = await supabase
+      .from("shipment_requests")
+      .select("id, pickup_address, delivery_address, shipment_type, status, created_at, customer_id, supplier_id")
+      .eq("status", "pending_approval")
+      .order("created_at", { ascending: false });
+
+    if (shipments) {
+      for (const s of shipments) {
+        unified.push({
+          id: s.id,
+          source: "shipment",
+          type_label: "طلب شحن معلق",
+          status: "pending",
+          created_at: s.created_at || "",
+          details: { from: s.pickup_address, to: s.delivery_address, type: s.shipment_type },
+        });
+      }
+    }
+
+    // 3. Pending delivery orders
+    const { data: deliveryOrders } = await supabase
+      .from("delivery_orders")
+      .select("id, customer_name, customer_address, total, status, created_at")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    if (deliveryOrders) {
+      for (const d of deliveryOrders) {
+        unified.push({
+          id: d.id,
+          source: "delivery_order",
+          type_label: "طلب توصيل معلق",
+          status: "pending",
+          created_at: d.created_at || "",
+          details: { customer: d.customer_name, address: d.customer_address, total: d.total },
+        });
+      }
+    }
+
+    // 4. Partner join requests
+    const { data: partners } = await supabase
+      .from("partner_join_requests")
+      .select("id, business_name, contact_phone, business_type, status, created_at")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    if (partners) {
+      for (const p of partners) {
+        unified.push({
+          id: p.id,
+          source: "partner_join",
+          type_label: "طلب انضمام شريك",
+          status: "pending",
+          created_at: p.created_at || "",
+          details: { name: p.business_name, phone: p.contact_phone, type: p.business_type },
+        });
+      }
+    }
+
+    // 5. General approval_requests
+    const { data: approvals } = await supabase
+      .from("approval_requests")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    if (approvals) {
+      for (const a of approvals) {
+        unified.push({
+          id: a.id,
+          source: "approval_request",
+          type_label: a.type || "طلب عام",
+          status: a.status,
+          created_at: a.created_at,
+          details: { notes: a.admin_notes, data: a.data },
+        });
+      }
+    }
+
+    // Sort by date
+    unified.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setRequests(unified);
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (req: UnifiedRequest) => {
     if (!user) return;
-    const { error } = await approveRequest(id, user.id);
+    let error: any = null;
+
+    if (req.source === "trip") {
+      const res = await supabase.from("trips").update({ status: "approved" }).eq("id", req.id);
+      error = res.error;
+    } else if (req.source === "shipment") {
+      const res = await supabase.from("shipment_requests").update({ status: "approved", admin_approved: true }).eq("id", req.id);
+      error = res.error;
+    } else if (req.source === "delivery_order") {
+      const res = await supabase.from("delivery_orders").update({ status: "confirmed" }).eq("id", req.id);
+      error = res.error;
+    } else if (req.source === "partner_join") {
+      const res = await supabase.from("partner_join_requests").update({ status: "approved" }).eq("id", req.id);
+      error = res.error;
+    } else {
+      const res = await supabase.from("approval_requests").update({
+        status: "approved", reviewed_by: user.id, reviewed_at: new Date().toISOString(),
+      }).eq("id", req.id);
+      error = res.error;
+    }
+
     if (error) { toast.error("فشل الموافقة"); return; }
     toast.success("تمت الموافقة بنجاح");
-    createAuditLog(user.id, "الموافقة على طلب", "approval_request", id);
-    fetchData();
+    createAuditLog(user.id, "الموافقة على طلب", req.source, req.id);
+    fetchAll();
   };
 
   const handleReject = async () => {
     if (!rejectModal || !user) return;
-    const { error } = await rejectRequest(rejectModal, user.id, rejectReason);
+    const req = rejectModal;
+    let error: any = null;
+
+    if (req.source === "trip") {
+      const res = await supabase.from("trips").update({ status: "rejected", notes: rejectReason }).eq("id", req.id);
+      error = res.error;
+    } else if (req.source === "shipment") {
+      const res = await supabase.from("shipment_requests").update({ status: "rejected" }).eq("id", req.id);
+      error = res.error;
+    } else if (req.source === "delivery_order") {
+      const res = await supabase.from("delivery_orders").update({ status: "cancelled", cancellation_reason: rejectReason }).eq("id", req.id);
+      error = res.error;
+    } else if (req.source === "partner_join") {
+      const res = await supabase.from("partner_join_requests").update({ status: "rejected", notes: rejectReason }).eq("id", req.id);
+      error = res.error;
+    } else {
+      const res = await supabase.from("approval_requests").update({
+        status: "rejected", reviewed_by: user.id, reviewed_at: new Date().toISOString(), admin_notes: rejectReason,
+      }).eq("id", req.id);
+      error = res.error;
+    }
+
     if (error) { toast.error("فشل الرفض"); return; }
     toast.success("تم رفض الطلب");
-    createAuditLog(user.id, "رفض طلب", "approval_request", rejectModal, { reason: rejectReason });
+    createAuditLog(user.id, "رفض طلب", req.source, req.id, { reason: rejectReason });
     setRejectModal(null);
     setRejectReason("");
-    fetchData();
+    fetchAll();
   };
 
-  const filtered = activeTab === "all" ? requests : requests.filter((r) => r.type === activeTab);
-  const pendingCount = requests.filter((r) => r.status === "pending").length;
+  const filtered = activeTab === "all" ? requests : requests.filter((r) => r.source === activeTab);
+  const pendingCount = requests.length;
+
+  const renderDetails = (req: UnifiedRequest) => {
+    const d = req.details;
+    if (req.source === "trip") {
+      return (
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {d.from} → {d.to}</p>
+          <p>المورد: {d.supplier} | السعر: {d.price?.toLocaleString()} ر.ي | المقاعد: {d.seats}</p>
+          {d.company && <p>شركة النقل: {d.company}</p>}
+        </div>
+      );
+    }
+    if (req.source === "shipment") {
+      return <p className="text-sm text-muted-foreground">من: {d.from} → إلى: {d.to} | النوع: {d.type}</p>;
+    }
+    if (req.source === "delivery_order") {
+      return <p className="text-sm text-muted-foreground">العميل: {d.customer} | العنوان: {d.address} | الإجمالي: {d.total} ر.ي</p>;
+    }
+    if (req.source === "partner_join") {
+      return <p className="text-sm text-muted-foreground">الاسم: {d.name} | الهاتف: {d.phone} | النوع: {d.type}</p>;
+    }
+    return null;
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">الموافقات</h2>
-        {pendingCount > 0 && <span className="bg-secondary/20 text-secondary-foreground px-3 py-1 rounded-full text-sm font-medium">{pendingCount} طلب معلق</span>}
+        {pendingCount > 0 && (
+          <span className="bg-destructive/10 text-destructive px-3 py-1 rounded-full text-sm font-medium">
+            {pendingCount} طلب معلق
+          </span>
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full max-w-lg">
-          <TabsTrigger value="all">الكل</TabsTrigger>
-          <TabsTrigger value="supplier_registration">موردون</TabsTrigger>
-          <TabsTrigger value="delivery_registration">توصيل</TabsTrigger>
-          <TabsTrigger value="booking">حجوزات</TabsTrigger>
+        <TabsList className="grid grid-cols-5 w-full max-w-2xl">
+          <TabsTrigger value="all">الكل ({requests.length})</TabsTrigger>
+          <TabsTrigger value="trip">رحلات ({requests.filter(r => r.source === "trip").length})</TabsTrigger>
+          <TabsTrigger value="shipment">شحنات ({requests.filter(r => r.source === "shipment").length})</TabsTrigger>
+          <TabsTrigger value="delivery_order">توصيل ({requests.filter(r => r.source === "delivery_order").length})</TabsTrigger>
+          <TabsTrigger value="partner_join">شركاء ({requests.filter(r => r.source === "partner_join").length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-4">
           {loading ? (
-            <div className="flex items-center justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+            </div>
           ) : filtered.length === 0 ? (
-            <Card><CardContent className="py-12 text-center text-muted-foreground">لا توجد طلبات</CardContent></Card>
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <CheckCircle className="w-12 h-12 mx-auto mb-3 text-primary/30" />
+                <p>لا توجد طلبات معلقة 🎉</p>
+              </CardContent>
+            </Card>
           ) : (
             <div className="grid gap-4">
               {filtered.map((req) => {
-                const Icon = typeIcons[req.type] || Clock;
+                const Icon = sourceIcons[req.source] || Clock;
                 return (
-                  <Card key={req.id} className="hover:shadow-md transition-shadow">
+                  <Card key={`${req.source}-${req.id}`} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mt-1">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mt-1 shrink-0">
                             <Icon className="w-5 h-5 text-primary" />
                           </div>
-                          <div className="space-y-1">
-                            <p className="font-semibold">{entityTypeLabels[req.type] || req.type}</p>
-                            <p className="text-xs text-muted-foreground">{new Date(req.created_at).toLocaleDateString("ar-YE")} — {new Date(req.created_at).toLocaleTimeString("ar-YE")}</p>
-                            <StatusBadge status={req.status} />
-                            {req.admin_notes && <p className="text-xs text-muted-foreground mt-1">ملاحظات: {req.admin_notes}</p>}
+                          <div className="space-y-1 min-w-0">
+                            <p className="font-semibold text-foreground">{req.type_label}</p>
+                            <p className="text-xs text-muted-foreground">
+                              <Calendar className="w-3 h-3 inline ml-1" />
+                              {new Date(req.created_at).toLocaleDateString("ar-YE")} — {new Date(req.created_at).toLocaleTimeString("ar-YE")}
+                            </p>
+                            {renderDetails(req)}
                           </div>
                         </div>
-                        {req.status === "pending" && (
-                          <div className="flex gap-2 shrink-0">
-                            <Button size="sm" onClick={() => handleApprove(req.id)}><CheckCircle className="w-3 h-3 ml-1" />قبول</Button>
-                            <Button size="sm" variant="destructive" onClick={() => setRejectModal(req.id)}><XCircle className="w-3 h-3 ml-1" />رفض</Button>
-                          </div>
-                        )}
+                        <div className="flex gap-2 shrink-0">
+                          <Button size="sm" onClick={() => handleApprove(req)} className="gap-1">
+                            <CheckCircle className="w-3 h-3" />قبول
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => setRejectModal(req)} className="gap-1">
+                            <XCircle className="w-3 h-3" />رفض
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

@@ -182,4 +182,7 @@ export const entityTypeLabels: Record<string, string> = {
   supplier_registration: "تسجيل مورد",
   delivery_registration: "تسجيل شركة توصيل",
   booking: "حجز",
+  pending_trip: "رحلة معلقة",
+  pending_shipment: "طلب شحن معلق",
+  pending_delivery: "طلب توصيل معلق",
 };

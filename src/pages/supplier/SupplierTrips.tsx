@@ -174,7 +174,7 @@ const SupplierTrips = () => {
       offer_value: form.is_offer ? Number(form.offer_value) : null,
       offer_until: form.is_offer && form.offer_until ? form.offer_until : null,
       image_url: form.image_url || null,
-      status: "pending",
+      status: "pending", // Will be overridden below if auto-approve is on
       departure_days: form.departure_days.length > 0 ? form.departure_days : null,
       check_in_time: form.check_in_time || null,
       check_in_location: form.check_in_location || null,
@@ -185,6 +185,18 @@ const SupplierTrips = () => {
       capacity: Number(form.capacity) || null,
       driver_phone: form.driver_phone || null,
     };
+
+    // Check auto-approve setting
+    if (!editTrip) {
+      const { data: settingData } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "auto_approve_trips")
+        .maybeSingle();
+      if (settingData?.value === "true") {
+        tripData.status = "approved";
+      }
+    }
 
     let result;
     if (editTrip) {
