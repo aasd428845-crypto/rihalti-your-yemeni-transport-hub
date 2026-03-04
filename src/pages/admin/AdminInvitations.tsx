@@ -42,7 +42,7 @@ const AdminInvitations = () => {
   };
 
   const copyLink = (token: string) => {
-    const link = `${window.location.origin}/register?token=${token}`;
+    const link = `${window.location.origin}/invite/${token}`;
     navigator.clipboard.writeText(link);
     toast.success("تم نسخ الرابط");
   };
@@ -66,6 +66,7 @@ const AdminInvitations = () => {
                 <SelectContent>
                   <SelectItem value="supplier">مورد</SelectItem>
                   <SelectItem value="delivery_company">شركة توصيل</SelectItem>
+                  <SelectItem value="driver">سائق</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -97,7 +98,7 @@ const AdminInvitations = () => {
               ) : invitations.map((inv) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-medium">{inv.email}</TableCell>
-                  <TableCell>{inv.role === "supplier" ? "مورد" : "شركة توصيل"}</TableCell>
+                  <TableCell>{inv.role === "supplier" ? "مورد" : inv.role === "driver" ? "سائق" : "شركة توصيل"}</TableCell>
                   <TableCell>
                     {inv.used_at ? (
                       <StatusBadge status="completed" />

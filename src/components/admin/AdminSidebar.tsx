@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield, Mail, XCircle, FileText, Send, Home } from "lucide-react";
+import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield, Mail, XCircle, FileText, Send, Home, UserPlus } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +12,7 @@ const menuItems = [
   { title: "لوحة التحكم", url: "/admin", icon: LayoutDashboard },
   { title: "إدارة المستخدمين", url: "/admin/users", icon: Users },
   { title: "الموافقات", url: "/admin/approvals", icon: CheckCircle },
+  { title: "طلبات الانضمام", url: "/admin/join-requests", icon: UserPlus },
   { title: "الإدارة المالية", url: "/admin/finance", icon: DollarSign },
   { title: "الدعوات", url: "/admin/invitations", icon: Send },
   { title: "الإلغاءات", url: "/admin/cancellations", icon: XCircle },

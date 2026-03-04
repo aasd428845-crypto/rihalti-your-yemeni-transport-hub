@@ -813,37 +813,85 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string | null
+          address: string | null
           avatar_url: string | null
           city: string | null
+          company_name: string | null
           created_at: string
           full_name: string
           id: string
+          id_image_back: string | null
+          id_image_front: string | null
+          id_number: string | null
+          is_verified: boolean | null
+          license_image: string | null
           logo_url: string | null
           phone: string | null
+          phone_secondary: string | null
+          rejection_reason: string | null
+          selfie_image: string | null
           updated_at: string
           user_id: string
+          vehicle_color: string | null
+          vehicle_image: string | null
+          vehicle_model: string | null
+          vehicle_plate: string | null
+          vehicle_type: string | null
         }
         Insert: {
+          account_status?: string | null
+          address?: string | null
           avatar_url?: string | null
           city?: string | null
+          company_name?: string | null
           created_at?: string
           full_name?: string
           id?: string
+          id_image_back?: string | null
+          id_image_front?: string | null
+          id_number?: string | null
+          is_verified?: boolean | null
+          license_image?: string | null
           logo_url?: string | null
           phone?: string | null
+          phone_secondary?: string | null
+          rejection_reason?: string | null
+          selfie_image?: string | null
           updated_at?: string
           user_id: string
+          vehicle_color?: string | null
+          vehicle_image?: string | null
+          vehicle_model?: string | null
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
         }
         Update: {
+          account_status?: string | null
+          address?: string | null
           avatar_url?: string | null
           city?: string | null
+          company_name?: string | null
           created_at?: string
           full_name?: string
           id?: string
+          id_image_back?: string | null
+          id_image_front?: string | null
+          id_number?: string | null
+          is_verified?: boolean | null
+          license_image?: string | null
           logo_url?: string | null
           phone?: string | null
+          phone_secondary?: string | null
+          rejection_reason?: string | null
+          selfie_image?: string | null
           updated_at?: string
           user_id?: string
+          vehicle_color?: string | null
+          vehicle_image?: string | null
+          vehicle_model?: string | null
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
         }
         Relationships: []
       }
@@ -1475,7 +1523,12 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "customer" | "supplier" | "delivery_company" | "admin"
+      app_role:
+        | "customer"
+        | "supplier"
+        | "delivery_company"
+        | "admin"
+        | "driver"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1603,7 +1656,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["customer", "supplier", "delivery_company", "admin"],
+      app_role: ["customer", "supplier", "delivery_company", "admin", "driver"],
     },
   },
 } as const
