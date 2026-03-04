@@ -23,6 +23,8 @@ import AdminInvitations from "./pages/admin/AdminInvitations";
 import AdminCancellations from "./pages/admin/AdminCancellations";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminReports from "./pages/admin/AdminReports";
+import AdminJoinRequests from "./pages/admin/AdminJoinRequests";
+import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
 import SupplierDashboard from "./pages/supplier/SupplierDashboard";
@@ -68,6 +70,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/invite/:token" element={<InvitePage />} />
             <Route path="/contact" element={<ContactPage />} />
             {/* Customer Pages */}
             <Route path="/trips" element={<TripsPage />} />
@@ -88,6 +91,7 @@ const App = () => (
               <Route path="settings" element={<AdminSettings />} />
               <Route path="invitations" element={<AdminInvitations />} />
               <Route path="cancellations" element={<AdminCancellations />} />
+              <Route path="join-requests" element={<AdminJoinRequests />} />
               <Route path="messages" element={<AdminMessages />} />
               <Route path="reports" element={<AdminReports />} />
             </Route>
