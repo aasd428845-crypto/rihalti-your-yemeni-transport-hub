@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { initOneSignal, registerUserForPush, logoutFromPush } from "@/lib/onesignal";
 
 type AppRole = "customer" | "supplier" | "delivery_company" | "admin" | "driver";
 
@@ -52,8 +53,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to avoid deadlock with Supabase auth
-          setTimeout(() => fetchUserData(session.user.id), 0);
+          setTimeout(() => {
+            fetchUserData(session.user.id);
+            initOneSignal();
+          }, 0);
         } else {
           setRole(null);
           setProfile(null);
@@ -74,7 +77,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Register for push when role is available
+  useEffect(() => {
+    if (user && role) {
+      registerUserForPush(user.id, user.email, role);
+    }
+  }, [user, role]);
+
   const signOut = async () => {
+    await logoutFromPush();
     await supabase.auth.signOut();
     setRole(null);
     setProfile(null);

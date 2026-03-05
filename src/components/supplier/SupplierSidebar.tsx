@@ -1,4 +1,4 @@
-import { LayoutDashboard, Bus, CalendarCheck, Package, DollarSign, Settings, MessageCircle, LogOut, Home } from "lucide-react";
+import { LayoutDashboard, Bus, CalendarCheck, Package, DollarSign, Settings, MessageCircle, LogOut, Home, Megaphone } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,7 @@ const menuItems = [
   { title: "المالية", url: "/supplier/finance", icon: DollarSign },
   { title: "الإعدادات", url: "/supplier/settings", icon: Settings },
   { title: "الرسائل", url: "/supplier/messages", icon: MessageCircle },
+  { title: "العروض الترويجية", url: "/supplier/promotions", icon: Megaphone },
 ];
 
 const SupplierSidebar = () => {

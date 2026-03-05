@@ -34,6 +34,7 @@ import SupplierShipments from "./pages/supplier/SupplierShipments";
 import SupplierFinance from "./pages/supplier/SupplierFinance";
 import SupplierSettings from "./pages/supplier/SupplierSettings";
 import SupplierMessages from "./pages/supplier/SupplierMessages";
+import SupplierPromotions from "./pages/supplier/SupplierPromotions";
 // Delivery
 import DeliveryLayout from "./components/delivery/DeliveryLayout";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
@@ -53,6 +54,8 @@ import HistoryPage from "./pages/customer/HistoryPage";
 import AccountPage from "./pages/customer/AccountPage";
 import TrackingPage from "./pages/customer/TrackingPage";
 import AddressesPage from "./pages/customer/AddressesPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +85,8 @@ const App = () => (
             <Route path="/account" element={<AccountPage />} />
             <Route path="/tracking" element={<TrackingPage />} />
             <Route path="/addresses" element={<AddressesPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/notification-settings" element={<NotificationSettingsPage />} />
             {/* Admin */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminOverview />} />
@@ -103,6 +108,7 @@ const App = () => (
               <Route path="finance" element={<SupplierFinance />} />
               <Route path="settings" element={<SupplierSettings />} />
               <Route path="messages" element={<SupplierMessages />} />
+              <Route path="promotions" element={<SupplierPromotions />} />
             </Route>
             <Route path="/delivery" element={<DeliveryLayout />}>
               <Route index element={<DeliveryDashboard />} />
