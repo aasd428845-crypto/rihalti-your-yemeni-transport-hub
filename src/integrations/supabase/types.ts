@@ -151,6 +151,51 @@ export type Database = {
           },
         ]
       }
+      bulk_notifications: {
+        Row: {
+          action_url: string | null
+          body: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          image_url: string | null
+          sent_at: string | null
+          sent_count: number | null
+          sound: string | null
+          status: string | null
+          target_role: string | null
+          title: string
+        }
+        Insert: {
+          action_url?: string | null
+          body: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          sent_at?: string | null
+          sent_count?: number | null
+          sound?: string | null
+          status?: string | null
+          target_role?: string | null
+          title: string
+        }
+        Update: {
+          action_url?: string | null
+          body?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          sent_at?: string | null
+          sent_count?: number | null
+          sound?: string | null
+          status?: string | null
+          target_role?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       cancellation_requests: {
         Row: {
           created_at: string
@@ -605,6 +650,96 @@ export type Database = {
           },
         ]
       }
+      notification_logs: {
+        Row: {
+          body: string
+          data: Json | null
+          delivered_at: string | null
+          id: string
+          is_read: boolean | null
+          sent_at: string | null
+          sound: string | null
+          title: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          body: string
+          data?: Json | null
+          delivered_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          sent_at?: string | null
+          sound?: string | null
+          title: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          data?: Json | null
+          delivered_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          sent_at?: string | null
+          sound?: string | null
+          title?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          created_at: string | null
+          enable_push_notifications: boolean | null
+          enable_sound: boolean | null
+          id: string
+          notification_sound: string | null
+          notify_delivery_updates: boolean | null
+          notify_payments: boolean | null
+          notify_promotions: boolean | null
+          notify_ride_requests: boolean | null
+          notify_shipment_updates: boolean | null
+          notify_trip_reminders: boolean | null
+          updated_at: string | null
+          user_id: string
+          vibration_enabled: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          enable_push_notifications?: boolean | null
+          enable_sound?: boolean | null
+          id?: string
+          notification_sound?: string | null
+          notify_delivery_updates?: boolean | null
+          notify_payments?: boolean | null
+          notify_promotions?: boolean | null
+          notify_ride_requests?: boolean | null
+          notify_shipment_updates?: boolean | null
+          notify_trip_reminders?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          vibration_enabled?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          enable_push_notifications?: boolean | null
+          enable_sound?: boolean | null
+          id?: string
+          notification_sound?: string | null
+          notify_delivery_updates?: boolean | null
+          notify_payments?: boolean | null
+          notify_promotions?: boolean | null
+          notify_ride_requests?: boolean | null
+          notify_shipment_updates?: boolean | null
+          notify_trip_reminders?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          vibration_enabled?: boolean | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -827,6 +962,7 @@ export type Database = {
           is_verified: boolean | null
           license_image: string | null
           logo_url: string | null
+          onesignal_player_id: string | null
           phone: string | null
           phone_secondary: string | null
           rejection_reason: string | null
@@ -854,6 +990,7 @@ export type Database = {
           is_verified?: boolean | null
           license_image?: string | null
           logo_url?: string | null
+          onesignal_player_id?: string | null
           phone?: string | null
           phone_secondary?: string | null
           rejection_reason?: string | null
@@ -881,6 +1018,7 @@ export type Database = {
           is_verified?: boolean | null
           license_image?: string | null
           logo_url?: string | null
+          onesignal_player_id?: string | null
           phone?: string | null
           phone_secondary?: string | null
           rejection_reason?: string | null
