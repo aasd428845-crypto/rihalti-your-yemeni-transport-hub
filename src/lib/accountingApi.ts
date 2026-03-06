@@ -55,7 +55,7 @@ export const createFinancialTransaction = async (tx: {
   due_date?: string;
   metadata?: Record<string, unknown>;
 }) => {
-  return supabase.from("financial_transactions").insert(tx);
+  return supabase.from("financial_transactions").insert(tx as any);
 };
 
 export const calculateCommission = async (
