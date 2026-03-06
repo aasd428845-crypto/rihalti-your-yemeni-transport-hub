@@ -24,6 +24,9 @@ import AdminCancellations from "./pages/admin/AdminCancellations";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminJoinRequests from "./pages/admin/AdminJoinRequests";
+import AdminTransactions from "./pages/admin/AdminTransactions";
+import AdminInvoices from "./pages/admin/AdminInvoices";
+import AdminViolations from "./pages/admin/AdminViolations";
 import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
@@ -97,6 +100,9 @@ const App = () => (
               <Route path="invitations" element={<AdminInvitations />} />
               <Route path="cancellations" element={<AdminCancellations />} />
               <Route path="join-requests" element={<AdminJoinRequests />} />
+              <Route path="transactions" element={<AdminTransactions />} />
+              <Route path="invoices" element={<AdminInvoices />} />
+              <Route path="violations" element={<AdminViolations />} />
               <Route path="messages" element={<AdminMessages />} />
               <Route path="reports" element={<AdminReports />} />
             </Route>

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_settings: {
+        Row: {
+          auto_suspend_days: number
+          currency: string | null
+          global_commission_booking: number
+          global_commission_delivery: number
+          global_commission_ride: number
+          global_commission_shipment: number
+          id: number
+          payment_due_days: number
+          updated_at: string | null
+        }
+        Insert: {
+          auto_suspend_days?: number
+          currency?: string | null
+          global_commission_booking?: number
+          global_commission_delivery?: number
+          global_commission_ride?: number
+          global_commission_shipment?: number
+          id?: number
+          payment_due_days?: number
+          updated_at?: string | null
+        }
+        Update: {
+          auto_suspend_days?: number
+          currency?: string | null
+          global_commission_booking?: number
+          global_commission_delivery?: number
+          global_commission_ride?: number
+          global_commission_shipment?: number
+          id?: number
+          payment_due_days?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       admin_settings: {
         Row: {
           description: string | null
@@ -481,6 +517,66 @@ export type Database = {
           },
         ]
       }
+      financial_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string | null
+          customer_id: string
+          due_date: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          paid_at: string | null
+          partner_earning: number
+          partner_id: string
+          payment_method: string
+          payment_status: string | null
+          platform_commission: number
+          reference_id: string
+          transaction_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string | null
+          customer_id: string
+          due_date?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          paid_at?: string | null
+          partner_earning?: number
+          partner_id: string
+          payment_method?: string
+          payment_status?: string | null
+          platform_commission?: number
+          reference_id: string
+          transaction_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string | null
+          customer_id?: string
+          due_date?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          paid_at?: string | null
+          partner_earning?: number
+          partner_id?: string
+          payment_method?: string
+          payment_status?: string | null
+          platform_commission?: number
+          reference_id?: string
+          transaction_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       invitation_tokens: {
         Row: {
           created_at: string
@@ -841,6 +937,90 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_commission_settings: {
+        Row: {
+          commission_type: string | null
+          commission_value: number
+          created_at: string | null
+          id: string
+          override_global: boolean | null
+          partner_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          commission_type?: string | null
+          commission_value?: number
+          created_at?: string | null
+          id?: string
+          override_global?: boolean | null
+          partner_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          commission_type?: string | null
+          commission_value?: number
+          created_at?: string | null
+          id?: string
+          override_global?: boolean | null
+          partner_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      partner_invoices: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          due_date: string
+          id: string
+          invoice_number: string
+          net_amount: number
+          notes: string | null
+          paid_at: string | null
+          partner_id: string
+          period_end: string
+          period_start: string
+          status: string | null
+          total_amount: number
+          total_commission: number
+          total_transactions: number
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          due_date: string
+          id?: string
+          invoice_number: string
+          net_amount?: number
+          notes?: string | null
+          paid_at?: string | null
+          partner_id: string
+          period_end: string
+          period_start: string
+          status?: string | null
+          total_amount?: number
+          total_commission?: number
+          total_transactions?: number
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          net_amount?: number
+          notes?: string | null
+          paid_at?: string | null
+          partner_id?: string
+          period_end?: string
+          period_start?: string
+          status?: string | null
+          total_amount?: number
+          total_commission?: number
+          total_transactions?: number
+        }
+        Relationships: []
+      }
       partner_join_requests: {
         Row: {
           address: string | null
@@ -882,6 +1062,44 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      payment_logs: {
+        Row: {
+          amount_paid: number
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          payment_date: string | null
+          payment_method: string | null
+          received_by: string | null
+        }
+        Insert: {
+          amount_paid: number
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          received_by?: string | null
+        }
+        Update: {
+          amount_paid?: number
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          received_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_logs_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "partner_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payouts: {
         Row: {
@@ -1640,6 +1858,45 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      violation_logs: {
+        Row: {
+          created_at: string | null
+          details: string | null
+          id: string
+          related_entity_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string | null
+          status: string | null
+          user_id: string
+          violation_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          related_entity_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string | null
+          status?: string | null
+          user_id: string
+          violation_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          related_entity_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string | null
+          status?: string | null
+          user_id?: string
+          violation_type?: string | null
         }
         Relationships: []
       }

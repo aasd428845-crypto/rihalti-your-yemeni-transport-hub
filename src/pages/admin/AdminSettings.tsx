@@ -8,9 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Shield, Settings2, FileText } from "lucide-react";
+import { Save, Shield, Settings2, FileText, Calculator } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAdminSettings, updateAdminSetting, getPrivacyPolicies, upsertPrivacyPolicy, createAuditLog } from "@/lib/adminApi";
+import { getAccountingSettings, updateAccountingSettings } from "@/lib/accountingApi";
 import { supabase } from "@/integrations/supabase/client";
 
 type SettingItem = { key: string; value: string; description: string | null };
@@ -24,6 +25,10 @@ const AdminSettings = () => {
   const [policyContent, setPolicyContent] = useState("");
   const [savingPolicy, setSavingPolicy] = useState(false);
 
+  // Accounting settings
+  const [acctSettings, setAcctSettings] = useState<any>(null);
+  const [savingAcct, setSavingAcct] = useState(false);
+
   useEffect(() => {
     const fetchAll = async () => {
       const [settingsRes, policiesRes] = await Promise.all([
@@ -34,6 +39,12 @@ const AdminSettings = () => {
       const policies = policiesRes.data || [];
       const customerPolicy = policies.find((p: any) => p.role === "customer");
       if (customerPolicy) setPolicyContent(customerPolicy.content);
+
+      try {
+        const acct = await getAccountingSettings();
+        setAcctSettings(acct);
+      } catch { /* no settings yet */ }
+
       setLoading(false);
     };
     fetchAll();
@@ -71,6 +82,24 @@ const AdminSettings = () => {
     setSavingPolicy(false);
   };
 
+  const handleSaveAccounting = async () => {
+    if (!user || !acctSettings) return;
+    setSavingAcct(true);
+    const { error } = await updateAccountingSettings({
+      global_commission_booking: acctSettings.global_commission_booking,
+      global_commission_delivery: acctSettings.global_commission_delivery,
+      global_commission_shipment: acctSettings.global_commission_shipment,
+      global_commission_ride: acctSettings.global_commission_ride,
+      payment_due_days: acctSettings.payment_due_days,
+      auto_suspend_days: acctSettings.auto_suspend_days,
+      currency: acctSettings.currency,
+    });
+    if (error) { toast.error("فشل الحفظ"); setSavingAcct(false); return; }
+    createAuditLog(user.id, "تحديث إعدادات المحاسبة");
+    toast.success("تم حفظ إعدادات المحاسبة");
+    setSavingAcct(false);
+  };
+
   const commissionSettings = settings.filter((s) => s.key.includes("commission"));
   const booleanSettings = settings.filter((s) => s.value === "true" || s.value === "false");
   const otherSettings = settings.filter((s) => !s.key.includes("commission") && s.value !== "true" && s.value !== "false");
@@ -86,28 +115,28 @@ const AdminSettings = () => {
       <Tabs defaultValue="general">
         <TabsList>
           <TabsTrigger value="general"><Settings2 className="w-4 h-4 ml-1" />عامة</TabsTrigger>
+          <TabsTrigger value="accounting"><Calculator className="w-4 h-4 ml-1" />المحاسبة</TabsTrigger>
           <TabsTrigger value="approvals"><Shield className="w-4 h-4 ml-1" />الموافقات</TabsTrigger>
           <TabsTrigger value="privacy"><FileText className="w-4 h-4 ml-1" />سياسة الخصوصية</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="mt-4 space-y-4">
-          {/* Commission Settings */}
-          <Card>
-            <CardHeader><CardTitle className="text-base">نسب العمولة</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {commissionSettings.map((s) => (
-                <div key={s.key} className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <Label className="sm:w-48 text-sm">{s.description || s.key}</Label>
-                  <div className="flex items-center gap-2">
-                    <Input type="number" min="0" max="100" value={s.value} onChange={(e) => updateSetting(s.key, e.target.value)} className="w-24" />
-                    <span className="text-sm text-muted-foreground">%</span>
+          {commissionSettings.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">نسب العمولة (إعدادات قديمة)</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {commissionSettings.map((s) => (
+                  <div key={s.key} className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <Label className="sm:w-48 text-sm">{s.description || s.key}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" min="0" max="100" value={s.value} onChange={(e) => updateSetting(s.key, e.target.value)} className="w-24" />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Other Settings */}
+                ))}
+              </CardContent>
+            </Card>
+          )}
           {otherSettings.length > 0 && (
             <Card>
               <CardHeader><CardTitle className="text-base">إعدادات أخرى</CardTitle></CardHeader>
@@ -121,8 +150,86 @@ const AdminSettings = () => {
               </CardContent>
             </Card>
           )}
-
           <Button onClick={handleSaveSettings} disabled={saving}><Save className="w-4 h-4 ml-2" />{saving ? "جاري الحفظ..." : "حفظ التغييرات"}</Button>
+        </TabsContent>
+
+        {/* Accounting Tab */}
+        <TabsContent value="accounting" className="mt-4 space-y-4">
+          {acctSettings ? (
+            <>
+              <Card>
+                <CardHeader><CardTitle className="text-base">نسب العمولة لكل خدمة</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    { key: "global_commission_booking", label: "عمولة الحجوزات" },
+                    { key: "global_commission_delivery", label: "عمولة التوصيل" },
+                    { key: "global_commission_shipment", label: "عمولة الشحنات" },
+                    { key: "global_commission_ride", label: "عمولة الأجرة" },
+                  ].map((item) => (
+                    <div key={item.key} className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <Label className="sm:w-48 text-sm">{item.label}</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number" min="0" max="100"
+                          value={acctSettings[item.key]}
+                          onChange={(e) => setAcctSettings({ ...acctSettings, [item.key]: Number(e.target.value) })}
+                          className="w-24"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle className="text-base">إعدادات الاستحقاق والحظر</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <Label className="sm:w-48 text-sm">مدة استحقاق الدفع</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number" min="1" max="90"
+                        value={acctSettings.payment_due_days}
+                        onChange={(e) => setAcctSettings({ ...acctSettings, payment_due_days: Number(e.target.value) })}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">يوم</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <Label className="sm:w-48 text-sm">مدة التأخير قبل الحظر</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number" min="1" max="90"
+                        value={acctSettings.auto_suspend_days}
+                        onChange={(e) => setAcctSettings({ ...acctSettings, auto_suspend_days: Number(e.target.value) })}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">يوم</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <Label className="sm:w-48 text-sm">العملة الأساسية</Label>
+                    <Select value={acctSettings.currency} onValueChange={(v) => setAcctSettings({ ...acctSettings, currency: v })}>
+                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="YER">ر.ي (YER)</SelectItem>
+                        <SelectItem value="SAR">ر.س (SAR)</SelectItem>
+                        <SelectItem value="USD">$ (USD)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Button onClick={handleSaveAccounting} disabled={savingAcct}>
+                <Save className="w-4 h-4 ml-2" />{savingAcct ? "جاري الحفظ..." : "حفظ إعدادات المحاسبة"}
+              </Button>
+            </>
+          ) : (
+            <p className="text-muted-foreground">لم يتم تحميل إعدادات المحاسبة</p>
+          )}
         </TabsContent>
 
         <TabsContent value="approvals" className="mt-4 space-y-4">
