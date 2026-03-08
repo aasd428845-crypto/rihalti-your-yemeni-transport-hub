@@ -15,6 +15,8 @@ import { getMenuCategories, createMenuCategory, updateMenuCategory, deleteMenuCa
 import { getRestaurantById } from "@/lib/restaurantApi";
 import { useToast } from "@/hooks/use-toast";
 import BackButton from "@/components/common/BackButton";
+import MenuExcelImport from "@/components/delivery/MenuExcelImport";
+import MenuItemOptionsManager from "@/components/delivery/MenuItemOptionsManager";
 
 const DeliveryMenuManagement = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
@@ -154,6 +156,7 @@ const DeliveryMenuManagement = () => {
           <h2 className="text-2xl font-bold">إدارة منيو {restaurant?.name_ar}</h2>
           <p className="text-sm text-muted-foreground">إدارة الفئات والأصناف</p>
         </div>
+        {restaurantId && <MenuExcelImport restaurantId={restaurantId} onComplete={load} />}
       </div>
 
       <div className="grid lg:grid-cols-4 gap-6">
@@ -244,7 +247,9 @@ const DeliveryMenuManagement = () => {
                     </div>
                     <div className="flex gap-2 pt-1">
                       <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditItem(item)}><Edit className="w-3 h-3 ml-1" /> تعديل</Button>
+                      <MenuItemOptionsManager menuItemId={item.id} menuItemName={item.name_ar} />
                       <Button size="sm" variant="destructive" onClick={() => handleDeleteItem(item.id)}><Trash2 className="w-3 h-3" /></Button>
+                    </div>
                     </div>
                   </CardContent>
                 </Card>
