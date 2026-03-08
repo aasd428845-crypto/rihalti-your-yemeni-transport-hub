@@ -56,7 +56,7 @@ const ServicesSection = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto">لتغطية جميع احتياجاتك في التنقل والشحن والتوصيل داخل اليمن</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {services.map((service, i) => {
             const colors = colorMap[service.color];
             return (
