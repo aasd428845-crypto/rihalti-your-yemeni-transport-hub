@@ -762,6 +762,7 @@ export type Database = {
           approval_date: string | null
           bio: string | null
           created_at: string | null
+          date_of_birth: string | null
           id: string
           is_approved: boolean | null
           is_online: boolean | null
@@ -779,6 +780,7 @@ export type Database = {
           approval_date?: string | null
           bio?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
           id?: string
           is_approved?: boolean | null
           is_online?: boolean | null
@@ -796,6 +798,7 @@ export type Database = {
           approval_date?: string | null
           bio?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
           id?: string
           is_approved?: boolean | null
           is_online?: boolean | null
@@ -2905,6 +2908,7 @@ export type Database = {
           created_at: string | null
           driver_id: string
           id: string
+          image_url: string | null
           insurance_number: string | null
           is_active: boolean | null
           is_default: boolean | null
@@ -2919,6 +2923,7 @@ export type Database = {
           created_at?: string | null
           driver_id: string
           id?: string
+          image_url?: string | null
           insurance_number?: string | null
           is_active?: boolean | null
           is_default?: boolean | null
@@ -2933,6 +2938,7 @@ export type Database = {
           created_at?: string | null
           driver_id?: string
           id?: string
+          image_url?: string | null
           insurance_number?: string | null
           is_active?: boolean | null
           is_default?: boolean | null

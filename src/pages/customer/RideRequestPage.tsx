@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapPin, Navigation, Clock, Users, Car, ArrowLeft, Send, LocateFixed } from "lucide-react";
+import NearbyDriversList from "@/components/customer/NearbyDriversList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -257,6 +258,13 @@ const RideRequestPage = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Nearby Drivers */}
+        {form.pickupLat !== 0 && form.fromCity && form.toCity && (
+          <div className="mb-4">
+            <NearbyDriversList pickupLat={form.pickupLat} pickupLng={form.pickupLng} />
+          </div>
+        )}
 
         {/* Submit */}
         <Button
