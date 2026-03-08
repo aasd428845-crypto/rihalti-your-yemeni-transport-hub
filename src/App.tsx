@@ -192,6 +192,10 @@ const App = () => (
               <Route index element={<DriverDashboard />} />
               <Route path="rides/:id" element={<DriverRideDetails />} />
               <Route path="active-ride/:id" element={<DriverActiveRide />} />
+              <Route path="profile" element={<DriverProfile />} />
+              <Route path="history" element={<DriverHistory />} />
+              <Route path="earnings" element={<DriverEarnings />} />
+              <Route path="settings" element={<DriverSettings />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

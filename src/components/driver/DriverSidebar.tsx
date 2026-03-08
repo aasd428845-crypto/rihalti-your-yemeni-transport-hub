@@ -23,10 +23,9 @@ import {
 
 const menuItems = [
   { title: "لوحة التحكم", url: "/driver", icon: LayoutDashboard },
-  { title: "الرحلات", url: "/driver/rides", icon: Car },
-  { title: "الموقع", url: "/driver/location", icon: MapPin },
+  { title: "سجل الرحلات", url: "/driver/history", icon: Car },
   { title: "الأرباح", url: "/driver/earnings", icon: DollarSign },
-  { title: "المستندات", url: "/driver/documents", icon: FileText },
+  { title: "الملف الشخصي", url: "/driver/profile", icon: MapPin },
   { title: "الإعدادات", url: "/driver/settings", icon: Settings },
 ];
 
