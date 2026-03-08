@@ -57,12 +57,16 @@ const LoginPage = () => {
   };
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    try {
+      const { lovable } = await import("@/integrations/lovable/index");
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result?.error) {
+        toast({ title: "خطأ", description: String(result.error), variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err?.message || "فشل الاتصال بـ Google", variant: "destructive" });
     }
   };
 
