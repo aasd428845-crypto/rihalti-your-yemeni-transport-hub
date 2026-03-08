@@ -274,6 +274,44 @@ export type Database = {
         }
         Relationships: []
       }
+      carts: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          id: string
+          items: Json
+          restaurant_id: string | null
+          total_amount: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          items?: Json
+          restaurant_id?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          items?: Json
+          restaurant_id?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           admin_id: string | null
@@ -681,7 +719,9 @@ export type Database = {
       }
       menu_categories: {
         Row: {
+          description: string | null
           id: string
+          image_url: string | null
           is_active: boolean | null
           name_ar: string
           name_en: string | null
@@ -689,7 +729,9 @@ export type Database = {
           sort_order: number | null
         }
         Insert: {
+          description?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           name_ar: string
           name_en?: string | null
@@ -697,7 +739,9 @@ export type Database = {
           sort_order?: number | null
         }
         Update: {
+          description?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           name_ar?: string
           name_en?: string | null
@@ -714,15 +758,63 @@ export type Database = {
           },
         ]
       }
+      menu_item_options: {
+        Row: {
+          choices: Json | null
+          created_at: string | null
+          id: string
+          is_required: boolean | null
+          max_selections: number | null
+          menu_item_id: string | null
+          name_ar: string
+          name_en: string | null
+          option_type: string | null
+        }
+        Insert: {
+          choices?: Json | null
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          max_selections?: number | null
+          menu_item_id?: string | null
+          name_ar: string
+          name_en?: string | null
+          option_type?: string | null
+        }
+        Update: {
+          choices?: Json | null
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          max_selections?: number | null
+          menu_item_id?: string | null
+          name_ar?: string
+          name_en?: string | null
+          option_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_options_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
+          calories: number | null
           category_id: string | null
           created_at: string | null
           description: string | null
           discounted_price: number | null
           id: string
           image_url: string | null
+          ingredients: string[] | null
           is_available: boolean | null
+          is_featured: boolean | null
+          is_popular: boolean | null
           name_ar: string
           name_en: string | null
           options: Json | null
@@ -733,13 +825,17 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          calories?: number | null
           category_id?: string | null
           created_at?: string | null
           description?: string | null
           discounted_price?: number | null
           id?: string
           image_url?: string | null
+          ingredients?: string[] | null
           is_available?: boolean | null
+          is_featured?: boolean | null
+          is_popular?: boolean | null
           name_ar: string
           name_en?: string | null
           options?: Json | null
@@ -750,13 +846,17 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          calories?: number | null
           category_id?: string | null
           created_at?: string | null
           description?: string | null
           discounted_price?: number | null
           id?: string
           image_url?: string | null
+          ingredients?: string[] | null
           is_available?: boolean | null
+          is_featured?: boolean | null
+          is_popular?: boolean | null
           name_ar?: string
           name_en?: string | null
           options?: Json | null
@@ -1477,21 +1577,65 @@ export type Database = {
           },
         ]
       }
+      restaurant_reviews: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          id: string
+          rating: number
+          restaurant_id: string | null
+          review: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          rating: number
+          restaurant_id?: string | null
+          review?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          rating?: number
+          restaurant_id?: string | null
+          review?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_reviews_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null
           commission_rate: number | null
           cover_image: string | null
           created_at: string | null
+          cuisine_type: string[] | null
           delivery_company_id: string
+          delivery_fee: number | null
+          description: string | null
+          estimated_delivery_time: number | null
           id: string
           is_active: boolean | null
+          is_featured: boolean | null
           location_lat: number | null
           location_lng: number | null
           logo_url: string | null
+          min_order_amount: number | null
           name_ar: string
           name_en: string | null
+          opening_hours: Json | null
           phone: string | null
+          rating: number | null
+          total_ratings: number | null
           updated_at: string | null
         }
         Insert: {
@@ -1499,15 +1643,24 @@ export type Database = {
           commission_rate?: number | null
           cover_image?: string | null
           created_at?: string | null
+          cuisine_type?: string[] | null
           delivery_company_id: string
+          delivery_fee?: number | null
+          description?: string | null
+          estimated_delivery_time?: number | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
           location_lat?: number | null
           location_lng?: number | null
           logo_url?: string | null
+          min_order_amount?: number | null
           name_ar: string
           name_en?: string | null
+          opening_hours?: Json | null
           phone?: string | null
+          rating?: number | null
+          total_ratings?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -1515,15 +1668,24 @@ export type Database = {
           commission_rate?: number | null
           cover_image?: string | null
           created_at?: string | null
+          cuisine_type?: string[] | null
           delivery_company_id?: string
+          delivery_fee?: number | null
+          description?: string | null
+          estimated_delivery_time?: number | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
           location_lat?: number | null
           location_lng?: number | null
           logo_url?: string | null
+          min_order_amount?: number | null
           name_ar?: string
           name_en?: string | null
+          opening_hours?: Json | null
           phone?: string | null
+          rating?: number | null
+          total_ratings?: number | null
           updated_at?: string | null
         }
         Relationships: []
