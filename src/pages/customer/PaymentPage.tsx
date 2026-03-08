@@ -48,7 +48,7 @@ const PaymentPage = () => {
     if (!entityType || !entityId) return;
     const load = async () => {
       try {
-        const entityData = await getEntityDetails(entityType, entityId);
+        const entityData = await getEntityDetails(entityType, entityId) as any;
         setEntity(entityData);
 
         const platAccs = await getPlatformAccounts();
