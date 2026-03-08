@@ -84,6 +84,7 @@ import PaymentSuccessPage from "./pages/customer/PaymentSuccessPage";
 // Driver
 import DriverLayout from "./components/driver/DriverLayout";
 import DriverDashboard from "./pages/driver/DriverDashboard";
+import DriverRideDetails from "./pages/driver/DriverRideDetails";
 
 const queryClient = new QueryClient();
 
@@ -184,6 +185,7 @@ const App = () => (
             {/* Driver */}
             <Route path="/driver" element={<DriverLayout />}>
               <Route index element={<DriverDashboard />} />
+              <Route path="rides/:id" element={<DriverRideDetails />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
