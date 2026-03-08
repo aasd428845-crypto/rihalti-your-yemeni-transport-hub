@@ -10,6 +10,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
+import ShipmentRequestPage from "./pages/ShipmentRequestPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 // Admin
@@ -90,6 +91,11 @@ const App = () => (
             <Route path="/addresses" element={<AddressesPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/notification-settings" element={<NotificationSettingsPage />} />
+            {/* Service Requests */}
+            <Route path="/request" element={<ShipmentRequestPage />} />
+            <Route path="/request/shipment" element={<ShipmentRequestPage />} />
+            <Route path="/request/delivery" element={<ShipmentRequestPage />} />
+            <Route path="/request/taxi" element={<ShipmentRequestPage />} />
             {/* Admin */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminOverview />} />

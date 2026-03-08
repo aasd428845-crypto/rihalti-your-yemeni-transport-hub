@@ -1063,6 +1063,42 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_price_references: {
+        Row: {
+          created_at: string | null
+          from_city: string
+          id: string
+          is_active: boolean | null
+          item_description: string | null
+          partner_id: string
+          reference_price: number
+          service_type: string
+          to_city: string
+        }
+        Insert: {
+          created_at?: string | null
+          from_city: string
+          id?: string
+          is_active?: boolean | null
+          item_description?: string | null
+          partner_id: string
+          reference_price: number
+          service_type: string
+          to_city: string
+        }
+        Update: {
+          created_at?: string | null
+          from_city?: string
+          id?: string
+          is_active?: boolean | null
+          item_description?: string | null
+          partner_id?: string
+          reference_price?: number
+          service_type?: string
+          to_city?: string
+        }
+        Relationships: []
+      }
       payment_logs: {
         Row: {
           amount_paid: number
@@ -1283,6 +1319,50 @@ export type Database = {
           },
         ]
       }
+      request_messages: {
+        Row: {
+          block_reason: string | null
+          created_at: string | null
+          id: string
+          is_blocked: boolean | null
+          message: string
+          read_at: string | null
+          request_id: string
+          sender_id: string
+          sender_role: string
+        }
+        Insert: {
+          block_reason?: string | null
+          created_at?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          message: string
+          read_at?: string | null
+          request_id: string
+          sender_id: string
+          sender_role: string
+        }
+        Update: {
+          block_reason?: string | null
+          created_at?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          message?: string
+          read_at?: string | null
+          request_id?: string
+          sender_id?: string
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_messages_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null
@@ -1441,6 +1521,105 @@ export type Database = {
           updated_at?: string | null
           vehicle_plate?: string | null
           vehicle_type?: string | null
+        }
+        Relationships: []
+      }
+      service_requests: {
+        Row: {
+          agreed_price: number | null
+          approved_at: string | null
+          completed_at: string | null
+          created_at: string | null
+          customer_display_id: string
+          customer_id: string
+          description: string | null
+          from_address: string | null
+          from_city: string
+          id: string
+          notes: string | null
+          partner_id: string | null
+          partner_net: number | null
+          partner_type: string | null
+          payment_method: string | null
+          payment_status: string | null
+          platform_commission: number | null
+          platform_commission_rate: number | null
+          proposed_price: number | null
+          quantity: number | null
+          receiver_name: string | null
+          receiver_phone: string | null
+          receiver_phone_masked: string | null
+          request_number: string
+          status: string
+          to_address: string | null
+          to_city: string
+          type: string
+          updated_at: string | null
+          whatsapp_shared: boolean | null
+        }
+        Insert: {
+          agreed_price?: number | null
+          approved_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          customer_display_id?: string
+          customer_id: string
+          description?: string | null
+          from_address?: string | null
+          from_city: string
+          id?: string
+          notes?: string | null
+          partner_id?: string | null
+          partner_net?: number | null
+          partner_type?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          platform_commission?: number | null
+          platform_commission_rate?: number | null
+          proposed_price?: number | null
+          quantity?: number | null
+          receiver_name?: string | null
+          receiver_phone?: string | null
+          receiver_phone_masked?: string | null
+          request_number?: string
+          status?: string
+          to_address?: string | null
+          to_city: string
+          type: string
+          updated_at?: string | null
+          whatsapp_shared?: boolean | null
+        }
+        Update: {
+          agreed_price?: number | null
+          approved_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          customer_display_id?: string
+          customer_id?: string
+          description?: string | null
+          from_address?: string | null
+          from_city?: string
+          id?: string
+          notes?: string | null
+          partner_id?: string | null
+          partner_net?: number | null
+          partner_type?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          platform_commission?: number | null
+          platform_commission_rate?: number | null
+          proposed_price?: number | null
+          quantity?: number | null
+          receiver_name?: string | null
+          receiver_phone?: string | null
+          receiver_phone_masked?: string | null
+          request_number?: string
+          status?: string
+          to_address?: string | null
+          to_city?: string
+          type?: string
+          updated_at?: string | null
+          whatsapp_shared?: boolean | null
         }
         Relationships: []
       }
