@@ -149,7 +149,7 @@ const DeliveryMenuManagement = () => {
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex items-center gap-3">
-        <BackButton to="/delivery/restaurants" />
+        <BackButton fallback="/delivery/restaurants" />
         <div>
           <h2 className="text-2xl font-bold">إدارة منيو {restaurant?.name_ar}</h2>
           <p className="text-sm text-muted-foreground">إدارة الفئات والأصناف</p>
