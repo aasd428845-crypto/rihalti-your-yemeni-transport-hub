@@ -47,6 +47,7 @@ const LoginPage = () => {
         else if (r === "supplier") navigate("/supplier");
         else if (r === "delivery_company") navigate("/delivery");
         else if (r === "driver") navigate("/driver");
+        else if (r === "delivery_driver") navigate("/delivery-driver");
         else navigate("/");
       } else {
         navigate("/");

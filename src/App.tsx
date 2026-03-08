@@ -204,6 +204,14 @@ const App = () => (
               <Route path="earnings" element={<DriverEarnings />} />
               <Route path="settings" element={<DriverSettings />} />
             </Route>
+            {/* Delivery Driver */}
+            <Route path="/delivery-driver" element={<DeliveryDriverLayout />}>
+              <Route index element={<DeliveryDriverDashboard />} />
+              <Route path="orders" element={<DeliveryDriverOrders />} />
+              <Route path="earnings" element={<DeliveryDriverEarnings />} />
+              <Route path="profile" element={<DeliveryDriverProfile />} />
+              <Route path="settings" element={<DeliveryDriverSettings />} />
+            </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
