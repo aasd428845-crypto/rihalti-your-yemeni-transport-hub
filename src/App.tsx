@@ -97,6 +97,7 @@ import DeliveryDriverOrders from "./pages/delivery-driver/DeliveryDriverOrders";
 import DeliveryDriverEarnings from "./pages/delivery-driver/DeliveryDriverEarnings";
 import DeliveryDriverProfile from "./pages/delivery-driver/DeliveryDriverProfile";
 import DeliveryDriverSettings from "./pages/delivery-driver/DeliveryDriverSettings";
+import DeliveryDriverOrderDetails from "./pages/delivery-driver/DeliveryDriverOrderDetails";
 
 const queryClient = new QueryClient();
 
