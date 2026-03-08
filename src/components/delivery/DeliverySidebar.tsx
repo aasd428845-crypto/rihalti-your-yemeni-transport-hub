@@ -17,6 +17,7 @@ const menuItems = [
   { title: "التقارير", url: "/delivery/reports", icon: BarChart3 },
   { title: "التكامل", url: "/delivery/integrations", icon: Link2 },
   { title: "الإعدادات", url: "/delivery/settings", icon: Settings },
+  { title: "المدفوعات", url: "/delivery/payments", icon: CreditCard },
 ];
 
 const DeliverySidebar = () => {

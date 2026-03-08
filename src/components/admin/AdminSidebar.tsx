@@ -23,6 +23,7 @@ const menuItems = [
   { title: "مراقبة المحادثات", url: "/admin/chat-monitoring", icon: MessageCircle },
   { title: "إثباتات التسليم", url: "/admin/delivery-proofs", icon: QrCode },
   { title: "التقارير", url: "/admin/reports", icon: FileText },
+  { title: "التحويلات البنكية", url: "/admin/payment-review", icon: CreditCard },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
 ];
 

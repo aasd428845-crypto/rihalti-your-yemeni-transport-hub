@@ -166,6 +166,9 @@ const App = () => (
             <Route path="/restaurants/:id/checkout" element={<RestaurantCheckoutPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/track-order/:id" element={<OrderTrackingPage />} />
+            {/* Payment Pages */}
+            <Route path="/payment/:entityType/:entityId" element={<PaymentPage />} />
+            <Route path="/payment-success" element={<PaymentSuccessPage />} />
             {/* Customer Ride Pages */}
             <Route path="/ride/request" element={<RideRequestPage />} />
             <Route path="/ride/:id" element={<RideDetailsPage />} />
