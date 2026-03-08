@@ -290,6 +290,9 @@ const AdminApprovals = () => {
     if (req.source === "partner_join") {
       return <p className="text-sm text-muted-foreground">الاسم: {d.name} | الهاتف: {d.phone} | النوع: {d.type}</p>;
     }
+    if (req.source === "booking") {
+      return <p className="text-sm text-muted-foreground">{d.from} → {d.to} | المقاعد: {d.seats} | المبلغ: {d.amount?.toLocaleString()} ر.ي</p>;
+    }
     return null;
   };
 

@@ -28,7 +28,8 @@ const SupplierShipments = () => {
   const loadData = async () => {
     if (!user?.id) return;
     const { data } = await getSupplierShipmentRequests(user.id);
-    const list = data || [];
+    // Hide pending_approval items (awaiting admin approval)
+    const list = (data || []).filter((r: any) => r.status !== "pending_approval");
     setRequests(list);
 
     const customerIds = [...new Set(list.map((r: any) => r.customer_id))];
