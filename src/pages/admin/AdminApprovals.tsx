@@ -98,11 +98,11 @@ const AdminApprovals = () => {
       }
     }
 
-    // 3. Pending delivery orders
+    // 3. Pending delivery orders (pending_approval only)
     const { data: deliveryOrders } = await supabase
       .from("delivery_orders")
       .select("id, customer_name, customer_address, total, status, created_at")
-      .eq("status", "pending")
+      .eq("status", "pending_approval")
       .order("created_at", { ascending: false });
 
     if (deliveryOrders) {
@@ -114,6 +114,39 @@ const AdminApprovals = () => {
           status: "pending",
           created_at: d.created_at || "",
           details: { customer: d.customer_name, address: d.customer_address, total: d.total },
+        });
+      }
+    }
+
+    // 3b. Pending bookings (pending_approval)
+    const { data: pendingBookings } = await supabase
+      .from("bookings")
+      .select("id, customer_id, trip_id, seat_count, total_amount, status, created_at")
+      .eq("status", "pending_approval")
+      .order("created_at", { ascending: false });
+
+    if (pendingBookings) {
+      // fetch trip info for labels
+      const tripIds = [...new Set(pendingBookings.map(b => b.trip_id))];
+      const tripMap: Record<string, any> = {};
+      if (tripIds.length > 0) {
+        const { data: tripData } = await supabase.from("trips").select("id, from_city, to_city").in("id", tripIds);
+        for (const t of (tripData || [])) { tripMap[t.id] = t; }
+      }
+      for (const b of pendingBookings) {
+        const trip = tripMap[b.trip_id];
+        unified.push({
+          id: b.id,
+          source: "booking" as any,
+          type_label: "حجز معلق",
+          status: "pending",
+          created_at: b.created_at || "",
+          details: {
+            seats: b.seat_count,
+            amount: b.total_amount,
+            from: trip?.from_city,
+            to: trip?.to_city,
+          },
         });
       }
     }
