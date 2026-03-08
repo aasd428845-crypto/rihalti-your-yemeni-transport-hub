@@ -209,6 +209,7 @@ const App = () => (
             <Route path="/delivery-driver" element={<DeliveryDriverLayout />}>
               <Route index element={<DeliveryDriverDashboard />} />
               <Route path="orders" element={<DeliveryDriverOrders />} />
+              <Route path="orders/:id" element={<DeliveryDriverOrderDetails />} />
               <Route path="earnings" element={<DeliveryDriverEarnings />} />
               <Route path="profile" element={<DeliveryDriverProfile />} />
               <Route path="settings" element={<DeliveryDriverSettings />} />
