@@ -116,14 +116,26 @@ const DriverActiveRide = () => {
   const createFinancialTransaction = async () => {
     if (!ride || !user) return;
     try {
-      // Get commission rate
-      const { data: settings } = await supabase
-        .from("accounting_settings")
-        .select("global_commission_ride")
-        .eq("id", 1)
+      // Check for partner-specific commission first
+      const { data: partnerCommission } = await supabase
+        .from("partner_commission_settings")
+        .select("commission_value, override_global")
+        .eq("partner_id", user.id)
         .maybeSingle();
 
-      const commissionRate = settings?.global_commission_ride || 10;
+      let commissionRate = 10;
+
+      if (partnerCommission?.override_global && partnerCommission?.commission_value != null) {
+        commissionRate = partnerCommission.commission_value;
+      } else {
+        const { data: settings } = await supabase
+          .from("accounting_settings")
+          .select("global_commission_ride")
+          .eq("id", 1)
+          .maybeSingle();
+        commissionRate = settings?.global_commission_ride || 10;
+      }
+
       const finalPrice = ride.final_price || ride.proposed_price || 0;
       const commission = Math.floor(finalPrice * commissionRate / 100);
       const partnerEarning = finalPrice - commission;
@@ -137,9 +149,22 @@ const DriverActiveRide = () => {
         platform_commission: commission,
         partner_earning: partnerEarning,
         payment_method: ride.payment_method || "cash",
-        payment_status: ride.payment_method === "cash" ? "pending" : "pending",
+        payment_status: "pending",
         currency: "YER",
       } as any);
+
+      // Notify customer to pay
+      try {
+        await supabase.functions.invoke("send-push-notification", {
+          body: {
+            userId: ride.customer_id,
+            title: "الرحلة انتهت - ادفع الآن 💳",
+            body: `المبلغ المستحق: ${finalPrice} ر.ي`,
+            sound: "payment_success",
+            data: { type: "ride_payment", rideId: ride.id, paymentUrl: `/payment/ride/${ride.id}` },
+          },
+        });
+      } catch {}
     } catch (e) {
       console.error("Financial transaction error:", e);
     }
