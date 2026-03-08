@@ -24,6 +24,7 @@ import {
 const menuItems = [
   { title: "لوحة التحكم", url: "/delivery-driver", icon: LayoutDashboard },
   { title: "الطلبات", url: "/delivery-driver/orders", icon: Package },
+  { title: "السجل", url: "/delivery-driver/history", icon: History },
   { title: "الأرباح", url: "/delivery-driver/earnings", icon: DollarSign },
   { title: "الملف الشخصي", url: "/delivery-driver/profile", icon: User },
   { title: "الإعدادات", url: "/delivery-driver/settings", icon: Settings },
