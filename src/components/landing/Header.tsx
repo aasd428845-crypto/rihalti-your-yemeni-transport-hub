@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, Bus, Shield, User, LogOut, LayoutDashboard, MapPin, Bell } from "lucide-react";
+import { Menu, X, Bus, Shield, User, LogOut, LayoutDashboard, MapPin, Bell, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ const navLinks = [
   { label: "الرحلات", href: "/trips" },
   { label: "الشحنات", href: "/shipments" },
   { label: "التوصيل", href: "/deliveries" },
+  { label: "أجرة", href: "/ride/request" },
   { label: "تتبع الشحنة", href: "/tracking" },
   { label: "عن المنصة", href: "/about" },
 ];

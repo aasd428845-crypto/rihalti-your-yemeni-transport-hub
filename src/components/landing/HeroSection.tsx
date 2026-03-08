@@ -86,6 +86,9 @@ const HeroSection = () => {
               <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-white/10" onClick={() => navigate("/deliveries")}>
                 اطلب توصيل
               </Button>
+              <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-white/10 gap-2" onClick={() => navigate("/ride/request")}>
+                🚕 اطلب أجرة
+              </Button>
             </div>
           </div>
 
