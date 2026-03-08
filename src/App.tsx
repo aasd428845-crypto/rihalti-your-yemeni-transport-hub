@@ -90,6 +90,13 @@ import DriverProfile from "./pages/driver/DriverProfile";
 import DriverHistory from "./pages/driver/DriverHistory";
 import DriverEarnings from "./pages/driver/DriverEarnings";
 import DriverSettings from "./pages/driver/DriverSettings";
+// Delivery Driver
+import DeliveryDriverLayout from "./components/delivery-driver/DeliveryDriverLayout";
+import DeliveryDriverDashboard from "./pages/delivery-driver/DeliveryDriverDashboard";
+import DeliveryDriverOrders from "./pages/delivery-driver/DeliveryDriverOrders";
+import DeliveryDriverEarnings from "./pages/delivery-driver/DeliveryDriverEarnings";
+import DeliveryDriverProfile from "./pages/delivery-driver/DeliveryDriverProfile";
+import DeliveryDriverSettings from "./pages/delivery-driver/DeliveryDriverSettings";
 
 const queryClient = new QueryClient();
 
@@ -196,6 +203,14 @@ const App = () => (
               <Route path="history" element={<DriverHistory />} />
               <Route path="earnings" element={<DriverEarnings />} />
               <Route path="settings" element={<DriverSettings />} />
+            </Route>
+            {/* Delivery Driver */}
+            <Route path="/delivery-driver" element={<DeliveryDriverLayout />}>
+              <Route index element={<DeliveryDriverDashboard />} />
+              <Route path="orders" element={<DeliveryDriverOrders />} />
+              <Route path="earnings" element={<DeliveryDriverEarnings />} />
+              <Route path="profile" element={<DeliveryDriverProfile />} />
+              <Route path="settings" element={<DeliveryDriverSettings />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

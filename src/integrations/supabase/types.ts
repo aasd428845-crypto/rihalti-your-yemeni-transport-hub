@@ -450,6 +450,60 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_drivers: {
+        Row: {
+          created_at: string | null
+          current_lat: number | null
+          current_lng: number | null
+          delivery_company_id: string | null
+          id: string
+          is_approved: boolean | null
+          is_online: boolean | null
+          license_number: string | null
+          rating: number | null
+          total_deliveries: number | null
+          total_earnings: number | null
+          updated_at: string | null
+          user_id: string
+          vehicle_plate: string | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_lat?: number | null
+          current_lng?: number | null
+          delivery_company_id?: string | null
+          id?: string
+          is_approved?: boolean | null
+          is_online?: boolean | null
+          license_number?: string | null
+          rating?: number | null
+          total_deliveries?: number | null
+          total_earnings?: number | null
+          updated_at?: string | null
+          user_id: string
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_lat?: number | null
+          current_lng?: number | null
+          delivery_company_id?: string | null
+          id?: string
+          is_approved?: boolean | null
+          is_online?: boolean | null
+          license_number?: string | null
+          rating?: number | null
+          total_deliveries?: number | null
+          total_earnings?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
+        }
+        Relationships: []
+      }
       delivery_orders: {
         Row: {
           assigned_at: string | null
@@ -2993,6 +3047,7 @@ export type Database = {
         | "delivery_company"
         | "admin"
         | "driver"
+        | "delivery_driver"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3120,7 +3175,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["customer", "supplier", "delivery_company", "admin", "driver"],
+      app_role: [
+        "customer",
+        "supplier",
+        "delivery_company",
+        "admin",
+        "driver",
+        "delivery_driver",
+      ],
     },
   },
 } as const
