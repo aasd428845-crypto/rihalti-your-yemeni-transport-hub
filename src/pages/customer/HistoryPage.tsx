@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bus, Package, Bike, Clock, XCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bus, Package, Bike, Clock, XCircle, DollarSign, Bell } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchMyBookings, fetchMyShipments, fetchMyDeliveryOrders, createCancellationRequest } from "@/lib/customerApi";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
@@ -50,6 +52,7 @@ const statusLabels: Record<string, string> = {
 const HistoryPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [cancelModal, setCancelModal] = useState<{ type: string; id: string } | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -73,7 +76,43 @@ const HistoryPage = () => {
     enabled: !!user,
   });
 
+  // Realtime subscriptions for live updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('customer-orders-realtime')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'shipment_requests',
+        filter: `customer_id=eq.${user.id}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["my-shipments", user.id] });
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'delivery_orders',
+        filter: `customer_id=eq.${user.id}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["my-deliveries", user.id] });
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'bookings',
+        filter: `customer_id=eq.${user.id}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["my-bookings", user.id] });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient]);
+
   const canCancel = (status: string) => ["pending", "confirmed", "pending_approval"].includes(status);
+  const needsAttention = (status: string) => ["priced"].includes(status);
 
   const handleCancel = async () => {
     if (!cancelModal || !user || !cancelReason.trim()) {
@@ -102,6 +141,11 @@ const HistoryPage = () => {
     }
   };
 
+  // Count items needing attention
+  const pricedShipments = (shipments || []).filter((s: any) => s.negotiation_status === 'offered' || s.status === 'priced');
+  const pricedDeliveries = (deliveries || []).filter((d: any) => d.negotiation_status === 'offered');
+  const attentionCount = pricedShipments.length + pricedDeliveries.length;
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
@@ -113,13 +157,36 @@ const HistoryPage = () => {
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 pt-24 pb-12">
-        <h1 className="text-3xl font-bold text-foreground mb-8">السجل والطلبات</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-foreground">السجل والطلبات</h1>
+          {attentionCount > 0 && (
+            <Badge className="bg-red-500 text-white gap-1 animate-pulse">
+              <Bell className="w-3 h-3" /> {attentionCount} طلب يحتاج انتباهك
+            </Badge>
+          )}
+        </div>
 
-        <Tabs defaultValue="bookings">
+        <Tabs defaultValue="shipments">
           <TabsList className="mb-6">
-            <TabsTrigger value="bookings" className="gap-2"><Bus className="w-4 h-4" /> الرحلات</TabsTrigger>
-            <TabsTrigger value="shipments" className="gap-2"><Package className="w-4 h-4" /> الشحنات</TabsTrigger>
-            <TabsTrigger value="deliveries" className="gap-2"><Bike className="w-4 h-4" /> التوصيلات</TabsTrigger>
+            <TabsTrigger value="bookings" className="gap-2">
+              <Bus className="w-4 h-4" /> الرحلات
+            </TabsTrigger>
+            <TabsTrigger value="shipments" className="gap-2 relative">
+              <Package className="w-4 h-4" /> الشحنات
+              {pricedShipments.length > 0 && (
+                <span className="absolute -top-1 -left-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center">
+                  {pricedShipments.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="deliveries" className="gap-2 relative">
+              <Bike className="w-4 h-4" /> التوصيلات
+              {pricedDeliveries.length > 0 && (
+                <span className="absolute -top-1 -left-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center">
+                  {pricedDeliveries.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           {/* Bookings */}
@@ -163,29 +230,67 @@ const HistoryPage = () => {
               <LoadingSkeleton />
             ) : shipments && shipments.length > 0 ? (
               <div className="space-y-4">
-                {shipments.map((s: any) => (
-                  <Card key={s.id}>
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Package className="w-4 h-4 text-primary" />
-                          <span className="font-semibold">{s.pickup_address} → {s.delivery_address}</span>
-                          <Badge className={statusColors[s.status] || "bg-muted"}>{statusLabels[s.status] || s.status}</Badge>
+                {shipments.map((s: any) => {
+                  const hasPriceOffer = s.proposed_price && (s.negotiation_status === 'offered' || s.status === 'priced');
+                  const isAccepted = s.customer_accepted || s.negotiation_status === 'accepted';
+                  return (
+                    <Card key={s.id} className={hasPriceOffer && !isAccepted ? "border-amber-300 shadow-amber-100 shadow-md" : ""}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Package className="w-4 h-4 text-primary" />
+                              <span className="font-semibold">{s.pickup_address} → {s.delivery_address}</span>
+                              <Badge className={statusColors[s.status] || "bg-muted"}>{statusLabels[s.status] || s.status}</Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-4">
+                              <span>{s.shipment_type === "door_to_door" ? "باب لباب" : "مكتب لمكتب"}</span>
+                              {s.final_price ? (
+                                <span className="font-semibold text-foreground">{s.final_price} ر.ي</span>
+                              ) : s.price ? (
+                                <span className="font-semibold text-foreground">{s.price} ر.ي</span>
+                              ) : null}
+                              <span>{format(new Date(s.created_at), "dd/MM/yyyy", { locale: ar })}</span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            {canCancel(s.status) && (
+                              <Button variant="outline" size="sm" className="text-destructive gap-1" onClick={() => setCancelModal({ type: "shipment", id: s.id })}>
+                                <XCircle className="w-4 h-4" /> إلغاء
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-4">
-                          <span>{s.shipment_type === "door_to_door" ? "باب لباب" : "مكتب لمكتب"}</span>
-                          {s.price && <span className="font-semibold text-foreground">{s.price} ر.ي</span>}
-                          <span>{format(new Date(s.created_at), "dd/MM/yyyy", { locale: ar })}</span>
-                        </div>
-                      </div>
-                      {canCancel(s.status) && (
-                        <Button variant="outline" size="sm" className="text-destructive gap-1" onClick={() => setCancelModal({ type: "shipment", id: s.id })}>
-                          <XCircle className="w-4 h-4" /> إلغاء
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+
+                        {/* Price offer banner */}
+                        {hasPriceOffer && !isAccepted && (
+                          <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="w-5 h-5 text-amber-600" />
+                              <div>
+                                <p className="text-sm font-bold text-amber-800">عرض سعر جديد!</p>
+                                <p className="text-lg font-black text-amber-900">{Number(s.proposed_price).toLocaleString()} ر.ي</p>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="gap-1"
+                              onClick={() => navigate(`/order/shipment/${s.id}`)}
+                            >
+                              عرض التفاصيل والقبول
+                            </Button>
+                          </div>
+                        )}
+
+                        {isAccepted && (
+                          <div className="mt-2 p-2 rounded bg-green-50 border border-green-200 text-xs text-green-700">
+                            ✅ تم قبول السعر: {Number(s.final_price || s.proposed_price).toLocaleString()} ر.ي
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
               <EmptyState icon={<Package className="w-12 h-12" />} text="لا توجد شحنات" />
@@ -198,29 +303,62 @@ const HistoryPage = () => {
               <LoadingSkeleton />
             ) : deliveries && deliveries.length > 0 ? (
               <div className="space-y-4">
-                {deliveries.map((d: any) => (
-                  <Card key={d.id}>
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Bike className="w-4 h-4 text-primary" />
-                          <span className="font-semibold">{d.customer_address}</span>
-                          <Badge className={statusColors[d.status] || "bg-muted"}>{statusLabels[d.status] || d.status}</Badge>
+                {deliveries.map((d: any) => {
+                  const hasPriceOffer = d.proposed_price && d.negotiation_status === 'offered';
+                  const isAccepted = d.customer_accepted || d.negotiation_status === 'accepted';
+                  return (
+                    <Card key={d.id} className={hasPriceOffer && !isAccepted ? "border-amber-300 shadow-amber-100 shadow-md" : ""}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Bike className="w-4 h-4 text-primary" />
+                              <span className="font-semibold">{d.customer_address}</span>
+                              <Badge className={statusColors[d.status] || "bg-muted"}>{statusLabels[d.status] || d.status}</Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-4">
+                              <span>{d.order_type === "restaurant" ? "مطعم" : d.order_type === "pharmacy" ? "صيدلية" : d.order_type === "supermarket" ? "سوبرماركت" : "عام"}</span>
+                              <span className="font-semibold text-foreground">{d.final_price || d.total} ر.ي</span>
+                              <span>{format(new Date(d.created_at), "dd/MM/yyyy", { locale: ar })}</span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            {canCancel(d.status) && (
+                              <Button variant="outline" size="sm" className="text-destructive gap-1" onClick={() => setCancelModal({ type: "delivery", id: d.id })}>
+                                <XCircle className="w-4 h-4" /> إلغاء
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-4">
-                          <span>{d.order_type === "restaurant" ? "مطعم" : d.order_type === "pharmacy" ? "صيدلية" : d.order_type === "supermarket" ? "سوبرماركت" : "عام"}</span>
-                          <span className="font-semibold text-foreground">{d.total} ر.ي</span>
-                          <span>{format(new Date(d.created_at), "dd/MM/yyyy", { locale: ar })}</span>
-                        </div>
-                      </div>
-                      {canCancel(d.status) && (
-                        <Button variant="outline" size="sm" className="text-destructive gap-1" onClick={() => setCancelModal({ type: "delivery", id: d.id })}>
-                          <XCircle className="w-4 h-4" /> إلغاء
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+
+                        {hasPriceOffer && !isAccepted && (
+                          <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="w-5 h-5 text-amber-600" />
+                              <div>
+                                <p className="text-sm font-bold text-amber-800">عرض سعر جديد!</p>
+                                <p className="text-lg font-black text-amber-900">{Number(d.proposed_price).toLocaleString()} ر.ي</p>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="gap-1"
+                              onClick={() => navigate(`/order/delivery/${d.id}`)}
+                            >
+                              عرض التفاصيل والقبول
+                            </Button>
+                          </div>
+                        )}
+
+                        {isAccepted && (
+                          <div className="mt-2 p-2 rounded bg-green-50 border border-green-200 text-xs text-green-700">
+                            ✅ تم قبول السعر: {Number(d.final_price || d.proposed_price).toLocaleString()} ر.ي
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
               <EmptyState icon={<Bike className="w-12 h-12" />} text="لا توجد طلبات توصيل" />
