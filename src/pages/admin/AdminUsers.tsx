@@ -71,6 +71,8 @@ const AdminUsers = () => {
             <SelectItem value="customer">عميل</SelectItem>
             <SelectItem value="supplier">مورد</SelectItem>
             <SelectItem value="delivery_company">شركة توصيل</SelectItem>
+            <SelectItem value="driver">سائق أجرة</SelectItem>
+            <SelectItem value="delivery_driver">مندوب توصيل</SelectItem>
             <SelectItem value="admin">مشرف</SelectItem>
           </SelectContent>
         </Select>
@@ -108,6 +110,8 @@ const AdminUsers = () => {
                           <SelectItem value="customer">عميل</SelectItem>
                           <SelectItem value="supplier">مورد</SelectItem>
                           <SelectItem value="delivery_company">شركة توصيل</SelectItem>
+                          <SelectItem value="driver">سائق أجرة</SelectItem>
+                          <SelectItem value="delivery_driver">مندوب توصيل</SelectItem>
                           <SelectItem value="admin">مشرف</SelectItem>
                         </SelectContent>
                       </Select>

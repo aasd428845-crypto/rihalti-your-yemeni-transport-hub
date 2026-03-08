@@ -1,4 +1,4 @@
-export type AppRole = "customer" | "supplier" | "delivery_company" | "admin";
+export type AppRole = "customer" | "supplier" | "delivery_company" | "admin" | "driver" | "delivery_driver";
 
 export interface UserWithRole {
   user_id: string;
@@ -146,6 +146,8 @@ export const roleLabels: Record<string, string> = {
   customer: "عميل",
   supplier: "مورد",
   delivery_company: "شركة توصيل",
+  driver: "سائق أجرة",
+  delivery_driver: "مندوب توصيل",
   admin: "مشرف",
 };
 
