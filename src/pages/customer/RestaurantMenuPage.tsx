@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Star, Clock, Truck, MapPin, Plus, Minus, ShoppingCart, ArrowRight, Flame, Search } from "lucide-react";
-import { getRestaurantById, getRestaurantMenu, upsertCart, getCart } from "@/lib/restaurantApi";
+import { getRestaurantById, getRestaurantMenu, getMenuItemOptions, upsertCart, getCart } from "@/lib/restaurantApi";
 import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import BackButton from "@/components/common/BackButton";
 import Header from "@/components/landing/Header";
 
@@ -19,6 +22,13 @@ interface CartItem {
   quantity: number;
   image_url?: string;
   notes?: string;
+  selectedOptions?: Record<string, any>;
+}
+
+interface OptionChoice {
+  name_ar: string;
+  name_en?: string;
+  price: number;
 }
 
 const RestaurantMenuPage = () => {
@@ -35,7 +45,8 @@ const RestaurantMenuPage = () => {
   const [showItemDetail, setShowItemDetail] = useState<any>(null);
   const [itemQty, setItemQty] = useState(1);
   const [search, setSearch] = useState("");
-
+  const [itemOptions, setItemOptions] = useState<any[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
   useEffect(() => {
     const load = async () => {
       if (!id) return;
