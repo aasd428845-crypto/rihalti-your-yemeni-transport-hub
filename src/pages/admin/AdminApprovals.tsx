@@ -207,13 +207,16 @@ const AdminApprovals = () => {
       const res = await supabase.from("trips").update({ status: "approved" }).eq("id", req.id);
       error = res.error;
     } else if (req.source === "shipment") {
-      const res = await supabase.from("shipment_requests").update({ status: "approved", admin_approved: true }).eq("id", req.id);
+      const res = await supabase.from("shipment_requests").update({ status: "pending_pricing", admin_approved: true }).eq("id", req.id);
       error = res.error;
     } else if (req.source === "delivery_order") {
-      const res = await supabase.from("delivery_orders").update({ status: "confirmed" }).eq("id", req.id);
+      const res = await supabase.from("delivery_orders").update({ status: "pending" }).eq("id", req.id);
       error = res.error;
     } else if (req.source === "partner_join") {
       const res = await supabase.from("partner_join_requests").update({ status: "approved" }).eq("id", req.id);
+      error = res.error;
+    } else if ((req.source as string) === "booking") {
+      const res = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", req.id);
       error = res.error;
     } else {
       const res = await supabase.from("approval_requests").update({
