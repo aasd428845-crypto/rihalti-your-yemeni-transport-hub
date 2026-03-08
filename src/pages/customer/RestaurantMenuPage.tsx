@@ -199,7 +199,7 @@ const RestaurantMenuPage = () => {
                   const price = item.discounted_price || item.price;
                   return (
                     <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => { setShowItemDetail(item); setItemQty(1); }}>
+                      onClick={() => openItemDetail(item)}>
                       <CardContent className="p-0 flex">
                         <div className="flex-1 p-4 space-y-1">
                           <div className="flex items-center gap-2">
