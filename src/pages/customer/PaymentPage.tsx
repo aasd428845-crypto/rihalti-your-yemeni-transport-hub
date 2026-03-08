@@ -84,7 +84,7 @@ const PaymentPage = () => {
 
   const getAmount = () => {
     if (!entity) return 0;
-    return Number(entity.total_amount || entity.total || entity.agreed_price || entity.amount || 0);
+    return Number(entity.final_price || entity.total_amount || entity.total || entity.agreed_price || entity.amount || 0);
   };
 
   // Determine available payment methods
