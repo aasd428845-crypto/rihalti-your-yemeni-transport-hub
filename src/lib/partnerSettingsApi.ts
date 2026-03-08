@@ -13,7 +13,7 @@ export const getPartnerSettings = async (partnerId: string): Promise<PartnerSett
     .select("*")
     .eq("partner_id", partnerId)
     .maybeSingle();
-  return data as PartnerSettings | null;
+  return data as unknown as PartnerSettings | null;
 };
 
 export const upsertPartnerSettings = async (settings: Partial<PartnerSettings> & { partner_id: string }) => {
