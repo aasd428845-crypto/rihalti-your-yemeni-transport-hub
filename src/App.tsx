@@ -11,6 +11,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 import ShipmentRequestPage from "./pages/ShipmentRequestPage";
+import OrderDetailsPage from "./pages/customer/OrderDetailsPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 // Admin
@@ -28,6 +29,8 @@ import AdminJoinRequests from "./pages/admin/AdminJoinRequests";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminInvoices from "./pages/admin/AdminInvoices";
 import AdminViolations from "./pages/admin/AdminViolations";
+import AdminChatMonitoring from "./pages/admin/AdminChatMonitoring";
+import AdminDeliveryProofs from "./pages/admin/AdminDeliveryProofs";
 import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
@@ -39,6 +42,7 @@ import SupplierFinance from "./pages/supplier/SupplierFinance";
 import SupplierSettings from "./pages/supplier/SupplierSettings";
 import SupplierMessages from "./pages/supplier/SupplierMessages";
 import SupplierPromotions from "./pages/supplier/SupplierPromotions";
+import SupplierOrderDetails from "./pages/supplier/SupplierOrderDetails";
 // Delivery
 import DeliveryLayout from "./components/delivery/DeliveryLayout";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
