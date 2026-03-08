@@ -279,6 +279,28 @@ const RideDetailsPage = () => {
           </Card>
         )}
 
+        {/* Payment Button (after ride completion) */}
+        {r.status === 'completed' && (
+          <Card className="mb-4 border-primary/30">
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wallet size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground">الدفع</span>
+                </div>
+                <span className="text-lg font-bold text-primary">{r.final_price || r.proposed_price} ريال</span>
+              </div>
+              <Button
+                className="w-full gap-2"
+                onClick={() => navigate(`/payment/ride/${r.id}`)}
+              >
+                <CreditCard size={16} />
+                إتمام الدفع
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Chat */}
         {r.driver_id && (
           <div className="mb-4">
