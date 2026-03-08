@@ -44,6 +44,7 @@ import SupplierSettings from "./pages/supplier/SupplierSettings";
 import SupplierMessages from "./pages/supplier/SupplierMessages";
 import SupplierPromotions from "./pages/supplier/SupplierPromotions";
 import SupplierOrderDetails from "./pages/supplier/SupplierOrderDetails";
+import SupplierPayments from "./pages/supplier/SupplierPayments";
 // Delivery
 import DeliveryLayout from "./components/delivery/DeliveryLayout";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
