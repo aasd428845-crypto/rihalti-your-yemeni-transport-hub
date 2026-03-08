@@ -158,6 +158,7 @@ const App = () => (
               <Route path="reports" element={<DeliveryReports />} />
               <Route path="integrations" element={<DeliveryIntegrations />} />
               <Route path="settings" element={<DeliverySettings />} />
+              <Route path="payments" element={<DeliveryPayments />} />
             </Route>
             {/* Customer Restaurant Pages */}
             <Route path="/restaurants" element={<RestaurantsPage />} />
