@@ -77,6 +77,8 @@ import RideDetailsPage from "./pages/customer/RideDetailsPage";
 import RideTrackingPage from "./pages/customer/RideTrackingPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
+import PaymentPage from "./pages/customer/PaymentPage";
+import PaymentSuccessPage from "./pages/customer/PaymentSuccessPage";
 
 const queryClient = new QueryClient();
 
