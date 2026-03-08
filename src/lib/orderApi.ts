@@ -37,14 +37,16 @@ export const sendOrderMessage = async (params: {
 
   // Log violation if blocked
   if (isBlocked) {
-    await supabase.from("violation_logs" as any).insert({
-      user_id: params.senderId,
-      violation_type: 'external_contact',
-      severity: 'high',
-      details: `محاولة مشاركة معلومات تواصل في محادثة طلب ${params.orderType}: ${params.orderId}`,
-      source_type: 'order_chat',
-      source_id: params.orderId,
-    }).catch(() => {});
+    try {
+      await supabase.from("violation_logs" as any).insert({
+        user_id: params.senderId,
+        violation_type: 'external_contact',
+        severity: 'high',
+        details: `محاولة مشاركة معلومات تواصل في محادثة طلب ${params.orderType}: ${params.orderId}`,
+        source_type: 'order_chat',
+        source_id: params.orderId,
+      });
+    } catch {}
   }
 
   return { data, isBlocked };
@@ -66,11 +68,13 @@ export const submitShipmentPrice = async (requestId: string, price: number, part
   // Notify customer
   const { data: req } = await supabase.from("shipment_requests").select("customer_id").eq("id", requestId).single();
   if (req) {
-    await supabase.from("notifications").insert({
-      user_id: req.customer_id,
-      title: '💰 وصلك عرض سعر',
-      body: `تم تحديد سعر طلب الشحن الخاص بك: ${price.toLocaleString()} ريال`,
-    }).catch(() => {});
+    try {
+      await supabase.from("notifications").insert({
+        user_id: req.customer_id,
+        title: '💰 وصلك عرض سعر',
+        body: `تم تحديد سعر طلب الشحن الخاص بك: ${price.toLocaleString()} ريال`,
+      });
+    } catch {}
   }
 };
 
@@ -98,11 +102,13 @@ export const acceptShipmentPrice = async (requestId: string, paymentMethod: stri
 
   // Notify supplier
   if (req.supplier_id) {
-    await supabase.from("notifications").insert({
-      user_id: req.supplier_id,
-      title: '✅ العميل وافق على السعر!',
-      body: 'يمكنك الآن رؤية بيانات التواصل وطباعة الباركود.',
-    }).catch(() => {});
+    try {
+      await supabase.from("notifications").insert({
+        user_id: req.supplier_id,
+        title: '✅ العميل وافق على السعر!',
+        body: 'يمكنك الآن رؤية بيانات التواصل وطباعة الباركود.',
+      });
+    } catch {}
   }
 
   // Create financial transaction
@@ -132,11 +138,13 @@ export const submitDeliveryPrice = async (orderId: string, price: number) => {
 
   const { data: order } = await supabase.from("delivery_orders").select("customer_id").eq("id", orderId).single();
   if (order?.customer_id) {
-    await supabase.from("notifications").insert({
-      user_id: order.customer_id,
-      title: '💰 وصلك عرض سعر توصيل',
-      body: `تم تحديد سعر طلب التوصيل: ${price.toLocaleString()} ريال`,
-    }).catch(() => {});
+    try {
+      await supabase.from("notifications").insert({
+        user_id: order.customer_id,
+        title: '💰 وصلك عرض سعر توصيل',
+        body: `تم تحديد سعر طلب التوصيل: ${price.toLocaleString()} ريال`,
+      });
+    } catch {}
   }
 };
 
@@ -161,11 +169,13 @@ export const acceptDeliveryPrice = async (orderId: string, paymentMethod: string
   if (error) throw error;
 
   if (order.delivery_company_id) {
-    await supabase.from("notifications").insert({
-      user_id: order.delivery_company_id,
-      title: '✅ العميل وافق على سعر التوصيل!',
-      body: 'يمكنك الآن رؤية بيانات العميل وطباعة الباركود.',
-    }).catch(() => {});
+    try {
+      await supabase.from("notifications").insert({
+        user_id: order.delivery_company_id,
+        title: '✅ العميل وافق على سعر التوصيل!',
+        body: 'يمكنك الآن رؤية بيانات العميل وطباعة الباركود.',
+      });
+    } catch {}
   }
 
   await createTransactionFromOrder(orderId, 'delivery', Number(order.proposed_price), order.delivery_company_id);
@@ -193,17 +203,19 @@ const createTransactionFromOrder = async (
   const commission = Math.floor(amount * commissionRate / 100);
   const partnerEarning = amount - commission;
 
-  await supabase.from("financial_transactions").insert({
-    reference_id: orderId,
-    transaction_type: orderType,
-    amount,
-    platform_commission: commission,
-    partner_earning: partnerEarning,
-    partner_id: partnerId,
-    customer_id: partnerId, // will be updated
-    payment_method: 'cash',
-    payment_status: 'pending',
-  }).catch(() => {});
+  try {
+    await supabase.from("financial_transactions").insert({
+      reference_id: orderId,
+      transaction_type: orderType,
+      amount,
+      platform_commission: commission,
+      partner_earning: partnerEarning,
+      partner_id: partnerId,
+      customer_id: partnerId,
+      payment_method: 'cash',
+      payment_status: 'pending',
+    });
+  } catch {}
 };
 
 // ==================== WhatsApp Sharing ====================
@@ -233,13 +245,15 @@ export const generateWhatsAppMessage = (order: any, orderType: OrderType): strin
 };
 
 export const logWhatsAppShare = async (partnerId: string, orderId: string, orderType: OrderType, driverPhone: string, message: string) => {
-  await supabase.from("whatsapp_logs" as any).insert({
-    partner_id: partnerId,
-    order_id: orderId,
-    order_type: orderType,
-    driver_phone: driverPhone,
-    message_sent: message,
-  }).catch(() => {});
+  try {
+    await supabase.from("whatsapp_logs" as any).insert({
+      partner_id: partnerId,
+      order_id: orderId,
+      order_type: orderType,
+      driver_phone: driverPhone,
+      message_sent: message,
+    });
+  } catch {}
 };
 
 // ==================== Barcode / Delivery Proof ====================
