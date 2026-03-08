@@ -250,7 +250,6 @@ const DeliveryMenuManagement = () => {
                       <MenuItemOptionsManager menuItemId={item.id} menuItemName={item.name_ar} />
                       <Button size="sm" variant="destructive" onClick={() => handleDeleteItem(item.id)}><Trash2 className="w-3 h-3" /></Button>
                     </div>
-                    </div>
                   </CardContent>
                 </Card>
               ))}
