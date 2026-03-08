@@ -85,6 +85,7 @@ import PaymentSuccessPage from "./pages/customer/PaymentSuccessPage";
 import DriverLayout from "./components/driver/DriverLayout";
 import DriverDashboard from "./pages/driver/DriverDashboard";
 import DriverRideDetails from "./pages/driver/DriverRideDetails";
+import DriverActiveRide from "./pages/driver/DriverActiveRide";
 
 const queryClient = new QueryClient();
 
