@@ -146,6 +146,8 @@ export const roleLabels: Record<string, string> = {
   customer: "عميل",
   supplier: "مورد",
   delivery_company: "شركة توصيل",
+  driver: "سائق أجرة",
+  delivery_driver: "مندوب توصيل",
   admin: "مشرف",
 };
 
