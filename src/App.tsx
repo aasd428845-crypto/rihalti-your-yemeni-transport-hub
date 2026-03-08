@@ -47,6 +47,7 @@ import SupplierOrderDetails from "./pages/supplier/SupplierOrderDetails";
 import DeliveryLayout from "./components/delivery/DeliveryLayout";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
 import DeliveryRestaurants from "./pages/delivery/DeliveryRestaurants";
+import DeliveryMenuManagement from "./pages/delivery/DeliveryMenuManagement";
 import DeliveryOrders from "./pages/delivery/DeliveryOrders";
 import DeliveryRiders from "./pages/delivery/DeliveryRiders";
 import DeliveryFinance from "./pages/delivery/DeliveryFinance";
@@ -62,6 +63,9 @@ import HistoryPage from "./pages/customer/HistoryPage";
 import AccountPage from "./pages/customer/AccountPage";
 import TrackingPage from "./pages/customer/TrackingPage";
 import AddressesPage from "./pages/customer/AddressesPage";
+import RestaurantsPage from "./pages/customer/RestaurantsPage";
+import RestaurantMenuPage from "./pages/customer/RestaurantMenuPage";
+import RestaurantCheckoutPage from "./pages/customer/RestaurantCheckoutPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 
@@ -134,12 +138,17 @@ const App = () => (
             <Route path="/delivery" element={<DeliveryLayout />}>
               <Route index element={<DeliveryDashboard />} />
               <Route path="restaurants" element={<DeliveryRestaurants />} />
+              <Route path="restaurants/:restaurantId/menu" element={<DeliveryMenuManagement />} />
               <Route path="orders" element={<DeliveryOrders />} />
               <Route path="riders" element={<DeliveryRiders />} />
               <Route path="finance" element={<DeliveryFinance />} />
               <Route path="integrations" element={<DeliveryIntegrations />} />
               <Route path="settings" element={<DeliverySettings />} />
             </Route>
+            {/* Customer Restaurant Pages */}
+            <Route path="/restaurants" element={<RestaurantsPage />} />
+            <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
+            <Route path="/restaurants/:id/checkout" element={<RestaurantCheckoutPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
