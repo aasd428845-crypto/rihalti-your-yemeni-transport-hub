@@ -98,6 +98,7 @@ import DeliveryDriverEarnings from "./pages/delivery-driver/DeliveryDriverEarnin
 import DeliveryDriverProfile from "./pages/delivery-driver/DeliveryDriverProfile";
 import DeliveryDriverSettings from "./pages/delivery-driver/DeliveryDriverSettings";
 import DeliveryDriverOrderDetails from "./pages/delivery-driver/DeliveryDriverOrderDetails";
+import DeliveryDriverHistory from "./pages/delivery-driver/DeliveryDriverHistory";
 
 const queryClient = new QueryClient();
 
@@ -210,6 +211,7 @@ const App = () => (
               <Route index element={<DeliveryDriverDashboard />} />
               <Route path="orders" element={<DeliveryDriverOrders />} />
               <Route path="orders/:id" element={<DeliveryDriverOrderDetails />} />
+              <Route path="history" element={<DeliveryDriverHistory />} />
               <Route path="earnings" element={<DeliveryDriverEarnings />} />
               <Route path="profile" element={<DeliveryDriverProfile />} />
               <Route path="settings" element={<DeliveryDriverSettings />} />
