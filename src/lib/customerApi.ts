@@ -147,13 +147,21 @@ export const fetchTripById = async (id: string) => {
 
 // ---- Bookings ----
 export const createBooking = async (booking: BookingFormData & { customer_id: string }) => {
+  // Check auto-approve setting
+  const { data: autoSetting } = await supabase
+    .from("admin_settings")
+    .select("value")
+    .eq("key", "auto_approve_bookings")
+    .maybeSingle();
+  const bookingStatus = autoSetting?.value === "true" ? "confirmed" : "pending";
+
   const { data, error } = await supabase.from("bookings").insert({
     trip_id: booking.trip_id,
     customer_id: booking.customer_id,
     seat_count: booking.seat_count,
     total_amount: booking.total_amount,
     payment_method: booking.payment_method,
-    status: "confirmed",
+    status: bookingStatus,
     payment_status: "pending",
   }).select().single();
   if (error) throw error;
@@ -200,6 +208,14 @@ export const fetchSuppliers = async () => {
 };
 
 export const createShipmentRequest = async (shipment: ShipmentFormData & { customer_id: string }) => {
+  // Check auto-approve setting
+  const { data: autoSetting } = await supabase
+    .from("admin_settings")
+    .select("value")
+    .eq("key", "auto_approve_shipments")
+    .maybeSingle();
+  const shipmentStatus = autoSetting?.value === "true" ? "approved" : "pending_approval";
+
   const { data, error } = await supabase.from("shipment_requests").insert({
     customer_id: shipment.customer_id,
     supplier_id: shipment.supplier_id,
@@ -216,7 +232,7 @@ export const createShipmentRequest = async (shipment: ShipmentFormData & { custo
     item_weight: shipment.item_weight,
     item_dimensions: shipment.item_dimensions,
     payment_method: shipment.payment_method,
-    status: "pending_approval",
+    status: shipmentStatus,
   }).select().single();
   if (error) throw error;
   return data;
@@ -265,6 +281,14 @@ export const createDeliveryOrder = async (order: DeliveryFormData & { customer_i
   const subtotal = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const total = subtotal + order.delivery_fee;
 
+  // Check auto-approve setting
+  const { data: autoSetting } = await supabase
+    .from("admin_settings")
+    .select("value")
+    .eq("key", "auto_approve_deliveries")
+    .maybeSingle();
+  const orderStatus = autoSetting?.value === "true" ? "confirmed" : "pending";
+
   const { data, error } = await supabase.from("delivery_orders").insert({
     delivery_company_id: order.delivery_company_id,
     restaurant_id: order.restaurant_id || null,
@@ -281,7 +305,7 @@ export const createDeliveryOrder = async (order: DeliveryFormData & { customer_i
     total,
     payment_method: order.payment_method,
     notes: order.notes,
-    status: "pending",
+    status: orderStatus,
     payment_status: "pending",
   }).select().single();
   if (error) throw error;
