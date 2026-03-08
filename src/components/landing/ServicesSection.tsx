@@ -1,4 +1,4 @@
-import { Bus, Package, Truck, ArrowLeft } from "lucide-react";
+import { Bus, Package, Truck, Car, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -27,12 +27,21 @@ const services = [
     color: "success" as const,
     route: "/request/delivery",
   },
+  {
+    icon: Car,
+    title: "سيارة أجرة",
+    description: "اطلب سيارة أجرة بسهولة وحدد وجهتك، سيتواصل معك سائق بعرض سعر فوراً",
+    features: ["تسعير تنافسي", "سائقون موثوقون", "تتبع مباشر"],
+    color: "taxi" as const,
+    route: "/ride/request",
+  },
 ];
 
-const colorMap = {
+const colorMap: Record<string, { bg: string; icon: string; badge: string }> = {
   primary: { bg: "bg-accent", icon: "text-primary", badge: "bg-primary/10 text-primary" },
   secondary: { bg: "bg-secondary/10", icon: "text-secondary", badge: "bg-secondary/10 text-secondary-foreground" },
   success: { bg: "bg-[hsl(var(--success))]/10", icon: "text-[hsl(var(--success))]", badge: "bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]" },
+  taxi: { bg: "bg-primary/10", icon: "text-primary", badge: "bg-primary/10 text-primary" },
 };
 
 const ServicesSection = () => {
