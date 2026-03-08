@@ -56,6 +56,7 @@ import DeliveryFinance from "./pages/delivery/DeliveryFinance";
 import DeliveryIntegrations from "./pages/delivery/DeliveryIntegrations";
 import DeliverySettings from "./pages/delivery/DeliverySettings";
 import DeliveryReports from "./pages/delivery/DeliveryReports";
+import DeliveryPayments from "./pages/delivery/DeliveryPayments";
 // Customer Pages
 import TripsPage from "./pages/customer/TripsPage";
 import TripDetailsPage from "./pages/customer/TripDetailsPage";
