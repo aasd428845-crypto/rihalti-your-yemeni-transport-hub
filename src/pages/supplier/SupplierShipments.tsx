@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getSupplierShipmentRequests, priceShipmentRequest, updateShipmentRequestStatus } from "@/lib/supplierApi";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 const SupplierShipments = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +110,7 @@ const SupplierShipments = () => {
                       <TableCell className="text-sm">{new Date(req.created_at).toLocaleDateString("ar")}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => setDetailReq(req)}><Eye className="w-4 h-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => navigate(`/supplier/order/shipment/${req.id}`)}><Eye className="w-4 h-4" /></Button>
                           {req.status === "pending_pricing" && (
                             <Button variant="ghost" size="icon" onClick={() => { setPricingReq(req); setPriceInput(""); }} className="text-primary">
                               <DollarSign className="w-4 h-4" />

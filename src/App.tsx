@@ -11,6 +11,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 import ShipmentRequestPage from "./pages/ShipmentRequestPage";
+import OrderDetailsPage from "./pages/customer/OrderDetailsPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 // Admin
@@ -28,6 +29,8 @@ import AdminJoinRequests from "./pages/admin/AdminJoinRequests";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminInvoices from "./pages/admin/AdminInvoices";
 import AdminViolations from "./pages/admin/AdminViolations";
+import AdminChatMonitoring from "./pages/admin/AdminChatMonitoring";
+import AdminDeliveryProofs from "./pages/admin/AdminDeliveryProofs";
 import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
@@ -39,6 +42,7 @@ import SupplierFinance from "./pages/supplier/SupplierFinance";
 import SupplierSettings from "./pages/supplier/SupplierSettings";
 import SupplierMessages from "./pages/supplier/SupplierMessages";
 import SupplierPromotions from "./pages/supplier/SupplierPromotions";
+import SupplierOrderDetails from "./pages/supplier/SupplierOrderDetails";
 // Delivery
 import DeliveryLayout from "./components/delivery/DeliveryLayout";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
@@ -91,6 +95,8 @@ const App = () => (
             <Route path="/addresses" element={<AddressesPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/notification-settings" element={<NotificationSettingsPage />} />
+            {/* Order Details */}
+            <Route path="/order/:type/:id" element={<OrderDetailsPage />} />
             {/* Service Requests */}
             <Route path="/request" element={<ShipmentRequestPage />} />
             <Route path="/request/shipment" element={<ShipmentRequestPage />} />
@@ -110,6 +116,8 @@ const App = () => (
               <Route path="invoices" element={<AdminInvoices />} />
               <Route path="violations" element={<AdminViolations />} />
               <Route path="messages" element={<AdminMessages />} />
+              <Route path="chat-monitoring" element={<AdminChatMonitoring />} />
+              <Route path="delivery-proofs" element={<AdminDeliveryProofs />} />
               <Route path="reports" element={<AdminReports />} />
             </Route>
             <Route path="/supplier" element={<SupplierLayout />}>
@@ -117,6 +125,7 @@ const App = () => (
               <Route path="trips" element={<SupplierTrips />} />
               <Route path="bookings" element={<SupplierBookings />} />
               <Route path="shipments" element={<SupplierShipments />} />
+              <Route path="order/:type/:id" element={<SupplierOrderDetails />} />
               <Route path="finance" element={<SupplierFinance />} />
               <Route path="settings" element={<SupplierSettings />} />
               <Route path="messages" element={<SupplierMessages />} />

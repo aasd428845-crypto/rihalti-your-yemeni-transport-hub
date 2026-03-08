@@ -415,25 +415,34 @@ export type Database = {
       delivery_orders: {
         Row: {
           assigned_at: string | null
+          barcode: string | null
           cancellation_reason: string | null
           created_at: string | null
+          customer_accepted: boolean | null
           customer_address: string
           customer_id: string | null
           customer_name: string
           customer_phone: string
+          customer_phone_hidden: boolean | null
           delivered_at: string | null
           delivery_company_id: string
           delivery_fee: number
           delivery_lat: number | null
           delivery_lng: number | null
           estimated_delivery_time: string | null
+          final_price: number | null
           id: string
           items: Json
+          negotiation_status: string | null
           notes: string | null
           order_type: string | null
           payment_method: string | null
           payment_status: string | null
           picked_up_at: string | null
+          price_accepted_at: string | null
+          price_offered_at: string | null
+          proposed_price: number | null
+          qr_code_url: string | null
           restaurant_id: string | null
           rider_id: string | null
           status: string | null
@@ -444,25 +453,34 @@ export type Database = {
         }
         Insert: {
           assigned_at?: string | null
+          barcode?: string | null
           cancellation_reason?: string | null
           created_at?: string | null
+          customer_accepted?: boolean | null
           customer_address: string
           customer_id?: string | null
           customer_name: string
           customer_phone: string
+          customer_phone_hidden?: boolean | null
           delivered_at?: string | null
           delivery_company_id: string
           delivery_fee?: number
           delivery_lat?: number | null
           delivery_lng?: number | null
           estimated_delivery_time?: string | null
+          final_price?: number | null
           id?: string
           items?: Json
+          negotiation_status?: string | null
           notes?: string | null
           order_type?: string | null
           payment_method?: string | null
           payment_status?: string | null
           picked_up_at?: string | null
+          price_accepted_at?: string | null
+          price_offered_at?: string | null
+          proposed_price?: number | null
+          qr_code_url?: string | null
           restaurant_id?: string | null
           rider_id?: string | null
           status?: string | null
@@ -473,25 +491,34 @@ export type Database = {
         }
         Update: {
           assigned_at?: string | null
+          barcode?: string | null
           cancellation_reason?: string | null
           created_at?: string | null
+          customer_accepted?: boolean | null
           customer_address?: string
           customer_id?: string | null
           customer_name?: string
           customer_phone?: string
+          customer_phone_hidden?: boolean | null
           delivered_at?: string | null
           delivery_company_id?: string
           delivery_fee?: number
           delivery_lat?: number | null
           delivery_lng?: number | null
           estimated_delivery_time?: string | null
+          final_price?: number | null
           id?: string
           items?: Json
+          negotiation_status?: string | null
           notes?: string | null
           order_type?: string | null
           payment_method?: string | null
           payment_status?: string | null
           picked_up_at?: string | null
+          price_accepted_at?: string | null
+          price_offered_at?: string | null
+          proposed_price?: number | null
+          qr_code_url?: string | null
           restaurant_id?: string | null
           rider_id?: string | null
           status?: string | null
@@ -516,6 +543,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      delivery_proof: {
+        Row: {
+          barcode_scanned: boolean | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          order_type: string
+          photo_url: string | null
+          recipient_name: string | null
+          scanned_at: string | null
+          scanned_by: string | null
+          signature_url: string | null
+        }
+        Insert: {
+          barcode_scanned?: boolean | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          order_type: string
+          photo_url?: string | null
+          recipient_name?: string | null
+          scanned_at?: string | null
+          scanned_by?: string | null
+          signature_url?: string | null
+        }
+        Update: {
+          barcode_scanned?: boolean | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          order_type?: string
+          photo_url?: string | null
+          recipient_name?: string | null
+          scanned_at?: string | null
+          scanned_by?: string | null
+          signature_url?: string | null
+        }
+        Relationships: []
       }
       financial_transactions: {
         Row: {
@@ -863,6 +932,51 @@ export type Database = {
           read_at?: string | null
           title?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      order_messages: {
+        Row: {
+          attachment_url: string | null
+          block_reason: string | null
+          created_at: string | null
+          id: string
+          is_blocked: boolean | null
+          is_read: boolean | null
+          message: string
+          order_id: string
+          order_type: string
+          sender_id: string
+          sender_role: string
+          type: string | null
+        }
+        Insert: {
+          attachment_url?: string | null
+          block_reason?: string | null
+          created_at?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          is_read?: boolean | null
+          message: string
+          order_id: string
+          order_type: string
+          sender_id: string
+          sender_role: string
+          type?: string | null
+        }
+        Update: {
+          attachment_url?: string | null
+          block_reason?: string | null
+          created_at?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          is_read?: boolean | null
+          message?: string
+          order_id?: string
+          order_type?: string
+          sender_id?: string
+          sender_role?: string
+          type?: string | null
         }
         Relationships: []
       }
@@ -1414,6 +1528,87 @@ export type Database = {
         }
         Relationships: []
       }
+      ride_requests: {
+        Row: {
+          barcode: string | null
+          created_at: string | null
+          customer_accepted: boolean | null
+          customer_id: string
+          customer_phone_hidden: boolean | null
+          driver_id: string | null
+          final_price: number | null
+          from_address: string | null
+          from_city: string
+          id: string
+          negotiation_status: string | null
+          notes: string | null
+          passenger_count: number | null
+          payment_method: string | null
+          payment_status: string | null
+          price_accepted_at: string | null
+          price_offered_at: string | null
+          proposed_price: number | null
+          qr_code_url: string | null
+          ride_type: string | null
+          status: string | null
+          to_address: string | null
+          to_city: string
+          updated_at: string | null
+        }
+        Insert: {
+          barcode?: string | null
+          created_at?: string | null
+          customer_accepted?: boolean | null
+          customer_id: string
+          customer_phone_hidden?: boolean | null
+          driver_id?: string | null
+          final_price?: number | null
+          from_address?: string | null
+          from_city: string
+          id?: string
+          negotiation_status?: string | null
+          notes?: string | null
+          passenger_count?: number | null
+          payment_method?: string | null
+          payment_status?: string | null
+          price_accepted_at?: string | null
+          price_offered_at?: string | null
+          proposed_price?: number | null
+          qr_code_url?: string | null
+          ride_type?: string | null
+          status?: string | null
+          to_address?: string | null
+          to_city: string
+          updated_at?: string | null
+        }
+        Update: {
+          barcode?: string | null
+          created_at?: string | null
+          customer_accepted?: boolean | null
+          customer_id?: string
+          customer_phone_hidden?: boolean | null
+          driver_id?: string | null
+          final_price?: number | null
+          from_address?: string | null
+          from_city?: string
+          id?: string
+          negotiation_status?: string | null
+          notes?: string | null
+          passenger_count?: number | null
+          payment_method?: string | null
+          payment_status?: string | null
+          price_accepted_at?: string | null
+          price_offered_at?: string | null
+          proposed_price?: number | null
+          qr_code_url?: string | null
+          ride_type?: string | null
+          status?: string | null
+          to_address?: string | null
+          to_city?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       rider_rewards: {
         Row: {
           achieved_at: string | null
@@ -1628,20 +1823,28 @@ export type Database = {
           admin_approved: boolean | null
           barcode: string | null
           created_at: string | null
+          customer_accepted: boolean | null
           customer_id: string
+          customer_phone_hidden: boolean | null
           delivery_address: string | null
           delivery_lat: number | null
           delivery_lng: number | null
+          final_price: number | null
           id: string
           images: string[] | null
           item_description: string | null
           item_dimensions: string | null
           item_weight: number | null
+          negotiation_status: string | null
           payment_method: string | null
           pickup_address: string | null
           pickup_lat: number | null
           pickup_lng: number | null
           price: number | null
+          price_accepted_at: string | null
+          price_offered_at: string | null
+          proposed_price: number | null
+          qr_code_url: string | null
           recipient_name: string | null
           recipient_phone: string | null
           shipment_type: string
@@ -1655,20 +1858,28 @@ export type Database = {
           admin_approved?: boolean | null
           barcode?: string | null
           created_at?: string | null
+          customer_accepted?: boolean | null
           customer_id: string
+          customer_phone_hidden?: boolean | null
           delivery_address?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
+          final_price?: number | null
           id?: string
           images?: string[] | null
           item_description?: string | null
           item_dimensions?: string | null
           item_weight?: number | null
+          negotiation_status?: string | null
           payment_method?: string | null
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
           price?: number | null
+          price_accepted_at?: string | null
+          price_offered_at?: string | null
+          proposed_price?: number | null
+          qr_code_url?: string | null
           recipient_name?: string | null
           recipient_phone?: string | null
           shipment_type: string
@@ -1682,20 +1893,28 @@ export type Database = {
           admin_approved?: boolean | null
           barcode?: string | null
           created_at?: string | null
+          customer_accepted?: boolean | null
           customer_id?: string
+          customer_phone_hidden?: boolean | null
           delivery_address?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
+          final_price?: number | null
           id?: string
           images?: string[] | null
           item_description?: string | null
           item_dimensions?: string | null
           item_weight?: number | null
+          negotiation_status?: string | null
           payment_method?: string | null
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
           price?: number | null
+          price_accepted_at?: string | null
+          price_offered_at?: string | null
+          proposed_price?: number | null
+          qr_code_url?: string | null
           recipient_name?: string | null
           recipient_phone?: string | null
           shipment_type?: string
@@ -2076,6 +2295,39 @@ export type Database = {
           status?: string | null
           user_id?: string
           violation_type?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_logs: {
+        Row: {
+          driver_phone: string
+          id: string
+          message_sent: string | null
+          order_id: string
+          order_type: string
+          partner_id: string
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          driver_phone: string
+          id?: string
+          message_sent?: string | null
+          order_id: string
+          order_type: string
+          partner_id: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          driver_phone?: string
+          id?: string
+          message_sent?: string | null
+          order_id?: string
+          order_type?: string
+          partner_id?: string
+          sent_at?: string | null
+          status?: string | null
         }
         Relationships: []
       }
