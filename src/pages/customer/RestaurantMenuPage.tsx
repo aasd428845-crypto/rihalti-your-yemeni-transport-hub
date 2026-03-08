@@ -262,9 +262,8 @@ const RestaurantMenuPage = () => {
         </div>
       )}
 
-      {/* Item Detail Dialog */}
-      <Dialog open={!!showItemDetail} onOpenChange={() => setShowItemDetail(null)}>
-        <DialogContent dir="rtl" className="max-w-lg">
+      <Dialog open={!!showItemDetail} onOpenChange={() => { setShowItemDetail(null); setItemOptions([]); setSelectedOptions({}); }}>
+        <DialogContent dir="rtl" className="max-w-lg max-h-[90vh] overflow-y-auto">
           {showItemDetail && (
             <>
               {showItemDetail.image_url && (
@@ -290,6 +289,64 @@ const RestaurantMenuPage = () => {
                   <span className="text-2xl font-bold text-primary">{showItemDetail.price} ر.ي</span>
                 )}
               </div>
+
+              {/* Item Options */}
+              {itemOptions.length > 0 && (
+                <div className="space-y-4 border-t pt-4">
+                  {itemOptions.map((opt: any) => {
+                    const choices = (opt.choices as OptionChoice[]) || [];
+                    return (
+                      <div key={opt.id} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Label className="font-bold">{opt.name_ar}</Label>
+                          {opt.is_required && <Badge variant="destructive" className="text-xs">مطلوب</Badge>}
+                        </div>
+                        {opt.option_type === "single" ? (
+                          <RadioGroup value={selectedOptions[opt.id]?.name_ar || ""}
+                            onValueChange={v => {
+                              const choice = choices.find(c => c.name_ar === v);
+                              setSelectedOptions(prev => ({ ...prev, [opt.id]: choice }));
+                            }}>
+                            {choices.map((choice, i) => (
+                              <div key={i} className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <RadioGroupItem value={choice.name_ar} id={`${opt.id}-${i}`} />
+                                  <Label htmlFor={`${opt.id}-${i}`}>{choice.name_ar}</Label>
+                                </div>
+                                {choice.price > 0 && <span className="text-sm text-muted-foreground">+{choice.price} ر.ي</span>}
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        ) : (
+                          <div className="space-y-2">
+                            {choices.map((choice, i) => {
+                              const selected = (selectedOptions[opt.id] as OptionChoice[] || []);
+                              const isChecked = selected.some(s => s.name_ar === choice.name_ar);
+                              return (
+                                <div key={i} className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Checkbox id={`${opt.id}-${i}`} checked={isChecked}
+                                      onCheckedChange={checked => {
+                                        setSelectedOptions(prev => {
+                                          const current = (prev[opt.id] as OptionChoice[] || []);
+                                          if (checked) return { ...prev, [opt.id]: [...current, choice] };
+                                          return { ...prev, [opt.id]: current.filter(s => s.name_ar !== choice.name_ar) };
+                                        });
+                                      }} />
+                                    <Label htmlFor={`${opt.id}-${i}`}>{choice.name_ar}</Label>
+                                  </div>
+                                  {choice.price > 0 && <span className="text-sm text-muted-foreground">+{choice.price} ر.ي</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="flex items-center justify-center gap-4 py-2">
                 <Button size="icon" variant="outline" onClick={() => setItemQty(Math.max(1, itemQty - 1))}><Minus className="w-4 h-4" /></Button>
                 <span className="text-xl font-bold w-10 text-center">{itemQty}</span>
@@ -298,7 +355,7 @@ const RestaurantMenuPage = () => {
               <DialogFooter>
                 <Button className="w-full gap-2" size="lg" onClick={() => addToCart(showItemDetail, itemQty)}>
                   <ShoppingCart className="w-5 h-5" />
-                  إضافة إلى السلة - {(showItemDetail.discounted_price || showItemDetail.price) * itemQty} ر.ي
+                  إضافة إلى السلة
                 </Button>
               </DialogFooter>
             </>
