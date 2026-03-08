@@ -86,6 +86,10 @@ import DriverLayout from "./components/driver/DriverLayout";
 import DriverDashboard from "./pages/driver/DriverDashboard";
 import DriverRideDetails from "./pages/driver/DriverRideDetails";
 import DriverActiveRide from "./pages/driver/DriverActiveRide";
+import DriverProfile from "./pages/driver/DriverProfile";
+import DriverHistory from "./pages/driver/DriverHistory";
+import DriverEarnings from "./pages/driver/DriverEarnings";
+import DriverSettings from "./pages/driver/DriverSettings";
 
 const queryClient = new QueryClient();
 
@@ -188,6 +192,10 @@ const App = () => (
               <Route index element={<DriverDashboard />} />
               <Route path="rides/:id" element={<DriverRideDetails />} />
               <Route path="active-ride/:id" element={<DriverActiveRide />} />
+              <Route path="profile" element={<DriverProfile />} />
+              <Route path="history" element={<DriverHistory />} />
+              <Route path="earnings" element={<DriverEarnings />} />
+              <Route path="settings" element={<DriverSettings />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
