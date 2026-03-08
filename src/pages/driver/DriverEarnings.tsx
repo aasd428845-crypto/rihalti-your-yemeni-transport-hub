@@ -33,6 +33,18 @@ const DriverEarnings = () => {
     );
   }
 
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfWeek = startOfDay - 6 * 24 * 60 * 60 * 1000;
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+  const calcEarnings = (since: number) =>
+    transactions.filter(t => new Date(t.created_at).getTime() >= since).reduce((sum, t) => sum + (t.partner_earning || 0), 0);
+
+  const todayEarnings = calcEarnings(startOfDay);
+  const weekEarnings = calcEarnings(startOfWeek);
+  const monthEarnings = calcEarnings(startOfMonth);
+
   const totalEarnings = transactions.reduce((sum, t) => sum + (t.partner_earning || 0), 0);
   const totalCommission = transactions.reduce((sum, t) => sum + (t.platform_commission || 0), 0);
   const totalAmount = transactions.reduce((sum, t) => sum + (t.amount || 0), 0);
@@ -55,6 +67,23 @@ const DriverEarnings = () => {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-foreground">الأرباح</h1>
+
+      {/* Period earnings */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { title: "أرباح اليوم", value: todayEarnings },
+          { title: "أرباح الأسبوع", value: weekEarnings },
+          { title: "أرباح الشهر", value: monthEarnings },
+        ].map((p) => (
+          <Card key={p.title} className="border-primary/20">
+            <CardContent className="pt-4 text-center">
+              <p className="text-xs text-muted-foreground mb-1">{p.title}</p>
+              <p className="text-lg font-bold text-primary">{p.value} ر.ي</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((stat) => (

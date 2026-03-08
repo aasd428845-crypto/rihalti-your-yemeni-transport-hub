@@ -304,6 +304,32 @@ const DriverActiveRide = () => {
         </Card>
       )}
 
+      {/* Navigation */}
+      {isAccepted && ride.status !== "completed" && (
+        <div className="flex gap-3">
+          {ride.pickup_lat && ride.pickup_lng && ride.status !== "in_progress" && (
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${ride.pickup_lat},${ride.pickup_lng}`, "_blank")}
+            >
+              <Navigation className="w-4 h-4 ml-2" />
+              التنقل لموقع العميل
+            </Button>
+          )}
+          {ride.dropoff_lat && ride.dropoff_lng && ride.status === "in_progress" && (
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${ride.dropoff_lat},${ride.dropoff_lng}`, "_blank")}
+            >
+              <Navigation className="w-4 h-4 ml-2" />
+              التنقل للوجهة
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Chat Section */}
       {(isAccepted || ride.status === "in_progress") && (
         <div>
