@@ -95,6 +95,8 @@ const App = () => (
             <Route path="/addresses" element={<AddressesPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/notification-settings" element={<NotificationSettingsPage />} />
+            {/* Order Details */}
+            <Route path="/order/:type/:id" element={<OrderDetailsPage />} />
             {/* Service Requests */}
             <Route path="/request" element={<ShipmentRequestPage />} />
             <Route path="/request/shipment" element={<ShipmentRequestPage />} />
@@ -114,6 +116,8 @@ const App = () => (
               <Route path="invoices" element={<AdminInvoices />} />
               <Route path="violations" element={<AdminViolations />} />
               <Route path="messages" element={<AdminMessages />} />
+              <Route path="chat-monitoring" element={<AdminChatMonitoring />} />
+              <Route path="delivery-proofs" element={<AdminDeliveryProofs />} />
               <Route path="reports" element={<AdminReports />} />
             </Route>
             <Route path="/supplier" element={<SupplierLayout />}>
@@ -121,6 +125,7 @@ const App = () => (
               <Route path="trips" element={<SupplierTrips />} />
               <Route path="bookings" element={<SupplierBookings />} />
               <Route path="shipments" element={<SupplierShipments />} />
+              <Route path="order/:type/:id" element={<SupplierOrderDetails />} />
               <Route path="finance" element={<SupplierFinance />} />
               <Route path="settings" element={<SupplierSettings />} />
               <Route path="messages" element={<SupplierMessages />} />
