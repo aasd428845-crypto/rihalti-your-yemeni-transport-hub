@@ -772,6 +772,7 @@ export type Database = {
           partner_id: string
           payment_method: string
           payment_status: string | null
+          payment_transaction_id: string | null
           platform_commission: number
           reference_id: string
           transaction_type: string
@@ -791,6 +792,7 @@ export type Database = {
           partner_id: string
           payment_method?: string
           payment_status?: string | null
+          payment_transaction_id?: string | null
           platform_commission?: number
           reference_id: string
           transaction_type: string
@@ -810,6 +812,7 @@ export type Database = {
           partner_id?: string
           payment_method?: string
           payment_status?: string | null
+          payment_transaction_id?: string | null
           platform_commission?: number
           reference_id?: string
           transaction_type?: string
@@ -1446,6 +1449,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          account_type: string
+          bank_name: string
+          created_at: string | null
+          iban: string | null
+          id: string
+          is_active: boolean | null
+          owner_id: string | null
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          account_type: string
+          bank_name: string
+          created_at?: string | null
+          iban?: string | null
+          id?: string
+          is_active?: boolean | null
+          owner_id?: string | null
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          account_type?: string
+          bank_name?: string
+          created_at?: string | null
+          iban?: string | null
+          id?: string
+          is_active?: boolean | null
+          owner_id?: string | null
+        }
+        Relationships: []
+      }
       payment_logs: {
         Row: {
           amount_paid: number
@@ -1483,6 +1522,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          entity_type: string
+          id: string
+          notes: string | null
+          partner_id: string | null
+          payment_method: string
+          related_entity_id: string
+          status: string | null
+          transfer_receipt_url: string | null
+          transfer_reference: string | null
+          updated_at: string | null
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          entity_type: string
+          id?: string
+          notes?: string | null
+          partner_id?: string | null
+          payment_method: string
+          related_entity_id: string
+          status?: string | null
+          transfer_receipt_url?: string | null
+          transfer_reference?: string | null
+          updated_at?: string | null
+          user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          entity_type?: string
+          id?: string
+          notes?: string | null
+          partner_id?: string | null
+          payment_method?: string
+          related_entity_id?: string
+          status?: string | null
+          transfer_receipt_url?: string | null
+          transfer_reference?: string | null
+          updated_at?: string | null
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
       }
       payouts: {
         Row: {
