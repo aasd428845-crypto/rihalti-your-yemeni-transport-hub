@@ -68,6 +68,23 @@ const DriverEarnings = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-foreground">الأرباح</h1>
 
+      {/* Period earnings */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { title: "أرباح اليوم", value: todayEarnings },
+          { title: "أرباح الأسبوع", value: weekEarnings },
+          { title: "أرباح الشهر", value: monthEarnings },
+        ].map((p) => (
+          <Card key={p.title} className="border-primary/20">
+            <CardContent className="pt-4 text-center">
+              <p className="text-xs text-muted-foreground mb-1">{p.title}</p>
+              <p className="text-lg font-bold text-primary">{p.value} ر.ي</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <Card key={stat.title}>
