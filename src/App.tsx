@@ -66,6 +66,9 @@ import AddressesPage from "./pages/customer/AddressesPage";
 import RestaurantsPage from "./pages/customer/RestaurantsPage";
 import RestaurantMenuPage from "./pages/customer/RestaurantMenuPage";
 import RestaurantCheckoutPage from "./pages/customer/RestaurantCheckoutPage";
+import RideRequestPage from "./pages/customer/RideRequestPage";
+import RideDetailsPage from "./pages/customer/RideDetailsPage";
+import RideTrackingPage from "./pages/customer/RideTrackingPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 
@@ -149,6 +152,10 @@ const App = () => (
             <Route path="/restaurants" element={<RestaurantsPage />} />
             <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
             <Route path="/restaurants/:id/checkout" element={<RestaurantCheckoutPage />} />
+            {/* Customer Ride Pages */}
+            <Route path="/ride/request" element={<RideRequestPage />} />
+            <Route path="/ride/:id" element={<RideDetailsPage />} />
+            <Route path="/ride/:id/tracking" element={<RideTrackingPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
