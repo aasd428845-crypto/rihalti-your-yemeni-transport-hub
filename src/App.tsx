@@ -185,6 +185,7 @@ const App = () => (
             {/* Driver */}
             <Route path="/driver" element={<DriverLayout />}>
               <Route index element={<DriverDashboard />} />
+              <Route path="rides/:id" element={<DriverRideDetails />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
