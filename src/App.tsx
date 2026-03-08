@@ -81,6 +81,9 @@ import NotificationsPage from "./pages/NotificationsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 import PaymentPage from "./pages/customer/PaymentPage";
 import PaymentSuccessPage from "./pages/customer/PaymentSuccessPage";
+// Driver
+import DriverLayout from "./components/driver/DriverLayout";
+import DriverDashboard from "./pages/driver/DriverDashboard";
 
 const queryClient = new QueryClient();
 
