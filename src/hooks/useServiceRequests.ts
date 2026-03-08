@@ -68,11 +68,13 @@ export function useServiceRequests() {
     if (error) throw error;
 
     if (data.partner_id) {
-      await supabase.from('notifications').insert({
-        user_id: data.partner_id,
-        title: '🔔 طلب جديد',
-        body: `طلب ${data.type === 'shipment' ? 'شحنة' : data.type === 'delivery' ? 'توصيل' : 'سيارة أجرة'} جديد من ${data.from_city} إلى ${data.to_city}`,
-      } as any).catch(console.error);
+      try {
+        await supabase.from('notifications').insert({
+          user_id: data.partner_id,
+          title: '🔔 طلب جديد',
+          body: `طلب ${data.type === 'shipment' ? 'شحنة' : data.type === 'delivery' ? 'توصيل' : 'سيارة أجرة'} جديد من ${data.from_city} إلى ${data.to_city}`,
+        } as any);
+      } catch (e) { console.error(e); }
     }
 
     toast({ title: 'تم إرسال طلبك ✅', description: 'سيتم إخطارك عند تحديد السعر' });
@@ -102,11 +104,13 @@ export function useServiceRequests() {
 
     if (request) {
       const req = request as any;
-      await supabase.from('notifications').insert({
-        user_id: req.customer_id,
-        title: '💰 وصلك عرض سعر',
-        body: `تم تحديد سعر طلبك: ${price.toLocaleString('ar-YE')} ريال`,
-      } as any).catch(console.error);
+      try {
+        await supabase.from('notifications').insert({
+          user_id: req.customer_id,
+          title: '💰 وصلك عرض سعر',
+          body: `تم تحديد سعر طلبك: ${price.toLocaleString('ar-YE')} ريال`,
+        } as any);
+      } catch (e) { console.error(e); }
     }
 
     toast({ title: 'تم إرسال عرض السعر ✅' });
@@ -141,11 +145,13 @@ export function useServiceRequests() {
     if (error) throw error;
 
     if (req.partner_id) {
-      await supabase.from('notifications').insert({
-        user_id: req.partner_id,
-        title: '✅ تمت الموافقة على الطلب!',
-        body: 'وافق العميل على السعر. يمكنك الآن التواصل معه.',
-      } as any).catch(console.error);
+      try {
+        await supabase.from('notifications').insert({
+          user_id: req.partner_id,
+          title: '✅ تمت الموافقة على الطلب!',
+          body: 'وافق العميل على السعر. يمكنك الآن التواصل معه.',
+        } as any);
+      } catch (e) { console.error(e); }
     }
 
     toast({ title: 'تمت الموافقة! ✅', description: 'سيتم إرسال معلومات التواصل للشريك' });
