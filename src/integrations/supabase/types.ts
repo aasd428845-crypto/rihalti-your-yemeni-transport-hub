@@ -1732,7 +1732,12 @@ export type Database = {
           city: string | null
           company_name: string | null
           created_at: string
+          default_address: string | null
+          default_lat: number | null
+          default_lng: number | null
           full_name: string
+          full_name_arabic: string | null
+          google_id: string | null
           id: string
           id_image_back: string | null
           id_image_front: string | null
@@ -1744,6 +1749,7 @@ export type Database = {
           onesignal_player_id: string | null
           phone: string | null
           phone_secondary: string | null
+          phone_verified: boolean | null
           rejection_reason: string | null
           selfie_image: string | null
           updated_at: string
@@ -1762,7 +1768,12 @@ export type Database = {
           city?: string | null
           company_name?: string | null
           created_at?: string
+          default_address?: string | null
+          default_lat?: number | null
+          default_lng?: number | null
           full_name?: string
+          full_name_arabic?: string | null
+          google_id?: string | null
           id?: string
           id_image_back?: string | null
           id_image_front?: string | null
@@ -1774,6 +1785,7 @@ export type Database = {
           onesignal_player_id?: string | null
           phone?: string | null
           phone_secondary?: string | null
+          phone_verified?: boolean | null
           rejection_reason?: string | null
           selfie_image?: string | null
           updated_at?: string
@@ -1792,7 +1804,12 @@ export type Database = {
           city?: string | null
           company_name?: string | null
           created_at?: string
+          default_address?: string | null
+          default_lat?: number | null
+          default_lng?: number | null
           full_name?: string
+          full_name_arabic?: string | null
+          google_id?: string | null
           id?: string
           id_image_back?: string | null
           id_image_front?: string | null
@@ -1804,6 +1821,7 @@ export type Database = {
           onesignal_player_id?: string | null
           phone?: string | null
           phone_secondary?: string | null
+          phone_verified?: boolean | null
           rejection_reason?: string | null
           selfie_image?: string | null
           updated_at?: string
@@ -2956,6 +2974,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      verification_codes: {
+        Row: {
+          attempts: number | null
+          code: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          phone_number: string
+        }
+        Insert: {
+          attempts?: number | null
+          code: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          phone_number: string
+        }
+        Update: {
+          attempts?: number | null
+          code?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          phone_number?: string
+        }
+        Relationships: []
       }
       violation_logs: {
         Row: {
