@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,23 @@ const LoginPage = () => {
       });
     } else {
       toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في رحلاتي!" });
-      navigate("/");
+      // Fetch role for redirect
+      const { data: { user: loggedUser } } = await supabase.auth.getUser();
+      if (loggedUser) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", loggedUser.id)
+          .maybeSingle();
+        const r = roleData?.role;
+        if (r === "admin") navigate("/admin");
+        else if (r === "supplier") navigate("/supplier");
+        else if (r === "delivery_company") navigate("/delivery");
+        else if (r === "driver") navigate("/driver");
+        else navigate("/");
+      } else {
+        navigate("/");
+      }
     }
     setLoading(false);
   };

@@ -81,6 +81,9 @@ import NotificationsPage from "./pages/NotificationsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 import PaymentPage from "./pages/customer/PaymentPage";
 import PaymentSuccessPage from "./pages/customer/PaymentSuccessPage";
+// Driver
+import DriverLayout from "./components/driver/DriverLayout";
+import DriverDashboard from "./pages/driver/DriverDashboard";
 
 const queryClient = new QueryClient();
 
@@ -178,6 +181,10 @@ const App = () => (
             <Route path="/ride/request" element={<RideRequestPage />} />
             <Route path="/ride/:id" element={<RideDetailsPage />} />
             <Route path="/ride/:id/tracking" element={<RideTrackingPage />} />
+            {/* Driver */}
+            <Route path="/driver" element={<DriverLayout />}>
+              <Route index element={<DriverDashboard />} />
+            </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
