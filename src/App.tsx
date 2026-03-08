@@ -150,6 +150,7 @@ const App = () => (
               <Route path="messages" element={<SupplierMessages />} />
               <Route path="promotions" element={<SupplierPromotions />} />
               <Route path="payments" element={<SupplierPayments />} />
+              <Route path="payment-settings" element={<PartnerPaymentSettings />} />
             </Route>
             <Route path="/delivery" element={<DeliveryLayout />}>
               <Route index element={<DeliveryDashboard />} />
