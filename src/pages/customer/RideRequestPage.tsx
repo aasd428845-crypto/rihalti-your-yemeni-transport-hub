@@ -259,6 +259,13 @@ const RideRequestPage = () => {
           </CardContent>
         </Card>
 
+        {/* Nearby Drivers */}
+        {form.pickupLat !== 0 && form.fromCity && form.toCity && (
+          <div className="mb-4">
+            <NearbyDriversList pickupLat={form.pickupLat} pickupLng={form.pickupLng} />
+          </div>
+        )}
+
         {/* Submit */}
         <Button
           onClick={handleSubmit}
