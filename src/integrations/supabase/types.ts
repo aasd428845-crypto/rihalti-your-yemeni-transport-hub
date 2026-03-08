@@ -1634,6 +1634,71 @@ export type Database = {
         }
         Relationships: []
       }
+      promotions: {
+        Row: {
+          created_at: string | null
+          delivery_company_id: string
+          description: string | null
+          discount_type: string | null
+          discount_value: number | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          max_discount: number | null
+          min_order_amount: number | null
+          promo_code: string | null
+          restaurant_id: string | null
+          start_date: string | null
+          title: string
+          usage_count: number | null
+          usage_limit: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_company_id: string
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_discount?: number | null
+          min_order_amount?: number | null
+          promo_code?: string | null
+          restaurant_id?: string | null
+          start_date?: string | null
+          title: string
+          usage_count?: number | null
+          usage_limit?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          delivery_company_id?: string
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_discount?: number | null
+          min_order_amount?: number | null
+          promo_code?: string | null
+          restaurant_id?: string | null
+          start_date?: string | null
+          title?: string
+          usage_count?: number | null
+          usage_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regions: {
         Row: {
           id: number
