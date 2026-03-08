@@ -17,7 +17,7 @@ const services = [
     description: "أرسل شحنتك بثقة مع نظام التتبع المتكامل والتأمين على البضائع",
     features: ["تتبع لحظي", "تأمين شامل", "أسعار تنافسية"],
     color: "secondary" as const,
-    route: "/shipments",
+    route: "/request/shipment",
   },
   {
     icon: Truck,
@@ -25,7 +25,7 @@ const services = [
     description: "اطلب من مطاعمك ومتاجرك المفضلة مع توصيل سريع لباب منزلك",
     features: ["توصيل سريع", "تتبع المندوب", "دفع إلكتروني"],
     color: "success" as const,
-    route: "/deliveries",
+    route: "/request/delivery",
   },
 ];
 
