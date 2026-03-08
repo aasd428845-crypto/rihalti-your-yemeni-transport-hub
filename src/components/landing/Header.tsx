@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, Bus, Shield, User, LogOut, LayoutDashboard, MapPin, Bell, Car } from "lucide-react";
+import { Menu, X, Bus, Shield, User, LogOut, LayoutDashboard, MapPin, Bell, Car, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 const navLinks = [
+  { label: "المطاعم", href: "/restaurants" },
   { label: "الرحلات", href: "/trips" },
   { label: "الشحنات", href: "/shipments" },
   { label: "التوصيل", href: "/deliveries" },
@@ -98,6 +99,10 @@ const Header = () => {
             <div className="w-20 h-9 rounded-lg bg-muted animate-pulse" />
           ) : user ? (
             <>
+              {/* Cart */}
+              <button onClick={() => navigate("/cart")} className="p-2 rounded-lg hover:bg-accent transition-colors" title="السلة">
+                <ShoppingCart className="w-5 h-5 text-muted-foreground" />
+              </button>
               {/* Notifications */}
               <button onClick={() => navigate("/notifications")} className="relative p-2 rounded-lg hover:bg-accent transition-colors" title="الإشعارات">
                 <Bell className="w-5 h-5 text-muted-foreground" />
