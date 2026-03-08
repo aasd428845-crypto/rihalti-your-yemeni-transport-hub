@@ -33,6 +33,18 @@ const DriverEarnings = () => {
     );
   }
 
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfWeek = startOfDay - 6 * 24 * 60 * 60 * 1000;
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+  const calcEarnings = (since: number) =>
+    transactions.filter(t => new Date(t.created_at).getTime() >= since).reduce((sum, t) => sum + (t.partner_earning || 0), 0);
+
+  const todayEarnings = calcEarnings(startOfDay);
+  const weekEarnings = calcEarnings(startOfWeek);
+  const monthEarnings = calcEarnings(startOfMonth);
+
   const totalEarnings = transactions.reduce((sum, t) => sum + (t.partner_earning || 0), 0);
   const totalCommission = transactions.reduce((sum, t) => sum + (t.platform_commission || 0), 0);
   const totalAmount = transactions.reduce((sum, t) => sum + (t.amount || 0), 0);
