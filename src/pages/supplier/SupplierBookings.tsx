@@ -22,7 +22,8 @@ const SupplierBookings = () => {
   const loadData = async () => {
     if (!user?.id) return;
     const { data } = await getSupplierBookings(user.id);
-    const bookingsList = data || [];
+    // Hide pending_approval items (awaiting admin approval)
+    const bookingsList = (data || []).filter((b: any) => b.status !== "pending_approval");
     setBookings(bookingsList);
 
     // Fetch customer names and trip info
