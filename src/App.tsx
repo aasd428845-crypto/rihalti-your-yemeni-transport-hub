@@ -146,6 +146,7 @@ const App = () => (
               <Route path="settings" element={<SupplierSettings />} />
               <Route path="messages" element={<SupplierMessages />} />
               <Route path="promotions" element={<SupplierPromotions />} />
+              <Route path="payments" element={<SupplierPayments />} />
             </Route>
             <Route path="/delivery" element={<DeliveryLayout />}>
               <Route index element={<DeliveryDashboard />} />
