@@ -211,6 +211,7 @@ const App = () => (
               <Route index element={<DeliveryDriverDashboard />} />
               <Route path="orders" element={<DeliveryDriverOrders />} />
               <Route path="orders/:id" element={<DeliveryDriverOrderDetails />} />
+              <Route path="history" element={<DeliveryDriverHistory />} />
               <Route path="earnings" element={<DeliveryDriverEarnings />} />
               <Route path="profile" element={<DeliveryDriverProfile />} />
               <Route path="settings" element={<DeliveryDriverSettings />} />
