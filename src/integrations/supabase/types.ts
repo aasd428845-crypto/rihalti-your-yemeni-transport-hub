@@ -1449,6 +1449,33 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_settings: {
+        Row: {
+          allow_direct_payment: boolean | null
+          cash_on_delivery_enabled: boolean | null
+          cash_on_ride_enabled: boolean | null
+          created_at: string | null
+          partner_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          allow_direct_payment?: boolean | null
+          cash_on_delivery_enabled?: boolean | null
+          cash_on_ride_enabled?: boolean | null
+          created_at?: string | null
+          partner_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          allow_direct_payment?: boolean | null
+          cash_on_delivery_enabled?: boolean | null
+          cash_on_ride_enabled?: boolean | null
+          created_at?: string | null
+          partner_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       payment_accounts: {
         Row: {
           account_name: string
@@ -1654,6 +1681,7 @@ export type Database = {
           id_image_front: string | null
           id_number: string | null
           is_verified: boolean | null
+          last_violation_date: string | null
           license_image: string | null
           logo_url: string | null
           onesignal_player_id: string | null
@@ -1668,6 +1696,7 @@ export type Database = {
           vehicle_model: string | null
           vehicle_plate: string | null
           vehicle_type: string | null
+          violations_count: number | null
         }
         Insert: {
           account_status?: string | null
@@ -1682,6 +1711,7 @@ export type Database = {
           id_image_front?: string | null
           id_number?: string | null
           is_verified?: boolean | null
+          last_violation_date?: string | null
           license_image?: string | null
           logo_url?: string | null
           onesignal_player_id?: string | null
@@ -1696,6 +1726,7 @@ export type Database = {
           vehicle_model?: string | null
           vehicle_plate?: string | null
           vehicle_type?: string | null
+          violations_count?: number | null
         }
         Update: {
           account_status?: string | null
@@ -1710,6 +1741,7 @@ export type Database = {
           id_image_front?: string | null
           id_number?: string | null
           is_verified?: boolean | null
+          last_violation_date?: string | null
           license_image?: string | null
           logo_url?: string | null
           onesignal_player_id?: string | null
@@ -1724,6 +1756,7 @@ export type Database = {
           vehicle_model?: string | null
           vehicle_plate?: string | null
           vehicle_type?: string | null
+          violations_count?: number | null
         }
         Relationships: []
       }

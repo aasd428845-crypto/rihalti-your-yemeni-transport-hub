@@ -18,6 +18,7 @@ const menuItems = [
   { title: "الرسائل", url: "/supplier/messages", icon: MessageCircle },
   { title: "العروض الترويجية", url: "/supplier/promotions", icon: Megaphone },
   { title: "المدفوعات", url: "/supplier/payments", icon: CreditCard },
+  { title: "إعدادات الدفع", url: "/supplier/payment-settings", icon: CreditCard },
 ];
 
 const SupplierSidebar = () => {

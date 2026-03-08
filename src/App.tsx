@@ -32,6 +32,7 @@ import AdminViolations from "./pages/admin/AdminViolations";
 import AdminChatMonitoring from "./pages/admin/AdminChatMonitoring";
 import AdminDeliveryProofs from "./pages/admin/AdminDeliveryProofs";
 import AdminPaymentReview from "./pages/admin/AdminPaymentReview";
+import AdminPartnerControls from "./pages/admin/AdminPartnerControls";
 import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
@@ -45,6 +46,7 @@ import SupplierMessages from "./pages/supplier/SupplierMessages";
 import SupplierPromotions from "./pages/supplier/SupplierPromotions";
 import SupplierOrderDetails from "./pages/supplier/SupplierOrderDetails";
 import SupplierPayments from "./pages/supplier/SupplierPayments";
+import PartnerPaymentSettings from "./pages/supplier/PartnerPaymentSettings";
 // Delivery
 import DeliveryLayout from "./components/delivery/DeliveryLayout";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
@@ -135,6 +137,7 @@ const App = () => (
               <Route path="delivery-proofs" element={<AdminDeliveryProofs />} />
               <Route path="reports" element={<AdminReports />} />
               <Route path="payment-review" element={<AdminPaymentReview />} />
+              <Route path="partner-controls" element={<AdminPartnerControls />} />
             </Route>
             <Route path="/supplier" element={<SupplierLayout />}>
               <Route index element={<SupplierDashboard />} />
@@ -147,6 +150,7 @@ const App = () => (
               <Route path="messages" element={<SupplierMessages />} />
               <Route path="promotions" element={<SupplierPromotions />} />
               <Route path="payments" element={<SupplierPayments />} />
+              <Route path="payment-settings" element={<PartnerPaymentSettings />} />
             </Route>
             <Route path="/delivery" element={<DeliveryLayout />}>
               <Route index element={<DeliveryDashboard />} />
@@ -159,6 +163,7 @@ const App = () => (
               <Route path="integrations" element={<DeliveryIntegrations />} />
               <Route path="settings" element={<DeliverySettings />} />
               <Route path="payments" element={<DeliveryPayments />} />
+              <Route path="payment-settings" element={<PartnerPaymentSettings />} />
             </Route>
             {/* Customer Restaurant Pages */}
             <Route path="/restaurants" element={<RestaurantsPage />} />
