@@ -53,6 +53,7 @@ import DeliveryRiders from "./pages/delivery/DeliveryRiders";
 import DeliveryFinance from "./pages/delivery/DeliveryFinance";
 import DeliveryIntegrations from "./pages/delivery/DeliveryIntegrations";
 import DeliverySettings from "./pages/delivery/DeliverySettings";
+import DeliveryReports from "./pages/delivery/DeliveryReports";
 // Customer Pages
 import TripsPage from "./pages/customer/TripsPage";
 import TripDetailsPage from "./pages/customer/TripDetailsPage";
@@ -145,6 +146,7 @@ const App = () => (
               <Route path="orders" element={<DeliveryOrders />} />
               <Route path="riders" element={<DeliveryRiders />} />
               <Route path="finance" element={<DeliveryFinance />} />
+              <Route path="reports" element={<DeliveryReports />} />
               <Route path="integrations" element={<DeliveryIntegrations />} />
               <Route path="settings" element={<DeliverySettings />} />
             </Route>

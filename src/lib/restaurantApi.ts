@@ -149,6 +149,23 @@ export const createOrderFromCart = async (params: {
     order_type: "restaurant",
   }).select().single();
   if (error) throw error;
+
+  // Create financial transaction
+  const commissionRate = 12; // default delivery commission
+  const platformCommission = Math.floor(params.total * commissionRate / 100);
+  const partnerEarning = params.total - platformCommission;
+  await supabase.from("financial_transactions").insert({
+    reference_id: data.id,
+    transaction_type: "delivery",
+    customer_id: params.customer_id,
+    partner_id: params.delivery_company_id,
+    amount: params.total,
+    platform_commission: platformCommission,
+    partner_earning: partnerEarning,
+    payment_method: params.payment_method,
+    payment_status: "pending",
+  });
+
   // Clear cart
   await clearCart(params.customer_id, params.restaurant_id);
   return data;

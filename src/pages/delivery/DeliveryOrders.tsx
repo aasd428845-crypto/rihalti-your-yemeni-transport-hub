@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, UserCheck, Eye, XCircle } from "lucide-react";
 import { getDeliveryOrders, updateOrderStatus, assignRiderToOrder, getRiders, getOrderTracking } from "@/lib/deliveryApi";
 import { ORDER_STATUS_MAP } from "@/types/delivery.types";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const DeliveryOrders = () => {
@@ -47,6 +48,22 @@ const DeliveryOrders = () => {
     try {
       await updateOrderStatus(orderId, status);
       toast({ title: "تم تحديث الحالة" });
+      // Send notification to customer
+      const order = orders.find(o => o.id === orderId);
+      if (order?.customer_id) {
+        const statusLabel = ORDER_STATUS_MAP[status]?.label || status;
+        try {
+          await supabase.functions.invoke("send-push-notification", {
+            body: {
+              userId: order.customer_id,
+              title: "تحديث حالة الطلب 📦",
+              body: `حالة طلبك: ${statusLabel}`,
+              sound: "delivery",
+              data: { type: "order_status", orderId },
+            },
+          });
+        } catch {}
+      }
       load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });

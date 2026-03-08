@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Star, Clock, Truck, MapPin, Plus, Minus, ShoppingCart, ArrowRight, Flame, Search } from "lucide-react";
-import { getRestaurantById, getRestaurantMenu, upsertCart, getCart } from "@/lib/restaurantApi";
+import { getRestaurantById, getRestaurantMenu, getMenuItemOptions, upsertCart, getCart } from "@/lib/restaurantApi";
 import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import BackButton from "@/components/common/BackButton";
 import Header from "@/components/landing/Header";
 
@@ -19,6 +22,13 @@ interface CartItem {
   quantity: number;
   image_url?: string;
   notes?: string;
+  selectedOptions?: Record<string, any>;
+}
+
+interface OptionChoice {
+  name_ar: string;
+  name_en?: string;
+  price: number;
 }
 
 const RestaurantMenuPage = () => {
@@ -35,7 +45,8 @@ const RestaurantMenuPage = () => {
   const [showItemDetail, setShowItemDetail] = useState<any>(null);
   const [itemQty, setItemQty] = useState(1);
   const [search, setSearch] = useState("");
-
+  const [itemOptions, setItemOptions] = useState<any[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
   useEffect(() => {
     const load = async () => {
       if (!id) return;
@@ -58,17 +69,33 @@ const RestaurantMenuPage = () => {
   }, [id, user]);
 
   const addToCart = (item: any, qty: number = 1) => {
+    const optionsExtra = Object.values(selectedOptions).reduce((sum: number, val: any) => {
+      if (Array.isArray(val)) return sum + val.reduce((s: number, c: OptionChoice) => s + (c.price || 0), 0);
+      return sum + (val?.price || 0);
+    }, 0);
+    const price = (item.discounted_price || item.price) + optionsExtra;
     setCart(prev => {
       const existing = prev.find(c => c.id === item.id);
-      const price = item.discounted_price || item.price;
       if (existing) {
-        return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + qty } : c);
+        return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + qty, price, selectedOptions } : c);
       }
-      return [...prev, { id: item.id, name_ar: item.name_ar, price, quantity: qty, image_url: item.image_url }];
+      return [...prev, { id: item.id, name_ar: item.name_ar, price, quantity: qty, image_url: item.image_url, selectedOptions }];
     });
     toast({ title: "تمت الإضافة", description: `${item.name_ar} أُضيف إلى السلة` });
     setShowItemDetail(null);
     setItemQty(1);
+    setSelectedOptions({});
+    setItemOptions([]);
+  };
+
+  const openItemDetail = async (item: any) => {
+    setShowItemDetail(item);
+    setItemQty(1);
+    setSelectedOptions({});
+    try {
+      const opts = await getMenuItemOptions(item.id);
+      setItemOptions(opts || []);
+    } catch { setItemOptions([]); }
   };
 
   const updateCartQty = (itemId: string, delta: number) => {
@@ -172,7 +199,7 @@ const RestaurantMenuPage = () => {
                   const price = item.discounted_price || item.price;
                   return (
                     <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => { setShowItemDetail(item); setItemQty(1); }}>
+                      onClick={() => openItemDetail(item)}>
                       <CardContent className="p-0 flex">
                         <div className="flex-1 p-4 space-y-1">
                           <div className="flex items-center gap-2">
@@ -235,9 +262,8 @@ const RestaurantMenuPage = () => {
         </div>
       )}
 
-      {/* Item Detail Dialog */}
-      <Dialog open={!!showItemDetail} onOpenChange={() => setShowItemDetail(null)}>
-        <DialogContent dir="rtl" className="max-w-lg">
+      <Dialog open={!!showItemDetail} onOpenChange={() => { setShowItemDetail(null); setItemOptions([]); setSelectedOptions({}); }}>
+        <DialogContent dir="rtl" className="max-w-lg max-h-[90vh] overflow-y-auto">
           {showItemDetail && (
             <>
               {showItemDetail.image_url && (
@@ -263,6 +289,64 @@ const RestaurantMenuPage = () => {
                   <span className="text-2xl font-bold text-primary">{showItemDetail.price} ر.ي</span>
                 )}
               </div>
+
+              {/* Item Options */}
+              {itemOptions.length > 0 && (
+                <div className="space-y-4 border-t pt-4">
+                  {itemOptions.map((opt: any) => {
+                    const choices = (opt.choices as OptionChoice[]) || [];
+                    return (
+                      <div key={opt.id} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Label className="font-bold">{opt.name_ar}</Label>
+                          {opt.is_required && <Badge variant="destructive" className="text-xs">مطلوب</Badge>}
+                        </div>
+                        {opt.option_type === "single" ? (
+                          <RadioGroup value={selectedOptions[opt.id]?.name_ar || ""}
+                            onValueChange={v => {
+                              const choice = choices.find(c => c.name_ar === v);
+                              setSelectedOptions(prev => ({ ...prev, [opt.id]: choice }));
+                            }}>
+                            {choices.map((choice, i) => (
+                              <div key={i} className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <RadioGroupItem value={choice.name_ar} id={`${opt.id}-${i}`} />
+                                  <Label htmlFor={`${opt.id}-${i}`}>{choice.name_ar}</Label>
+                                </div>
+                                {choice.price > 0 && <span className="text-sm text-muted-foreground">+{choice.price} ر.ي</span>}
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        ) : (
+                          <div className="space-y-2">
+                            {choices.map((choice, i) => {
+                              const selected = (selectedOptions[opt.id] as OptionChoice[] || []);
+                              const isChecked = selected.some(s => s.name_ar === choice.name_ar);
+                              return (
+                                <div key={i} className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Checkbox id={`${opt.id}-${i}`} checked={isChecked}
+                                      onCheckedChange={checked => {
+                                        setSelectedOptions(prev => {
+                                          const current = (prev[opt.id] as OptionChoice[] || []);
+                                          if (checked) return { ...prev, [opt.id]: [...current, choice] };
+                                          return { ...prev, [opt.id]: current.filter(s => s.name_ar !== choice.name_ar) };
+                                        });
+                                      }} />
+                                    <Label htmlFor={`${opt.id}-${i}`}>{choice.name_ar}</Label>
+                                  </div>
+                                  {choice.price > 0 && <span className="text-sm text-muted-foreground">+{choice.price} ر.ي</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="flex items-center justify-center gap-4 py-2">
                 <Button size="icon" variant="outline" onClick={() => setItemQty(Math.max(1, itemQty - 1))}><Minus className="w-4 h-4" /></Button>
                 <span className="text-xl font-bold w-10 text-center">{itemQty}</span>
@@ -271,7 +355,7 @@ const RestaurantMenuPage = () => {
               <DialogFooter>
                 <Button className="w-full gap-2" size="lg" onClick={() => addToCart(showItemDetail, itemQty)}>
                   <ShoppingCart className="w-5 h-5" />
-                  إضافة إلى السلة - {(showItemDetail.discounted_price || showItemDetail.price) * itemQty} ر.ي
+                  إضافة إلى السلة
                 </Button>
               </DialogFooter>
             </>
