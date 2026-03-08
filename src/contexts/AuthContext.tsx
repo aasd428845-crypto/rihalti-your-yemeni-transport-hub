@@ -3,7 +3,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { initOneSignal, registerUserForPush, logoutFromPush } from "@/lib/onesignal";
 
-type AppRole = "customer" | "supplier" | "delivery_company" | "admin" | "driver";
+type AppRole = "customer" | "supplier" | "delivery_company" | "admin" | "driver" | "delivery_driver";
 
 interface AuthContextType {
   session: Session | null;
