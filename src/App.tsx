@@ -31,6 +31,7 @@ import AdminInvoices from "./pages/admin/AdminInvoices";
 import AdminViolations from "./pages/admin/AdminViolations";
 import AdminChatMonitoring from "./pages/admin/AdminChatMonitoring";
 import AdminDeliveryProofs from "./pages/admin/AdminDeliveryProofs";
+import AdminPaymentReview from "./pages/admin/AdminPaymentReview";
 import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
@@ -43,6 +44,7 @@ import SupplierSettings from "./pages/supplier/SupplierSettings";
 import SupplierMessages from "./pages/supplier/SupplierMessages";
 import SupplierPromotions from "./pages/supplier/SupplierPromotions";
 import SupplierOrderDetails from "./pages/supplier/SupplierOrderDetails";
+import SupplierPayments from "./pages/supplier/SupplierPayments";
 // Delivery
 import DeliveryLayout from "./components/delivery/DeliveryLayout";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
@@ -54,6 +56,7 @@ import DeliveryFinance from "./pages/delivery/DeliveryFinance";
 import DeliveryIntegrations from "./pages/delivery/DeliveryIntegrations";
 import DeliverySettings from "./pages/delivery/DeliverySettings";
 import DeliveryReports from "./pages/delivery/DeliveryReports";
+import DeliveryPayments from "./pages/delivery/DeliveryPayments";
 // Customer Pages
 import TripsPage from "./pages/customer/TripsPage";
 import TripDetailsPage from "./pages/customer/TripDetailsPage";
@@ -74,6 +77,8 @@ import RideDetailsPage from "./pages/customer/RideDetailsPage";
 import RideTrackingPage from "./pages/customer/RideTrackingPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
+import PaymentPage from "./pages/customer/PaymentPage";
+import PaymentSuccessPage from "./pages/customer/PaymentSuccessPage";
 
 const queryClient = new QueryClient();
 
@@ -129,6 +134,7 @@ const App = () => (
               <Route path="chat-monitoring" element={<AdminChatMonitoring />} />
               <Route path="delivery-proofs" element={<AdminDeliveryProofs />} />
               <Route path="reports" element={<AdminReports />} />
+              <Route path="payment-review" element={<AdminPaymentReview />} />
             </Route>
             <Route path="/supplier" element={<SupplierLayout />}>
               <Route index element={<SupplierDashboard />} />
@@ -140,6 +146,7 @@ const App = () => (
               <Route path="settings" element={<SupplierSettings />} />
               <Route path="messages" element={<SupplierMessages />} />
               <Route path="promotions" element={<SupplierPromotions />} />
+              <Route path="payments" element={<SupplierPayments />} />
             </Route>
             <Route path="/delivery" element={<DeliveryLayout />}>
               <Route index element={<DeliveryDashboard />} />
@@ -151,6 +158,7 @@ const App = () => (
               <Route path="reports" element={<DeliveryReports />} />
               <Route path="integrations" element={<DeliveryIntegrations />} />
               <Route path="settings" element={<DeliverySettings />} />
+              <Route path="payments" element={<DeliveryPayments />} />
             </Route>
             {/* Customer Restaurant Pages */}
             <Route path="/restaurants" element={<RestaurantsPage />} />
@@ -158,6 +166,9 @@ const App = () => (
             <Route path="/restaurants/:id/checkout" element={<RestaurantCheckoutPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/track-order/:id" element={<OrderTrackingPage />} />
+            {/* Payment Pages */}
+            <Route path="/payment/:entityType/:entityId" element={<PaymentPage />} />
+            <Route path="/payment-success" element={<PaymentSuccessPage />} />
             {/* Customer Ride Pages */}
             <Route path="/ride/request" element={<RideRequestPage />} />
             <Route path="/ride/:id" element={<RideDetailsPage />} />

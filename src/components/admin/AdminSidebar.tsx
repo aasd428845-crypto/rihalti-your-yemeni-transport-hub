@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield, Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert, MessageCircle, QrCode } from "lucide-react";
+import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield, Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert, MessageCircle, QrCode, CreditCard } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +23,7 @@ const menuItems = [
   { title: "مراقبة المحادثات", url: "/admin/chat-monitoring", icon: MessageCircle },
   { title: "إثباتات التسليم", url: "/admin/delivery-proofs", icon: QrCode },
   { title: "التقارير", url: "/admin/reports", icon: FileText },
+  { title: "التحويلات البنكية", url: "/admin/payment-review", icon: CreditCard },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
 ];
 
