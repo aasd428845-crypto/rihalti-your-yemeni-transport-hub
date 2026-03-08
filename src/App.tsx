@@ -66,6 +66,9 @@ import AddressesPage from "./pages/customer/AddressesPage";
 import RestaurantsPage from "./pages/customer/RestaurantsPage";
 import RestaurantMenuPage from "./pages/customer/RestaurantMenuPage";
 import RestaurantCheckoutPage from "./pages/customer/RestaurantCheckoutPage";
+import RideRequestPage from "./pages/customer/RideRequestPage";
+import RideDetailsPage from "./pages/customer/RideDetailsPage";
+import RideTrackingPage from "./pages/customer/RideTrackingPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 
