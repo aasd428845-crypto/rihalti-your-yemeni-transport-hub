@@ -18,6 +18,7 @@ import {
   Settings,
   LogOut,
   User,
+  History,
 } from "lucide-react";
 
 const menuItems = [
