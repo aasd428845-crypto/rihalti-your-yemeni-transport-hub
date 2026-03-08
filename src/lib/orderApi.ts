@@ -65,15 +65,18 @@ export const submitShipmentPrice = async (requestId: string, price: number, part
 
   if (error) throw error;
 
-  // Notify customer
+  // Notify customer via DB + OneSignal push
   const { data: req } = await supabase.from("shipment_requests").select("customer_id").eq("id", requestId).single();
   if (req) {
+    const notifPayload = {
+      userId: req.customer_id,
+      title: '💰 وصلك عرض سعر',
+      body: `تم تحديد سعر طلب الشحن الخاص بك: ${price.toLocaleString()} ريال`,
+      data: { type: 'shipment_pricing', requestId, requestType: 'shipment' },
+      sound: 'default',
+    };
     try {
-      await supabase.from("notifications").insert({
-        user_id: req.customer_id,
-        title: '💰 وصلك عرض سعر',
-        body: `تم تحديد سعر طلب الشحن الخاص بك: ${price.toLocaleString()} ريال`,
-      });
+      await supabase.functions.invoke('send-push-notification', { body: notifPayload });
     } catch {}
   }
 };
@@ -138,12 +141,15 @@ export const submitDeliveryPrice = async (orderId: string, price: number) => {
 
   const { data: order } = await supabase.from("delivery_orders").select("customer_id").eq("id", orderId).single();
   if (order?.customer_id) {
+    const notifPayload = {
+      userId: order.customer_id,
+      title: '💰 وصلك عرض سعر توصيل',
+      body: `تم تحديد سعر طلب التوصيل: ${price.toLocaleString()} ريال`,
+      data: { type: 'delivery_pricing', requestId: orderId, requestType: 'delivery' },
+      sound: 'default',
+    };
     try {
-      await supabase.from("notifications").insert({
-        user_id: order.customer_id,
-        title: '💰 وصلك عرض سعر توصيل',
-        body: `تم تحديد سعر طلب التوصيل: ${price.toLocaleString()} ريال`,
-      });
+      await supabase.functions.invoke('send-push-notification', { body: notifPayload });
     } catch {}
   }
 };

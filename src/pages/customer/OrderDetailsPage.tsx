@@ -68,6 +68,25 @@ export default function OrderDetailsPage() {
 
   useEffect(() => { fetchOrder(); }, [id, type]);
 
+  // Realtime subscription for live order updates
+  useEffect(() => {
+    if (!id || !type) return;
+    const table = orderType === 'shipment' ? 'shipment_requests' : 'delivery_orders';
+    const channel = supabase
+      .channel(`order-detail-${id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table,
+        filter: `id=eq.${id}`,
+      }, () => {
+        fetchOrder();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [id, type]);
+
   const handleAcceptPrice = async () => {
     if (!id) return;
     setAccepting(true);
