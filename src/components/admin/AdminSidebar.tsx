@@ -24,6 +24,7 @@ const menuItems = [
   { title: "إثباتات التسليم", url: "/admin/delivery-proofs", icon: QrCode },
   { title: "التقارير", url: "/admin/reports", icon: FileText },
   { title: "التحويلات البنكية", url: "/admin/payment-review", icon: CreditCard },
+  { title: "صلاحيات الشركاء", url: "/admin/partner-controls", icon: Shield },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
 ];
 
