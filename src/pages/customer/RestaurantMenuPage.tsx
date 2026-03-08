@@ -69,17 +69,33 @@ const RestaurantMenuPage = () => {
   }, [id, user]);
 
   const addToCart = (item: any, qty: number = 1) => {
+    const optionsExtra = Object.values(selectedOptions).reduce((sum: number, val: any) => {
+      if (Array.isArray(val)) return sum + val.reduce((s: number, c: OptionChoice) => s + (c.price || 0), 0);
+      return sum + (val?.price || 0);
+    }, 0);
+    const price = (item.discounted_price || item.price) + optionsExtra;
     setCart(prev => {
       const existing = prev.find(c => c.id === item.id);
-      const price = item.discounted_price || item.price;
       if (existing) {
-        return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + qty } : c);
+        return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + qty, price, selectedOptions } : c);
       }
-      return [...prev, { id: item.id, name_ar: item.name_ar, price, quantity: qty, image_url: item.image_url }];
+      return [...prev, { id: item.id, name_ar: item.name_ar, price, quantity: qty, image_url: item.image_url, selectedOptions }];
     });
     toast({ title: "تمت الإضافة", description: `${item.name_ar} أُضيف إلى السلة` });
     setShowItemDetail(null);
     setItemQty(1);
+    setSelectedOptions({});
+    setItemOptions([]);
+  };
+
+  const openItemDetail = async (item: any) => {
+    setShowItemDetail(item);
+    setItemQty(1);
+    setSelectedOptions({});
+    try {
+      const opts = await getMenuItemOptions(item.id);
+      setItemOptions(opts || []);
+    } catch { setItemOptions([]); }
   };
 
   const updateCartQty = (itemId: string, delta: number) => {
