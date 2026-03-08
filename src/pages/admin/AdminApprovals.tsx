@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 type UnifiedRequest = {
   id: string;
-  source: "trip" | "shipment" | "delivery_order" | "partner_join" | "approval_request";
+  source: "trip" | "shipment" | "delivery_order" | "partner_join" | "approval_request" | "booking";
   type_label: string;
   status: string;
   created_at: string;
@@ -26,6 +26,7 @@ const sourceIcons: Record<string, any> = {
   delivery_order: Truck,
   partner_join: Users,
   approval_request: Clock,
+  booking: Users,
 };
 
 const AdminApprovals = () => {
@@ -248,6 +249,9 @@ const AdminApprovals = () => {
     } else if (req.source === "partner_join") {
       const res = await supabase.from("partner_join_requests").update({ status: "rejected", notes: rejectReason }).eq("id", req.id);
       error = res.error;
+    } else if ((req.source as string) === "booking") {
+      const res = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", req.id);
+      error = res.error;
     } else {
       const res = await supabase.from("approval_requests").update({
         status: "rejected", reviewed_by: user.id, reviewed_at: new Date().toISOString(), admin_notes: rejectReason,
@@ -301,9 +305,10 @@ const AdminApprovals = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 w-full max-w-2xl">
+        <TabsList className="flex flex-wrap gap-1 w-full max-w-3xl h-auto">
           <TabsTrigger value="all">الكل ({requests.length})</TabsTrigger>
           <TabsTrigger value="trip">رحلات ({requests.filter(r => r.source === "trip").length})</TabsTrigger>
+          <TabsTrigger value="booking">حجوزات ({requests.filter(r => r.source === "booking").length})</TabsTrigger>
           <TabsTrigger value="shipment">شحنات ({requests.filter(r => r.source === "shipment").length})</TabsTrigger>
           <TabsTrigger value="delivery_order">توصيل ({requests.filter(r => r.source === "delivery_order").length})</TabsTrigger>
           <TabsTrigger value="partner_join">شركاء ({requests.filter(r => r.source === "partner_join").length})</TabsTrigger>
