@@ -31,5 +31,5 @@ export const getAllPartnerSettings = async (): Promise<PartnerSettings[]> => {
     .from("partner_settings" as any)
     .select("*");
   if (error) throw error;
-  return (data || []) as PartnerSettings[];
+  return (data || []) as unknown as PartnerSettings[];
 };
