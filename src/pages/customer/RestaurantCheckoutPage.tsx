@@ -80,7 +80,7 @@ const RestaurantCheckoutPage = () => {
 
     setSubmitting(true);
     try {
-      await createOrderFromCart({
+      const order = await createOrderFromCart({
         customer_id: user.id,
         restaurant_id: restaurantId,
         delivery_company_id: restaurant.delivery_company_id,
@@ -104,8 +104,9 @@ const RestaurantCheckoutPage = () => {
           },
         });
       } catch {}
+      const orderId = order?.id;
       toast({ title: "تم تأكيد الطلب بنجاح! 🎉" });
-      navigate("/history");
+      navigate(orderId ? `/track-order/${orderId}` : "/history");
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally { setSubmitting(false); }
