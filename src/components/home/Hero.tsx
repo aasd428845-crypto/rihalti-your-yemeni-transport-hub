@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Bus, Package, Truck, Search, CheckCircle, Clock, Users, Zap, ArrowLeft, TrendingUp, Car, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 const tabs = [
-  { label: "🚌 رحلة", placeholder: "من أين إلى أين؟ ابحث عن رحلتك..." },
-  { label: "📦 طرد", placeholder: "أرسل طردك... اختر المدينة" },
-  { label: "🛵 توصيل", placeholder: "اطلب التوصيل من مطاعمك المفضلة..." },
+  { label: "🚌 رحلة", placeholder: "من أين إلى أين؟ ابحث عن رحلتك...", route: "/trips" },
+  { label: "📦 طرد", placeholder: "أرسل طردك... اختر المدينة", route: "/shipments" },
+  { label: "🛵 توصيل", placeholder: "اطلب التوصيل من مطاعمك المفضلة...", route: "/restaurants" },
 ];
 
 interface TripData {
@@ -21,8 +21,11 @@ interface TripData {
 
 const Hero = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
   const [trips, setTrips] = useState<TripData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statsData, setStatsData] = useState({ users: 0, trips: 0 });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -39,8 +42,27 @@ const Hero = () => {
         setLoading(false);
       }
     };
+
+    const fetchStats = async () => {
+      const [u, t] = await Promise.all([
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase.from("trips").select("*", { count: "exact", head: true }).eq("status", "active"),
+      ]);
+      setStatsData({ users: u.count || 0, trips: t.count || 0 });
+    };
+
     fetchTrips();
+    fetchStats();
   }, []);
+
+  const handleSearch = () => {
+    const route = tabs[activeTab].route;
+    if (searchQuery.trim()) {
+      navigate(`${route}?q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate(route);
+    }
+  };
 
   const formatTime = (dateStr: string) => {
     try {
@@ -54,18 +76,8 @@ const Hero = () => {
     return { text: "متاح", urgent: false };
   };
 
-  // Fallback data when no real trips
-  const fallbackTrips = [
-    { id: "1", from_city: "صنعاء", to_city: "عدن", departure_time: "", price: 5000, available_seats: 12 },
-    { id: "2", from_city: "تعز", to_city: "المكلا", departure_time: "", price: 7000, available_seats: 5 },
-    { id: "3", from_city: "صنعاء", to_city: "إب", departure_time: "", price: 3000, available_seats: 18 },
-  ];
-
-  const displayTrips = trips.length > 0 ? trips : fallbackTrips;
-
   return (
     <section className="min-h-screen bg-background flex items-center relative overflow-hidden pt-[72px]">
-      {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[20%] -right-[10%] w-[700px] h-[700px] rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute -bottom-[10%] -left-[5%] w-[500px] h-[500px] rounded-full bg-accent/5 blur-3xl" />
@@ -110,10 +122,13 @@ const Hero = () => {
               <div className="flex items-center p-3 gap-3">
                 <Search className="w-5 h-5 text-primary-glow shrink-0" />
                 <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   placeholder={tabs[activeTab].placeholder}
                   className="flex-1 bg-transparent border-none outline-none text-foreground text-sm text-right placeholder:text-muted-foreground"
                 />
-                <Button size="sm" className="bg-primary-gradient text-primary-foreground shadow-primary gap-1">
+                <Button size="sm" onClick={handleSearch} className="bg-primary-gradient text-primary-foreground shadow-primary gap-1">
                   <Search className="w-4 h-4" />
                   بحث
                 </Button>
@@ -125,7 +140,7 @@ const Hero = () => {
               {[
                 { icon: CheckCircle, label: "آمنة وموثوقة", color: "text-primary-glow" },
                 { icon: Clock, label: "مواعيد دقيقة", color: "text-accent" },
-                { icon: Users, label: "+١٠,٠٠٠ عميل", color: "text-blue-400" },
+                { icon: Users, label: statsData.users > 0 ? `+${statsData.users.toLocaleString("ar")} عميل` : "مجتمع متنامي", color: "text-blue-400" },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <item.icon className={`w-4 h-4 ${item.color}`} />
@@ -149,14 +164,23 @@ const Hero = () => {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
+            ) : trips.length === 0 ? (
+              <div className="bg-card/90 rounded-[14px] border border-border p-8 text-center">
+                <Bus className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">لا توجد رحلات متاحة حالياً</p>
+                <Link to="/trips">
+                  <Button size="sm" variant="outline" className="mt-3 border-primary/30 text-primary-glow">
+                    تصفح جميع الرحلات
+                  </Button>
+                </Link>
+              </div>
             ) : (
-              displayTrips.map((trip, i) => {
+              trips.map((trip, i) => {
                 const badge = getBadge(trip.available_seats);
-                const linkTo = trips.length > 0 ? `/trips/${trip.id}` : "/trips";
                 return (
                   <Link
-                    to={linkTo}
-                    key={trip.id || i}
+                    to={`/trips/${trip.id}`}
+                    key={trip.id}
                     className="bg-card/90 rounded-[14px] border border-border p-5 flex items-center justify-between transition-all hover:border-primary/35 hover:-translate-x-1 cursor-pointer shadow-lg group"
                   >
                     <div className="flex items-center gap-3.5">

@@ -6,7 +6,7 @@ const services = [
     icon: Bus,
     title: "رحلات بين المدن",
     desc: "احجز مقعدك في أفضل الباصات مع شركات النقل الموثوقة بين جميع المدن اليمنية",
-    stats: ["١٠٠٠+ رحلة يومياً", "تذاكر إلكترونية", "تتبع مباشر", "تأمين الأمتعة"],
+    features: ["حجز إلكتروني فوري", "تذاكر رقمية", "تتبع مباشر للرحلة", "تأمين على الأمتعة"],
     link: "/trips",
     colorClass: "text-primary-glow",
     bgClass: "bg-primary/15 border-primary/30",
@@ -16,7 +16,7 @@ const services = [
     icon: Package,
     title: "طرود آمنة",
     desc: "أرسل طردك بثقة مع نظام التتبع المتكامل والتأمين الشامل على البضائع",
-    stats: ["٥٠٠+ طرد يومياً", "تتبع لحظي", "تأمين شامل", "أسعار تنافسية"],
+    features: ["تتبع لحظي للطرد", "تأمين شامل", "أسعار تنافسية", "توصيل باب لباب"],
     link: "/shipments",
     colorClass: "text-blue-400",
     bgClass: "bg-blue-500/15 border-blue-400/30",
@@ -26,7 +26,7 @@ const services = [
     icon: Truck,
     title: "توصيل محلي سريع",
     desc: "اطلب من مطاعمك ومتاجرك المفضلة مع توصيل سريع لباب منزلك",
-    stats: ["٢٠٠٠+ توصيل يومياً", "توصيل في ٣٠ دقيقة", "تتبع المندوب", "دفع إلكتروني"],
+    features: ["توصيل سريع", "تتبع المندوب مباشرة", "دفع عند الاستلام", "خدمة عملاء متاحة"],
     link: "/deliveries",
     colorClass: "text-accent",
     bgClass: "bg-accent/15 border-accent/30",
@@ -36,7 +36,7 @@ const services = [
     icon: Car,
     title: "سيارة أجرة",
     desc: "اطلب سيارة أجرة بسهولة، حدد وجهتك واستقبل عروض الأسعار من السائقين المتاحين",
-    stats: ["سائقون معتمدون", "تفاوض على السعر", "تتبع مباشر", "دفع نقدي أو تحويل"],
+    features: ["سائقون معتمدون", "تفاوض على السعر", "تتبع مباشر", "دفع نقدي أو تحويل"],
     link: "/ride/request",
     colorClass: "text-yellow-400",
     bgClass: "bg-yellow-500/15 border-yellow-400/30",
@@ -79,10 +79,10 @@ const Services = () => {
                   <h3 className="text-foreground text-lg font-bold mb-3">{service.title}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed mb-5">{service.desc}</p>
                   <div className="flex flex-col gap-2 mb-6">
-                    {service.stats.map((stat, j) => (
+                    {service.features.map((feat, j) => (
                       <div key={j} className="flex items-center gap-2">
                         <CheckCircle className={`w-3.5 h-3.5 ${service.colorClass}`} />
-                        <span className="text-muted-foreground text-sm">{stat}</span>
+                        <span className="text-muted-foreground text-sm">{feat}</span>
                       </div>
                     ))}
                   </div>

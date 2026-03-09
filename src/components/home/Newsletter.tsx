@@ -1,16 +1,38 @@
 import { useState } from "react";
-import { Bell, Send } from "lucide-react";
+import { Bell, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Newsletter = () => {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    toast.success("تم الاشتراك بنجاح! شكراً لك.");
-    setEmail("");
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("newsletter_subscribers")
+        .insert({ email });
+
+      if (error) {
+        if (error.code === "23505") {
+          toast.info("هذا البريد مسجل بالفعل في النشرة البريدية");
+        } else {
+          toast.error("حدث خطأ، حاول مرة أخرى");
+        }
+      } else {
+        toast.success("تم الاشتراك بنجاح! شكراً لك.");
+        setEmail("");
+      }
+    } catch {
+      toast.error("حدث خطأ، حاول مرة أخرى");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -29,9 +51,10 @@ const Newsletter = () => {
             placeholder="بريدك الإلكتروني..."
             className="flex-1 bg-transparent border-none outline-none text-foreground text-sm text-right placeholder:text-muted-foreground"
             required
+            disabled={loading}
           />
-          <Button type="submit" className="bg-primary-gradient text-primary-foreground shadow-primary gap-1.5">
-            <Send className="w-4 h-4" />
+          <Button type="submit" disabled={loading} className="bg-primary-gradient text-primary-foreground shadow-primary gap-1.5">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             اشترك
           </Button>
         </form>
