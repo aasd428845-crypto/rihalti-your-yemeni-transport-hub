@@ -247,6 +247,7 @@ const App = () => (
           <SupportChatWidget />
           <InstallPWAButton />
           <UpdateNotification />
+          <RealtimeToastListener />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
