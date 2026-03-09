@@ -166,6 +166,7 @@ const App = () => (
               <Route path="support-messages" element={<AdminSupportMessages />} />
               <Route path="send-notification" element={<AdminSendNotification />} />
               <Route path="notification-logs" element={<AdminNotificationLogs />} />
+              <Route path="partner/:id" element={<AdminPartnerProfile />} />
             </Route>
             <Route path="/supplier" element={<SupplierLayout />}>
               <Route index element={<SupplierDashboard />} />
