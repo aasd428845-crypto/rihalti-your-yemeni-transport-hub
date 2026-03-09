@@ -1,15 +1,43 @@
+import { useEffect, useState } from "react";
 import { TrendingUp, Users, Bus, Building2, Award, Star, BarChart3 } from "lucide-react";
-
-const numbers = [
-  { val: "+٣٥٪", label: "نمو خلال ٦ أشهر", sub: "نمو مستمر ومتسارع", icon: TrendingUp },
-  { val: "+١٠,٠٠٠", label: "عميل راضي", sub: "من جميع أنحاء اليمن", icon: Users },
-  { val: "+١,٠٠٠", label: "رحلة يومياً", sub: "بين جميع المحافظات", icon: Bus },
-  { val: "+٢٥", label: "شركة نقل", sub: "شركاء موثوقون ومرخصون", icon: Building2 },
-  { val: "٩٩٪", label: "توصيل ناجح", sub: "التزام بالجودة والدقة", icon: Award },
-  { val: "٤.٨★", label: "تقييم المستخدمين", sub: "من آلاف التقييمات", icon: Star },
-];
+import { supabase } from "@/integrations/supabase/client";
 
 const Numbers = () => {
+  const [data, setData] = useState({ users: 0, trips: 0, partners: 0, shipments: 0, deliveries: 0, avgRating: 0 });
+
+  useEffect(() => {
+    const fetch = async () => {
+      const [u, t, p, s, d, r] = await Promise.all([
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase.from("trips").select("*", { count: "exact", head: true }),
+        supabase.from("user_roles").select("*", { count: "exact", head: true }).in("role", ["supplier", "delivery_company"]),
+        supabase.from("shipment_requests").select("*", { count: "exact", head: true }),
+        supabase.from("deliveries").select("*", { count: "exact", head: true }),
+        supabase.from("reviews").select("rating"),
+      ]);
+      const ratings = r.data || [];
+      const avg = ratings.length > 0 ? (ratings.reduce((sum, rev) => sum + (rev.rating || 0), 0) / ratings.length).toFixed(1) : "0";
+      setData({
+        users: u.count || 0,
+        trips: t.count || 0,
+        partners: p.count || 0,
+        shipments: s.count || 0,
+        deliveries: d.count || 0,
+        avgRating: parseFloat(avg),
+      });
+    };
+    fetch();
+  }, []);
+
+  const numbers = [
+    { val: `+${data.users.toLocaleString("ar")}`, label: "مستخدم مسجل", sub: "من جميع أنحاء اليمن", icon: Users },
+    { val: `+${data.trips.toLocaleString("ar")}`, label: "رحلة", sub: "بين جميع المحافظات", icon: Bus },
+    { val: `+${data.partners.toLocaleString("ar")}`, label: "شريك نقل وتوصيل", sub: "شركاء موثوقون ومعتمدون", icon: Building2 },
+    { val: `+${data.shipments.toLocaleString("ar")}`, label: "طرد", sub: "تم شحنه بنجاح", icon: Award },
+    { val: `+${data.deliveries.toLocaleString("ar")}`, label: "توصيل", sub: "طلبات تم توصيلها", icon: TrendingUp },
+    { val: data.avgRating > 0 ? `${data.avgRating}★` : "—", label: "تقييم المستخدمين", sub: "متوسط التقييمات", icon: Star },
+  ];
+
   return (
     <section className="py-24 bg-gradient-to-br from-background via-primary/5 to-background relative overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl pointer-events-none" />
@@ -20,10 +48,10 @@ const Numbers = () => {
             أرقام النجاح
           </span>
           <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mt-4 mb-3">
-            أرقام تتحدث عن نجاحنا
+            أرقام حقيقية من المنصة
           </h2>
           <p className="text-muted-foreground text-base max-w-[600px] mx-auto">
-            نفتخر بكوننا المنصة الرائدة في خدمات النقل البري في اليمن
+            بيانات محدثة تعكس نمو منصة وصل في خدمات النقل البري في اليمن
           </p>
         </div>
 

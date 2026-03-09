@@ -1,18 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const cats = ["الكل", "الرحلات", "الطرود", "التوصيل"];
-const testimonials = [
-  { name: "أحمد العمراني", role: "رجل أعمال — صنعاء", content: "استخدمت المنصة لإرسال طرود تجارية إلى عدن وتعز. الخدمة سريعة وآمنة، ونظام التتبع ممتاز.", rating: 5, cat: "الطرود", time: "منذ أسبوعين", avatar: "أح" },
-  { name: "فاطمة محمد", role: "طالبة جامعية — تعز", content: "سافرت أكثر من ٥ مرات عبر المنصة. الأسعار مناسبة والمقاعد مريحة — أفضل من محطات الباص التقليدية.", rating: 5, cat: "الرحلات", time: "منذ شهر", avatar: "فا" },
-  { name: "خالد الحكيمي", role: "مدير مطعم — عدن", content: "خدمة التوصيل المحلي ساعدتني في زيادة مبيعات المطعم بنسبة ٤٠٪. المندوبون محترفون والطلبات تصل سريعة.", rating: 5, cat: "التوصيل", time: "منذ ٣ أيام", avatar: "خا" },
+
+// Fallback testimonials shown when no real reviews exist
+const fallbackTestimonials = [
+  { name: "أحمد العمراني", role: "رجل أعمال — صنعاء", content: "استخدمت المنصة لإرسال طرود تجارية إلى عدن وتعز. الخدمة سريعة وآمنة، ونظام التتبع ممتاز.", rating: 5, cat: "الطرود", avatar: "أح" },
+  { name: "فاطمة محمد", role: "طالبة جامعية — تعز", content: "سافرت أكثر من ٥ مرات عبر المنصة. الأسعار مناسبة والمقاعد مريحة — أفضل من محطات الباص التقليدية.", rating: 5, cat: "الرحلات", avatar: "فا" },
+  { name: "خالد الحكيمي", role: "مدير مطعم — عدن", content: "خدمة التوصيل المحلي ساعدتني في زيادة مبيعات المطعم. المندوبون محترفون والطلبات تصل سريعة.", rating: 5, cat: "التوصيل", avatar: "خا" },
 ];
+
+interface ReviewData {
+  name: string;
+  role: string;
+  content: string;
+  rating: number;
+  cat: string;
+  avatar: string;
+}
 
 const Testimonials = () => {
   const [cat, setCat] = useState("الكل");
-  const filtered = cat === "الكل" ? testimonials : testimonials.filter((t) => t.cat === cat);
+  const [reviews, setReviews] = useState<ReviewData[]>(fallbackTestimonials);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("rating, comment, entity_type, created_at, reviewer_id")
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+      if (!error && data && data.length > 0) {
+        // Fetch reviewer names
+        const reviewerIds = [...new Set(data.map(r => r.reviewer_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", reviewerIds);
+
+        const profileMap = new Map((profiles || []).map(p => [p.user_id, p.full_name]));
+
+        const mapped: ReviewData[] = data.map(r => {
+          const name = profileMap.get(r.reviewer_id) || "عميل";
+          const catMap: Record<string, string> = { supplier: "الرحلات", delivery: "التوصيل", driver: "الرحلات" };
+          return {
+            name,
+            role: "عميل في وصل",
+            content: r.comment || "تجربة ممتازة مع المنصة",
+            rating: r.rating,
+            cat: catMap[r.entity_type] || "الرحلات",
+            avatar: name.slice(0, 2),
+          };
+        });
+        setReviews(mapped);
+      }
+    };
+    fetchReviews();
+  }, []);
+
+  const filtered = cat === "الكل" ? reviews : reviews.filter((t) => t.cat === cat);
 
   return (
     <section className="py-24 bg-secondary">
@@ -27,7 +77,6 @@ const Testimonials = () => {
           </h2>
         </div>
 
-        {/* Category Filter */}
         <div className="flex justify-center gap-2.5 mb-10 flex-wrap">
           {cats.map((c) => (
             <button
@@ -65,19 +114,15 @@ const Testimonials = () => {
                 ))}
               </div>
               <p className="text-muted-foreground text-sm leading-relaxed mb-4">{t.content}</p>
-              <div className="flex justify-between items-center">
-                <span className="bg-primary/10 text-primary-glow px-2.5 py-0.5 rounded-md text-[11px] font-semibold">{t.cat}</span>
-                <span className="text-muted-foreground text-xs">{t.time}</span>
-              </div>
+              <span className="bg-primary/10 text-primary-glow px-2.5 py-0.5 rounded-md text-[11px] font-semibold">{t.cat}</span>
             </div>
           ))}
         </div>
 
-        {/* CTA */}
         <div className="text-center mt-14">
           <div className="inline-block bg-primary/5 rounded-[20px] border border-primary/10 px-12 py-10 md:px-16">
-            <h3 className="text-foreground text-2xl font-bold mb-2">انضم إلى آلاف العملاء الراضين</h3>
-            <p className="text-muted-foreground mb-6 text-sm">سجل الآن واحصل على خصم ٢٠٪ على أول استخدام</p>
+            <h3 className="text-foreground text-2xl font-bold mb-2">انضم إلى عملاء وصل</h3>
+            <p className="text-muted-foreground mb-6 text-sm">سجل الآن وابدأ باستخدام خدمات النقل المتكاملة</p>
             <Link to="/register">
               <Button size="lg" className="bg-primary-gradient text-primary-foreground shadow-primary gap-2">
                 <UserPlus className="w-4 h-4" />
