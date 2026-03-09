@@ -14,7 +14,7 @@ import { getFinancialTransactions } from "@/lib/accountingApi";
 import StatCard from "@/components/admin/dashboard/StatsCards";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ar } from "date-fns/locale";
-import { DollarSign, TrendingUp, Hash, Users, Phone, Eye, CalendarIcon, Search, Building2 } from "lucide-react";
+import { DollarSign, TrendingUp, Hash, Users, Phone, Eye, CalendarIcon, Search, Building2, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const typeLabels: Record<string, string> = { booking: "حجز", shipment: "شحن", delivery: "توصيل", ride: "أجرة" };
