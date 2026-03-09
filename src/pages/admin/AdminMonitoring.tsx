@@ -13,6 +13,7 @@ import {
 import { AlertRule, AlertHistoryItem, getAlertRules, getAlertHistory, subscribeToAlerts } from "@/lib/alertsApi";
 import AlertRulesManager from "@/components/admin/monitoring/AlertRulesManager";
 import AlertHistoryList from "@/components/admin/monitoring/AlertHistoryList";
+import SystemHealthTab from "@/components/admin/monitoring/SystemHealthTab";
 import { toast } from "sonner";
 
 const SEVERITY_COLORS: Record<string, string> = {
