@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { createRideRequest } from "@/lib/rideApi";
 import BackButton from "@/components/common/BackButton";
+import AddressSelector from "@/components/addresses/AddressSelector";
+import type { SelectedAddress } from "@/components/addresses/AddressSelector";
 
 const RideRequestPage = () => {
   const navigate = useNavigate();
