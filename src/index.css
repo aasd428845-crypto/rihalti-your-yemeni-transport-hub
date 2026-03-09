@@ -183,11 +183,11 @@
   }
 
   .shadow-primary {
-    box-shadow: 0 10px 30px -10px hsl(195 75% 28% / 0.3);
+    box-shadow: 0 10px 30px -10px hsl(160 72% 22% / 0.3);
   }
 
   .shadow-gold {
-    box-shadow: 0 10px 30px -10px hsl(40 85% 55% / 0.4);
+    box-shadow: 0 10px 30px -10px hsl(42 76% 50% / 0.4);
   }
 
   .glass {

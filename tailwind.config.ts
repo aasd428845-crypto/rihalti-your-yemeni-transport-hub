@@ -166,13 +166,13 @@ export default {
   					transform: 'translateY(-10px)'
   				}
   			},
-  			'pulse-gold': {
-  				'0%, 100%': {
-  					boxShadow: '0 0 0 0 hsl(40 85% 55% / 0.4)'
-  				},
-  				'50%': {
-  					boxShadow: '0 0 0 15px hsl(40 85% 55% / 0)'
-  				}
+		'pulse-gold': {
+				'0%, 100%': {
+					boxShadow: '0 0 0 0 hsl(42 76% 50% / 0.4)'
+				},
+				'50%': {
+					boxShadow: '0 0 0 15px hsl(42 76% 50% / 0)'
+				}
   			}
   		},
   		animation: {
