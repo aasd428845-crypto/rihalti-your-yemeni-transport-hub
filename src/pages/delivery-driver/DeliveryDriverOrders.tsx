@@ -34,7 +34,7 @@ const DeliveryDriverOrders = () => {
             .from("delivery_orders")
             .select("*")
             .eq("rider_id", dd.id)
-            .in("status", ["assigned", "picked_up", "in_transit"])
+            .in("status", ["assigned", "picked_up", "on_the_way", "in_transit"])
             .order("created_at", { ascending: false }),
           supabase
             .from("delivery_orders")
@@ -74,7 +74,7 @@ const DeliveryDriverOrders = () => {
     switch (status) {
       case "assigned": return "تم التعيين";
       case "picked_up": return "تم الاستلام";
-      case "in_transit": return "في الطريق";
+      case "in_transit": case "on_the_way": return "في الطريق";
       case "delivered": return "تم التوصيل";
       default: return status;
     }
@@ -83,8 +83,8 @@ const DeliveryDriverOrders = () => {
   const getNextAction = (status: string) => {
     switch (status) {
       case "assigned": return { label: "تم الاستلام", next: "picked_up" };
-      case "picked_up": return { label: "في الطريق", next: "in_transit" };
-      case "in_transit": return { label: "تم التوصيل", next: "delivered" };
+      case "picked_up": return { label: "في الطريق", next: "on_the_way" };
+      case "in_transit": case "on_the_way": return { label: "تم التوصيل", next: "delivered" };
       default: return null;
     }
   };

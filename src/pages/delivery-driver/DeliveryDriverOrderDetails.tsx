@@ -15,7 +15,8 @@ import CustomerLocationMap from "@/components/maps/CustomerLocationMap";
 const STATUS_FLOW: Record<string, { next: string; label: string; icon: any }> = {
   pending: { next: "assigned", label: "قبول الطلب", icon: CheckCircle },
   assigned: { next: "picked_up", label: "تم استلام الطلب", icon: Package },
-  picked_up: { next: "in_transit", label: "في الطريق للعميل", icon: Truck },
+  picked_up: { next: "on_the_way", label: "في الطريق للعميل", icon: Truck },
+  on_the_way: { next: "delivered", label: "تم التوصيل", icon: CheckCircle },
   in_transit: { next: "delivered", label: "تم التوصيل", icon: CheckCircle },
 };
 
@@ -24,6 +25,7 @@ const STATUS_BADGES: Record<string, { label: string; variant: "default" | "secon
   assigned: { label: "تم التعيين", variant: "default" },
   picked_up: { label: "تم الاستلام", variant: "default" },
   in_transit: { label: "في الطريق", variant: "default" },
+  on_the_way: { label: "في الطريق", variant: "default" },
   delivered: { label: "تم التوصيل", variant: "outline" },
   cancelled: { label: "ملغي", variant: "destructive" },
 };
@@ -103,6 +105,7 @@ const DeliveryDriverOrderDetails = () => {
       const statusMessages: Record<string, string> = {
         picked_up: "تم استلام طلبك من المطعم 📦",
         in_transit: "طلبك في الطريق إليك 🚚",
+        on_the_way: "طلبك في الطريق إليك 🚚",
         delivered: "تم توصيل طلبك بنجاح ✅",
       };
       if (order.customer_id && statusMessages[newStatus]) {
@@ -144,7 +147,7 @@ const DeliveryDriverOrderDetails = () => {
   const flow = STATUS_FLOW[order.status];
   const canAct = canAccept || (isMyOrder && flow);
   const hasLocation = order.delivery_lat && order.delivery_lng;
-  const chatUnlocked = isMyOrder && ["assigned", "picked_up", "in_transit"].includes(order.status);
+  const chatUnlocked = isMyOrder && ["assigned", "picked_up", "in_transit", "on_the_way"].includes(order.status);
 
   const handleAction = () => {
     if (canAccept) return acceptOrder();
