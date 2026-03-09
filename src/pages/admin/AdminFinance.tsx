@@ -76,7 +76,7 @@ const AdminFinance = () => {
               <SelectContent>
                 <SelectItem value="all">جميع الأنواع</SelectItem>
                 <SelectItem value="trip">رحلة</SelectItem>
-                <SelectItem value="shipment">شحنة</SelectItem>
+                <SelectItem value="shipment">طرد</SelectItem>
                 <SelectItem value="delivery">توصيل</SelectItem>
               </SelectContent>
             </Select>
