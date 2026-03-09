@@ -229,6 +229,39 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_healing_logs: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          description: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+          status: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          description: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          description?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           created_at: string | null
