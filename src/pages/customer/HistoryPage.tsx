@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Bus, Package, Bike, Clock, XCircle, DollarSign, Bell } from "lucide-react";
+import { Bus, Package, Bike, Clock, XCircle, DollarSign, Bell, Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { fetchMyBookings, fetchMyShipments, fetchMyDeliveryOrders, createCancell
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import RatingModal from "@/components/reviews/RatingModal";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
