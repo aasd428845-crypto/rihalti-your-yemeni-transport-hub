@@ -117,7 +117,7 @@ const HeroSection = () => {
                 <span className="text-xs text-primary-foreground/60">تعز ← المكلا</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-secondary font-bold text-xl">شحن آمن</span>
+                <span className="text-secondary font-bold text-xl">إرسال آمن</span>
                 <span className="text-sm text-primary-foreground/70">توصيل سريع</span>
               </div>
             </div>
