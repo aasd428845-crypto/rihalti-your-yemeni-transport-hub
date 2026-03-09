@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/common/BackButton";
 import AddressSelector from "@/components/addresses/AddressSelector";
 import type { SelectedAddress } from "@/components/addresses/AddressSelector";
+import MapPicker from "@/components/maps/MapPicker";
 
 const ShipmentsPage = () => {
   const navigate = useNavigate();
@@ -88,6 +89,7 @@ const ShipmentsPage = () => {
         item_dimensions: form.item_dimensions || undefined, payment_method: form.payment_method,
         pickup_lat: form.pickup_lat || undefined, pickup_lng: form.pickup_lng || undefined,
         delivery_lat: form.delivery_lat || undefined, delivery_lng: form.delivery_lng || undefined,
+        pickup_landmark: form.pickup_landmark || undefined, delivery_landmark: form.delivery_landmark || undefined,
       });
       toast({ title: "تم إرسال طلب الشحن بنجاح!", description: "سيتم مراجعته وتسعيره قريباً." });
       navigate("/history");
@@ -221,6 +223,15 @@ const ShipmentsPage = () => {
               <div>
                 <Label>أقرب معلم للمستلم (اختياري)</Label>
                 <Input value={form.delivery_landmark} onChange={(e) => setForm({ ...form, delivery_landmark: e.target.value })} placeholder="مثال: مقابل البنك المركزي" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">تحديد موقع التسليم على الخريطة (اختياري)</Label>
+                <MapPicker
+                  lat={form.delivery_lat || undefined}
+                  lng={form.delivery_lng || undefined}
+                  onLocationSelect={(lat, lng) => setForm(f => ({ ...f, delivery_lat: lat, delivery_lng: lng }))}
+                  height="200px"
+                />
               </div>
             </div>
 

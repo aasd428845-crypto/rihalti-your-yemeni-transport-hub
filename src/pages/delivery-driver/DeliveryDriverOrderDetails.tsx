@@ -10,6 +10,7 @@ import { Package, MapPin, Phone, DollarSign, Clock, User, CheckCircle, Truck, St
 import { useToast } from "@/hooks/use-toast";
 import BackButton from "@/components/common/BackButton";
 import OrderChat from "@/components/orders/OrderChat";
+import CustomerLocationMap from "@/components/maps/CustomerLocationMap";
 
 const STATUS_FLOW: Record<string, { next: string; label: string; icon: any }> = {
   pending: { next: "assigned", label: "قبول الطلب", icon: CheckCircle },
@@ -179,10 +180,18 @@ const DeliveryDriverOrderDetails = () => {
           )}
           {/* Google Maps Navigation */}
           {hasLocation && isMyOrder && (
-            <Button variant="outline" size="sm" className="w-full mt-2" onClick={openInGoogleMaps}>
-              <Navigation className="w-4 h-4 ml-2" />
-              فتح في خرائط Google
-            </Button>
+            <div className="space-y-2 mt-2">
+              <CustomerLocationMap
+                lat={order.delivery_lat}
+                lng={order.delivery_lng}
+                address={order.customer_address}
+                label="موقع التوصيل"
+              />
+              <Button variant="outline" size="sm" className="w-full" onClick={openInGoogleMaps}>
+                <Navigation className="w-4 h-4 ml-2" />
+                فتح في خرائط Google
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
