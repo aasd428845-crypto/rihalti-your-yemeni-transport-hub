@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Save, Plus, Trash2, Lock, Upload, User, Building, MapPinned } from "lucide-react";
 import RegionSelector from "@/components/regions/RegionSelector";
 import type { Region } from "@/types/supplier.types";
+import DeleteAccountButton from "@/components/common/DeleteAccountButton";
 
 const SupplierSettings = () => {
   const { user, profile } = useAuth();
