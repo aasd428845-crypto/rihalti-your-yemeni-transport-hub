@@ -1,26 +1,35 @@
 import { useEffect, useState } from "react";
-import { Users, Navigation, Building2, Star, CheckCircle } from "lucide-react";
+import { Users, Navigation, Building2, Star, CheckCircle, Car } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Stats = () => {
-  const [data, setData] = useState({ users: 0, trips: 0 });
+  const [data, setData] = useState({ users: 0, trips: 0, shipments: 0, partners: 0, drivers: 0 });
 
   useEffect(() => {
-    const fetch = async () => {
-      const [u, t] = await Promise.all([
+    const fetchStats = async () => {
+      const [u, t, s, p, d] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("trips").select("*", { count: "exact", head: true }),
+        supabase.from("shipment_requests").select("*", { count: "exact", head: true }),
+        supabase.from("user_roles").select("*", { count: "exact", head: true }).in("role", ["supplier", "delivery_company"]),
+        supabase.from("drivers").select("*", { count: "exact", head: true }),
       ]);
-      setData({ users: u.count || 0, trips: t.count || 0 });
+      setData({
+        users: u.count || 0,
+        trips: t.count || 0,
+        shipments: s.count || 0,
+        partners: p.count || 0,
+        drivers: d.count || 0,
+      });
     };
-    fetch();
+    fetchStats();
   }, []);
 
   const stats = [
-    { value: `+${data.users.toLocaleString("ar")}`, label: "عميل راضي", icon: Users, colorClass: "text-primary-glow bg-primary/15" },
-    { value: "+٥٠", label: "مسار نشط", icon: Navigation, colorClass: "text-blue-400 bg-blue-500/15" },
-    { value: "+٢٥", label: "شركة نقل", icon: Building2, colorClass: "text-accent bg-accent/15" },
-    { value: "٤.٨/٥", label: "تقييم العملاء", icon: Star, colorClass: "text-pink-400 bg-pink-400/15" },
+    { value: `+${data.users.toLocaleString("ar")}`, label: "عميل مسجل", icon: Users, colorClass: "text-primary-glow bg-primary/15" },
+    { value: `+${data.trips.toLocaleString("ar")}`, label: "رحلة", icon: Navigation, colorClass: "text-blue-400 bg-blue-500/15" },
+    { value: `+${data.partners.toLocaleString("ar")}`, label: "شريك نقل", icon: Building2, colorClass: "text-accent bg-accent/15" },
+    { value: `+${data.drivers.toLocaleString("ar")}`, label: "سائق أجرة", icon: Car, colorClass: "text-yellow-400 bg-yellow-400/15" },
     { value: "٩٩%", label: "توصيل ناجح", icon: CheckCircle, colorClass: "text-purple-400 bg-purple-400/15" },
   ];
 

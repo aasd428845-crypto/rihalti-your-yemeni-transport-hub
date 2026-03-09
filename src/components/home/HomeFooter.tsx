@@ -6,6 +6,7 @@ const links = {
     { name: "رحلات بين المدن", path: "/trips" },
     { name: "طرود آمنة", path: "/shipments" },
     { name: "توصيل محلي", path: "/deliveries" },
+    { name: "سيارة أجرة", path: "/ride/request" },
     { name: "تتبع الطرود", path: "/tracking" },
     { name: "المطاعم", path: "/restaurants" },
   ],

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Bus, Package, Truck, Globe, CheckCircle } from "lucide-react";
+import { Bus, Package, Truck, Car, Globe, CheckCircle } from "lucide-react";
 
 const services = [
   {
@@ -32,6 +32,17 @@ const services = [
     bgClass: "bg-accent/15 border-accent/30",
     glowClass: "hover:border-accent/40 hover:shadow-[0_24px_60px_hsl(38_92%_50%/0.15)]",
   },
+  {
+    icon: Car,
+    title: "سيارة أجرة",
+    desc: "اطلب سيارة أجرة بسهولة، حدد وجهتك واستقبل عروض الأسعار من السائقين المتاحين",
+    stats: ["سائقون معتمدون", "تفاوض على السعر", "تتبع مباشر", "دفع نقدي أو تحويل"],
+    link: "/ride/request",
+    colorClass: "text-yellow-400",
+    bgClass: "bg-yellow-500/15 border-yellow-400/30",
+    glowClass: "hover:border-yellow-400/40 hover:shadow-[0_24px_60px_hsl(48_90%_50%/0.15)]",
+    isNew: true,
+  },
 ];
 
 const Services = () => {
@@ -47,22 +58,27 @@ const Services = () => {
             كل ما تحتاجه في مكان واحد
           </h2>
           <p className="text-muted-foreground text-lg max-w-[600px] mx-auto leading-relaxed">
-            منصة وصل توفر لك ثلاث خدمات متكاملة تغطي جميع احتياجات التنقل والشحن في اليمن
+            منصة وصل توفر لك أربع خدمات متكاملة تغطي جميع احتياجات التنقل والشحن في اليمن
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {services.map((service, i) => {
             const Icon = service.icon;
             return (
               <Link to={service.link} key={i} className="group">
-                <div className={`bg-background/80 rounded-[20px] border border-border/10 p-9 transition-all duration-300 cursor-pointer relative overflow-hidden hover:-translate-y-2 ${service.glowClass}`}>
-                  <div className={`w-[60px] h-[60px] rounded-[14px] ${service.bgClass} border flex items-center justify-center mb-5`}>
-                    <Icon className={`w-7 h-7 ${service.colorClass}`} />
+                <div className={`bg-background/80 rounded-[20px] border border-border/10 p-8 transition-all duration-300 cursor-pointer relative overflow-hidden hover:-translate-y-2 ${service.glowClass}`}>
+                  {service.isNew && (
+                    <span className="absolute top-4 left-4 bg-accent text-accent-foreground text-[10px] font-bold px-2.5 py-1 rounded-full">
+                      جديد 🔥
+                    </span>
+                  )}
+                  <div className={`w-[56px] h-[56px] rounded-[14px] ${service.bgClass} border flex items-center justify-center mb-5`}>
+                    <Icon className={`w-6 h-6 ${service.colorClass}`} />
                   </div>
-                  <h3 className="text-foreground text-xl font-bold mb-3">{service.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-6">{service.desc}</p>
-                  <div className="flex flex-col gap-2 mb-7">
+                  <h3 className="text-foreground text-lg font-bold mb-3">{service.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-5">{service.desc}</p>
+                  <div className="flex flex-col gap-2 mb-6">
                     {service.stats.map((stat, j) => (
                       <div key={j} className="flex items-center gap-2">
                         <CheckCircle className={`w-3.5 h-3.5 ${service.colorClass}`} />
