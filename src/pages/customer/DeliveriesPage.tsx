@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Bike, ArrowRight, Plus, Trash2, Store, MapPin, Phone, User, Star, Search, Globe, ShoppingBag } from "lucide-react";
+import { Bike, ArrowRight, Plus, Trash2, Store, MapPin, Phone, User, Star, Search, Globe, ShoppingBag, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
