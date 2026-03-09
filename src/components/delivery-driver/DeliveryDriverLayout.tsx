@@ -2,7 +2,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DeliveryDriverSidebar from "./DeliveryDriverSidebar";
-import { Menu } from "lucide-react";
+import { Menu, Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "next-themes";
 
 const DeliveryDriverLayout = () => {
   const { role, loading, user } = useAuth();
