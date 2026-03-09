@@ -34,7 +34,7 @@ const CheckoutPage = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 

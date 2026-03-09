@@ -190,14 +190,11 @@ const RestaurantCheckoutPage = () => {
             </CardContent>
           </Card>
 
-          {/* Payment */}
+          {/* Payment info note */}
           <Card>
             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><CreditCard className="w-5 h-5" />طريقة الدفع</CardTitle></CardHeader>
             <CardContent>
-              <RadioGroup value={form.payment_method} onValueChange={v => setForm({ ...form, payment_method: v })}>
-                <div className="flex items-center gap-2"><RadioGroupItem value="cash" id="cash" /><Label htmlFor="cash">نقداً عند الاستلام</Label></div>
-                <div className="flex items-center gap-2"><RadioGroupItem value="transfer" id="transfer" /><Label htmlFor="transfer">تحويل بنكي</Label></div>
-              </RadioGroup>
+              <p className="text-sm text-muted-foreground">سيتم اختيار طريقة الدفع في الخطوة التالية بعد تأكيد الطلب</p>
             </CardContent>
           </Card>
 
