@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
 
-const categories = ["الكل", "الرحلات", "الشحنات", "التوصيل"];
+const categories = ["الكل", "الرحلات", "الطرود", "التوصيل"];
 
 const testimonials = [
   {
