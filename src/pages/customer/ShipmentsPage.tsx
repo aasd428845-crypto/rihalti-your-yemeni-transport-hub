@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Package, ArrowRight, Truck, User, Phone, MapPin, FileText, Weight, Star, Search, Globe, ShoppingBag, LocateFixed } from "lucide-react";
+import { Package, ArrowRight, Truck, User, Phone, MapPin, FileText, Weight, Star, Search, Globe, ShoppingBag, LocateFixed, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import BackButton from "@/components/common/BackButton";
 import AddressSelector from "@/components/addresses/AddressSelector";
 import type { SelectedAddress } from "@/components/addresses/AddressSelector";
 import MapPicker from "@/components/maps/MapPicker";
+import { AverageRating } from "@/components/reviews/ReviewsList";
 
 const ShipmentsPage = () => {
   const navigate = useNavigate();
@@ -142,9 +143,8 @@ const ShipmentsPage = () => {
                           {supplier.city && <p className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{supplier.city}</p>}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 mb-3">
-                        {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`w-3.5 h-3.5 ${i <= 4 ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"}`} />)}
-                        <span className="text-xs text-muted-foreground mr-1">4.0</span>
+                      <div className="mb-3">
+                        <AverageRating revieweeId={supplier.user_id} />
                       </div>
                       {areas.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-3">

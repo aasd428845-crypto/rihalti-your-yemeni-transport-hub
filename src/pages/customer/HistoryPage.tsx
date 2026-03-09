@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Bus, Package, Bike, Clock, XCircle, DollarSign, Bell } from "lucide-react";
+import { Bus, Package, Bike, Clock, XCircle, DollarSign, Bell, Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { fetchMyBookings, fetchMyShipments, fetchMyDeliveryOrders, createCancell
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import RatingModal from "@/components/reviews/RatingModal";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -57,6 +58,24 @@ const HistoryPage = () => {
   const [cancelModal, setCancelModal] = useState<{ type: string; id: string } | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<{
+    revieweeId: string; revieweeName: string;
+    entityType: "supplier" | "delivery" | "driver"; entityId: string;
+  } | null>(null);
+  const [ratedIds, setRatedIds] = useState<Set<string>>(new Set());
+
+  // Load already-rated entity IDs
+  useEffect(() => {
+    if (!user) return;
+    const loadRated = async () => {
+      const { data } = await supabase
+        .from("reviews" as any)
+        .select("entity_id")
+        .eq("reviewer_id", user.id);
+      if (data) setRatedIds(new Set((data as any[]).map((r: any) => r.entity_id).filter(Boolean)));
+    };
+    loadRated();
+  }, [user]);
 
   const { data: bookings, isLoading: loadingBookings } = useQuery({
     queryKey: ["my-bookings", user?.id],
@@ -254,6 +273,14 @@ const HistoryPage = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
+                            {(s.status === 'completed' || s.status === 'delivered') && !ratedIds.has(s.id) && (
+                              <Button variant="outline" size="sm" className="gap-1" onClick={() => setRatingTarget({
+                                revieweeId: s.supplier_id, revieweeName: s.supplier_name || "الشريك",
+                                entityType: "supplier", entityId: s.id,
+                              })}>
+                                <Star className="w-3 h-3" /> قيّم
+                              </Button>
+                            )}
                             {canCancel(s.status) && (
                               <Button variant="outline" size="sm" className="text-destructive gap-1" onClick={() => setCancelModal({ type: "shipment", id: s.id })}>
                                 <XCircle className="w-4 h-4" /> إلغاء
@@ -323,6 +350,14 @@ const HistoryPage = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
+                            {(d.status === 'completed' || d.status === 'delivered') && !ratedIds.has(d.id) && (
+                              <Button variant="outline" size="sm" className="gap-1" onClick={() => setRatingTarget({
+                                revieweeId: d.delivery_company_id, revieweeName: "شركة التوصيل",
+                                entityType: "delivery", entityId: d.id,
+                              })}>
+                                <Star className="w-3 h-3" /> قيّم
+                              </Button>
+                            )}
                             {canCancel(d.status) && (
                               <Button variant="outline" size="sm" className="text-destructive gap-1" onClick={() => setCancelModal({ type: "delivery", id: d.id })}>
                                 <XCircle className="w-4 h-4" /> إلغاء
@@ -365,6 +400,21 @@ const HistoryPage = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Rating Modal */}
+        {ratingTarget && (
+          <RatingModal
+            open={!!ratingTarget}
+            onClose={() => {
+              if (ratingTarget) setRatedIds(prev => new Set([...prev, ratingTarget.entityId]));
+              setRatingTarget(null);
+            }}
+            revieweeId={ratingTarget.revieweeId}
+            revieweeName={ratingTarget.revieweeName}
+            entityType={ratingTarget.entityType}
+            entityId={ratingTarget.entityId}
+          />
+        )}
 
         {/* Cancel Modal */}
         <Dialog open={!!cancelModal} onOpenChange={() => setCancelModal(null)}>
