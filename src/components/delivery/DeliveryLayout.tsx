@@ -2,12 +2,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DeliverySidebar from "./DeliverySidebar";
-import { Menu } from "lucide-react";
+import { Menu, Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "next-themes";
 import { usePartnerProfileCheck } from "@/hooks/usePartnerProfileCheck";
 
 const DeliveryLayout = () => {
   const { role, loading, user } = useAuth();
   const { isComplete, checking } = usePartnerProfileCheck();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
 
   if (loading || checking) {
