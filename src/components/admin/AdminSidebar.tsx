@@ -1,4 +1,8 @@
-import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield, Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert, MessageCircle, QrCode, CreditCard, Headphones, Bell } from "lucide-react";
+import {
+  LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield,
+  Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert,
+  MessageCircle, QrCode, CreditCard, Headphones, Bell, BarChart3, Wallet
+} from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -8,27 +12,57 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
-const menuItems = [
-  { title: "لوحة التحكم", url: "/admin", icon: LayoutDashboard },
-  { title: "إدارة المستخدمين", url: "/admin/users", icon: Users },
-  { title: "الموافقات", url: "/admin/approvals", icon: CheckCircle },
-  { title: "طلبات الانضمام", url: "/admin/join-requests", icon: UserPlus },
-  { title: "المعاملات المالية", url: "/admin/transactions", icon: DollarSign },
-  { title: "الفواتير", url: "/admin/invoices", icon: Receipt },
-  { title: "الإدارة المالية", url: "/admin/finance", icon: DollarSign },
-  { title: "الدعوات", url: "/admin/invitations", icon: Send },
-  { title: "الإلغاءات", url: "/admin/cancellations", icon: XCircle },
-  { title: "المخالفات", url: "/admin/violations", icon: ShieldAlert },
-  { title: "الرسائل", url: "/admin/messages", icon: Mail },
-  { title: "مراقبة المحادثات", url: "/admin/chat-monitoring", icon: MessageCircle },
-  { title: "إثباتات التسليم", url: "/admin/delivery-proofs", icon: QrCode },
-  { title: "التقارير", url: "/admin/reports", icon: FileText },
-  { title: "التحويلات البنكية", url: "/admin/payment-review", icon: CreditCard },
-  { title: "صلاحيات الشركاء", url: "/admin/partner-controls", icon: Shield },
-  { title: "إرسال إشعار", url: "/admin/send-notification", icon: Bell },
-  { title: "سجل الإشعارات", url: "/admin/notification-logs", icon: FileText },
-  { title: "الإعدادات", url: "/admin/settings", icon: Settings },
-  { title: "رسائل الدعم", url: "/admin/support-messages", icon: Headphones },
+const menuGroups = [
+  {
+    label: "الرئيسية",
+    items: [
+      { title: "لوحة التحكم", url: "/admin", icon: LayoutDashboard, end: true },
+    ],
+  },
+  {
+    label: "إدارة المستخدمين",
+    items: [
+      { title: "المستخدمون", url: "/admin/users", icon: Users },
+      { title: "الموافقات", url: "/admin/approvals", icon: CheckCircle },
+      { title: "طلبات الانضمام", url: "/admin/join-requests", icon: UserPlus },
+      { title: "الدعوات", url: "/admin/invitations", icon: Send },
+      { title: "صلاحيات الشركاء", url: "/admin/partner-controls", icon: Shield },
+    ],
+  },
+  {
+    label: "المالية",
+    items: [
+      { title: "المعاملات المالية", url: "/admin/transactions", icon: DollarSign },
+      { title: "الفواتير", url: "/admin/invoices", icon: Receipt },
+      { title: "الإدارة المالية", url: "/admin/finance", icon: Wallet },
+      { title: "التحويلات البنكية", url: "/admin/payment-review", icon: CreditCard },
+    ],
+  },
+  {
+    label: "العمليات",
+    items: [
+      { title: "الإلغاءات", url: "/admin/cancellations", icon: XCircle },
+      { title: "المخالفات", url: "/admin/violations", icon: ShieldAlert },
+      { title: "إثباتات التسليم", url: "/admin/delivery-proofs", icon: QrCode },
+    ],
+  },
+  {
+    label: "التواصل",
+    items: [
+      { title: "الرسائل", url: "/admin/messages", icon: Mail },
+      { title: "مراقبة المحادثات", url: "/admin/chat-monitoring", icon: MessageCircle },
+      { title: "رسائل الدعم", url: "/admin/support-messages", icon: Headphones },
+      { title: "إرسال إشعار", url: "/admin/send-notification", icon: Bell },
+      { title: "سجل الإشعارات", url: "/admin/notification-logs", icon: FileText },
+    ],
+  },
+  {
+    label: "التقارير والإعدادات",
+    items: [
+      { title: "التقارير", url: "/admin/reports", icon: BarChart3 },
+      { title: "الإعدادات", url: "/admin/settings", icon: Settings },
+    ],
+  },
 ];
 
 const AdminSidebar = () => {
@@ -40,6 +74,7 @@ const AdminSidebar = () => {
   return (
     <Sidebar className="border-l-0 border-r" dir="rtl">
       <SidebarContent>
+        {/* Logo / Title */}
         <SidebarGroup>
           <SidebarGroupLabel className="px-4 py-3">
             <div className="flex items-center gap-2">
@@ -52,33 +87,42 @@ const AdminSidebar = () => {
               </div>
             </div>
           </SidebarGroupLabel>
-          <SidebarGroupContent className="mt-2">
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/admin"}
-                      className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-sidebar-accent transition-colors"
-                      activeClassName="bg-primary/10 text-primary font-medium"
-                    >
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Menu Groups */}
+        {menuGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel className="px-4 text-[11px] uppercase tracking-wider text-muted-foreground/70">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={(item as any).end || false}
+                        className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm text-muted-foreground hover:bg-sidebar-accent transition-colors"
+                        activeClassName="bg-primary/10 text-primary font-medium"
+                      >
+                        <item.icon className="w-4 h-4 shrink-0" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="p-3 space-y-2">
         <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" onClick={() => navigate("/")}>
-          <Home className="w-4 h-4" />العودة للرئيسية
+          <Home className="w-4 h-4" /> العودة للرئيسية
         </Button>
         <Button variant="ghost" className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleSignOut}>
-          <LogOut className="w-4 h-4" />تسجيل الخروج
+          <LogOut className="w-4 h-4" /> تسجيل الخروج
         </Button>
       </SidebarFooter>
     </Sidebar>

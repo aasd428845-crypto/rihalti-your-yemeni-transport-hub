@@ -24,18 +24,13 @@ export const getPendingApprovals = async (type?: string) => {
 
 export const approveRequest = async (id: string, adminId: string) => {
   return supabase.from("approval_requests").update({
-    status: "approved",
-    reviewed_by: adminId,
-    reviewed_at: new Date().toISOString(),
+    status: "approved", reviewed_by: adminId, reviewed_at: new Date().toISOString(),
   }).eq("id", id);
 };
 
 export const rejectRequest = async (id: string, adminId: string, notes?: string) => {
   return supabase.from("approval_requests").update({
-    status: "rejected",
-    reviewed_by: adminId,
-    reviewed_at: new Date().toISOString(),
-    admin_notes: notes || null,
+    status: "rejected", reviewed_by: adminId, reviewed_at: new Date().toISOString(), admin_notes: notes || null,
   }).eq("id", id);
 };
 
@@ -69,8 +64,7 @@ export const getPayouts = async () => {
 
 export const updatePayoutStatus = async (id: string, status: string) => {
   return supabase.from("payouts").update({
-    status,
-    paid_at: status === "paid" ? new Date().toISOString() : null,
+    status, paid_at: status === "paid" ? new Date().toISOString() : null,
   }).eq("id", id);
 };
 
@@ -81,9 +75,7 @@ export const getCancellationRequests = async () => {
 
 export const processCancellation = async (id: string, action: "approved" | "rejected", adminId: string) => {
   return supabase.from("cancellation_requests").update({
-    status: action,
-    reviewed_by: adminId,
-    reviewed_at: new Date().toISOString(),
+    status: action, reviewed_by: adminId, reviewed_at: new Date().toISOString(),
     refund_status: action === "approved" ? "processed" : "pending",
   }).eq("id", id);
 };
@@ -94,11 +86,7 @@ export const getInvitations = async () => {
 };
 
 export const createInvitation = async (email: string, role: string, createdBy: string) => {
-  return supabase.from("invitation_tokens").insert({
-    email,
-    role,
-    created_by: createdBy,
-  });
+  return supabase.from("invitation_tokens").insert({ email, role, created_by: createdBy });
 };
 
 // ==================== Notifications ====================
@@ -155,31 +143,110 @@ export const getAuditLogs = async () => {
   return supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(200);
 };
 
-// ==================== Dashboard Stats ====================
+// ==================== Dashboard Stats (Enhanced) ====================
 export const getDashboardStats = async () => {
-  const [profiles, roles, pendingApprovals, trips, shipments, deliveries, transactions] = await Promise.all([
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+  const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+  const monthAgo = new Date(now); monthAgo.setDate(monthAgo.getDate() - 30);
+
+  const [
+    profiles, roles, pendingApprovals, trips, deliveries,
+    financialTxAll, financialTxToday, financialTxWeek, financialTxMonth,
+    pendingInvoices, overdueInvoices,
+    unreadSupport, joinRequests,
+    recentTx, recentSupport, recentInvoices, recentUsers,
+  ] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("user_roles").select("role"),
     supabase.from("approval_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("trips").select("id", { count: "exact", head: true }),
-    supabase.from("shipments").select("id", { count: "exact", head: true }),
     supabase.from("deliveries").select("id", { count: "exact", head: true }),
-    supabase.from("transactions").select("amount, platform_fee, status"),
+    // All financial transactions
+    supabase.from("financial_transactions").select("amount, platform_commission, partner_earning, transaction_type, created_at"),
+    // Today
+    supabase.from("financial_transactions").select("id", { count: "exact", head: true }).gte("created_at", todayStr),
+    // Week
+    supabase.from("financial_transactions").select("id", { count: "exact", head: true }).gte("created_at", weekAgo.toISOString()),
+    // Month
+    supabase.from("financial_transactions").select("id", { count: "exact", head: true }).gte("created_at", monthAgo.toISOString()),
+    // Pending invoices
+    supabase.from("partner_invoices").select("id, total_commission", { count: "exact" }).eq("status", "pending"),
+    // Overdue invoices
+    supabase.from("partner_invoices").select("id, total_commission", { count: "exact" }).eq("status", "overdue"),
+    // Unread support
+    supabase.from("conversations").select("id", { count: "exact", head: true }).eq("status", "open"),
+    // Join requests
+    supabase.from("partner_join_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    // Recent transactions (last 10)
+    supabase.from("financial_transactions").select("id, transaction_type, amount, platform_commission, partner_id, created_at, payment_status, partner_name").order("created_at", { ascending: false }).limit(10),
+    // Recent support messages (last 5 open)
+    supabase.from("conversations").select("id, subject, user_id, created_at, status").eq("status", "open").order("created_at", { ascending: false }).limit(5),
+    // Recent invoices (last 5 pending/overdue)
+    supabase.from("partner_invoices").select("id, invoice_number, partner_id, total_commission, due_date, status").in("status", ["pending", "overdue"]).order("due_date", { ascending: true }).limit(5),
+    // Recent users (last 5)
+    supabase.from("profiles").select("user_id, full_name, phone, created_at").order("created_at", { ascending: false }).limit(5),
   ]);
 
   const rolesData = roles.data || [];
-  const txData = transactions.data || [];
-  const completedTx = txData.filter((t) => t.status === "completed");
+  const allTx = financialTxAll.data || [];
+  const totalRevenue = allTx.reduce((s, t) => s + Number(t.amount || 0), 0);
+  const platformEarnings = allTx.reduce((s, t) => s + Number(t.platform_commission || 0), 0);
+
+  // Transaction type distribution
+  const typeDistribution = [
+    { name: "حجز", value: allTx.filter(t => t.transaction_type === "booking").length },
+    { name: "شحن", value: allTx.filter(t => t.transaction_type === "shipment").length },
+    { name: "توصيل", value: allTx.filter(t => t.transaction_type === "delivery").length },
+    { name: "أجرة", value: allTx.filter(t => t.transaction_type === "ride").length },
+  ];
+
+  // 30-day chart data
+  const dailyMap = new Map<string, { date: string; amount: number; commission: number; count: number }>();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    dailyMap.set(key, { date: key, amount: 0, commission: 0, count: 0 });
+  }
+  allTx.forEach(tx => {
+    const key = new Date(tx.created_at).toISOString().split("T")[0];
+    const entry = dailyMap.get(key);
+    if (entry) {
+      entry.amount += Number(tx.amount || 0);
+      entry.commission += Number(tx.platform_commission || 0);
+      entry.count++;
+    }
+  });
+  const dailyChartData = Array.from(dailyMap.values());
+
+  const pendingInvoiceTotal = (pendingInvoices.data || []).reduce((s, i) => s + Number(i.total_commission || 0), 0);
+  const overdueInvoiceTotal = (overdueInvoices.data || []).reduce((s, i) => s + Number(i.total_commission || 0), 0);
 
   return {
     totalUsers: profiles.count || 0,
-    suppliers: rolesData.filter((r) => r.role === "supplier").length,
-    deliveryCompanies: rolesData.filter((r) => r.role === "delivery_company").length,
+    customers: rolesData.filter(r => r.role === "customer").length,
+    suppliers: rolesData.filter(r => r.role === "supplier").length,
+    deliveryCompanies: rolesData.filter(r => r.role === "delivery_company").length,
+    drivers: rolesData.filter(r => r.role === "driver").length,
     pendingApprovals: pendingApprovals.count || 0,
     totalTrips: trips.count || 0,
-    totalShipments: shipments.count || 0,
     totalDeliveries: deliveries.count || 0,
-    totalRevenue: completedTx.reduce((s, t) => s + Number(t.amount), 0),
-    platformEarnings: completedTx.reduce((s, t) => s + Number(t.platform_fee), 0),
+    totalRevenue,
+    platformEarnings,
+    txToday: financialTxToday.count || 0,
+    txWeek: financialTxWeek.count || 0,
+    txMonth: financialTxMonth.count || 0,
+    pendingInvoiceCount: pendingInvoices.count || 0,
+    overdueInvoiceCount: overdueInvoices.count || 0,
+    pendingInvoiceTotal,
+    overdueInvoiceTotal,
+    unreadSupport: unreadSupport.count || 0,
+    joinRequests: joinRequests.count || 0,
+    typeDistribution,
+    dailyChartData,
+    recentTransactions: recentTx.data || [],
+    recentSupport: recentSupport.data || [],
+    recentInvoices: recentInvoices.data || [],
+    recentUsers: recentUsers.data || [],
   };
 };
