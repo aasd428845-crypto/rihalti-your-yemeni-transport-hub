@@ -113,13 +113,13 @@ const SupplierSettings = () => {
   };
 
   const handleSaveAreas = async () => {
+    if (selectedRegions.length === 0) {
+      toast({ title: "يجب اختيار منطقة عمل واحدة على الأقل", variant: "destructive" });
+      return;
+    }
     const result = await updateWorkingAreas(user!.id, selectedRegions);
     if (result?.error) toast({ title: "خطأ", description: result.error.message, variant: "destructive" });
     else toast({ title: "تم حفظ المناطق" });
-  };
-
-  const toggleRegion = (regionId: number) => {
-    setSelectedRegions(prev => prev.includes(regionId) ? prev.filter(r => r !== regionId) : [...prev, regionId]);
   };
 
   // Group regions by country for display
