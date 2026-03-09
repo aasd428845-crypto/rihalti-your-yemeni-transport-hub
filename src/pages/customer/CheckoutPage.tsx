@@ -99,8 +99,7 @@ const CheckoutPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <div className="container mx-auto px-4 pt-24 pb-12 max-w-3xl">
+      <div className="container mx-auto px-4 py-8 max-w-3xl">
         <BackButton fallback={`/trips/${tripId}`} />
 
         <h1 className="text-2xl font-bold text-foreground mb-6">إتمام الحجز</h1>
