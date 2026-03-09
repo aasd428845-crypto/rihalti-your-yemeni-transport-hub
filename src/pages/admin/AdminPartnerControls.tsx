@@ -12,7 +12,7 @@ import { upsertPartnerSettings, getAllPartnerSettings, PartnerSettings } from "@
 import { Loader2, Search, Shield, Users } from "lucide-react";
 
 const roleLabels: Record<string, string> = {
-  supplier: "مورد",
+  supplier: "صاحب مكتب",
   delivery_company: "شركة توصيل",
   driver: "سائق",
 };
