@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,7 +14,7 @@ import { getFinancialTransactions } from "@/lib/accountingApi";
 import StatCard from "@/components/admin/dashboard/StatsCards";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ar } from "date-fns/locale";
-import { DollarSign, TrendingUp, Hash, Users, Phone, Eye, CalendarIcon, Search, Building2 } from "lucide-react";
+import { DollarSign, TrendingUp, Hash, Users, Phone, Eye, CalendarIcon, Search, Building2, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const typeLabels: Record<string, string> = { booking: "حجز", shipment: "شحن", delivery: "توصيل", ride: "أجرة" };
@@ -21,6 +22,7 @@ const statusLabels: Record<string, string> = { pending: "قيد الانتظار
 const paymentLabels: Record<string, string> = { cash: "نقدي", later: "مؤجل", transfer: "تحويل" };
 
 const AdminTransactions = () => {
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("all");
@@ -209,6 +211,7 @@ const AdminTransactions = () => {
                       </TableCell>
                       <TableCell>
                         <Button size="sm" variant="ghost" onClick={() => openDetails(t)}><Eye className="w-4 h-4" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => navigate(`/admin/partner/${t.partner_id}`)} title="ملف الشريك"><UserCircle className="w-4 h-4" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
