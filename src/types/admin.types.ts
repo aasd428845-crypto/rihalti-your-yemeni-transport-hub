@@ -144,7 +144,7 @@ export interface AuditLog {
 
 export const roleLabels: Record<string, string> = {
   customer: "عميل",
-  supplier: "مورد",
+  supplier: "صاحب مكتب",
   delivery_company: "شركة توصيل",
   driver: "سائق أجرة",
   delivery_driver: "مندوب توصيل",
