@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -30,7 +31,6 @@ const SupplierShipments = () => {
   const loadData = async () => {
     if (!user?.id) return;
     const { data } = await getSupplierShipmentRequests(user.id);
-    // Hide pending_approval items (awaiting admin approval)
     const list = (data || []).filter((r: any) => r.status !== "pending_approval");
     setRequests(list);
 
@@ -72,64 +72,107 @@ const SupplierShipments = () => {
   if (loading) return <div className="flex items-center justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <h2 className="text-xl font-bold">إدارة الشحنات</h2>
 
       {requests.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد طلبات شحن حالياً.</CardContent></Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>العميل</TableHead>
-                    <TableHead>النوع</TableHead>
-                    <TableHead>الوصف</TableHead>
-                    <TableHead>الوزن</TableHead>
-                    <TableHead>السعر</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>التاريخ</TableHead>
-                    <TableHead>إجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {requests.map((req) => (
-                    <TableRow key={req.id}>
-                      <TableCell className="font-medium">{profiles[req.customer_id] || "—"}</TableCell>
-                      <TableCell>{req.shipment_type === "door_to_door" ? "باب لباب" : "مكتب لمكتب"}</TableCell>
-                      <TableCell className="max-w-32 truncate">{req.item_description || "—"}</TableCell>
-                      <TableCell>{req.item_weight ? `${req.item_weight} كغ` : "—"}</TableCell>
-                      <TableCell>{req.price ? `${Number(req.price).toLocaleString()} ر.ي` : "—"}</TableCell>
-                      <TableCell>
-                        <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", shipmentStatusColors[req.status] || "bg-muted text-muted-foreground")}>
-                          {shipmentStatusLabels[req.status] || req.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm">{new Date(req.created_at).toLocaleDateString("ar")}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => navigate(`/supplier/order/shipment/${req.id}`)}><Eye className="w-4 h-4" /></Button>
-                          {req.status === "pending_pricing" && (
-                            <Button variant="ghost" size="icon" onClick={() => { setPricingReq(req); setPriceInput(""); }} className="text-primary">
-                              <DollarSign className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {req.status === "accepted" && (
-                            <Button variant="ghost" size="icon" onClick={() => handleStatusChange(req.id, "accepted")} className="text-green-600">
-                              <Truck className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
+        <>
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {requests.map((req) => (
+              <Card key={req.id}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-bold text-foreground text-sm">{profiles[req.customer_id] || "—"}</p>
+                      <p className="text-xs text-muted-foreground">{req.shipment_type === "door_to_door" ? "باب لباب" : "مكتب لمكتب"}</p>
+                    </div>
+                    <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", shipmentStatusColors[req.status] || "bg-muted text-muted-foreground")}>
+                      {shipmentStatusLabels[req.status] || req.status}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div><span className="text-muted-foreground">الوصف:</span> <span className="font-medium truncate block">{req.item_description || "—"}</span></div>
+                    <div><span className="text-muted-foreground">الوزن:</span> <span className="font-medium">{req.item_weight ? `${req.item_weight} كغ` : "—"}</span></div>
+                    <div><span className="text-muted-foreground">السعر:</span> <span className="font-medium">{req.price ? `${Number(req.price).toLocaleString()} ر.ي` : "—"}</span></div>
+                    <div><span className="text-muted-foreground">التاريخ:</span> <span className="text-xs">{new Date(req.created_at).toLocaleDateString("ar")}</span></div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="flex-1 min-h-[44px]" onClick={() => navigate(`/supplier/order/shipment/${req.id}`)}>
+                      <Eye className="w-4 h-4 ml-1" /> عرض
+                    </Button>
+                    {req.status === "pending_pricing" && (
+                      <Button size="sm" variant="outline" className="min-h-[44px]" onClick={() => { setPricingReq(req); setPriceInput(""); }}>
+                        <DollarSign className="w-4 h-4 ml-1" /> تسعير
+                      </Button>
+                    )}
+                    {req.status === "accepted" && (
+                      <Button size="sm" variant="outline" className="min-h-[44px]" onClick={() => handleStatusChange(req.id, "accepted")}>
+                        <Truck className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table */}
+          <Card className="hidden md:block">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>العميل</TableHead>
+                      <TableHead>النوع</TableHead>
+                      <TableHead>الوصف</TableHead>
+                      <TableHead>الوزن</TableHead>
+                      <TableHead>السعر</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>التاريخ</TableHead>
+                      <TableHead>إجراءات</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {requests.map((req) => (
+                      <TableRow key={req.id}>
+                        <TableCell className="font-medium">{profiles[req.customer_id] || "—"}</TableCell>
+                        <TableCell>{req.shipment_type === "door_to_door" ? "باب لباب" : "مكتب لمكتب"}</TableCell>
+                        <TableCell className="max-w-32 truncate">{req.item_description || "—"}</TableCell>
+                        <TableCell>{req.item_weight ? `${req.item_weight} كغ` : "—"}</TableCell>
+                        <TableCell>{req.price ? `${Number(req.price).toLocaleString()} ر.ي` : "—"}</TableCell>
+                        <TableCell>
+                          <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", shipmentStatusColors[req.status] || "bg-muted text-muted-foreground")}>
+                            {shipmentStatusLabels[req.status] || req.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm">{new Date(req.created_at).toLocaleDateString("ar")}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => navigate(`/supplier/order/shipment/${req.id}`)}><Eye className="w-4 h-4" /></Button>
+                            {req.status === "pending_pricing" && (
+                              <Button variant="ghost" size="icon" onClick={() => { setPricingReq(req); setPriceInput(""); }} className="text-primary">
+                                <DollarSign className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {req.status === "accepted" && (
+                              <Button variant="ghost" size="icon" onClick={() => handleStatusChange(req.id, "accepted")} className="text-success">
+                                <Truck className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {/* Pricing Modal */}
@@ -159,8 +202,8 @@ const SupplierShipments = () => {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPricingReq(null)}>إلغاء</Button>
-            <Button onClick={handlePrice}>إرسال السعر</Button>
+            <Button variant="outline" onClick={() => setPricingReq(null)} className="min-h-[44px]">إلغاء</Button>
+            <Button onClick={handlePrice} className="min-h-[44px]">إرسال السعر</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

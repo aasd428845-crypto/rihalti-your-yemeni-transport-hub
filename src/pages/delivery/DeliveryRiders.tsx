@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Search, Edit, Trash2, Award } from "lucide-react";
-import { getRiders, createRider, updateRider, deleteRider, createRiderReward, getRiderRewards } from "@/lib/deliveryApi";
+import { getRiders, createRider, updateRider, deleteRider, createRiderReward } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import type { Rider } from "@/types/delivery.types";
 
@@ -86,12 +86,12 @@ const DeliveryRiders = () => {
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-2xl font-bold">إدارة المندوبين</h2>
+    <div className="space-y-4 md:space-y-6" dir="rtl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-xl md:text-2xl font-bold">إدارة المندوبين</h2>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowReward(true)}><Award className="w-4 h-4 ml-1" /> مكافأة</Button>
-          <Button onClick={() => { setEditItem(null); setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 }); setShowAdd(true); }}>
+          <Button variant="outline" size="sm" onClick={() => setShowReward(true)} className="min-h-[44px]"><Award className="w-4 h-4 ml-1" /> مكافأة</Button>
+          <Button size="sm" onClick={() => { setEditItem(null); setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 }); setShowAdd(true); }} className="min-h-[44px]">
             <Plus className="w-4 h-4 ml-1" /> إضافة مندوب
           </Button>
         </div>
@@ -105,41 +105,75 @@ const DeliveryRiders = () => {
       {filtered.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">لا يوجد مندوبين</CardContent></Card>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm bg-card rounded-lg border">
-            <thead><tr className="border-b text-muted-foreground bg-muted/50">
-              <th className="text-right p-3">الاسم</th>
-              <th className="text-right p-3">الهاتف</th>
-              <th className="text-right p-3">المركبة</th>
-              <th className="text-right p-3">الحالة</th>
-              <th className="text-right p-3">التوصيلات</th>
-              <th className="text-right p-3">التقييم</th>
-              <th className="text-right p-3">الأرباح</th>
-              <th className="text-right p-3">إجراءات</th>
-            </tr></thead>
-            <tbody>
-              {filtered.map(r => (
-                <tr key={r.id} className="border-b hover:bg-muted/30">
-                  <td className="p-3 font-medium">{r.full_name}</td>
-                  <td className="p-3">{r.phone}</td>
-                  <td className="p-3">{vehicleLabels[r.vehicle_type] || r.vehicle_type}</td>
-                  <td className="p-3">
-                    <Badge variant={r.is_online ? "default" : "secondary"}>{r.is_online ? "متصل 🟢" : "غير متصل"}</Badge>
-                  </td>
-                  <td className="p-3">{r.total_deliveries}</td>
-                  <td className="p-3">⭐ {r.rating}</td>
-                  <td className="p-3">{Number(r.earnings).toLocaleString()} ر.ي</td>
-                  <td className="p-3">
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Edit className="w-3 h-3" /></Button>
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(r.id)}><Trash2 className="w-3 h-3" /></Button>
+        <>
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.map(r => (
+              <Card key={r.id}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-foreground">{r.full_name}</p>
+                      <p className="text-xs text-muted-foreground">{r.phone}</p>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    <Badge variant={r.is_online ? "default" : "secondary"}>{r.is_online ? "متصل 🟢" : "غير متصل"}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div><span className="text-muted-foreground">المركبة:</span> <span className="font-medium">{vehicleLabels[r.vehicle_type] || r.vehicle_type}</span></div>
+                    <div><span className="text-muted-foreground">التوصيلات:</span> <span className="font-medium">{r.total_deliveries}</span></div>
+                    <div><span className="text-muted-foreground">التقييم:</span> <span className="font-medium">⭐ {r.rating}</span></div>
+                    <div><span className="text-muted-foreground">الأرباح:</span> <span className="font-medium">{Number(r.earnings).toLocaleString()} ر.ي</span></div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" variant="outline" className="flex-1 min-h-[44px]" onClick={() => openEdit(r)}>
+                      <Edit className="w-3 h-3 ml-1" /> تعديل
+                    </Button>
+                    <Button size="sm" variant="outline" className="min-h-[44px] text-destructive" onClick={() => handleDelete(r.id)}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm bg-card rounded-lg border">
+              <thead><tr className="border-b text-muted-foreground bg-muted/50">
+                <th className="text-right p-3">الاسم</th>
+                <th className="text-right p-3">الهاتف</th>
+                <th className="text-right p-3">المركبة</th>
+                <th className="text-right p-3">الحالة</th>
+                <th className="text-right p-3">التوصيلات</th>
+                <th className="text-right p-3">التقييم</th>
+                <th className="text-right p-3">الأرباح</th>
+                <th className="text-right p-3">إجراءات</th>
+              </tr></thead>
+              <tbody>
+                {filtered.map(r => (
+                  <tr key={r.id} className="border-b hover:bg-muted/30">
+                    <td className="p-3 font-medium">{r.full_name}</td>
+                    <td className="p-3">{r.phone}</td>
+                    <td className="p-3">{vehicleLabels[r.vehicle_type] || r.vehicle_type}</td>
+                    <td className="p-3">
+                      <Badge variant={r.is_online ? "default" : "secondary"}>{r.is_online ? "متصل 🟢" : "غير متصل"}</Badge>
+                    </td>
+                    <td className="p-3">{r.total_deliveries}</td>
+                    <td className="p-3">⭐ {r.rating}</td>
+                    <td className="p-3">{Number(r.earnings).toLocaleString()} ر.ي</td>
+                    <td className="p-3">
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Edit className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(r.id)}><Trash2 className="w-3 h-3" /></Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Add/Edit Rider */}
@@ -176,7 +210,7 @@ const DeliveryRiders = () => {
               <div><Label>قيمة العمولة</Label><Input type="number" value={form.commission_value} onChange={e => setForm({...form, commission_value: Number(e.target.value)})} /></div>
             </div>
           </div>
-          <DialogFooter><Button onClick={handleSave}>{editItem ? "تحديث" : "إضافة"}</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleSave} className="min-h-[44px]">{editItem ? "تحديث" : "إضافة"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -194,7 +228,7 @@ const DeliveryRiders = () => {
             <div><Label>المبلغ</Label><Input type="number" value={rewardForm.amount} onChange={e => setRewardForm({...rewardForm, amount: Number(e.target.value)})} /></div>
             <div><Label>الوصف</Label><Input value={rewardForm.description} onChange={e => setRewardForm({...rewardForm, description: e.target.value})} /></div>
           </div>
-          <DialogFooter><Button onClick={handleReward}>إضافة المكافأة</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleReward} className="min-h-[44px]">إضافة المكافأة</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

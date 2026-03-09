@@ -50,7 +50,7 @@ const DeliveryDashboard = () => {
       <h2 className="text-2xl font-bold text-foreground">لوحة القيادة</h2>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
         {statCards.map((card, i) => (
           <Card key={i}>
             <CardContent className="p-4 flex items-center gap-3">

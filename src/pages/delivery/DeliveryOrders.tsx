@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, UserCheck, Eye, XCircle } from "lucide-react";
 import { getDeliveryOrders, updateOrderStatus, assignRiderToOrder, getRiders, getOrderTracking } from "@/lib/deliveryApi";
 import { ORDER_STATUS_MAP } from "@/types/delivery.types";
@@ -48,19 +47,12 @@ const DeliveryOrders = () => {
     try {
       await updateOrderStatus(orderId, status);
       toast({ title: "تم تحديث الحالة" });
-      // Send notification to customer
       const order = orders.find(o => o.id === orderId);
       if (order?.customer_id) {
         const statusLabel = ORDER_STATUS_MAP[status]?.label || status;
         try {
           await supabase.functions.invoke("send-push-notification", {
-            body: {
-              userId: order.customer_id,
-              title: "تحديث حالة الطلب 📦",
-              body: `حالة طلبك: ${statusLabel}`,
-              sound: "delivery",
-              data: { type: "order_status", orderId },
-            },
+            body: { userId: order.customer_id, title: "تحديث حالة الطلب 📦", body: `حالة طلبك: ${statusLabel}`, sound: "delivery", data: { type: "order_status", orderId } },
           });
         } catch {}
       }
@@ -94,19 +86,44 @@ const DeliveryOrders = () => {
     o.customer_name?.includes(search) || o.customer_phone?.includes(search) || o.id.includes(search)
   );
 
+  const renderActions = (order: any) => (
+    <div className="flex flex-wrap gap-1">
+      <Button size="sm" variant="ghost" onClick={() => viewDetails(order)} className="min-h-[44px] md:min-h-0"><Eye className="w-3 h-3" /></Button>
+      {!order.rider_id && order.status !== "cancelled" && (
+        <Button size="sm" variant="outline" onClick={() => { setAssignOrderId(order.id); setShowAssign(true); }} className="min-h-[44px] md:min-h-0">
+          <UserCheck className="w-3 h-3 ml-1" /> تعيين
+        </Button>
+      )}
+      {order.status === "assigned" && (
+        <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(order.id, "picked_up")} className="min-h-[44px] md:min-h-0">تم الاستلام</Button>
+      )}
+      {order.status === "picked_up" && (
+        <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(order.id, "on_the_way")} className="min-h-[44px] md:min-h-0">في الطريق</Button>
+      )}
+      {order.status === "on_the_way" && (
+        <Button size="sm" onClick={() => handleStatusUpdate(order.id, "delivered")} className="min-h-[44px] md:min-h-0">تم التوصيل</Button>
+      )}
+      {!["delivered", "cancelled"].includes(order.status) && (
+        <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(order.id, "cancelled")} className="min-h-[44px] md:min-h-0">
+          <XCircle className="w-3 h-3" />
+        </Button>
+      )}
+    </div>
+  );
+
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <h2 className="text-2xl font-bold">إدارة الطلبات</h2>
+    <div className="space-y-4 md:space-y-6" dir="rtl">
+      <h2 className="text-xl md:text-2xl font-bold">إدارة الطلبات</h2>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute right-3 top-2.5 w-4 h-4 text-muted-foreground" />
           <Input placeholder="بحث بالاسم أو الهاتف..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="الحالة" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="الحالة" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">الكل</SelectItem>
             {Object.entries(ORDER_STATUS_MAP).map(([k, v]) => (
@@ -119,62 +136,67 @@ const DeliveryOrders = () => {
       {filtered.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">لا توجد طلبات</CardContent></Card>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm bg-card rounded-lg border">
-            <thead><tr className="border-b text-muted-foreground bg-muted/50">
-              <th className="text-right p-3">الرقم</th>
-              <th className="text-right p-3">العميل</th>
-              <th className="text-right p-3">المبلغ</th>
-              <th className="text-right p-3">المندوب</th>
-              <th className="text-right p-3">الحالة</th>
-              <th className="text-right p-3">التاريخ</th>
-              <th className="text-right p-3">إجراءات</th>
-            </tr></thead>
-            <tbody>
-              {filtered.map((order: any) => (
-                <tr key={order.id} className="border-b hover:bg-muted/30">
-                  <td className="p-3 font-mono text-xs">{order.id.slice(0, 8)}</td>
-                  <td className="p-3">
-                    <div>{order.customer_name}</div>
-                    <div className="text-xs text-muted-foreground">{order.customer_phone}</div>
-                  </td>
-                  <td className="p-3">{Number(order.total).toLocaleString()} ر.ي</td>
-                  <td className="p-3">{order.rider?.full_name || <span className="text-muted-foreground">غير معين</span>}</td>
-                  <td className="p-3">
+        <>
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((order: any) => (
+              <Card key={order.id}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-bold text-foreground">{order.customer_name}</p>
+                      <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
+                    </div>
                     <Badge variant="outline" className={ORDER_STATUS_MAP[order.status]?.color || ""}>
                       {ORDER_STATUS_MAP[order.status]?.label || order.status}
                     </Badge>
-                  </td>
-                  <td className="p-3 text-xs">{new Date(order.created_at).toLocaleDateString("ar")}</td>
-                  <td className="p-3">
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => viewDetails(order)}><Eye className="w-3 h-3" /></Button>
-                      {!order.rider_id && order.status !== "cancelled" && (
-                        <Button size="sm" variant="outline" onClick={() => { setAssignOrderId(order.id); setShowAssign(true); }}>
-                          <UserCheck className="w-3 h-3 ml-1" /> تعيين
-                        </Button>
-                      )}
-                      {order.status === "assigned" && (
-                        <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(order.id, "picked_up")}>تم الاستلام</Button>
-                      )}
-                      {order.status === "picked_up" && (
-                        <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(order.id, "on_the_way")}>في الطريق</Button>
-                      )}
-                      {order.status === "on_the_way" && (
-                        <Button size="sm" onClick={() => handleStatusUpdate(order.id, "delivered")}>تم التوصيل</Button>
-                      )}
-                      {!["delivered", "cancelled"].includes(order.status) && (
-                        <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(order.id, "cancelled")}>
-                          <XCircle className="w-3 h-3" />
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div><span className="text-muted-foreground">المبلغ:</span> <span className="font-medium">{Number(order.total).toLocaleString()} ر.ي</span></div>
+                    <div><span className="text-muted-foreground">المندوب:</span> <span className="font-medium">{order.rider?.full_name || "غير معين"}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">التاريخ:</span> <span className="text-xs">{new Date(order.created_at).toLocaleDateString("ar")}</span></div>
+                  </div>
+                  {renderActions(order)}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm bg-card rounded-lg border">
+              <thead><tr className="border-b text-muted-foreground bg-muted/50">
+                <th className="text-right p-3">الرقم</th>
+                <th className="text-right p-3">العميل</th>
+                <th className="text-right p-3">المبلغ</th>
+                <th className="text-right p-3">المندوب</th>
+                <th className="text-right p-3">الحالة</th>
+                <th className="text-right p-3">التاريخ</th>
+                <th className="text-right p-3">إجراءات</th>
+              </tr></thead>
+              <tbody>
+                {filtered.map((order: any) => (
+                  <tr key={order.id} className="border-b hover:bg-muted/30">
+                    <td className="p-3 font-mono text-xs">{order.id.slice(0, 8)}</td>
+                    <td className="p-3">
+                      <div>{order.customer_name}</div>
+                      <div className="text-xs text-muted-foreground">{order.customer_phone}</div>
+                    </td>
+                    <td className="p-3">{Number(order.total).toLocaleString()} ر.ي</td>
+                    <td className="p-3">{order.rider?.full_name || <span className="text-muted-foreground">غير معين</span>}</td>
+                    <td className="p-3">
+                      <Badge variant="outline" className={ORDER_STATUS_MAP[order.status]?.color || ""}>
+                        {ORDER_STATUS_MAP[order.status]?.label || order.status}
+                      </Badge>
+                    </td>
+                    <td className="p-3 text-xs">{new Date(order.created_at).toLocaleDateString("ar")}</td>
+                    <td className="p-3">{renderActions(order)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Order Details Dialog */}
@@ -204,7 +226,7 @@ const DeliveryOrders = () => {
                 <div>
                   <h4 className="font-bold mb-2">سجل التتبع:</h4>
                   {tracking.map((t: any) => (
-                    <div key={t.id} className="flex items-center gap-2 py-1 border-b">
+                    <div key={t.id} className="flex items-center gap-2 py-1 border-b flex-wrap">
                       <Badge variant="outline" className={ORDER_STATUS_MAP[t.status]?.color || ""}>{ORDER_STATUS_MAP[t.status]?.label || t.status}</Badge>
                       <span className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleString("ar")}</span>
                       {t.note && <span className="text-xs">- {t.note}</span>}
@@ -234,7 +256,7 @@ const DeliveryOrders = () => {
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter><Button onClick={handleAssign} disabled={!selectedRider}>تعيين</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleAssign} disabled={!selectedRider} className="min-h-[44px]">تعيين</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
