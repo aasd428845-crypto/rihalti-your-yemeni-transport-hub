@@ -34,6 +34,7 @@ export const createAddress = async (address: {
   city?: string;
   district?: string;
   street?: string;
+  building_number?: string;
 }) => {
   if (address.is_default) {
     await supabase

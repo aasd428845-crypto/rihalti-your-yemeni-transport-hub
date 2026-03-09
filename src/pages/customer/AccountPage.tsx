@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
-import { User, Lock, Save, Phone } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { User, Lock, Save, Phone, Camera, Bell, MapPin } from "lucide-react";
 import BackButton from "@/components/common/BackButton";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateProfile } from "@/lib/customerApi";
@@ -15,12 +17,16 @@ import LoyaltyPointsCard from "@/components/loyalty/LoyaltyPointsCard";
 
 const AccountPage = () => {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({ full_name: "", phone: "", phone_secondary: "", city: "" });
   const [passwords, setPasswords] = useState({ newPassword: "", confirmPassword: "" });
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -32,6 +38,52 @@ const AccountPage = () => {
       });
     }
   }, [profile]);
+
+  // Fetch avatar
+  useEffect(() => {
+    if (!user) return;
+    const fetchAvatar = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("logo_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data?.logo_url) setAvatarUrl(data.logo_url);
+    };
+    fetchAvatar();
+  }, [user]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "حجم الصورة يجب أن لا يتجاوز 2 ميغابايت", variant: "destructive" });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/avatar.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("profile-logos")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("profile-logos").getPublicUrl(path);
+      const publicUrl = urlData.publicUrl + `?t=${Date.now()}`;
+
+      await supabase.from("profiles").update({ logo_url: publicUrl }).eq("user_id", user.id);
+      setAvatarUrl(publicUrl);
+      toast({ title: "✅ تم تحديث الصورة الشخصية" });
+    } catch (err: any) {
+      toast({ title: "خطأ في رفع الصورة", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -82,17 +134,41 @@ const AccountPage = () => {
     );
   }
 
+  const initials = (profile?.full_name || user.email || "U").slice(0, 2).toUpperCase();
+
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <BackButton />
         <h1 className="text-3xl font-bold text-foreground mb-8">حسابي</h1>
 
+        {/* Avatar Section */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="relative">
+            <Avatar className="w-24 h-24 border-4 border-primary/20">
+              <AvatarImage src={avatarUrl || undefined} alt="صورة شخصية" />
+              <AvatarFallback className="text-2xl bg-primary/10 text-primary">{initials}</AvatarFallback>
+            </Avatar>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute bottom-0 left-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:opacity-90 transition-opacity"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+          </div>
+          {uploadingAvatar && <p className="text-xs text-muted-foreground mt-2">جاري رفع الصورة...</p>}
+          <p className="font-semibold text-foreground mt-2">{profile?.full_name || "مستخدم"}</p>
+          <p className="text-sm text-muted-foreground">{user.email}</p>
+        </div>
+
         {/* Loyalty Points */}
         <div className="mb-6">
           <LoyaltyPointsCard />
         </div>
 
+        {/* Profile Info */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -148,6 +224,33 @@ const AccountPage = () => {
           </CardContent>
         </Card>
 
+        {/* Quick Links */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/addresses")}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-sm">عناويني</p>
+                <p className="text-xs text-muted-foreground">إدارة العناوين المحفوظة</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/notification-settings")}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Bell className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-sm">الإشعارات</p>
+                <p className="text-xs text-muted-foreground">إعدادات الإشعارات</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Change Password */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
