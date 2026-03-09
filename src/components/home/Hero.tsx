@@ -19,6 +19,41 @@ interface TripData {
   available_seats: number;
 }
 
+const TYPING_TEXTS = ["سافر بأمان", "أشحن بثقة", "وصّل بسرعة"];
+
+const TypingEffect = () => {
+  const [textIndex, setTextIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const current = TYPING_TEXTS[textIndex];
+    const speed = deleting ? 40 : 80;
+
+    if (!deleting && charIndex === current.length) {
+      const timeout = setTimeout(() => setDeleting(true), 1800);
+      return () => clearTimeout(timeout);
+    }
+    if (deleting && charIndex === 0) {
+      setDeleting(false);
+      setTextIndex((prev) => (prev + 1) % TYPING_TEXTS.length);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setCharIndex((prev) => prev + (deleting ? -1 : 1));
+    }, speed);
+    return () => clearTimeout(timeout);
+  }, [charIndex, deleting, textIndex]);
+
+  return (
+    <span className="text-gradient-primary">
+      {TYPING_TEXTS[textIndex].slice(0, charIndex)}
+      <span className="animate-typing-cursor text-primary-glow">|</span>
+    </span>
+  );
+};
+
 const Hero = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,7 +114,7 @@ const Hero = () => {
   return (
     <section className="min-h-screen bg-background flex items-center relative overflow-hidden pt-[72px]">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -right-[10%] w-[700px] h-[700px] rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -top-[20%] -right-[10%] w-[700px] h-[700px] rounded-full bg-primary/10 blur-3xl animate-float" />
         <div className="absolute -bottom-[10%] -left-[5%] w-[500px] h-[500px] rounded-full bg-accent/5 blur-3xl" />
         <div className="absolute inset-0 grid-pattern" />
       </div>
@@ -87,32 +122,32 @@ const Hero = () => {
       <div className="container mx-auto px-4 py-16 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
           {/* Left Content */}
-          <div>
-            <span className="glow-badge mb-5 inline-flex">
+          <div className="animate-fade-in">
+            <span className="glow-badge mb-5 inline-flex animate-pulse-glow">
               <Zap className="w-3 h-3" />
               أول منصة نقل يمنية متكاملة
             </span>
 
             <h1 className="text-4xl md:text-5xl lg:text-[58px] font-black text-foreground leading-tight mb-5 tracking-tight">
-              سافر، أشحن، وصّل
-              <span className="block text-gradient-primary">مع وصل</span>
+              <TypingEffect />
+              <span className="block text-foreground mt-1">مع وصل</span>
             </h1>
 
-            <p className="text-muted-foreground text-lg leading-relaxed mb-8 max-w-[520px]">
+            <p className="text-muted-foreground text-lg leading-relaxed mb-8 max-w-[520px] opacity-0 animate-fade-in-up" style={{ animationDelay: "0.3s", animationFillMode: "forwards" }}>
               المنصة اليمنية الأولى التي تربطك بشركات النقل الموثوقة، توفر شحنًا آمنًا وتوصيلًا سريعًا بين جميع مدن اليمن.
             </p>
 
             {/* Search Box */}
-            <div className="bg-card/95 rounded-2xl border border-border overflow-hidden shadow-xl mb-7">
+            <div className="bg-card/95 rounded-2xl border border-border overflow-hidden shadow-xl mb-7 opacity-0 animate-fade-in-up hover:shadow-2xl transition-shadow duration-300" style={{ animationDelay: "0.5s", animationFillMode: "forwards" }}>
               <div className="flex border-b border-border">
                 {tabs.map((tab, i) => (
                   <button
                     key={i}
                     onClick={() => setActiveTab(i)}
-                    className={`flex-1 py-3.5 px-2 text-sm font-semibold transition-all border-b-2 ${
+                    className={`flex-1 py-3.5 px-2 text-sm font-semibold transition-all duration-200 border-b-2 ${
                       activeTab === i
                         ? "bg-primary/15 text-primary-glow border-primary-glow"
-                        : "text-muted-foreground border-transparent hover:text-foreground"
+                        : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/30"
                     }`}
                   >
                     {tab.label}
@@ -128,7 +163,7 @@ const Hero = () => {
                   placeholder={tabs[activeTab].placeholder}
                   className="flex-1 bg-transparent border-none outline-none text-foreground text-sm text-right placeholder:text-muted-foreground"
                 />
-                <Button size="sm" onClick={handleSearch} className="bg-primary-gradient text-primary-foreground shadow-primary gap-1">
+                <Button size="sm" onClick={handleSearch} className="bg-primary-gradient text-primary-foreground shadow-primary gap-1 hover:scale-105 transition-transform duration-200">
                   <Search className="w-4 h-4" />
                   بحث
                 </Button>
@@ -136,7 +171,7 @@ const Hero = () => {
             </div>
 
             {/* Quick Stats Row */}
-            <div className="flex gap-6 flex-wrap">
+            <div className="flex gap-6 flex-wrap opacity-0 animate-fade-in" style={{ animationDelay: "0.7s", animationFillMode: "forwards" }}>
               {[
                 { icon: CheckCircle, label: "آمنة وموثوقة", color: "text-primary-glow" },
                 { icon: Clock, label: "مواعيد دقيقة", color: "text-accent" },
@@ -151,7 +186,7 @@ const Hero = () => {
           </div>
 
           {/* Right — Trip Cards */}
-          <div className="flex flex-col gap-3.5">
+          <div className="flex flex-col gap-3.5 opacity-0 animate-slide-in-left" style={{ animationDelay: "0.4s", animationFillMode: "forwards" }}>
             <div className="flex justify-between items-center mb-1">
               <span className="text-muted-foreground text-sm">أحدث الرحلات المتاحة</span>
               <span className="glow-badge-gold text-xs">
@@ -181,10 +216,11 @@ const Hero = () => {
                   <Link
                     to={`/trips/${trip.id}`}
                     key={trip.id}
-                    className="bg-card/90 rounded-[14px] border border-border p-5 flex items-center justify-between transition-all hover:border-primary/35 hover:-translate-x-1 cursor-pointer shadow-lg group"
+                    className="bg-card/90 rounded-[14px] border border-border p-5 flex items-center justify-between transition-all duration-300 hover:border-primary/35 hover:-translate-x-1 hover:shadow-lg cursor-pointer group"
+                    style={{ animationDelay: `${0.5 + i * 0.1}s` }}
                   >
                     <div className="flex items-center gap-3.5">
-                      <div className="w-[42px] h-[42px] rounded-[10px] bg-primary/15 flex items-center justify-center">
+                      <div className="w-[42px] h-[42px] rounded-[10px] bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors duration-300">
                         <Bus className="w-5 h-5 text-primary-glow" />
                       </div>
                       <div>
@@ -216,22 +252,22 @@ const Hero = () => {
 
             <div className="flex gap-2.5 mt-2 flex-wrap">
               <Link to="/trips" className="flex-1 min-w-[120px]">
-                <Button variant="outline" size="sm" className="w-full border-primary/30 text-primary-glow hover:bg-primary/10 gap-1">
+                <Button variant="outline" size="sm" className="w-full border-primary/30 text-primary-glow hover:bg-primary/10 hover:scale-[1.02] transition-all duration-200 gap-1">
                   <Bus className="w-3.5 h-3.5" />احجز رحلة
                 </Button>
               </Link>
               <Link to="/shipments" className="flex-1 min-w-[120px]">
-                <Button variant="outline" size="sm" className="w-full border-primary/30 text-primary-glow hover:bg-primary/10 gap-1">
+                <Button variant="outline" size="sm" className="w-full border-primary/30 text-primary-glow hover:bg-primary/10 hover:scale-[1.02] transition-all duration-200 gap-1">
                   <Package className="w-3.5 h-3.5" />أرسل طرد
                 </Button>
               </Link>
               <Link to="/deliveries" className="flex-1 min-w-[120px]">
-                <Button variant="outline" size="sm" className="w-full border-primary/30 text-primary-glow hover:bg-primary/10 gap-1">
+                <Button variant="outline" size="sm" className="w-full border-primary/30 text-primary-glow hover:bg-primary/10 hover:scale-[1.02] transition-all duration-200 gap-1">
                   <Truck className="w-3.5 h-3.5" />اطلب توصيل
                 </Button>
               </Link>
               <Link to="/ride/request" className="flex-1 min-w-[120px]">
-                <Button variant="outline" size="sm" className="w-full border-accent/30 text-accent hover:bg-accent/10 gap-1">
+                <Button variant="outline" size="sm" className="w-full border-accent/30 text-accent hover:bg-accent/10 hover:scale-[1.02] transition-all duration-200 gap-1">
                   <Car className="w-3.5 h-3.5" />اطلب أجرة
                 </Button>
               </Link>

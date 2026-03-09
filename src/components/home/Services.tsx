@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Bus, Package, Truck, Car, Globe, CheckCircle } from "lucide-react";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const services = [
   {
@@ -46,10 +47,12 @@ const services = [
 ];
 
 const Services = () => {
+  const { ref, isVisible } = useScrollAnimation();
+
   return (
     <section className="py-24 bg-secondary">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
+        <div className="text-center mb-16 animate-on-scroll" ref={ref} style={{ opacity: isVisible ? 1 : 0, transform: isVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'all 0.7s ease-out' }}>
           <span className="glow-badge mb-4 inline-flex">
             <Globe className="w-3 h-3" />
             خدماتنا المتكاملة
@@ -67,13 +70,20 @@ const Services = () => {
             const Icon = service.icon;
             return (
               <Link to={service.link} key={i} className="group">
-                <div className={`bg-background/80 rounded-[20px] border border-border/10 p-8 transition-all duration-300 cursor-pointer relative overflow-hidden hover:-translate-y-2 ${service.glowClass}`}>
+                <div
+                  className={`bg-background/80 rounded-[20px] border border-border/10 p-8 transition-all duration-300 cursor-pointer relative overflow-hidden hover:-translate-y-2 ${service.glowClass}`}
+                  style={{
+                    opacity: isVisible ? 1 : 0,
+                    transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
+                    transition: `all 0.6s ease-out ${i * 0.12}s`,
+                  }}
+                >
                   {service.isNew && (
-                    <span className="absolute top-4 left-4 bg-accent text-accent-foreground text-[10px] font-bold px-2.5 py-1 rounded-full">
+                    <span className="absolute top-4 left-4 bg-accent text-accent-foreground text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse-glow">
                       جديد 🔥
                     </span>
                   )}
-                  <div className={`w-[56px] h-[56px] rounded-[14px] ${service.bgClass} border flex items-center justify-center mb-5`}>
+                  <div className={`w-[56px] h-[56px] rounded-[14px] ${service.bgClass} border flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
                     <Icon className={`w-6 h-6 ${service.colorClass}`} />
                   </div>
                   <h3 className="text-foreground text-lg font-bold mb-3">{service.title}</h3>
@@ -86,7 +96,7 @@ const Services = () => {
                       </div>
                     ))}
                   </div>
-                  <button className={`w-full py-2.5 px-5 rounded-[10px] text-sm font-semibold border ${service.bgClass} ${service.colorClass} transition-all hover:opacity-80`}>
+                  <button className={`w-full py-2.5 px-5 rounded-[10px] text-sm font-semibold border ${service.bgClass} ${service.colorClass} transition-all duration-200 hover:opacity-80 group-hover:scale-[1.02]`}>
                     ابدأ الآن ←
                   </button>
                 </div>

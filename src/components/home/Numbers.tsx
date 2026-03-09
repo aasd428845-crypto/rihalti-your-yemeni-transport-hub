@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { TrendingUp, Users, Bus, Building2, Award, Star, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const Numbers = () => {
   const [data, setData] = useState({ users: 0, trips: 0, partners: 0, shipments: 0, deliveries: 0, avgRating: 0 });
+  const { ref, isVisible } = useScrollAnimation();
 
   useEffect(() => {
     const fetch = async () => {
@@ -39,10 +41,17 @@ const Numbers = () => {
   ];
 
   return (
-    <section className="py-24 bg-gradient-to-br from-background via-primary/5 to-background relative overflow-hidden">
+    <section className="py-24 bg-gradient-to-br from-background via-primary/5 to-background relative overflow-hidden" ref={ref}>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl pointer-events-none" />
       <div className="container mx-auto px-4 max-w-[1100px] relative z-10">
-        <div className="text-center mb-16">
+        <div
+          className="text-center mb-16"
+          style={{
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? 'translateY(0)' : 'translateY(24px)',
+            transition: 'all 0.7s ease-out',
+          }}
+        >
           <span className="glow-badge mb-4 inline-flex">
             <BarChart3 className="w-3 h-3" />
             أرقام النجاح
@@ -61,7 +70,12 @@ const Numbers = () => {
             return (
               <div
                 key={i}
-                className="bg-primary/5 rounded-[18px] border border-primary/10 p-8 text-center transition-all hover:bg-primary/10 hover:border-primary/25"
+                className="bg-primary/5 rounded-[18px] border border-primary/10 p-8 text-center hover-lift hover:bg-primary/10 hover:border-primary/25"
+                style={{
+                  opacity: isVisible ? 1 : 0,
+                  transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.95)',
+                  transition: `all 0.6s ease-out ${i * 0.1}s`,
+                }}
               >
                 <Icon className="w-6 h-6 text-primary-glow mx-auto mb-3" />
                 <div className="text-primary-glow text-4xl font-black mb-2 tabular-nums">{item.val}</div>
