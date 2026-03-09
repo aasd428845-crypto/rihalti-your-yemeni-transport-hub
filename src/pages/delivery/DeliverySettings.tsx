@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DeleteAccountButton from "@/components/common/DeleteAccountButton";
 
 const DeliverySettings = () => {
   const { user, profile } = useAuth();
@@ -131,6 +132,8 @@ const DeliverySettings = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <DeleteAccountButton />
     </div>
   );
 };

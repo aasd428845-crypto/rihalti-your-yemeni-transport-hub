@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, Volume2, Vibrate, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import DeleteAccountButton from "@/components/common/DeleteAccountButton";
 
 const DeliveryDriverSettings = () => {
   const { user, signOut } = useAuth();
@@ -107,6 +108,8 @@ const DeliveryDriverSettings = () => {
           </Button>
         </CardContent>
       </Card>
+
+      <DeleteAccountButton />
     </div>
   );
 };
