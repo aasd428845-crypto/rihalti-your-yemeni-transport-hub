@@ -44,9 +44,21 @@ const AdminUsers = () => {
 
   const handleBlockUser = async () => {
     if (!blockConfirm || !adminUser) return;
-    toast.success("تم حظر المستخدم");
-    createAuditLog(adminUser.id, "حظر مستخدم", "user", blockConfirm.user_id);
+    const currentStatus = blockConfirm.account_status;
+    const newStatus = currentStatus === "suspended" ? "approved" : "suspended";
+    const { error } = await supabase
+      .from("profiles")
+      .update({ account_status: newStatus })
+      .eq("user_id", blockConfirm.user_id);
+    if (error) {
+      toast.error("فشل تحديث حالة المستخدم");
+      setBlockConfirm(null);
+      return;
+    }
+    toast.success(newStatus === "suspended" ? "تم حظر المستخدم" : "تم تفعيل المستخدم");
+    createAuditLog(adminUser.id, newStatus === "suspended" ? "حظر مستخدم" : "تفعيل مستخدم", "user", blockConfirm.user_id);
     setBlockConfirm(null);
+    fetchUsers();
   };
 
   const filtered = users.filter((u) => {
@@ -212,11 +224,11 @@ const AdminUsers = () => {
       <ConfirmModal
         open={!!blockConfirm}
         onOpenChange={() => setBlockConfirm(null)}
-        title="حظر المستخدم"
-        description={`هل أنت متأكد من حظر "${blockConfirm?.full_name}"؟`}
+        title={blockConfirm?.account_status === "suspended" ? "تفعيل المستخدم" : "حظر المستخدم"}
+        description={blockConfirm?.account_status === "suspended" ? `هل أنت متأكد من تفعيل "${blockConfirm?.full_name}"؟` : `هل أنت متأكد من حظر "${blockConfirm?.full_name}"؟`}
         onConfirm={handleBlockUser}
-        confirmLabel="حظر"
-        variant="destructive"
+        confirmLabel={blockConfirm?.account_status === "suspended" ? "تفعيل" : "حظر"}
+        variant={blockConfirm?.account_status === "suspended" ? "default" : "destructive"}
       />
     </div>
   );
