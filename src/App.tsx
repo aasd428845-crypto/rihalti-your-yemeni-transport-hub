@@ -53,6 +53,9 @@ import SupplierPromotions from "./pages/supplier/SupplierPromotions";
 import SupplierOrderDetails from "./pages/supplier/SupplierOrderDetails";
 import SupplierPayments from "./pages/supplier/SupplierPayments";
 import PartnerPaymentSettings from "./pages/supplier/PartnerPaymentSettings";
+// Partner
+import PartnerProfilePage from "./pages/partner/PartnerProfilePage";
+import PublicPartnerProfilePage from "./pages/partner/PublicPartnerProfilePage";
 // Delivery
 import DeliveryLayout from "./components/delivery/DeliveryLayout";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";

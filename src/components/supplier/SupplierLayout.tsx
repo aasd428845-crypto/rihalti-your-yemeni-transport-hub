@@ -1,13 +1,16 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import SupplierSidebar from "./SupplierSidebar";
 import { Menu } from "lucide-react";
+import { usePartnerProfileCheck } from "@/hooks/usePartnerProfileCheck";
 
 const SupplierLayout = () => {
   const { role, loading, user } = useAuth();
+  const { isComplete, checking } = usePartnerProfileCheck();
+  const location = useLocation();
 
-  if (loading) {
+  if (loading || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -17,6 +20,12 @@ const SupplierLayout = () => {
 
   if (!user) return <Navigate to="/login" replace />;
   if (role !== "supplier") return <Navigate to="/" replace />;
+
+  // Allow access to profile page even if incomplete
+  const isOnProfilePage = location.pathname === "/supplier/profile";
+  if (!isComplete && !isOnProfilePage) {
+    return <Navigate to="/supplier/profile" replace />;
+  }
 
   return (
     <SidebarProvider>
@@ -30,6 +39,11 @@ const SupplierLayout = () => {
             <h1 className="text-sm font-bold text-foreground">لوحة تحكم صاحب المكتب</h1>
           </header>
           <div className="flex-1 p-4 md:p-6 bg-background overflow-auto">
+            {!isComplete && isOnProfilePage && (
+              <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
+                يرجى إكمال ملفك الشخصي أولاً (الاسم، الهاتف، مناطق العمل) لتتمكن من استخدام لوحة التحكم
+              </div>
+            )}
             <Outlet />
           </div>
         </main>
