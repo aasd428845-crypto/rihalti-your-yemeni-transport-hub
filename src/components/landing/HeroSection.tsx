@@ -81,7 +81,7 @@ const HeroSection = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
               </Button>
               <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-white/10" onClick={() => navigate("/shipments")}>
-                أرسل شحنة
+                أرسل طرد
               </Button>
               <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-white/10" onClick={() => navigate("/deliveries")}>
                 اطلب توصيل
