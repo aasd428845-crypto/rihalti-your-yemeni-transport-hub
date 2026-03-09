@@ -36,7 +36,7 @@ interface PendingUser {
 }
 
 const roleLabels: Record<string, string> = {
-  supplier: "مورد",
+  supplier: "صاحب مكتب",
   delivery_company: "شركة توصيل",
   driver: "سائق",
 };
