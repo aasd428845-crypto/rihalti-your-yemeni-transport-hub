@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, Volume2, Vibrate, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import DeleteAccountButton from "@/components/common/DeleteAccountButton";
 
 const DriverSettings = () => {
   const { user, signOut } = useAuth();
