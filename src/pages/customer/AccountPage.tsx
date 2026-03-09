@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { updateProfile } from "@/lib/customerApi";
 import { supabase } from "@/integrations/supabase/client";
 import { getPhoneError, formatYemeniPhone } from "@/lib/phoneValidation";
+import LoyaltyPointsCard from "@/components/loyalty/LoyaltyPointsCard";
 
 const AccountPage = () => {
   const { user, profile } = useAuth();
@@ -87,6 +88,11 @@ const AccountPage = () => {
       <div className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
         <BackButton />
         <h1 className="text-3xl font-bold text-foreground mb-8">حسابي</h1>
+
+        {/* Loyalty Points */}
+        <div className="mb-6">
+          <LoyaltyPointsCard />
+        </div>
 
         <Card className="mb-6">
           <CardHeader>

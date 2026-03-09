@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
-import { Star, User } from "lucide-react";
+import { Star, User, Clock, Sparkles, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Progress } from "@/components/ui/progress";
 
 interface Review {
   id: string;
   rating: number;
+  rating_punctuality: number | null;
+  rating_cleanliness: number | null;
+  rating_communication: number | null;
   comment: string | null;
   created_at: string;
   reviewer_name: string;
@@ -28,20 +32,47 @@ const StarRating = ({ rating }: { rating: number }) => (
   </div>
 );
 
+const MiniRating = ({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value: number }) => (
+  <div className="flex items-center gap-1.5 text-xs">
+    <Icon className="w-3 h-3 text-muted-foreground" />
+    <span className="text-muted-foreground">{label}</span>
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          className={`w-2.5 h-2.5 ${i <= value ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground/20"}`}
+        />
+      ))}
+    </div>
+  </div>
+);
+
 export const AverageRating = ({ revieweeId }: { revieweeId: string }) => {
   const [avg, setAvg] = useState<number>(0);
   const [count, setCount] = useState<number>(0);
+  const [dimensions, setDimensions] = useState({ punctuality: 0, cleanliness: 0, communication: 0 });
 
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
         .from("reviews" as any)
-        .select("rating")
+        .select("rating, rating_punctuality, rating_cleanliness, rating_communication")
         .eq("reviewee_id", revieweeId);
       if (data && data.length > 0) {
-        const total = (data as any[]).reduce((s: number, r: any) => s + r.rating, 0);
-        setAvg(total / data.length);
-        setCount(data.length);
+        const items = data as any[];
+        const total = items.reduce((s: number, r: any) => s + r.rating, 0);
+        setAvg(total / items.length);
+        setCount(items.length);
+
+        // Calculate dimensional averages
+        const withPunct = items.filter((r: any) => r.rating_punctuality);
+        const withClean = items.filter((r: any) => r.rating_cleanliness);
+        const withComm = items.filter((r: any) => r.rating_communication);
+        setDimensions({
+          punctuality: withPunct.length > 0 ? withPunct.reduce((s: number, r: any) => s + r.rating_punctuality, 0) / withPunct.length : 0,
+          cleanliness: withClean.length > 0 ? withClean.reduce((s: number, r: any) => s + r.rating_cleanliness, 0) / withClean.length : 0,
+          communication: withComm.length > 0 ? withComm.reduce((s: number, r: any) => s + r.rating_communication, 0) / withComm.length : 0,
+        });
       }
     };
     load();
@@ -50,10 +81,40 @@ export const AverageRating = ({ revieweeId }: { revieweeId: string }) => {
   if (count === 0) return null;
 
   return (
-    <div className="flex items-center gap-1.5">
-      <StarRating rating={Math.round(avg)} />
-      <span className="text-sm font-medium">{avg.toFixed(1)}</span>
-      <span className="text-xs text-muted-foreground">({count})</span>
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
+        <StarRating rating={Math.round(avg)} />
+        <span className="text-sm font-medium">{avg.toFixed(1)}</span>
+        <span className="text-xs text-muted-foreground">({count})</span>
+      </div>
+      {(dimensions.punctuality > 0 || dimensions.cleanliness > 0 || dimensions.communication > 0) && (
+        <div className="space-y-1">
+          {dimensions.punctuality > 0 && (
+            <div className="flex items-center gap-2 text-xs">
+              <Clock className="w-3 h-3 text-muted-foreground" />
+              <span className="text-muted-foreground w-20">المواعيد</span>
+              <Progress value={dimensions.punctuality * 20} className="h-1.5 flex-1" />
+              <span className="text-muted-foreground w-6">{dimensions.punctuality.toFixed(1)}</span>
+            </div>
+          )}
+          {dimensions.cleanliness > 0 && (
+            <div className="flex items-center gap-2 text-xs">
+              <Sparkles className="w-3 h-3 text-muted-foreground" />
+              <span className="text-muted-foreground w-20">النظافة</span>
+              <Progress value={dimensions.cleanliness * 20} className="h-1.5 flex-1" />
+              <span className="text-muted-foreground w-6">{dimensions.cleanliness.toFixed(1)}</span>
+            </div>
+          )}
+          {dimensions.communication > 0 && (
+            <div className="flex items-center gap-2 text-xs">
+              <MessageCircle className="w-3 h-3 text-muted-foreground" />
+              <span className="text-muted-foreground w-20">التواصل</span>
+              <Progress value={dimensions.communication * 20} className="h-1.5 flex-1" />
+              <span className="text-muted-foreground w-6">{dimensions.communication.toFixed(1)}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -66,7 +127,7 @@ const ReviewsList = ({ revieweeId, limit = 5 }: ReviewsListProps) => {
     const load = async () => {
       const { data } = await supabase
         .from("reviews" as any)
-        .select("id, rating, comment, created_at, reviewer_id")
+        .select("id, rating, rating_punctuality, rating_cleanliness, rating_communication, comment, created_at, reviewer_id")
         .eq("reviewee_id", revieweeId)
         .order("created_at", { ascending: false })
         .limit(limit);
@@ -84,6 +145,9 @@ const ReviewsList = ({ revieweeId, limit = 5 }: ReviewsListProps) => {
           (data as any[]).map((r: any) => ({
             id: r.id,
             rating: r.rating,
+            rating_punctuality: r.rating_punctuality,
+            rating_cleanliness: r.rating_cleanliness,
+            rating_communication: r.rating_communication,
             comment: r.comment,
             created_at: r.created_at,
             reviewer_name: nameMap.get(r.reviewer_id) || "مستخدم",
@@ -116,6 +180,22 @@ const ReviewsList = ({ revieweeId, limit = 5 }: ReviewsListProps) => {
             </div>
             <StarRating rating={review.rating} />
           </div>
+
+          {/* Dimensional ratings */}
+          {(review.rating_punctuality || review.rating_cleanliness || review.rating_communication) && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mr-9 mb-1.5">
+              {review.rating_punctuality && (
+                <MiniRating icon={Clock} label="المواعيد" value={review.rating_punctuality} />
+              )}
+              {review.rating_cleanliness && (
+                <MiniRating icon={Sparkles} label="النظافة" value={review.rating_cleanliness} />
+              )}
+              {review.rating_communication && (
+                <MiniRating icon={MessageCircle} label="التواصل" value={review.rating_communication} />
+              )}
+            </div>
+          )}
+
           {review.comment && (
             <p className="text-sm text-muted-foreground mr-9">{review.comment}</p>
           )}

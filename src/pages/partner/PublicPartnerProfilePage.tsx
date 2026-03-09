@@ -3,10 +3,11 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, MapPin, Phone, Star, FileText, MessageSquare } from "lucide-react";
+import { User, MapPin, Phone, Star, FileText, MessageSquare, Map } from "lucide-react";
 import Header from "@/components/landing/Header";
 import BackButton from "@/components/common/BackButton";
 import ReviewsList, { AverageRating } from "@/components/reviews/ReviewsList";
+import PartnerWorkingAreasMap from "@/components/maps/PartnerWorkingAreasMap";
 
 interface PartnerProfile {
   full_name: string;
@@ -133,13 +134,14 @@ const PublicPartnerProfilePage = () => {
                 <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
                   <MapPin className="w-4 h-4 text-primary" /> مناطق العمل
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {workingAreas.map((area) => (
                     <Badge key={area} variant="outline" className="text-xs">
                       {area}
                     </Badge>
                   ))}
                 </div>
+                <PartnerWorkingAreasMap areas={workingAreas} />
               </div>
             )}
 

@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchTripById, createBooking, fetchSupplierBankAccounts } from "@/lib/customerApi";
 import Header from "@/components/landing/Header";
+import WhatsAppShareButton from "@/components/trips/WhatsAppShareButton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
@@ -71,7 +72,20 @@ const TripDetailsPage = () => {
         total_amount: Math.round(finalPrice * seatCount),
         payment_method: paymentMethod,
       });
-      toast({ title: "تم الحجز بنجاح! 🎉", description: "يمكنك متابعة حجزك من صفحة السجل." });
+
+      // Award loyalty points
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        await supabase.rpc("add_loyalty_points", {
+          _user_id: user.id,
+          _points: 10,
+          _description: `حجز رحلة ${trip.from_city} → ${trip.to_city}`,
+          _reference_id: trip.id,
+          _reference_type: "booking",
+        });
+      } catch {}
+
+      toast({ title: "تم الحجز بنجاح! 🎉 (+10 نقاط ولاء)", description: "يمكنك متابعة حجزك من صفحة السجل." });
       navigate("/history");
     } catch (err: any) {
       toast({ title: "خطأ في الحجز", description: err.message, variant: "destructive" });
@@ -109,10 +123,22 @@ const TripDetailsPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       <Header />
       <div className="container mx-auto px-4 pt-24 pb-12 max-w-4xl">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6 gap-2">
-          <ArrowRight className="w-4 h-4" />
-          العودة
-        </Button>
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
+            <ArrowRight className="w-4 h-4" />
+            العودة
+          </Button>
+          <WhatsAppShareButton
+            tripData={{
+              from_city: trip.from_city,
+              to_city: trip.to_city,
+              departure_time: trip.departure_time,
+              price: finalPrice,
+              supplier_name: supplierName,
+              available_seats: trip.available_seats,
+            }}
+          />
+        </div>
 
         {/* Trip Image */}
         <div className="relative rounded-xl overflow-hidden mb-6 h-64 md:h-80">
