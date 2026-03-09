@@ -189,6 +189,7 @@ const App = () => (
               <Route path="promotions" element={<SupplierPromotions />} />
               <Route path="payments" element={<SupplierPayments />} />
               <Route path="payment-settings" element={<PartnerPaymentSettings />} />
+              <Route path="profile" element={<PartnerProfilePage />} />
             </Route>
             <Route path="/delivery" element={<DeliveryLayout />}>
               <Route index element={<DeliveryDashboard />} />
@@ -202,7 +203,10 @@ const App = () => (
               <Route path="settings" element={<DeliverySettings />} />
               <Route path="payments" element={<DeliveryPayments />} />
               <Route path="payment-settings" element={<PartnerPaymentSettings />} />
+              <Route path="profile" element={<PartnerProfilePage />} />
             </Route>
+            {/* Public Partner Profile */}
+            <Route path="/partner/public/:id" element={<PublicPartnerProfilePage />} />
             {/* Customer Restaurant Pages */}
             <Route path="/restaurants" element={<RestaurantsPage />} />
             <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
