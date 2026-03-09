@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 const tabs = [
   { label: "🚌 رحلة", placeholder: "من أين إلى أين؟ ابحث عن رحلتك..." },
-  { label: "📦 شحنة", placeholder: "أرسل شحنتك... اختر المدينة" },
+  { label: "📦 طرد", placeholder: "أرسل طردك... اختر المدينة" },
   { label: "🛵 توصيل", placeholder: "اطلب التوصيل من مطاعمك المفضلة..." },
 ];
 
