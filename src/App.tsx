@@ -63,8 +63,8 @@ const SupplierOrderDetails = lazy(() => import("./pages/supplier/SupplierOrderDe
 const SupplierPayments = lazy(() => import("./pages/supplier/SupplierPayments"));
 const PartnerPaymentSettings = lazy(() => import("./pages/supplier/PartnerPaymentSettings"));
 // Partner
-import PartnerProfilePage from "./pages/partner/PartnerProfilePage";
-import PublicPartnerProfilePage from "./pages/partner/PublicPartnerProfilePage";
+const PartnerProfilePage = lazy(() => import("./pages/partner/PartnerProfilePage"));
+const PublicPartnerProfilePage = lazy(() => import("./pages/partner/PublicPartnerProfilePage"));
 // Delivery (lazy loaded)
 const DeliveryLayout = lazy(() => import("./components/delivery/DeliveryLayout"));
 const DeliveryDashboard = lazy(() => import("./pages/delivery/DeliveryDashboard"));
