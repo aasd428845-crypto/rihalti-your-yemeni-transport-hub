@@ -1,4 +1,5 @@
 import { Smartphone, Clock, Headphones, Download, Bus, Zap } from "lucide-react";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { toast } from "sonner";
 
 const features = [

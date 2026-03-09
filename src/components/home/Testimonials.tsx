@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Star, UserPlus } from "lucide-react";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
