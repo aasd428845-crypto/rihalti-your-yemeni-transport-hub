@@ -1225,7 +1225,9 @@ export type Database = {
           created_at: string
           data: Json | null
           id: string
+          notification_type: string | null
           read_at: string | null
+          sent_by: string | null
           title: string
           user_id: string
         }
@@ -1234,7 +1236,9 @@ export type Database = {
           created_at?: string
           data?: Json | null
           id?: string
+          notification_type?: string | null
           read_at?: string | null
+          sent_by?: string | null
           title: string
           user_id: string
         }
@@ -1243,7 +1247,9 @@ export type Database = {
           created_at?: string
           data?: Json | null
           id?: string
+          notification_type?: string | null
           read_at?: string | null
+          sent_by?: string | null
           title?: string
           user_id?: string
         }

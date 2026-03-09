@@ -35,6 +35,8 @@ import AdminDeliveryProofs from "./pages/admin/AdminDeliveryProofs";
 import AdminPaymentReview from "./pages/admin/AdminPaymentReview";
 import AdminPartnerControls from "./pages/admin/AdminPartnerControls";
 import AdminSupportMessages from "./pages/admin/AdminSupportMessages";
+import AdminSendNotification from "./pages/admin/AdminSendNotification";
+import AdminNotificationLogs from "./pages/admin/AdminNotificationLogs";
 import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
@@ -161,6 +163,8 @@ const App = () => (
               <Route path="payment-review" element={<AdminPaymentReview />} />
               <Route path="partner-controls" element={<AdminPartnerControls />} />
               <Route path="support-messages" element={<AdminSupportMessages />} />
+              <Route path="send-notification" element={<AdminSendNotification />} />
+              <Route path="notification-logs" element={<AdminNotificationLogs />} />
             </Route>
             <Route path="/supplier" element={<SupplierLayout />}>
               <Route index element={<SupplierDashboard />} />
