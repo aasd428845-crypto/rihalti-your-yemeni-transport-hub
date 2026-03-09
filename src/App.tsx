@@ -9,18 +9,21 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import MainLayout from "@/layouts/MainLayout";
 import PageLoader from "@/components/common/PageLoader";
 import Index from "./pages/Index";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import CompleteProfilePage from "./pages/CompleteProfilePage";
-import NotFound from "./pages/NotFound";
-import ShipmentRequestPage from "./pages/ShipmentRequestPage";
-import OrderDetailsPage from "./pages/customer/OrderDetailsPage";
-import AboutPage from "./pages/AboutPage";
-import ContactPage from "./pages/ContactPage";
-import TermsPage from "./pages/TermsPage";
-import PrivacyPage from "./pages/PrivacyPage";
+
+// Auth pages (lazy loaded)
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
+
+// Static pages (lazy loaded)
+const NotFound = lazy(() => import("./pages/NotFound"));
+const ShipmentRequestPage = lazy(() => import("./pages/ShipmentRequestPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 // Admin (lazy loaded)
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
@@ -45,7 +48,7 @@ const AdminSendNotification = lazy(() => import("./pages/admin/AdminSendNotifica
 const AdminNotificationLogs = lazy(() => import("./pages/admin/AdminNotificationLogs"));
 const AdminPartnerProfile = lazy(() => import("./pages/admin/AdminPartnerProfile"));
 const AdminMonitoring = lazy(() => import("./pages/admin/AdminMonitoring"));
-import InvitePage from "./pages/InvitePage";
+const InvitePage = lazy(() => import("./pages/InvitePage"));
 // Supplier (lazy loaded)
 const SupplierLayout = lazy(() => import("./components/supplier/SupplierLayout"));
 const SupplierDashboard = lazy(() => import("./pages/supplier/SupplierDashboard"));
@@ -60,8 +63,8 @@ const SupplierOrderDetails = lazy(() => import("./pages/supplier/SupplierOrderDe
 const SupplierPayments = lazy(() => import("./pages/supplier/SupplierPayments"));
 const PartnerPaymentSettings = lazy(() => import("./pages/supplier/PartnerPaymentSettings"));
 // Partner
-import PartnerProfilePage from "./pages/partner/PartnerProfilePage";
-import PublicPartnerProfilePage from "./pages/partner/PublicPartnerProfilePage";
+const PartnerProfilePage = lazy(() => import("./pages/partner/PartnerProfilePage"));
+const PublicPartnerProfilePage = lazy(() => import("./pages/partner/PublicPartnerProfilePage"));
 // Delivery (lazy loaded)
 const DeliveryLayout = lazy(() => import("./components/delivery/DeliveryLayout"));
 const DeliveryDashboard = lazy(() => import("./pages/delivery/DeliveryDashboard"));
@@ -74,28 +77,29 @@ const DeliveryIntegrations = lazy(() => import("./pages/delivery/DeliveryIntegra
 const DeliverySettings = lazy(() => import("./pages/delivery/DeliverySettings"));
 const DeliveryReports = lazy(() => import("./pages/delivery/DeliveryReports"));
 const DeliveryPayments = lazy(() => import("./pages/delivery/DeliveryPayments"));
-// Customer Pages
-import TripsPage from "./pages/customer/TripsPage";
-import TripDetailsPage from "./pages/customer/TripDetailsPage";
-import CheckoutPage from "./pages/customer/CheckoutPage";
-import ShipmentsPage from "./pages/customer/ShipmentsPage";
-import DeliveriesPage from "./pages/customer/DeliveriesPage";
-import HistoryPage from "./pages/customer/HistoryPage";
-import AccountPage from "./pages/customer/AccountPage";
-import TrackingPage from "./pages/customer/TrackingPage";
-import AddressesPage from "./pages/customer/AddressesPage";
-import RestaurantsPage from "./pages/customer/RestaurantsPage";
-import RestaurantMenuPage from "./pages/customer/RestaurantMenuPage";
-import RestaurantCheckoutPage from "./pages/customer/RestaurantCheckoutPage";
-import CartPage from "./pages/customer/CartPage";
-import OrderTrackingPage from "./pages/customer/OrderTrackingPage";
-import RideRequestPage from "./pages/customer/RideRequestPage";
-import RideDetailsPage from "./pages/customer/RideDetailsPage";
-import RideTrackingPage from "./pages/customer/RideTrackingPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import NotificationSettingsPage from "./pages/NotificationSettingsPage";
-import PaymentPage from "./pages/customer/PaymentPage";
-import PaymentSuccessPage from "./pages/customer/PaymentSuccessPage";
+// Customer Pages (lazy loaded)
+const TripsPage = lazy(() => import("./pages/customer/TripsPage"));
+const TripDetailsPage = lazy(() => import("./pages/customer/TripDetailsPage"));
+const CheckoutPage = lazy(() => import("./pages/customer/CheckoutPage"));
+const ShipmentsPage = lazy(() => import("./pages/customer/ShipmentsPage"));
+const DeliveriesPage = lazy(() => import("./pages/customer/DeliveriesPage"));
+const HistoryPage = lazy(() => import("./pages/customer/HistoryPage"));
+const AccountPage = lazy(() => import("./pages/customer/AccountPage"));
+const TrackingPage = lazy(() => import("./pages/customer/TrackingPage"));
+const AddressesPage = lazy(() => import("./pages/customer/AddressesPage"));
+const RestaurantsPage = lazy(() => import("./pages/customer/RestaurantsPage"));
+const RestaurantMenuPage = lazy(() => import("./pages/customer/RestaurantMenuPage"));
+const RestaurantCheckoutPage = lazy(() => import("./pages/customer/RestaurantCheckoutPage"));
+const CartPage = lazy(() => import("./pages/customer/CartPage"));
+const OrderTrackingPage = lazy(() => import("./pages/customer/OrderTrackingPage"));
+const OrderDetailsPage = lazy(() => import("./pages/customer/OrderDetailsPage"));
+const RideRequestPage = lazy(() => import("./pages/customer/RideRequestPage"));
+const RideDetailsPage = lazy(() => import("./pages/customer/RideDetailsPage"));
+const RideTrackingPage = lazy(() => import("./pages/customer/RideTrackingPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const NotificationSettingsPage = lazy(() => import("./pages/NotificationSettingsPage"));
+const PaymentPage = lazy(() => import("./pages/customer/PaymentPage"));
+const PaymentSuccessPage = lazy(() => import("./pages/customer/PaymentSuccessPage"));
 // Driver (lazy loaded)
 const DriverLayout = lazy(() => import("./components/driver/DriverLayout"));
 const DriverDashboard = lazy(() => import("./pages/driver/DriverDashboard"));
@@ -114,8 +118,8 @@ const DeliveryDriverProfile = lazy(() => import("./pages/delivery-driver/Deliver
 const DeliveryDriverSettings = lazy(() => import("./pages/delivery-driver/DeliveryDriverSettings"));
 const DeliveryDriverOrderDetails = lazy(() => import("./pages/delivery-driver/DeliveryDriverOrderDetails"));
 const DeliveryDriverHistory = lazy(() => import("./pages/delivery-driver/DeliveryDriverHistory"));
-import SupportChatWidget from "./components/support/SupportChatWidget";
-import InstallPage from "./pages/InstallPage";
+const SupportChatWidget = lazy(() => import("./components/support/SupportChatWidget"));
+const InstallPage = lazy(() => import("./pages/InstallPage"));
 import { InstallPWAButton } from "./components/InstallPWAButton";
 import { UpdateNotification } from "./components/UpdateNotification";
 import RealtimeToastListener from "./components/notifications/RealtimeToastListener";
