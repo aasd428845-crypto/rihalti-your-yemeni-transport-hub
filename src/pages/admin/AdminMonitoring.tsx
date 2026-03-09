@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Activity, AlertTriangle, Eye, CheckCircle, Clock, Zap, Bug, Radio, RefreshCw } from "lucide-react";
+import { Activity, AlertTriangle, Eye, CheckCircle, Clock, Zap, Bug, Radio, RefreshCw, Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ import {
   LiveEvent, ErrorLog, getRecentEvents, getRecentErrors, getMonitoringSummary,
   getDailyStats, resolveError, subscribeToEvents, DailyStats
 } from "@/lib/monitoringService";
+import { AlertRule, AlertHistoryItem, getAlertRules, getAlertHistory, subscribeToAlerts } from "@/lib/alertsApi";
+import AlertRulesManager from "@/components/admin/monitoring/AlertRulesManager";
+import AlertHistoryList from "@/components/admin/monitoring/AlertHistoryList";
 import { toast } from "sonner";
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -28,6 +31,7 @@ const EVENT_LABELS: Record<string, string> = {
   payment_completed: "معاملة مالية 💰",
   booking_created: "حجز جديد 🎫",
   error_occurred: "خطأ ⚠️",
+  alert_triggered: "تنبيه 🔔",
 };
 
 const PIE_COLORS = ["hsl(var(--primary))", "hsl(40,85%,55%)", "hsl(150,60%,40%)", "hsl(0,84%,60%)", "hsl(270,60%,50%)", "hsl(200,70%,50%)"];
@@ -37,25 +41,31 @@ const AdminMonitoring = () => {
   const [errors, setErrors] = useState<ErrorLog[]>([]);
   const [summary, setSummary] = useState({ eventsToday: 0, unresolvedErrors: 0, errorsToday: 0, eventsLastHour: 0 });
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
+  const [alertRules, setAlertRules] = useState<AlertRule[]>([]);
+  const [alertHistory, setAlertHistory] = useState<AlertHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
-    const [ev, er, sum, ds] = await Promise.all([
+    const [ev, er, sum, ds, rules, history] = await Promise.all([
       getRecentEvents(100),
       getRecentErrors(50),
       getMonitoringSummary(),
       getDailyStats(30),
+      getAlertRules(),
+      getAlertHistory(50),
     ]);
     setEvents(ev);
     setErrors(er);
     setSummary(sum);
     setDailyStats(ds);
+    setAlertRules(rules);
+    setAlertHistory(history);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     loadData();
-    const unsub = subscribeToEvents(
+    const unsubEvents = subscribeToEvents(
       (e) => {
         setEvents((prev) => [e, ...prev].slice(0, 200));
         setSummary((s) => ({ ...s, eventsToday: s.eventsToday + 1, eventsLastHour: s.eventsLastHour + 1 }));
@@ -66,7 +76,11 @@ const AdminMonitoring = () => {
         toast.error("خطأ جديد: " + e.error_message);
       }
     );
-    return unsub;
+    const unsubAlerts = subscribeToAlerts((a) => {
+      setAlertHistory((prev) => [a, ...prev].slice(0, 100));
+      toast.warning("🔔 تنبيه: " + a.message);
+    });
+    return () => { unsubEvents(); unsubAlerts(); };
   }, [loadData]);
 
   const handleResolve = async (id: string) => {
@@ -76,7 +90,8 @@ const AdminMonitoring = () => {
     toast.success("تم حل الخطأ");
   };
 
-  // Compute event type distribution for pie chart
+  const unacknowledgedAlerts = alertHistory.filter((a) => !a.is_acknowledged && !a.resolved_at).length;
+
   const eventTypeCounts = events.reduce((acc: Record<string, number>, e) => {
     acc[e.event_type] = (acc[e.event_type] || 0) + 1;
     return acc;
@@ -104,7 +119,7 @@ const AdminMonitoring = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10"><Zap className="w-5 h-5 text-primary" /></div>
@@ -129,12 +144,26 @@ const AdminMonitoring = () => {
             <div><p className="text-2xl font-bold">{summary.errorsToday}</p><p className="text-xs text-muted-foreground">أخطاء اليوم</p></div>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900"><Bell className="w-5 h-5 text-orange-600" /></div>
+            <div><p className="text-2xl font-bold">{unacknowledgedAlerts}</p><p className="text-xs text-muted-foreground">تنبيهات نشطة</p></div>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="live" className="space-y-4">
         <TabsList>
           <TabsTrigger value="live">الأحداث المباشرة</TabsTrigger>
           <TabsTrigger value="errors">سجل الأخطاء</TabsTrigger>
+          <TabsTrigger value="alerts" className="relative">
+            التنبيهات
+            {unacknowledgedAlerts > 0 && (
+              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                {unacknowledgedAlerts}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="analytics">التحليلات</TabsTrigger>
           <TabsTrigger value="daily">الإحصائيات اليومية</TabsTrigger>
         </TabsList>
@@ -142,7 +171,6 @@ const AdminMonitoring = () => {
         {/* Live Events Tab */}
         <TabsContent value="live" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Event Feed */}
             <Card className="lg:col-span-2">
               <CardHeader><CardTitle className="text-base">بث الأحداث المباشر</CardTitle></CardHeader>
               <CardContent className="p-0 max-h-[500px] overflow-y-auto">
@@ -168,8 +196,6 @@ const AdminMonitoring = () => {
                 )}
               </CardContent>
             </Card>
-
-            {/* Event Distribution */}
             <Card>
               <CardHeader><CardTitle className="text-base">توزيع الأحداث</CardTitle></CardHeader>
               <CardContent>
@@ -233,6 +259,14 @@ const AdminMonitoring = () => {
           </Card>
         </TabsContent>
 
+        {/* Alerts Tab */}
+        <TabsContent value="alerts" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <AlertRulesManager rules={alertRules} onUpdate={loadData} />
+            <AlertHistoryList alerts={alertHistory} onUpdate={loadData} />
+          </div>
+        </TabsContent>
+
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -251,7 +285,6 @@ const AdminMonitoring = () => {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader><CardTitle className="text-base">الإيرادات والعمولات</CardTitle></CardHeader>
               <CardContent>
@@ -267,7 +300,6 @@ const AdminMonitoring = () => {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader><CardTitle className="text-base">توزيع الخدمات اليومي</CardTitle></CardHeader>
               <CardContent>
@@ -285,7 +317,6 @@ const AdminMonitoring = () => {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader><CardTitle className="text-base">الأخطاء اليومية</CardTitle></CardHeader>
               <CardContent>
