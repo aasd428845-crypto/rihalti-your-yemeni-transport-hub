@@ -432,6 +432,57 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_performance_stats: {
+        Row: {
+          avg_response_time: number | null
+          created_at: string | null
+          error_count: number | null
+          id: string
+          new_users: number | null
+          platform_commission: number | null
+          stat_date: string
+          total_deliveries: number | null
+          total_revenue: number | null
+          total_rides: number | null
+          total_shipments: number | null
+          total_transactions: number | null
+          total_trips: number | null
+          total_users: number | null
+        }
+        Insert: {
+          avg_response_time?: number | null
+          created_at?: string | null
+          error_count?: number | null
+          id?: string
+          new_users?: number | null
+          platform_commission?: number | null
+          stat_date: string
+          total_deliveries?: number | null
+          total_revenue?: number | null
+          total_rides?: number | null
+          total_shipments?: number | null
+          total_transactions?: number | null
+          total_trips?: number | null
+          total_users?: number | null
+        }
+        Update: {
+          avg_response_time?: number | null
+          created_at?: string | null
+          error_count?: number | null
+          id?: string
+          new_users?: number | null
+          platform_commission?: number | null
+          stat_date?: string
+          total_deliveries?: number | null
+          total_revenue?: number | null
+          total_rides?: number | null
+          total_shipments?: number | null
+          total_transactions?: number | null
+          total_trips?: number | null
+          total_users?: number | null
+        }
+        Relationships: []
+      }
       deliveries: {
         Row: {
           amount: number
@@ -832,6 +883,51 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           years_experience?: number | null
+        }
+        Relationships: []
+      }
+      error_logs: {
+        Row: {
+          created_at: string | null
+          endpoint: string | null
+          error_code: string | null
+          error_message: string
+          id: string
+          is_resolved: boolean | null
+          request_data: Json | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string | null
+          stack_trace: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint?: string | null
+          error_code?: string | null
+          error_message: string
+          id?: string
+          is_resolved?: boolean | null
+          request_data?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string | null
+          stack_trace?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string | null
+          error_code?: string | null
+          error_message?: string
+          id?: string
+          is_resolved?: boolean | null
+          request_data?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string | null
+          stack_trace?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2813,6 +2909,63 @@ export type Database = {
           user_id?: string | null
           user_name?: string
           user_phone?: string | null
+        }
+        Relationships: []
+      }
+      system_event_logs: {
+        Row: {
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          severity: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          severity?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          severity?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      system_metrics: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_name: string
+          metric_value: number
+          tags: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_name: string
+          metric_value: number
+          tags?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_name?: string
+          metric_value?: number
+          tags?: Json | null
         }
         Relationships: []
       }
