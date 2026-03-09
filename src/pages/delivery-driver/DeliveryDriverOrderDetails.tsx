@@ -180,10 +180,18 @@ const DeliveryDriverOrderDetails = () => {
           )}
           {/* Google Maps Navigation */}
           {hasLocation && isMyOrder && (
-            <Button variant="outline" size="sm" className="w-full mt-2" onClick={openInGoogleMaps}>
-              <Navigation className="w-4 h-4 ml-2" />
-              فتح في خرائط Google
-            </Button>
+            <div className="space-y-2 mt-2">
+              <CustomerLocationMap
+                lat={order.delivery_lat}
+                lng={order.delivery_lng}
+                address={order.customer_address}
+                label="موقع التوصيل"
+              />
+              <Button variant="outline" size="sm" className="w-full" onClick={openInGoogleMaps}>
+                <Navigation className="w-4 h-4 ml-2" />
+                فتح في خرائط Google
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -171,6 +171,31 @@ const DriverRideDetails = () => {
             </div>
           )}
 
+          {/* Customer Location Maps */}
+          {(ride.pickup_lat || ride.dropoff_lat) && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground flex items-center gap-1"><MapPin className="w-3 h-3 text-primary" /> مواقع الرحلة</p>
+              <div className="flex flex-wrap gap-2">
+                {ride.pickup_lat && ride.pickup_lng && (
+                  <CustomerLocationMap
+                    lat={ride.pickup_lat}
+                    lng={ride.pickup_lng}
+                    address={ride.from_address || ride.from_city}
+                    label="نقطة الانطلاق"
+                  />
+                )}
+                {ride.dropoff_lat && ride.dropoff_lng && (
+                  <CustomerLocationMap
+                    lat={ride.dropoff_lat}
+                    lng={ride.dropoff_lng}
+                    address={ride.to_address || ride.to_city}
+                    label="الوجهة"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">
             تاريخ الطلب: {new Date(ride.created_at).toLocaleString("ar-YE")}
           </p>
