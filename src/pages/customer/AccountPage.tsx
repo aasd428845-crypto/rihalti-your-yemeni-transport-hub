@@ -14,6 +14,7 @@ import { updateProfile } from "@/lib/customerApi";
 import { supabase } from "@/integrations/supabase/client";
 import { getPhoneError, formatYemeniPhone } from "@/lib/phoneValidation";
 import LoyaltyPointsCard from "@/components/loyalty/LoyaltyPointsCard";
+import DeleteAccountButton from "@/components/common/DeleteAccountButton";
 
 const AccountPage = () => {
   const { user, profile } = useAuth();

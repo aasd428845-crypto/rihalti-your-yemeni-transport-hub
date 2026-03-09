@@ -234,6 +234,8 @@ const SupplierSettings = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <DeleteAccountButton />
     </div>
   );
 };

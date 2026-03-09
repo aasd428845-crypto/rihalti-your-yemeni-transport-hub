@@ -110,6 +110,8 @@ const DriverSettings = () => {
           </Button>
         </CardContent>
       </Card>
+
+      <DeleteAccountButton />
     </div>
   );
 };

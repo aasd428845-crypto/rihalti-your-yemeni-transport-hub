@@ -132,6 +132,8 @@ const DeliverySettings = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <DeleteAccountButton />
     </div>
   );
 };

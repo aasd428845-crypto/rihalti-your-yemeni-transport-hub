@@ -108,6 +108,8 @@ const DeliveryDriverSettings = () => {
           </Button>
         </CardContent>
       </Card>
+
+      <DeleteAccountButton />
     </div>
   );
 };
