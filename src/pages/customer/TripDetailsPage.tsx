@@ -65,12 +65,12 @@ const TripDetailsPage = () => {
 
     setBooking(true);
     try {
-      await createBooking({
+      const bookingData = await createBooking({
         customer_id: user.id,
         trip_id: trip.id,
         seat_count: seatCount,
         total_amount: Math.round(finalPrice * seatCount),
-        payment_method: paymentMethod,
+        payment_method: "pending",
       });
 
       // Award loyalty points
@@ -85,8 +85,8 @@ const TripDetailsPage = () => {
         });
       } catch {}
 
-      toast({ title: "تم الحجز بنجاح! 🎉 (+10 نقاط ولاء)", description: "يمكنك متابعة حجزك من صفحة السجل." });
-      navigate("/history");
+      toast({ title: "تم الحجز بنجاح! 🎉 (+10 نقاط ولاء)", description: "سيتم توجيهك لإتمام الدفع." });
+      navigate(`/payment/booking/${bookingData.id}`);
     } catch (err: any) {
       toast({ title: "خطأ في الحجز", description: err.message, variant: "destructive" });
     } finally {
