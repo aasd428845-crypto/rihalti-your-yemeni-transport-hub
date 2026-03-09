@@ -57,8 +57,7 @@ const NotificationsPage = () => {
 
   return (
     <>
-      <Header />
-      <div className="pt-20 pb-10 container mx-auto px-4 max-w-2xl" dir="rtl">
+      <div className="pb-10 container mx-auto px-4 max-w-2xl" dir="rtl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-accent transition-colors">

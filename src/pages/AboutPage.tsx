@@ -1,12 +1,10 @@
 import BackButton from "@/components/common/BackButton";
-import BackButton from "@/components/common/BackButton";
 import { Bus, Shield, Users, MapPin, Star, Clock } from "lucide-react";
 
 const AboutPage = () => {
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <main className="container mx-auto px-4 pt-24 pb-12">
+      <main className="container mx-auto px-4 py-8">
         <BackButton />
         <div className="max-w-3xl mx-auto">
            <h1 className="text-3xl font-bold text-foreground mb-4">عن منصة وصل</h1>
@@ -39,7 +37,6 @@ const AboutPage = () => {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

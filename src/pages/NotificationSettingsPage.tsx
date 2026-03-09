@@ -107,8 +107,7 @@ const NotificationSettingsPage = () => {
 
   return (
     <>
-      <Header />
-      <div className="pt-20 pb-10 container mx-auto px-4 max-w-2xl" dir="rtl">
+      <div className="pb-10 container mx-auto px-4 max-w-2xl" dir="rtl">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors">
           <ArrowRight className="w-4 h-4" />
           <span>رجوع</span>
