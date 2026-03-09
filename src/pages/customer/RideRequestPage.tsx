@@ -20,7 +20,6 @@ const RideRequestPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
-  const [locatingPickup, setLocatingPickup] = useState(false);
 
   const [form, setForm] = useState({
     fromCity: "",
