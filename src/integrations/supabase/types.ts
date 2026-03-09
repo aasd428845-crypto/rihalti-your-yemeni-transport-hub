@@ -1095,6 +1095,45 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_reports: {
+        Row: {
+          created_at: string | null
+          file_url: string | null
+          generated_by: string | null
+          id: string
+          period_end: string
+          period_start: string
+          report_type: string
+          status: string
+          summary: Json | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_url?: string | null
+          generated_by?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          report_type?: string
+          status?: string
+          summary?: Json | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          file_url?: string | null
+          generated_by?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          report_type?: string
+          status?: string
+          summary?: Json | null
+          title?: string
+        }
+        Relationships: []
+      }
       invitation_tokens: {
         Row: {
           created_at: string
