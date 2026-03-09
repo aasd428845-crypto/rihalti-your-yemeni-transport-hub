@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Package, ArrowRight, Truck, User, Phone, MapPin, FileText, Weight, Star, Search, Globe, ShoppingBag, LocateFixed } from "lucide-react";
+import { Package, ArrowRight, Truck, User, Phone, MapPin, FileText, Weight, Star, Search, Globe, ShoppingBag, LocateFixed, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
