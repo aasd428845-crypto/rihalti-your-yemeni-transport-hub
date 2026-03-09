@@ -79,7 +79,7 @@ const AdminReports = () => {
 
   const exportCSV = () => {
     if (!dailyStats.length) return;
-    const headers = ["التاريخ", "المستخدمون", "جدد", "رحلات", "شحنات", "توصيلات", "أجرة", "معاملات", "الإيرادات", "العمولة", "أخطاء"];
+    const headers = ["التاريخ", "المستخدمون", "جدد", "رحلات", "طرود", "توصيلات", "أجرة", "معاملات", "الإيرادات", "العمولة", "أخطاء"];
     const rows = dailyStats.map((d) =>
       [d.stat_date, d.total_users, d.new_users, d.total_trips, d.total_shipments, d.total_deliveries, d.total_rides, d.total_transactions, d.total_revenue, d.platform_commission, d.error_count].join(",")
     );
