@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import OrderChat from '@/components/orders/OrderChat';
 import BarcodeDisplay from '@/components/orders/BarcodeDisplay';
 import WhatsAppShareButton from '@/components/orders/WhatsAppShareButton';
+import CustomerLocationMap from '@/components/maps/CustomerLocationMap';
 import { toast } from '@/hooks/use-toast';
 import { Package, Truck, MapPin, Phone, DollarSign, Send, QrCode, User } from 'lucide-react';
 
@@ -40,7 +41,6 @@ export default function SupplierOrderDetails() {
         : await fetchDeliveryOrderDetails(id);
       setOrder(data);
 
-      // Fetch customer profile
       const customerId = data.customer_id;
       if (customerId) {
         const { data: profile } = await supabase.from('profiles')
@@ -50,7 +50,6 @@ export default function SupplierOrderDetails() {
         setCustomerProfile(profile);
       }
 
-      // Fetch riders for delivery company
       if (user && orderType === 'delivery') {
         const { data: riderList } = await supabase.from('riders')
           .select('id, full_name, phone')
@@ -97,6 +96,12 @@ export default function SupplierOrderDetails() {
   const canPrice = order.status === 'pending_pricing' || (order.negotiation_status === 'pending' && !order.proposed_price);
   const Icon = orderType === 'shipment' ? Package : Truck;
 
+  // Extract location data
+  const pickupLat = order.pickup_lat;
+  const pickupLng = order.pickup_lng;
+  const deliveryLat = order.delivery_lat;
+  const deliveryLng = order.delivery_lng;
+
   return (
     <div className="space-y-4" dir="rtl">
       {/* Header */}
@@ -116,7 +121,9 @@ export default function SupplierOrderDetails() {
           {orderType === 'shipment' ? (
             <>
               <p className="flex items-center gap-1"><MapPin className="w-3 h-3 text-primary" /> <strong>من:</strong> {order.pickup_address}</p>
+              {order.pickup_landmark && <p className="text-muted-foreground mr-4">📍 أقرب معلم: {order.pickup_landmark}</p>}
               <p className="flex items-center gap-1"><MapPin className="w-3 h-3 text-primary" /> <strong>إلى:</strong> {order.delivery_address}</p>
+              {order.delivery_landmark && <p className="text-muted-foreground mr-4">📍 أقرب معلم: {order.delivery_landmark}</p>}
               <p><strong>المحتوى:</strong> {order.item_description || '—'}</p>
               {order.item_weight && <p><strong>الوزن:</strong> {order.item_weight} كغ</p>}
               <p className="flex items-center gap-1"><User className="w-3 h-3" /> <strong>المستلم:</strong> {order.recipient_name || '—'}</p>
@@ -151,6 +158,33 @@ export default function SupplierOrderDetails() {
           )}
         </CardContent>
       </Card>
+
+      {/* Customer Location Maps */}
+      {(pickupLat || deliveryLat) && (
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> مواقع الطلب</CardTitle></CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {pickupLat && pickupLng && (
+              <CustomerLocationMap
+                lat={pickupLat}
+                lng={pickupLng}
+                address={order.pickup_address}
+                landmark={order.pickup_landmark}
+                label="موقع الاستلام"
+              />
+            )}
+            {deliveryLat && deliveryLng && (
+              <CustomerLocationMap
+                lat={deliveryLat}
+                lng={deliveryLng}
+                address={orderType === 'shipment' ? order.delivery_address : order.customer_address}
+                landmark={order.delivery_landmark}
+                label="موقع التسليم"
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Price Section */}
       {canPrice && (

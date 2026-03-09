@@ -12,13 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { createRideRequest } from "@/lib/rideApi";
 import BackButton from "@/components/common/BackButton";
+import AddressSelector from "@/components/addresses/AddressSelector";
+import type { SelectedAddress } from "@/components/addresses/AddressSelector";
 
 const RideRequestPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
-  const [locatingPickup, setLocatingPickup] = useState(false);
 
   const [form, setForm] = useState({
     fromCity: "",
@@ -40,26 +41,6 @@ const RideRequestPage = () => {
     "صنعاء", "عدن", "تعز", "الحديدة", "إب", "ذمار", "المكلا", "سيئون",
     "مأرب", "حجة", "صعدة", "عمران", "البيضاء", "لحج", "أبين", "شبوة",
   ];
-
-  const handleLocateMe = async () => {
-    if (!navigator.geolocation) {
-      toast({ title: "خطأ", description: "المتصفح لا يدعم تحديد الموقع", variant: "destructive" });
-      return;
-    }
-    setLocatingPickup(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setForm(f => ({ ...f, pickupLat: pos.coords.latitude, pickupLng: pos.coords.longitude }));
-        toast({ title: "✅ تم تحديد موقعك", description: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}` });
-        setLocatingPickup(false);
-      },
-      () => {
-        toast({ title: "خطأ", description: "تعذر تحديد الموقع", variant: "destructive" });
-        setLocatingPickup(false);
-      },
-      { enableHighAccuracy: true }
-    );
-  };
 
   const handleSubmit = async () => {
     if (!user) {
@@ -115,6 +96,25 @@ const RideRequestPage = () => {
               <div className="w-3 h-3 rounded-full bg-green-500" />
               <h3 className="font-semibold text-foreground">نقطة الانطلاق</h3>
             </div>
+            <AddressSelector
+              label="اختر من عناوينك المحفوظة"
+              onSelect={(addr) => {
+                if (addr) {
+                  setForm(f => ({
+                    ...f,
+                    fromAddress: addr.full_address,
+                    fromCity: addr.city || f.fromCity,
+                    pickupLat: addr.latitude || 0,
+                    pickupLng: addr.longitude || 0,
+                  }));
+                }
+              }}
+              showUseMyLocation
+              onUseMyLocation={(lat, lng) => {
+                setForm(f => ({ ...f, pickupLat: lat, pickupLng: lng }));
+                toast({ title: "✅ تم تحديد موقعك", description: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+              }}
+            />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground">المدينة *</Label>
@@ -137,10 +137,6 @@ const RideRequestPage = () => {
                 />
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleLocateMe} disabled={locatingPickup} className="gap-2">
-              <LocateFixed size={14} className={locatingPickup ? "animate-spin" : ""} />
-              {locatingPickup ? "جاري تحديد الموقع..." : "استخدام موقعي الحالي"}
-            </Button>
             {form.pickupLat !== 0 && (
               <p className="text-xs text-green-600">📍 تم تحديد الموقع: {form.pickupLat.toFixed(4)}, {form.pickupLng.toFixed(4)}</p>
             )}

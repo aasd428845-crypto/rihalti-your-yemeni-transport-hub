@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Package, ArrowRight, Truck, User, Phone, MapPin, FileText, Weight, Star, Search, Globe } from "lucide-react";
+import { Package, ArrowRight, Truck, User, Phone, MapPin, FileText, Weight, Star, Search, Globe, ShoppingBag, LocateFixed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchSuppliers, createShipmentRequest } from "@/lib/customerApi";
 import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/common/BackButton";
+import AddressSelector from "@/components/addresses/AddressSelector";
+import type { SelectedAddress } from "@/components/addresses/AddressSelector";
 
 const ShipmentsPage = () => {
   const navigate = useNavigate();
@@ -23,11 +25,14 @@ const ShipmentsPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [workingAreas, setWorkingAreas] = useState<Record<string, string[]>>({});
+  const [pickupFromSaved, setPickupFromSaved] = useState(false);
 
   const [form, setForm] = useState({
     shipment_type: "door_to_door", pickup_address: "", delivery_address: "",
     recipient_name: "", recipient_phone: "", item_description: "",
     item_weight: "", item_dimensions: "", payment_method: "cash",
+    pickup_lat: 0, pickup_lng: 0, delivery_lat: 0, delivery_lng: 0,
+    pickup_landmark: "", delivery_landmark: "",
   });
 
   const { data: suppliers, isLoading } = useQuery({
@@ -35,37 +40,37 @@ const ShipmentsPage = () => {
     queryFn: fetchSuppliers,
   });
 
-  // Fetch working areas for all suppliers
   useEffect(() => {
     if (!suppliers || suppliers.length === 0) return;
     const fetchAreas = async () => {
       const ids = suppliers.map((s: any) => s.user_id);
-      const { data: areas } = await supabase
-        .from("supplier_working_areas")
-        .select("supplier_id, region_id")
-        .in("supplier_id", ids);
+      const { data: areas } = await supabase.from("supplier_working_areas").select("supplier_id, region_id").in("supplier_id", ids);
       if (!areas || areas.length === 0) return;
       const regionIds = [...new Set(areas.map(a => a.region_id))];
-      const { data: regions } = await supabase
-        .from("regions")
-        .select("id, name_ar")
-        .in("id", regionIds);
+      const { data: regions } = await supabase.from("regions").select("id, name_ar").in("id", regionIds);
       const regionMap = new Map((regions || []).map(r => [r.id, r.name_ar]));
       const map: Record<string, string[]> = {};
-      for (const a of areas) {
-        if (!map[a.supplier_id]) map[a.supplier_id] = [];
-        const name = regionMap.get(a.region_id);
-        if (name) map[a.supplier_id].push(name);
-      }
+      for (const a of areas) { if (!map[a.supplier_id]) map[a.supplier_id] = []; const name = regionMap.get(a.region_id); if (name) map[a.supplier_id].push(name); }
       setWorkingAreas(map);
     };
     fetchAreas();
   }, [suppliers]);
 
   const filtered = (suppliers || []).filter((s: any) =>
-    s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.city?.toLowerCase().includes(searchTerm.toLowerCase())
+    s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || s.city?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handlePickupAddressSelect = (addr: SelectedAddress | null) => {
+    if (!addr) return;
+    setForm(f => ({
+      ...f,
+      pickup_address: addr.full_address,
+      pickup_lat: addr.latitude || 0,
+      pickup_lng: addr.longitude || 0,
+      pickup_landmark: addr.landmark || "",
+    }));
+    setPickupFromSaved(true);
+  };
 
   const handleSubmit = async () => {
     if (!user) { toast({ title: "يرجى تسجيل الدخول أولاً", variant: "destructive" }); navigate("/login"); return; }
@@ -81,6 +86,8 @@ const ShipmentsPage = () => {
         recipient_phone: form.recipient_phone, item_description: form.item_description,
         item_weight: form.item_weight ? Number(form.item_weight) : undefined,
         item_dimensions: form.item_dimensions || undefined, payment_method: form.payment_method,
+        pickup_lat: form.pickup_lat || undefined, pickup_lng: form.pickup_lng || undefined,
+        delivery_lat: form.delivery_lat || undefined, delivery_lng: form.delivery_lng || undefined,
       });
       toast({ title: "تم إرسال طلب الشحن بنجاح!", description: "سيتم مراجعته وتسعيره قريباً." });
       navigate("/history");
@@ -94,7 +101,6 @@ const ShipmentsPage = () => {
       <div className="min-h-screen bg-background" dir="rtl">
         <div className="container mx-auto px-4 pt-24 pb-12">
           <BackButton />
-          {/* Hero Section */}
           <div className="text-center mb-10">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Package className="w-8 h-8 text-primary" />
@@ -103,7 +109,6 @@ const ShipmentsPage = () => {
             <p className="text-muted-foreground max-w-md mx-auto">اختر شركة الشحن المناسبة لإرسال بضائعك بثقة وأمان إلى أي مكان</p>
           </div>
 
-          {/* Search */}
           <div className="max-w-md mx-auto mb-8">
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -179,8 +184,46 @@ const ShipmentsPage = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div><Label>نوع الشحن</Label><Select value={form.shipment_type} onValueChange={(v) => setForm({ ...form, shipment_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="door_to_door">من الباب إلى الباب</SelectItem><SelectItem value="office_to_office">من المكتب إلى المكتب</SelectItem></SelectContent></Select></div>
-            <div><Label className="flex items-center gap-1"><MapPin className="w-3 h-3" /> عنوان الاستلام *</Label><Input value={form.pickup_address} onChange={(e) => setForm({ ...form, pickup_address: e.target.value })} placeholder="أدخل عنوان الاستلام" /></div>
-            <div><Label className="flex items-center gap-1"><MapPin className="w-3 h-3" /> عنوان التسليم *</Label><Input value={form.delivery_address} onChange={(e) => setForm({ ...form, delivery_address: e.target.value })} placeholder="أدخل عنوان التسليم" /></div>
+
+            {/* Pickup Address - with saved addresses */}
+            <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
+              <h4 className="font-semibold text-foreground flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500" /> عنوان الاستلام
+              </h4>
+              <AddressSelector
+                label="اختر من عناوينك المحفوظة"
+                onSelect={handlePickupAddressSelect}
+                showUseMyLocation
+                onUseMyLocation={(lat, lng) => setForm(f => ({ ...f, pickup_lat: lat, pickup_lng: lng }))}
+              />
+              <div>
+                <Label className="flex items-center gap-1"><MapPin className="w-3 h-3" /> عنوان الاستلام *</Label>
+                <Input value={form.pickup_address} onChange={(e) => setForm({ ...form, pickup_address: e.target.value })} placeholder="أدخل عنوان الاستلام أو اختر من القائمة أعلاه" />
+              </div>
+              <div>
+                <Label>أقرب معلم (اختياري)</Label>
+                <Input value={form.pickup_landmark} onChange={(e) => setForm({ ...form, pickup_landmark: e.target.value })} placeholder="مثال: بجوار مسجد السلام" />
+              </div>
+              {form.pickup_lat !== 0 && (
+                <p className="text-xs text-green-600">📍 إحداثيات: {form.pickup_lat.toFixed(4)}, {form.pickup_lng.toFixed(4)}</p>
+              )}
+            </div>
+
+            {/* Delivery Address - recipient */}
+            <div className="p-4 rounded-lg border border-destructive/20 bg-destructive/5 space-y-3">
+              <h4 className="font-semibold text-foreground flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500" /> عنوان التسليم (المستلم)
+              </h4>
+              <div>
+                <Label className="flex items-center gap-1"><MapPin className="w-3 h-3" /> عنوان التسليم *</Label>
+                <Input value={form.delivery_address} onChange={(e) => setForm({ ...form, delivery_address: e.target.value })} placeholder="أدخل عنوان التسليم" />
+              </div>
+              <div>
+                <Label>أقرب معلم للمستلم (اختياري)</Label>
+                <Input value={form.delivery_landmark} onChange={(e) => setForm({ ...form, delivery_landmark: e.target.value })} placeholder="مثال: مقابل البنك المركزي" />
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="flex items-center gap-1"><User className="w-3 h-3" /> اسم المستلم *</Label><Input value={form.recipient_name} onChange={(e) => setForm({ ...form, recipient_name: e.target.value })} /></div>
               <div><Label className="flex items-center gap-1"><Phone className="w-3 h-3" /> هاتف المستلم *</Label><Input value={form.recipient_phone} onChange={(e) => setForm({ ...form, recipient_phone: e.target.value })} /></div>

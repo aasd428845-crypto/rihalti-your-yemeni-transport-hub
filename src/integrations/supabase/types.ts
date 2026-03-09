@@ -381,33 +381,54 @@ export type Database = {
       customer_addresses: {
         Row: {
           address_name: string
+          building_number: string | null
+          city: string | null
           created_at: string | null
           customer_id: string
+          district: string | null
           full_address: string
           id: string
           is_default: boolean | null
+          landmark: string | null
           latitude: number | null
           longitude: number | null
+          phone: string | null
+          street: string | null
+          updated_at: string | null
         }
         Insert: {
           address_name: string
+          building_number?: string | null
+          city?: string | null
           created_at?: string | null
           customer_id: string
+          district?: string | null
           full_address: string
           id?: string
           is_default?: boolean | null
+          landmark?: string | null
           latitude?: number | null
           longitude?: number | null
+          phone?: string | null
+          street?: string | null
+          updated_at?: string | null
         }
         Update: {
           address_name?: string
+          building_number?: string | null
+          city?: string | null
           created_at?: string | null
           customer_id?: string
+          district?: string | null
           full_address?: string
           id?: string
           is_default?: boolean | null
+          landmark?: string | null
           latitude?: number | null
           longitude?: number | null
+          phone?: string | null
+          street?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2487,6 +2508,7 @@ export type Database = {
           customer_id: string
           customer_phone_hidden: boolean | null
           delivery_address: string | null
+          delivery_landmark: string | null
           delivery_lat: number | null
           delivery_lng: number | null
           final_price: number | null
@@ -2498,6 +2520,7 @@ export type Database = {
           negotiation_status: string | null
           payment_method: string | null
           pickup_address: string | null
+          pickup_landmark: string | null
           pickup_lat: number | null
           pickup_lng: number | null
           price: number | null
@@ -2522,6 +2545,7 @@ export type Database = {
           customer_id: string
           customer_phone_hidden?: boolean | null
           delivery_address?: string | null
+          delivery_landmark?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
           final_price?: number | null
@@ -2533,6 +2557,7 @@ export type Database = {
           negotiation_status?: string | null
           payment_method?: string | null
           pickup_address?: string | null
+          pickup_landmark?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
           price?: number | null
@@ -2557,6 +2582,7 @@ export type Database = {
           customer_id?: string
           customer_phone_hidden?: boolean | null
           delivery_address?: string | null
+          delivery_landmark?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
           final_price?: number | null
@@ -2568,6 +2594,7 @@ export type Database = {
           negotiation_status?: string | null
           payment_method?: string | null
           pickup_address?: string | null
+          pickup_landmark?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
           price?: number | null
