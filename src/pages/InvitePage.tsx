@@ -20,7 +20,7 @@ const VEHICLE_TYPES = [
 ];
 
 const roleLabels: Record<string, string> = {
-  supplier: "مورد (شركة نقل)",
+  supplier: "صاحب مكتب (شركة نقل)",
   delivery_company: "شركة توصيل",
   driver: "سائق (أجرة)",
 };
