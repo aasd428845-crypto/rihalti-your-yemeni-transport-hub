@@ -37,6 +37,7 @@ import AdminPartnerControls from "./pages/admin/AdminPartnerControls";
 import AdminSupportMessages from "./pages/admin/AdminSupportMessages";
 import AdminSendNotification from "./pages/admin/AdminSendNotification";
 import AdminNotificationLogs from "./pages/admin/AdminNotificationLogs";
+import AdminPartnerProfile from "./pages/admin/AdminPartnerProfile";
 import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
