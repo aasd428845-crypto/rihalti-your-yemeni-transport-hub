@@ -89,6 +89,11 @@ const AccountPage = () => {
         <BackButton />
         <h1 className="text-3xl font-bold text-foreground mb-8">حسابي</h1>
 
+        {/* Loyalty Points */}
+        <div className="mb-6">
+          <LoyaltyPointsCard />
+        </div>
+
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
