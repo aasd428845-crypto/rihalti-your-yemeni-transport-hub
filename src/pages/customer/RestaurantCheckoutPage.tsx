@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, MapPin, Phone, CreditCard, Minus, Plus, Trash2, ArrowRight } from "lucide-react";
+import BackButton from "@/components/common/BackButton";
 import { getRestaurantById, getCart, createOrderFromCart, clearCart } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
