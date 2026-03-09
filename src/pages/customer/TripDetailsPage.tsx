@@ -72,7 +72,20 @@ const TripDetailsPage = () => {
         total_amount: Math.round(finalPrice * seatCount),
         payment_method: paymentMethod,
       });
-      toast({ title: "تم الحجز بنجاح! 🎉", description: "يمكنك متابعة حجزك من صفحة السجل." });
+
+      // Award loyalty points
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        await supabase.rpc("add_loyalty_points", {
+          _user_id: user.id,
+          _points: 10,
+          _description: `حجز رحلة ${trip.from_city} → ${trip.to_city}`,
+          _reference_id: trip.id,
+          _reference_type: "booking",
+        });
+      } catch {}
+
+      toast({ title: "تم الحجز بنجاح! 🎉 (+10 نقاط ولاء)", description: "يمكنك متابعة حجزك من صفحة السجل." });
       navigate("/history");
     } catch (err: any) {
       toast({ title: "خطأ في الحجز", description: err.message, variant: "destructive" });
