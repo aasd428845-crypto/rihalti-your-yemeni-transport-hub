@@ -4,7 +4,7 @@ import type { AppRole } from "@/types/admin.types";
 // ==================== Users ====================
 export const getUsers = async () => {
   const [profilesRes, rolesRes] = await Promise.all([
-    supabase.from("profiles").select("user_id, full_name, phone, city, avatar_url, created_at"),
+    supabase.from("profiles").select("user_id, full_name, phone, city, avatar_url, created_at, account_status"),
     supabase.from("user_roles").select("user_id, role"),
   ]);
   const roleMap = new Map((rolesRes.data || []).map((r) => [r.user_id, r.role]));

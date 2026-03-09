@@ -224,11 +224,11 @@ const AdminUsers = () => {
       <ConfirmModal
         open={!!blockConfirm}
         onOpenChange={() => setBlockConfirm(null)}
-        title="حظر المستخدم"
-        description={`هل أنت متأكد من حظر "${blockConfirm?.full_name}"؟`}
+        title={blockConfirm?.account_status === "suspended" ? "تفعيل المستخدم" : "حظر المستخدم"}
+        description={blockConfirm?.account_status === "suspended" ? `هل أنت متأكد من تفعيل "${blockConfirm?.full_name}"؟` : `هل أنت متأكد من حظر "${blockConfirm?.full_name}"؟`}
         onConfirm={handleBlockUser}
-        confirmLabel="حظر"
-        variant="destructive"
+        confirmLabel={blockConfirm?.account_status === "suspended" ? "تفعيل" : "حظر"}
+        variant={blockConfirm?.account_status === "suspended" ? "default" : "destructive"}
       />
     </div>
   );
