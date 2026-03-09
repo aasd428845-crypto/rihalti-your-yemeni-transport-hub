@@ -401,6 +401,21 @@ const HistoryPage = () => {
           </TabsContent>
         </Tabs>
 
+        {/* Rating Modal */}
+        {ratingTarget && (
+          <RatingModal
+            open={!!ratingTarget}
+            onClose={() => {
+              if (ratingTarget) setRatedIds(prev => new Set([...prev, ratingTarget.entityId]));
+              setRatingTarget(null);
+            }}
+            revieweeId={ratingTarget.revieweeId}
+            revieweeName={ratingTarget.revieweeName}
+            entityType={ratingTarget.entityType}
+            entityId={ratingTarget.entityId}
+          />
+        )}
+
         {/* Cancel Modal */}
         <Dialog open={!!cancelModal} onOpenChange={() => setCancelModal(null)}>
           <DialogContent dir="rtl">
