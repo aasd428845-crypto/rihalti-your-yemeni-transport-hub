@@ -10,6 +10,7 @@ import { Package, MapPin, Phone, DollarSign, Clock, User, CheckCircle, Truck, St
 import { useToast } from "@/hooks/use-toast";
 import BackButton from "@/components/common/BackButton";
 import OrderChat from "@/components/orders/OrderChat";
+import CustomerLocationMap from "@/components/maps/CustomerLocationMap";
 
 const STATUS_FLOW: Record<string, { next: string; label: string; icon: any }> = {
   pending: { next: "assigned", label: "قبول الطلب", icon: CheckCircle },
