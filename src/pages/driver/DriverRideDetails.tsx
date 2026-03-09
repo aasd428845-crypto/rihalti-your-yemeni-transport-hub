@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, MapPin, Users, Clock, Car, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import CustomerLocationMap from "@/components/maps/CustomerLocationMap";
 
 const DriverRideDetails = () => {
   const { id } = useParams<{ id: string }>();
