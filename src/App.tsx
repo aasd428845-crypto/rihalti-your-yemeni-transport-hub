@@ -226,6 +226,7 @@ const App = () => (
                 <Route path="payments" element={<DeliveryPayments />} />
                 <Route path="integrations" element={<DeliveryIntegrations />} />
                 <Route path="profile" element={<PartnerProfilePage />} />
+                <Route path="payment-settings" element={<PartnerPaymentSettings />} />
               </Route>
               {/* Driver */}
               <Route path="/driver" element={<DriverLayout />}>

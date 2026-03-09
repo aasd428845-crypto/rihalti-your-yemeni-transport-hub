@@ -19,6 +19,7 @@ import {
   LogOut,
   User,
   History,
+  Home,
 } from "lucide-react";
 
 const menuItems = [
@@ -67,6 +68,12 @@ const DeliveryDriverSidebar = () => {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => navigate("/")} tooltip="العودة للرئيسية">
+              <Home className="w-4 h-4" />
+              <span>العودة للرئيسية</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleSignOut} tooltip="تسجيل الخروج">
               <LogOut className="w-4 h-4" />
