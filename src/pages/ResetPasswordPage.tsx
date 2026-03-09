@@ -54,8 +54,8 @@ const ResetPasswordPage = () => {
               <Bus className="w-6 h-6 text-primary-foreground" />
             </div>
             <div className="text-right">
-              <div className="text-xl font-black text-foreground">رحلاتي</div>
-              <div className="text-xs text-muted-foreground">المنصة اليمنية للنقل</div>
+               <div className="text-xl font-black text-foreground">وصل</div>
+              <div className="text-xs text-muted-foreground">منصة النقل الذكية</div>
             </div>
           </a>
         </div>
