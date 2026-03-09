@@ -73,7 +73,7 @@ const AdminApprovals = () => {
             price: t.price,
             seats: t.available_seats,
             company: t.bus_company,
-            supplier: nameMap[t.supplier_id] || "مورد",
+            supplier: nameMap[t.supplier_id] || "صاحب مكتب",
           },
         });
       }
