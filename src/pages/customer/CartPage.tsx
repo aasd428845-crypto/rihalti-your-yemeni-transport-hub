@@ -217,6 +217,7 @@ const CartPage = () => {
                 </CardContent>
               </Card>
             );
+          })}
         </div>
       </div>
     </div>
