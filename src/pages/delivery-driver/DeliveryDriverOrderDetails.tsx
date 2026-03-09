@@ -15,7 +15,8 @@ import CustomerLocationMap from "@/components/maps/CustomerLocationMap";
 const STATUS_FLOW: Record<string, { next: string; label: string; icon: any }> = {
   pending: { next: "assigned", label: "قبول الطلب", icon: CheckCircle },
   assigned: { next: "picked_up", label: "تم استلام الطلب", icon: Package },
-  picked_up: { next: "in_transit", label: "في الطريق للعميل", icon: Truck },
+  picked_up: { next: "on_the_way", label: "في الطريق للعميل", icon: Truck },
+  on_the_way: { next: "delivered", label: "تم التوصيل", icon: CheckCircle },
   in_transit: { next: "delivered", label: "تم التوصيل", icon: CheckCircle },
 };
 
