@@ -25,7 +25,7 @@ interface UserProfile {
 const ROLE_OPTIONS = [
   { value: "all", label: "جميع المستخدمين" },
   { value: "customer", label: "العملاء فقط" },
-  { value: "supplier", label: "الموردين فقط" },
+  { value: "supplier", label: "أصحاب المكاتب فقط" },
   { value: "delivery_company", label: "شركات التوصيل فقط" },
   { value: "driver", label: "السائقين فقط" },
   { value: "delivery_driver", label: "مناديب التوصيل فقط" },
