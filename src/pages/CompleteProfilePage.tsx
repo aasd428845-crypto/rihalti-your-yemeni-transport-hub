@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Bus, User, Lock, Phone, Eye, EyeOff, Loader2 } from "lucide-react";
+import { User, Lock, Phone, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -55,7 +55,7 @@ const CompleteProfilePage = () => {
         data: { full_name: fullName.trim() },
       });
 
-      toast({ title: "تم حفظ البيانات بنجاح!", description: "مرحباً بك في رحلاتي" });
+      toast({ title: "تم حفظ البيانات بنجاح!", description: "مرحباً بك في وصل" });
       navigate("/");
     } catch (err: any) {
       toast({ title: "خطأ", description: err?.message || "فشل في حفظ البيانات", variant: "destructive" });
@@ -76,12 +76,10 @@ const CompleteProfilePage = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-hero-gradient flex items-center justify-center">
-              <Bus className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img src="/icons/icon-192x192.png" alt="وصل" className="w-12 h-12 rounded-xl object-cover" />
             <div className="text-right">
-              <div className="text-xl font-black text-foreground">رحلاتي</div>
-              <div className="text-xs text-muted-foreground">المنصة اليمنية للنقل</div>
+              <div className="text-xl font-black text-foreground">وصل</div>
+              <div className="text-xs text-muted-foreground">منصة النقل الذكية</div>
             </div>
           </div>
         </div>

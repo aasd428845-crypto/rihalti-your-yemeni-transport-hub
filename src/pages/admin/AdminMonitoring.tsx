@@ -312,7 +312,7 @@ const AdminMonitoring = () => {
                     <YAxis fontSize={11} />
                     <Tooltip labelFormatter={(v) => `التاريخ: ${v}`} />
                     <Bar dataKey="total_trips" name="رحلات" fill="hsl(var(--primary))" stackId="a" />
-                    <Bar dataKey="total_shipments" name="شحنات" fill="hsl(40,85%,55%)" stackId="a" />
+                    <Bar dataKey="total_shipments" name="طرود" fill="hsl(42,76%,50%)" stackId="a" />
                     <Bar dataKey="total_deliveries" name="توصيلات" fill="hsl(150,60%,40%)" stackId="a" />
                     <Bar dataKey="total_rides" name="أجرة" fill="hsl(0,84%,60%)" stackId="a" />
                   </BarChart>
@@ -353,7 +353,7 @@ const AdminMonitoring = () => {
                     <th className="px-3 py-2 text-right">المستخدمون</th>
                     <th className="px-3 py-2 text-right">جدد</th>
                     <th className="px-3 py-2 text-right">رحلات</th>
-                    <th className="px-3 py-2 text-right">شحنات</th>
+                    <th className="px-3 py-2 text-right">طرود</th>
                     <th className="px-3 py-2 text-right">توصيلات</th>
                     <th className="px-3 py-2 text-right">أجرة</th>
                     <th className="px-3 py-2 text-right">معاملات</th>

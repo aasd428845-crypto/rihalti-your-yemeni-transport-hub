@@ -36,7 +36,7 @@ interface PendingUser {
 }
 
 const roleLabels: Record<string, string> = {
-  supplier: "مورد",
+  supplier: "صاحب مكتب",
   delivery_company: "شركة توصيل",
   driver: "سائق",
 };
@@ -171,7 +171,7 @@ const AdminJoinRequests = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="all">الكل ({requests.length})</TabsTrigger>
-          <TabsTrigger value="supplier">الموردين ({requests.filter((r) => r.role === "supplier").length})</TabsTrigger>
+          <TabsTrigger value="supplier">أصحاب المكاتب ({requests.filter((r) => r.role === "supplier").length})</TabsTrigger>
           <TabsTrigger value="delivery_company">شركات التوصيل ({requests.filter((r) => r.role === "delivery_company").length})</TabsTrigger>
           <TabsTrigger value="driver">السائقين ({requests.filter((r) => r.role === "driver").length})</TabsTrigger>
         </TabsList>

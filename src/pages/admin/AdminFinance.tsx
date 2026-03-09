@@ -144,7 +144,7 @@ const AdminFinance = () => {
                     <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">لا توجد طلبات دفع</TableCell></TableRow>
                   ) : payouts.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell>{p.partner_role === "supplier" ? "مورد" : "شركة توصيل"}</TableCell>
+                      <TableCell>{p.partner_role === "supplier" ? "صاحب مكتب" : "شركة توصيل"}</TableCell>
                       <TableCell>{Number(p.amount).toLocaleString()} ر.ي</TableCell>
                       <TableCell><StatusBadge status={p.status} /></TableCell>
                       <TableCell className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString("ar-YE")}</TableCell>

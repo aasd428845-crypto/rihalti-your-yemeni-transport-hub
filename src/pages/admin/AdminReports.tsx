@@ -156,7 +156,7 @@ const AdminReports = () => {
             <CardContent className="p-4 text-center">
               <Package className="w-5 h-5 mx-auto text-primary mb-1" />
               <p className="text-2xl font-bold">{stats.shipments}</p>
-              <p className="text-[10px] text-muted-foreground">شحنات</p>
+              <p className="text-[10px] text-muted-foreground">طرود</p>
             </CardContent>
           </Card>
           <Card>
@@ -257,7 +257,7 @@ const AdminReports = () => {
                     <Tooltip labelFormatter={(v) => `التاريخ: ${v}`} />
                     <Legend />
                     <Bar dataKey="total_trips" name="رحلات" fill="hsl(var(--primary))" stackId="a" />
-                    <Bar dataKey="total_shipments" name="شحنات" fill="hsl(40,85%,55%)" stackId="a" />
+                    <Bar dataKey="total_shipments" name="طرود" fill="hsl(42,76%,50%)" stackId="a" />
                     <Bar dataKey="total_deliveries" name="توصيلات" fill="hsl(150,60%,40%)" stackId="a" />
                     <Bar dataKey="total_rides" name="أجرة" fill="hsl(0,84%,60%)" stackId="a" />
                   </BarChart>

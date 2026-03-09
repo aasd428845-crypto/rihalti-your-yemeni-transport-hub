@@ -69,7 +69,7 @@ const AdminUsers = () => {
           <SelectContent>
             <SelectItem value="all">جميع الأدوار</SelectItem>
             <SelectItem value="customer">عميل</SelectItem>
-            <SelectItem value="supplier">مورد</SelectItem>
+            <SelectItem value="supplier">صاحب مكتب</SelectItem>
             <SelectItem value="delivery_company">شركة توصيل</SelectItem>
             <SelectItem value="driver">سائق أجرة</SelectItem>
             <SelectItem value="delivery_driver">مندوب توصيل</SelectItem>
@@ -109,7 +109,7 @@ const AdminUsers = () => {
                       <SelectTrigger className="h-10 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="customer">عميل</SelectItem>
-                        <SelectItem value="supplier">مورد</SelectItem>
+                        <SelectItem value="supplier">صاحب مكتب</SelectItem>
                         <SelectItem value="delivery_company">شركة توصيل</SelectItem>
                         <SelectItem value="driver">سائق أجرة</SelectItem>
                         <SelectItem value="delivery_driver">مندوب توصيل</SelectItem>
@@ -156,7 +156,7 @@ const AdminUsers = () => {
                           <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="customer">عميل</SelectItem>
-                            <SelectItem value="supplier">مورد</SelectItem>
+                            <SelectItem value="supplier">صاحب مكتب</SelectItem>
                             <SelectItem value="delivery_company">شركة توصيل</SelectItem>
                             <SelectItem value="driver">سائق أجرة</SelectItem>
                             <SelectItem value="delivery_driver">مندوب توصيل</SelectItem>
