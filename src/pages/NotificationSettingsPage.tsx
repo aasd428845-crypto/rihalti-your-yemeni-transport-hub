@@ -99,12 +99,9 @@ const NotificationSettingsPage = () => {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <div className="pt-20 flex justify-center items-center min-h-screen">
-          <div className="animate-pulse text-muted-foreground">جاري التحميل...</div>
-        </div>
-      </>
+      <div className="flex justify-center items-center py-20">
+        <div className="animate-pulse text-muted-foreground">جاري التحميل...</div>
+      </div>
     );
   }
 
