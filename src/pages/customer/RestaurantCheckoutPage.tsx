@@ -128,6 +128,7 @@ const RestaurantCheckoutPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       <Header />
       <div className="container mx-auto px-4 py-6 max-w-3xl">
+        <BackButton />
         <h1 className="text-2xl font-bold mb-6">إتمام الطلب</h1>
 
         <div className="space-y-6">

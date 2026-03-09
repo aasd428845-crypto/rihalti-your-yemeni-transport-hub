@@ -148,6 +148,7 @@ const CartPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       <Header />
       <div className="container mx-auto px-4 py-6 max-w-3xl pb-32">
+        <BackButton />
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <ShoppingCart className="w-6 h-6" /> سلة الطلبات
         </h1>

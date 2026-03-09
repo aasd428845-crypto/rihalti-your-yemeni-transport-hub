@@ -51,7 +51,8 @@ const RestaurantsPage = () => {
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <Header />
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+      <div className="container mx-auto px-4 pt-24 pb-6 max-w-6xl">
+        <BackButton />
         {/* Hero */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">🍽️ اكتشف أشهى المأكولات</h1>
