@@ -112,6 +112,7 @@ import SupportChatWidget from "./components/support/SupportChatWidget";
 import InstallPage from "./pages/InstallPage";
 import { InstallPWAButton } from "./components/InstallPWAButton";
 import { UpdateNotification } from "./components/UpdateNotification";
+import RealtimeToastListener from "./components/notifications/RealtimeToastListener";
 
 const queryClient = new QueryClient();
 
@@ -119,7 +120,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
+      <Sonner position="top-center" dir="rtl" richColors closeButton />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -246,6 +247,7 @@ const App = () => (
           <SupportChatWidget />
           <InstallPWAButton />
           <UpdateNotification />
+          <RealtimeToastListener />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
