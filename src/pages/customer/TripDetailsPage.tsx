@@ -250,7 +250,7 @@ const TripDetailsPage = () => {
                     <SelectContent>
                       <SelectItem value="cash">نقداً عند الصعود</SelectItem>
                       <SelectItem value="bank_transfer">تحويل بنكي (حسابات المنصة)</SelectItem>
-                      <SelectItem value="direct_to_supplier">دفع مباشر للمورد</SelectItem>
+                      <SelectItem value="direct_to_supplier">دفع مباشر لصاحب المكتب</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
