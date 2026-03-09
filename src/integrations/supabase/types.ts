@@ -1427,8 +1427,10 @@ export type Database = {
           notes: string | null
           paid_at: string | null
           partner_id: string
+          pdf_url: string | null
           period_end: string
           period_start: string
+          period_type: string | null
           status: string | null
           total_amount: number
           total_commission: number
@@ -1444,8 +1446,10 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           partner_id: string
+          pdf_url?: string | null
           period_end: string
           period_start: string
+          period_type?: string | null
           status?: string | null
           total_amount?: number
           total_commission?: number
@@ -1461,8 +1465,10 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           partner_id?: string
+          pdf_url?: string | null
           period_end?: string
           period_start?: string
+          period_type?: string | null
           status?: string | null
           total_amount?: number
           total_commission?: number
@@ -1784,6 +1790,7 @@ export type Database = {
           id_image_back: string | null
           id_image_front: string | null
           id_number: string | null
+          is_trial_active: boolean | null
           is_verified: boolean | null
           last_violation_date: string | null
           license_image: string | null
@@ -1794,6 +1801,8 @@ export type Database = {
           phone_verified: boolean | null
           rejection_reason: string | null
           selfie_image: string | null
+          trial_end_date: string | null
+          trial_start_date: string | null
           updated_at: string
           user_id: string
           vehicle_color: string | null
@@ -1820,6 +1829,7 @@ export type Database = {
           id_image_back?: string | null
           id_image_front?: string | null
           id_number?: string | null
+          is_trial_active?: boolean | null
           is_verified?: boolean | null
           last_violation_date?: string | null
           license_image?: string | null
@@ -1830,6 +1840,8 @@ export type Database = {
           phone_verified?: boolean | null
           rejection_reason?: string | null
           selfie_image?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
           user_id: string
           vehicle_color?: string | null
@@ -1856,6 +1868,7 @@ export type Database = {
           id_image_back?: string | null
           id_image_front?: string | null
           id_number?: string | null
+          is_trial_active?: boolean | null
           is_verified?: boolean | null
           last_violation_date?: string | null
           license_image?: string | null
@@ -1866,6 +1879,8 @@ export type Database = {
           phone_verified?: boolean | null
           rejection_reason?: string | null
           selfie_image?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
           user_id?: string
           vehicle_color?: string | null
