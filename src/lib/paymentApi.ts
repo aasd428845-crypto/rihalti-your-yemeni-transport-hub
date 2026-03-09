@@ -41,7 +41,9 @@ export const getCashOnDeliverySetting = async (): Promise<boolean> => {
     .select("value")
     .eq("key", "cash_on_delivery_enabled")
     .maybeSingle();
-  return data?.value === "true";
+  // Default to true if setting doesn't exist
+  if (!data) return true;
+  return data.value === "true";
 };
 
 // ==================== Trip & Supplier Details ====================
