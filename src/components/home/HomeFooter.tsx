@@ -1,16 +1,15 @@
 import { Link } from "react-router-dom";
-import { Phone, Mail, MapPin } from "lucide-react";
-import waslLogo from "@/assets/wasl-logo.png";
+import { Phone, Mail, MapPin, MessageCircle, Bus } from "lucide-react";
 
-const footerLinks = {
+const links = {
   "خدماتنا": [
     { name: "رحلات بين المدن", path: "/trips" },
-    { name: "إرسال الطرود", path: "/shipments" },
+    { name: "شحنات آمنة", path: "/shipments" },
     { name: "توصيل محلي", path: "/deliveries" },
-    { name: "سيارة أجرة", path: "/ride/request" },
-    { name: "تتبع", path: "/tracking" },
+    { name: "تتبع الشحنات", path: "/tracking" },
+    { name: "المطاعم", path: "/restaurants" },
   ],
-  "للمسافرين": [
+  "للعملاء": [
     { name: "عن المنصة", path: "/about" },
     { name: "اتصل بنا", path: "/contact" },
   ],
@@ -19,39 +18,60 @@ const footerLinks = {
     { name: "انضم كشركة توصيل", path: "/register" },
     { name: "انضم كسائق", path: "/register" },
   ],
+  "الدعم": [
+    { name: "اتصل بنا", path: "/contact" },
+    { name: "الدعم عبر واتساب", path: "https://wa.me/967712345678" },
+  ],
 };
+
+const cities = ["صنعاء", "عدن", "تعز", "الحديدة", "إب", "ذمار", "المكلا", "سيئون", "مأرب", "حجة", "صعدة", "عمران"];
 
 const HomeFooter = () => {
   return (
-    <footer className="bg-primary text-primary-foreground pt-16 pb-8">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {/* About */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <img src={waslLogo} alt="وصل" className="w-10 h-10 rounded-xl bg-white/10 p-1 object-cover" />
-              <span className="text-2xl font-bold">وصل</span>
+    <footer className="bg-[hsl(213,54%,5%)] pt-20 pb-7 border-t border-primary/10">
+      <div className="container mx-auto px-4 max-w-[1300px]">
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-14">
+          {/* Brand */}
+          <div className="lg:col-span-1">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-[38px] h-[38px] rounded-[10px] bg-primary-gradient flex items-center justify-center">
+                <Bus className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="text-primary-glow font-extrabold text-lg">وصل</span>
             </div>
-            <p className="text-primary-foreground/70 mb-4 leading-relaxed text-sm">
-              منصة يمنية ذكية تربط المسافرين وأصحاب المكاتب وشركات التوصيل، لتوفير خدمات نقل آمنة وموثوقة.
+            <p className="text-muted-foreground text-sm leading-relaxed mb-5">
+              المنصة الرائدة في خدمات النقل البري في اليمن، نربط المسافرين بشركات النقل الموثوقة.
             </p>
-            <div className="space-y-2 text-sm text-primary-foreground/70">
-              <div className="flex items-center gap-2"><Phone className="w-4 h-4" /> +967 1 234 567</div>
-              <div className="flex items-center gap-2"><Mail className="w-4 h-4" /> support@wasl-ye.com</div>
-              <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /> صنعاء، اليمن</div>
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                <Phone className="w-3.5 h-3.5 text-primary-glow" /> +967 1 234 567
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                <MessageCircle className="w-3.5 h-3.5 text-primary-glow" /> +967 71 234 567
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                <Mail className="w-3.5 h-3.5 text-primary-glow" /> support@wasl-ye.com
+              </div>
             </div>
           </div>
 
-          {/* Links */}
-          {Object.entries(footerLinks).map(([title, links]) => (
+          {/* Link columns */}
+          {Object.entries(links).map(([title, items]) => (
             <div key={title}>
-              <h3 className="font-bold text-lg mb-4">{title}</h3>
-              <ul className="space-y-2">
-                {links.map((link) => (
-                  <li key={link.name}>
-                    <Link to={link.path} className="text-primary-foreground/70 hover:text-primary-foreground transition text-sm">
-                      {link.name}
-                    </Link>
+              <h4 className="text-foreground font-bold text-sm mb-4">{title}</h4>
+              <ul className="flex flex-col gap-2">
+                {items.map((item) => (
+                  <li key={item.name}>
+                    {item.path.startsWith("http") ? (
+                      <a href={item.path} target="_blank" rel="noopener noreferrer" className="text-muted-foreground text-sm hover:text-primary-glow transition-colors">
+                        {item.name}
+                      </a>
+                    ) : (
+                      <Link to={item.path} className="text-muted-foreground text-sm hover:text-primary-glow transition-colors">
+                        {item.name}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -59,8 +79,29 @@ const HomeFooter = () => {
           ))}
         </div>
 
-        <div className="border-t border-white/20 pt-8 text-center text-primary-foreground/60 text-sm">
-          <p>© {new Date().getFullYear()} وصل - جميع الحقوق محفوظة. صنعاء، اليمن 🇾🇪</p>
+        {/* Cities */}
+        <div className="border-t border-border/10 pt-8 mb-8">
+          <p className="text-muted-foreground text-xs tracking-[1px] uppercase text-center mb-3.5">نغطي جميع مدن اليمن</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {cities.map((city) => (
+              <span
+                key={city}
+                className="bg-card/60 border border-border/10 text-muted-foreground px-3 py-1 rounded-full text-xs cursor-default transition-all hover:bg-primary/15 hover:text-primary-glow hover:border-primary/25"
+              >
+                {city}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Copyright */}
+        <div className="border-t border-border/10 pt-6 flex flex-wrap justify-between items-center gap-4">
+          <span className="text-muted-foreground text-sm">© {new Date().getFullYear()} وصل. جميع الحقوق محفوظة. 🇾🇪</span>
+          <div className="flex gap-4 flex-wrap">
+            {["سياسة الخصوصية", "الشروط والأحكام"].map((item) => (
+              <a key={item} href="#" className="text-muted-foreground text-xs hover:text-primary-glow transition-colors">{item}</a>
+            ))}
+          </div>
         </div>
       </div>
     </footer>

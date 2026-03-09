@@ -1,35 +1,58 @@
-import { Search, CreditCard, MapPin, CheckCircle } from "lucide-react";
+import { useState } from "react";
+import { Search, Wallet, Navigation, FileCheck, ChevronDown, Zap } from "lucide-react";
 
 const steps = [
-  { icon: Search, title: "ابحث عن الخدمة", description: "اختر الخدمة التي تريدها: رحلة، طرد، توصيل، أو سيارة أجرة." },
-  { icon: CreditCard, title: "اختر الشريك المناسب", description: "استعرض قائمة الشركاء الموثوقين واختر الأنسب لك." },
-  { icon: MapPin, title: "تتبع طلبك", description: "تابع طلبك لحظة بلحظة على الخريطة." },
-  { icon: CheckCircle, title: "أكمل وقيّم", description: "بعد الانتهاء، قم بتقييم الخدمة لمساعدتنا على التحسن." },
+  { icon: Search, title: "ابحث واختر", desc: "ابحث عن رحلتك أو أرسل شحنتك أو اطلب توصيل من مطاعمك المفضلة", colorClass: "text-primary-glow", bgActive: "bg-primary/20 border-primary/40", labelBg: "bg-primary/15 text-primary-glow" },
+  { icon: Wallet, title: "احجز وادفع", desc: "اختر الخدمة المناسبة وادفع بطريقة آمنة وسهلة — نقداً أو تحويل بنكي", colorClass: "text-blue-400", bgActive: "bg-blue-400/20 border-blue-400/40", labelBg: "bg-blue-400/15 text-blue-400" },
+  { icon: Navigation, title: "تتبع مباشر", desc: "تابع رحلتك أو شحنتك لحظة بلحظة على الخريطة", colorClass: "text-accent", bgActive: "bg-accent/20 border-accent/40", labelBg: "bg-accent/15 text-accent" },
+  { icon: FileCheck, title: "تأكيد التسليم", desc: "تأكيد وصول الرحلة أو الشحنة مع إيصال إلكتروني فوري", colorClass: "text-purple-400", bgActive: "bg-purple-400/20 border-purple-400/40", labelBg: "bg-purple-400/15 text-purple-400" },
 ];
 
 const HowItWorks = () => {
+  const [active, setActive] = useState(0);
+
   return (
-    <section className="py-20 bg-card">
-      <div className="container mx-auto px-4">
+    <section className="py-24 bg-secondary">
+      <div className="container mx-auto px-4 max-w-[1100px]">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">كيف تعمل منصة وصل؟</h2>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">أربع خطوات بسيطة تفصلك عن الخدمة المثالية</p>
+          <span className="glow-badge mb-4 inline-flex">
+            <Zap className="w-3 h-3" />
+            كيف تعمل المنصة؟
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mt-4 mb-3">
+            أربع خطوات بسيطة
+          </h2>
+          <p className="text-muted-foreground text-base">تفصلك عن خدمة النقل المثالية</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {steps.map((step, idx) => {
+        <div className="flex flex-col gap-4">
+          {steps.map((step, i) => {
             const Icon = step.icon;
+            const isActive = active === i;
             return (
-              <div key={idx} className="relative text-center">
-                {idx < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-12 left-0 w-full h-0.5 bg-border -translate-x-1/2" />
-                )}
-                <div className="relative z-10 bg-background border-2 border-primary/20 rounded-2xl p-8 shadow-sm hover:shadow-lg transition-shadow">
-                  <div className="w-14 h-14 bg-primary text-primary-foreground rounded-xl flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                    {idx + 1}
+              <div
+                key={i}
+                onClick={() => setActive(isActive ? -1 : i)}
+                className={`rounded-2xl p-6 flex items-start gap-5 cursor-pointer transition-all duration-300 border ${
+                  isActive
+                    ? `bg-card/90 ${step.bgActive}`
+                    : "bg-card/40 border-border/10 hover:bg-card/60"
+                }`}
+              >
+                <div className={`w-[52px] h-[52px] rounded-xl shrink-0 flex items-center justify-center border transition-all ${
+                  isActive ? step.bgActive : "bg-muted/30 border-border/10"
+                }`}>
+                  <Icon className={`w-[22px] h-[22px] ${isActive ? step.colorClass : "text-muted-foreground"}`} />
+                </div>
+                <div className="flex-1">
+                  <div className={`flex items-center gap-3 ${isActive ? "mb-2.5" : ""}`}>
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md ${step.labelBg}`}>خطوة {i + 1}</span>
+                    <h3 className="text-foreground font-bold text-[17px]">{step.title}</h3>
+                    <ChevronDown className={`w-[18px] h-[18px] text-muted-foreground mr-auto transition-transform ${isActive ? "rotate-180" : ""}`} />
                   </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">{step.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
+                  {isActive && (
+                    <p className="text-muted-foreground text-sm leading-relaxed">{step.desc}</p>
+                  )}
                 </div>
               </div>
             );

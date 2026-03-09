@@ -1,47 +1,43 @@
 import { useEffect, useState } from "react";
-import { Users, Bus, Package, Star } from "lucide-react";
+import { Users, Navigation, Building2, Star, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Stats = () => {
-  const [stats, setStats] = useState({ users: 0, trips: 0, shipments: 0, rating: "4.8" });
+  const [data, setData] = useState({ users: 0, trips: 0 });
 
   useEffect(() => {
-    const fetchStats = async () => {
-      const [usersRes, tripsRes, shipmentsRes] = await Promise.all([
+    const fetch = async () => {
+      const [u, t] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("trips").select("*", { count: "exact", head: true }),
-        supabase.from("shipment_requests").select("*", { count: "exact", head: true }),
       ]);
-      setStats({
-        users: usersRes.count || 0,
-        trips: tripsRes.count || 0,
-        shipments: shipmentsRes.count || 0,
-        rating: "4.8",
-      });
+      setData({ users: u.count || 0, trips: t.count || 0 });
     };
-    fetchStats();
+    fetch();
   }, []);
 
-  const items = [
-    { icon: Users, label: "عميل نشط", value: `${stats.users.toLocaleString()}+` },
-    { icon: Bus, label: "رحلة منجزة", value: `${stats.trips.toLocaleString()}+` },
-    { icon: Package, label: "طرد تم توصيله", value: `${stats.shipments.toLocaleString()}+` },
-    { icon: Star, label: "تقييم العملاء", value: `${stats.rating}/5` },
+  const stats = [
+    { value: `+${data.users.toLocaleString("ar")}`, label: "عميل راضي", icon: Users, colorClass: "text-primary-glow bg-primary/15" },
+    { value: "+٥٠", label: "مسار نشط", icon: Navigation, colorClass: "text-blue-400 bg-blue-500/15" },
+    { value: "+٢٥", label: "شركة نقل", icon: Building2, colorClass: "text-accent bg-accent/15" },
+    { value: "٤.٨/٥", label: "تقييم العملاء", icon: Star, colorClass: "text-pink-400 bg-pink-400/15" },
+    { value: "٩٩%", label: "توصيل ناجح", icon: CheckCircle, colorClass: "text-purple-400 bg-purple-400/15" },
   ];
 
   return (
-    <section className="py-16 bg-primary text-primary-foreground">
+    <section className="py-20 bg-background relative">
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {items.map((item, idx) => {
-            const Icon = item.icon;
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+          {stats.map((stat, i) => {
+            const Icon = stat.icon;
             return (
-              <div key={idx} className="text-center">
-                <div className="inline-flex bg-white/15 p-4 rounded-2xl mb-4">
-                  <Icon className="w-8 h-8" />
+              <div key={i} className="text-center p-8 bg-card/50 rounded-2xl border border-border/10">
+                <div className={`w-12 h-12 rounded-xl ${stat.colorClass} flex items-center justify-center mx-auto mb-4`}>
+                  <Icon className="w-[22px] h-[22px]" />
                 </div>
-                <div className="text-3xl md:text-4xl font-bold mb-2">{item.value}</div>
-                <div className="text-base opacity-80">{item.label}</div>
+                <div className="text-foreground text-[28px] font-extrabold mb-1.5">{stat.value}</div>
+                <div className="text-muted-foreground text-sm">{stat.label}</div>
               </div>
             );
           })}
