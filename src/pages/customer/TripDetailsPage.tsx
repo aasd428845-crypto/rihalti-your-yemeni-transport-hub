@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchTripById, createBooking, fetchSupplierBankAccounts } from "@/lib/customerApi";
 import Header from "@/components/landing/Header";
+import WhatsAppShareButton from "@/components/trips/WhatsAppShareButton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
