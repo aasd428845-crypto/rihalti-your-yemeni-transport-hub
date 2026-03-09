@@ -159,6 +159,7 @@ const App = () => (
               <Route path="reports" element={<AdminReports />} />
               <Route path="payment-review" element={<AdminPaymentReview />} />
               <Route path="partner-controls" element={<AdminPartnerControls />} />
+              <Route path="support-messages" element={<AdminSupportMessages />} />
             </Route>
             <Route path="/supplier" element={<SupplierLayout />}>
               <Route index element={<SupplierDashboard />} />

@@ -81,6 +81,8 @@ const SupportChatWidget = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  if (!user) return null;
+
   const handleSend = async () => {
     if (!newMsg.trim() || !conversationId || !user) return;
     setSending(true);

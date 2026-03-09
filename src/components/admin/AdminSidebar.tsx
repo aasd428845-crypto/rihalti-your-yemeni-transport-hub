@@ -26,6 +26,7 @@ const menuItems = [
   { title: "التحويلات البنكية", url: "/admin/payment-review", icon: CreditCard },
   { title: "صلاحيات الشركاء", url: "/admin/partner-controls", icon: Shield },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
+  { title: "رسائل الدعم", url: "/admin/support-messages", icon: Headphones },
 ];
 
 const AdminSidebar = () => {
