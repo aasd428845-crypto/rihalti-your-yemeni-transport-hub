@@ -2115,6 +2115,48 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_bank_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          created_at: string
+          iban: string | null
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          notes: string | null
+          swift_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          created_at?: string
+          iban?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          notes?: string | null
+          swift_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_name?: string
+          created_at?: string
+          iban?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          notes?: string | null
+          swift_code?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       privacy_policies: {
         Row: {
           content: string
