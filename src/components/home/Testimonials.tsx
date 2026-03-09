@@ -1,40 +1,90 @@
-import { Star } from "lucide-react";
+import { useState } from "react";
+import { Star, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
+const cats = ["الكل", "الرحلات", "الشحنات", "التوصيل"];
 const testimonials = [
-  { name: "أحمد العمري", role: "عميل", content: "خدمة رائعة، تمكنت من إرسال طرد إلى تعز بسهولة والتتبع كان دقيقاً.", rating: 5, avatar: "أ" },
-  { name: "فاطمة محمد", role: "مسافرة", content: "حجزت رحلة من صنعاء إلى عدن، كل شيء كان منسقاً والسائق محترف.", rating: 5, avatar: "ف" },
-  { name: "خالد الحكيمي", role: "صاحب مكتب", content: "منصة وصل ساعدتني في زيادة عدد زبائني بشكل كبير، شكراً لكم.", rating: 4, avatar: "خ" },
+  { name: "أحمد العمراني", role: "رجل أعمال — صنعاء", content: "استخدمت المنصة لإرسال شحنات تجارية إلى عدن وتعز. الخدمة سريعة وآمنة، ونظام التتبع ممتاز.", rating: 5, cat: "الشحنات", time: "منذ أسبوعين", avatar: "أح" },
+  { name: "فاطمة محمد", role: "طالبة جامعية — تعز", content: "سافرت أكثر من ٥ مرات عبر المنصة. الأسعار مناسبة والمقاعد مريحة — أفضل من محطات الباص التقليدية.", rating: 5, cat: "الرحلات", time: "منذ شهر", avatar: "فا" },
+  { name: "خالد الحكيمي", role: "مدير مطعم — عدن", content: "خدمة التوصيل المحلي ساعدتني في زيادة مبيعات المطعم بنسبة ٤٠٪. المندوبون محترفون والطلبات تصل سريعة.", rating: 5, cat: "التوصيل", time: "منذ ٣ أيام", avatar: "خا" },
 ];
 
 const Testimonials = () => {
+  const [cat, setCat] = useState("الكل");
+  const filtered = cat === "الكل" ? testimonials : testimonials.filter((t) => t.cat === cat);
+
   return (
-    <section className="py-20 bg-background">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">آراء عملائنا</h2>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">ماذا يقول المستخدمون عن تجربتهم مع وصل</p>
+    <section className="py-24 bg-secondary">
+      <div className="container mx-auto px-4 max-w-[1100px]">
+        <div className="text-center mb-12">
+          <span className="glow-badge mb-4 inline-flex">
+            <Star className="w-3 h-3" />
+            آراء العملاء
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mt-4 mb-3">
+            ماذا يقول عملاؤنا؟
+          </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((item, idx) => (
-            <div key={idx} className="bg-card p-6 rounded-2xl shadow-sm border border-border hover:shadow-lg transition-shadow">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-xl font-bold text-primary-foreground">
-                  {item.avatar}
+        {/* Category Filter */}
+        <div className="flex justify-center gap-2.5 mb-10 flex-wrap">
+          {cats.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCat(c)}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                cat === c
+                  ? "bg-primary text-primary-foreground shadow-primary"
+                  : "bg-card/80 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {filtered.map((t, i) => (
+            <div
+              key={i}
+              className="bg-background/80 rounded-[18px] border border-border/10 p-7 transition-all hover:border-primary/20 hover:-translate-y-1"
+            >
+              <div className="flex gap-3 mb-4 items-center">
+                <div className="w-[46px] h-[46px] rounded-xl shrink-0 bg-primary-gradient flex items-center justify-center text-primary-foreground font-bold text-sm">
+                  {t.avatar}
                 </div>
                 <div>
-                  <div className="font-bold text-foreground">{item.name}</div>
-                  <div className="text-sm text-muted-foreground">{item.role}</div>
+                  <div className="text-foreground font-bold text-sm">{t.name}</div>
+                  <div className="text-muted-foreground text-xs">{t.role}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 mb-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={`w-4 h-4 ${i < item.rating ? "text-accent fill-accent" : "text-muted"}`} />
+              <div className="flex gap-1 mb-3.5">
+                {Array(t.rating).fill(0).map((_, j) => (
+                  <Star key={j} className="w-3.5 h-3.5 text-accent fill-accent" />
                 ))}
               </div>
-              <p className="text-muted-foreground leading-relaxed">"{item.content}"</p>
+              <p className="text-muted-foreground text-sm leading-relaxed mb-4">{t.content}</p>
+              <div className="flex justify-between items-center">
+                <span className="bg-primary/10 text-primary-glow px-2.5 py-0.5 rounded-md text-[11px] font-semibold">{t.cat}</span>
+                <span className="text-muted-foreground text-xs">{t.time}</span>
+              </div>
             </div>
           ))}
+        </div>
+
+        {/* CTA */}
+        <div className="text-center mt-14">
+          <div className="inline-block bg-primary/5 rounded-[20px] border border-primary/10 px-12 py-10 md:px-16">
+            <h3 className="text-foreground text-2xl font-bold mb-2">انضم إلى آلاف العملاء الراضين</h3>
+            <p className="text-muted-foreground mb-6 text-sm">سجل الآن واحصل على خصم ٢٠٪ على أول استخدام</p>
+            <Link to="/register">
+              <Button size="lg" className="bg-primary-gradient text-primary-foreground shadow-primary gap-2">
+                <UserPlus className="w-4 h-4" />
+                ابدأ مجاناً
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </section>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail } from "lucide-react";
+import { Bell, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -14,26 +14,27 @@ const Newsletter = () => {
   };
 
   return (
-    <section className="py-16 bg-primary text-primary-foreground">
-      <div className="container mx-auto px-4">
-        <div className="text-center max-w-2xl mx-auto">
-          <Mail className="w-10 h-10 mx-auto mb-4 text-accent" />
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">ابق على اطلاع بآخر العروض</h2>
-          <p className="text-primary-foreground/80 mb-8">اشترك في نشرتنا البريدية لتصلك أحدث العروض والخدمات.</p>
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="بريدك الإلكتروني"
-              className="flex-1 px-5 py-3 rounded-xl text-foreground bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-              required
-            />
-            <Button type="submit" className="bg-accent text-accent-foreground hover:bg-accent/90 px-8">
-              اشترك
-            </Button>
-          </form>
-        </div>
+    <section className="py-20 bg-gradient-to-br from-background via-primary/5 to-background border-t border-primary/10">
+      <div className="container mx-auto px-4 max-w-[600px] text-center">
+        <Bell className="w-9 h-9 text-primary-glow mx-auto mb-4" />
+        <h2 className="text-2xl md:text-3xl font-extrabold text-foreground mb-3">ابقَ على اطلاع دائم</h2>
+        <p className="text-muted-foreground text-[15px] leading-relaxed mb-7">
+          اشترك في نشرتنا البريدية لتصلك آخر العروض والرحلات والتحديثات
+        </p>
+        <form onSubmit={handleSubmit} className="flex gap-2.5 bg-card/80 rounded-[14px] p-1.5 pr-4 border border-primary/20">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="بريدك الإلكتروني..."
+            className="flex-1 bg-transparent border-none outline-none text-foreground text-sm text-right placeholder:text-muted-foreground"
+            required
+          />
+          <Button type="submit" className="bg-primary-gradient text-primary-foreground shadow-primary gap-1.5">
+            <Send className="w-4 h-4" />
+            اشترك
+          </Button>
+        </form>
       </div>
     </section>
   );
