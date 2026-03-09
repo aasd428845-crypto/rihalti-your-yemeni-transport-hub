@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Phone, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { ar } from "date-fns/locale";
 const SupportChatWidget = () => {
   const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState("");
@@ -20,7 +21,6 @@ const SupportChatWidget = () => {
   const getOrCreateConversation = async () => {
     if (!user) return;
     setLoading(true);
-    // Find existing open support conversation
     const { data: existing } = await supabase
       .from("conversations")
       .select("id")
@@ -81,8 +81,6 @@ const SupportChatWidget = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  if (!user) return null;
-
   const handleSend = async () => {
     if (!newMsg.trim() || !conversationId || !user) return;
     setSending(true);
@@ -91,36 +89,88 @@ const SupportChatWidget = () => {
       sender_id: user.id,
       content: newMsg.trim(),
     });
-    // Update conversation timestamp
     await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
     setNewMsg("");
     setSending(false);
   };
 
+  const handleFloatingClick = () => {
+    if (open) {
+      setOpen(false);
+      setShowOptions(false);
+    } else if (user) {
+      // Logged in — open chat directly
+      setOpen(true);
+      setShowOptions(false);
+    } else {
+      // Not logged in — show contact options
+      setShowOptions(!showOptions);
+    }
+  };
+
   return (
     <>
+      {/* Contact options (for non-logged-in users) */}
+      {showOptions && !user && (
+        <div className="fixed bottom-24 left-6 z-50 flex flex-col gap-3 animate-fade-in">
+          <a
+            href="https://wa.me/967712345678"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 shadow-xl hover:border-primary/30 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-full bg-green-500/15 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-green-500" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">واتساب</p>
+              <p className="text-xs text-muted-foreground">تواصل عبر واتساب</p>
+            </div>
+          </a>
+          <a
+            href="tel:+9671234567"
+            className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 shadow-xl hover:border-primary/30 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+              <Phone className="w-5 h-5 text-primary-glow" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">اتصل بنا</p>
+              <p className="text-xs text-muted-foreground">+967 1 234 567</p>
+            </div>
+          </a>
+        </div>
+      )}
+
       {/* Floating button */}
       <button
-        onClick={() => setOpen(!open)}
-        className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 transition-all"
+        onClick={handleFloatingClick}
+        className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-all duration-200 hover:shadow-primary"
         aria-label="تواصل مع الدعم"
       >
         {open ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
       </button>
 
       {/* Chat window */}
-      {open && (
+      {open && user && (
         <div className="fixed bottom-24 left-6 z-50 w-80 sm:w-96 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ height: "420px" }} dir="rtl">
-          {/* Header */}
           <div className="bg-primary text-primary-foreground px-4 py-3 flex items-center gap-2">
             <MessageCircle className="w-5 h-5" />
-            <div>
+            <div className="flex-1">
               <p className="font-bold text-sm">الدعم المباشر</p>
               <p className="text-xs opacity-80">نحن هنا لمساعدتك</p>
             </div>
+            <a
+              href="https://wa.me/967712345678"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+              title="واتساب"
+            >
+              <MessageSquare className="w-4 h-4" />
+            </a>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-muted/30">
             {loading ? (
               <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
@@ -146,7 +196,6 @@ const SupportChatWidget = () => {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
           <div className="p-3 border-t border-border flex gap-2">
             <Input
               value={newMsg}
