@@ -148,9 +148,8 @@ const DeliveriesPage = () => {
                           {c.city && <p className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{c.city}</p>}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 mb-3">
-                        {[1,2,3,4,5].map(i => <Star key={i} className={`w-3.5 h-3.5 ${i <= 4 ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"}`} />)}
-                        <span className="text-xs text-muted-foreground mr-1">4.0</span>
+                      <div className="mb-3">
+                        <AverageRating revieweeId={c.user_id} />
                       </div>
                       {areas.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-3">

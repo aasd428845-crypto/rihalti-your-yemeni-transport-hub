@@ -3,9 +3,10 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, MapPin, Phone, Mail, Star, FileText } from "lucide-react";
+import { User, MapPin, Phone, Star, FileText, MessageSquare } from "lucide-react";
 import Header from "@/components/landing/Header";
 import BackButton from "@/components/common/BackButton";
+import ReviewsList, { AverageRating } from "@/components/reviews/ReviewsList";
 
 interface PartnerProfile {
   full_name: string;
@@ -89,6 +90,11 @@ const PublicPartnerProfilePage = () => {
                 {roleLabels[role] || role}
               </Badge>
             )}
+            {id && (
+              <div className="mt-3 flex justify-center">
+                <AverageRating revieweeId={id} />
+              </div>
+            )}
           </div>
 
           <CardContent className="p-6 space-y-6">
@@ -134,6 +140,16 @@ const PublicPartnerProfilePage = () => {
                     </Badge>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Reviews */}
+            {id && (
+              <div>
+                <h3 className="font-semibold text-sm flex items-center gap-2 mb-3">
+                  <MessageSquare className="w-4 h-4 text-primary" /> التقييمات
+                </h3>
+                <ReviewsList revieweeId={id} limit={5} />
               </div>
             )}
           </CardContent>
