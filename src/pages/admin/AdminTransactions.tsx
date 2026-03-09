@@ -94,7 +94,7 @@ const AdminTransactions = () => {
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-4 md:space-y-6" dir="rtl">
       <h2 className="text-xl font-bold">المعاملات المالية</h2>
 
       {/* Stats Cards */}
