@@ -131,7 +131,6 @@ const RestaurantMenuPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
       {/* Restaurant Header */}
       <div className="relative">
         <div className="h-48 md:h-64 bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden">

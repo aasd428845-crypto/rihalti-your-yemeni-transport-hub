@@ -217,10 +217,8 @@ const CartPage = () => {
                 </CardContent>
               </Card>
             );
-          })}
         </div>
       </div>
-      <Footer />
     </div>
   );
 };
