@@ -34,7 +34,6 @@ const TripDetailsPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [seatCount, setSeatCount] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [booking, setBooking] = useState(false);
 
   const { data: trip, isLoading } = useQuery({
