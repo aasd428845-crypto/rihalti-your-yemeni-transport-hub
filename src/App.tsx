@@ -94,24 +94,24 @@ import NotificationsPage from "./pages/NotificationsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 import PaymentPage from "./pages/customer/PaymentPage";
 import PaymentSuccessPage from "./pages/customer/PaymentSuccessPage";
-// Driver
-import DriverLayout from "./components/driver/DriverLayout";
-import DriverDashboard from "./pages/driver/DriverDashboard";
-import DriverRideDetails from "./pages/driver/DriverRideDetails";
-import DriverActiveRide from "./pages/driver/DriverActiveRide";
-import DriverProfile from "./pages/driver/DriverProfile";
-import DriverHistory from "./pages/driver/DriverHistory";
-import DriverEarnings from "./pages/driver/DriverEarnings";
-import DriverSettings from "./pages/driver/DriverSettings";
-// Delivery Driver
-import DeliveryDriverLayout from "./components/delivery-driver/DeliveryDriverLayout";
-import DeliveryDriverDashboard from "./pages/delivery-driver/DeliveryDriverDashboard";
-import DeliveryDriverOrders from "./pages/delivery-driver/DeliveryDriverOrders";
-import DeliveryDriverEarnings from "./pages/delivery-driver/DeliveryDriverEarnings";
-import DeliveryDriverProfile from "./pages/delivery-driver/DeliveryDriverProfile";
-import DeliveryDriverSettings from "./pages/delivery-driver/DeliveryDriverSettings";
-import DeliveryDriverOrderDetails from "./pages/delivery-driver/DeliveryDriverOrderDetails";
-import DeliveryDriverHistory from "./pages/delivery-driver/DeliveryDriverHistory";
+// Driver (lazy loaded)
+const DriverLayout = lazy(() => import("./components/driver/DriverLayout"));
+const DriverDashboard = lazy(() => import("./pages/driver/DriverDashboard"));
+const DriverRideDetails = lazy(() => import("./pages/driver/DriverRideDetails"));
+const DriverActiveRide = lazy(() => import("./pages/driver/DriverActiveRide"));
+const DriverProfile = lazy(() => import("./pages/driver/DriverProfile"));
+const DriverHistory = lazy(() => import("./pages/driver/DriverHistory"));
+const DriverEarnings = lazy(() => import("./pages/driver/DriverEarnings"));
+const DriverSettings = lazy(() => import("./pages/driver/DriverSettings"));
+// Delivery Driver (lazy loaded)
+const DeliveryDriverLayout = lazy(() => import("./components/delivery-driver/DeliveryDriverLayout"));
+const DeliveryDriverDashboard = lazy(() => import("./pages/delivery-driver/DeliveryDriverDashboard"));
+const DeliveryDriverOrders = lazy(() => import("./pages/delivery-driver/DeliveryDriverOrders"));
+const DeliveryDriverEarnings = lazy(() => import("./pages/delivery-driver/DeliveryDriverEarnings"));
+const DeliveryDriverProfile = lazy(() => import("./pages/delivery-driver/DeliveryDriverProfile"));
+const DeliveryDriverSettings = lazy(() => import("./pages/delivery-driver/DeliveryDriverSettings"));
+const DeliveryDriverOrderDetails = lazy(() => import("./pages/delivery-driver/DeliveryDriverOrderDetails"));
+const DeliveryDriverHistory = lazy(() => import("./pages/delivery-driver/DeliveryDriverHistory"));
 import SupportChatWidget from "./components/support/SupportChatWidget";
 import InstallPage from "./pages/InstallPage";
 import { InstallPWAButton } from "./components/InstallPWAButton";
