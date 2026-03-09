@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Plus, Trash2, Lock, Upload, User, Building, MapPinned } from "lucide-react";
+import RegionSelector from "@/components/regions/RegionSelector";
 import type { Region } from "@/types/supplier.types";
 
 const SupplierSettings = () => {
