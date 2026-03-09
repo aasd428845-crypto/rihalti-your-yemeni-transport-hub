@@ -60,18 +60,18 @@ const PartnerPaymentSettings = lazy(() => import("./pages/supplier/PartnerPaymen
 // Partner
 import PartnerProfilePage from "./pages/partner/PartnerProfilePage";
 import PublicPartnerProfilePage from "./pages/partner/PublicPartnerProfilePage";
-// Delivery
-import DeliveryLayout from "./components/delivery/DeliveryLayout";
-import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
-import DeliveryRestaurants from "./pages/delivery/DeliveryRestaurants";
-import DeliveryMenuManagement from "./pages/delivery/DeliveryMenuManagement";
-import DeliveryOrders from "./pages/delivery/DeliveryOrders";
-import DeliveryRiders from "./pages/delivery/DeliveryRiders";
-import DeliveryFinance from "./pages/delivery/DeliveryFinance";
-import DeliveryIntegrations from "./pages/delivery/DeliveryIntegrations";
-import DeliverySettings from "./pages/delivery/DeliverySettings";
-import DeliveryReports from "./pages/delivery/DeliveryReports";
-import DeliveryPayments from "./pages/delivery/DeliveryPayments";
+// Delivery (lazy loaded)
+const DeliveryLayout = lazy(() => import("./components/delivery/DeliveryLayout"));
+const DeliveryDashboard = lazy(() => import("./pages/delivery/DeliveryDashboard"));
+const DeliveryRestaurants = lazy(() => import("./pages/delivery/DeliveryRestaurants"));
+const DeliveryMenuManagement = lazy(() => import("./pages/delivery/DeliveryMenuManagement"));
+const DeliveryOrders = lazy(() => import("./pages/delivery/DeliveryOrders"));
+const DeliveryRiders = lazy(() => import("./pages/delivery/DeliveryRiders"));
+const DeliveryFinance = lazy(() => import("./pages/delivery/DeliveryFinance"));
+const DeliveryIntegrations = lazy(() => import("./pages/delivery/DeliveryIntegrations"));
+const DeliverySettings = lazy(() => import("./pages/delivery/DeliverySettings"));
+const DeliveryReports = lazy(() => import("./pages/delivery/DeliveryReports"));
+const DeliveryPayments = lazy(() => import("./pages/delivery/DeliveryPayments"));
 // Customer Pages
 import TripsPage from "./pages/customer/TripsPage";
 import TripDetailsPage from "./pages/customer/TripDetailsPage";
