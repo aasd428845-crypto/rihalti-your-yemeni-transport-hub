@@ -142,6 +142,7 @@ const RestaurantsPage = () => {
             ))}
           </div>
         )}
+      </div>
     </div>
   );
 };
