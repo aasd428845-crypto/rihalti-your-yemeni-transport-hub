@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Plus, Trash2, Lock, Upload, User, Building, MapPinned } from "lucide-react";
+import RegionSelector from "@/components/regions/RegionSelector";
 import type { Region } from "@/types/supplier.types";
 
 const SupplierSettings = () => {
@@ -113,17 +113,15 @@ const SupplierSettings = () => {
   };
 
   const handleSaveAreas = async () => {
+    if (selectedRegions.length === 0) {
+      toast({ title: "يجب اختيار منطقة عمل واحدة على الأقل", variant: "destructive" });
+      return;
+    }
     const result = await updateWorkingAreas(user!.id, selectedRegions);
     if (result?.error) toast({ title: "خطأ", description: result.error.message, variant: "destructive" });
     else toast({ title: "تم حفظ المناطق" });
   };
 
-  const toggleRegion = (regionId: number) => {
-    setSelectedRegions(prev => prev.includes(regionId) ? prev.filter(r => r !== regionId) : [...prev, regionId]);
-  };
-
-  // Group regions by country for display
-  const countryRegions = regions.filter(r => r.type === "country");
 
   return (
     <div className="space-y-6">
@@ -219,25 +217,16 @@ const SupplierSettings = () => {
           <Card>
             <CardHeader><CardTitle className="text-base">مناطق العمل</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              <p className="text-sm text-muted-foreground">اختر المناطق التي تقدم خدماتك فيها</p>
+              <p className="text-sm text-muted-foreground">اختر المناطق التي تقدم خدماتك فيها (إجباري)</p>
 
-              {countryRegions.map((country) => {
-                const children = regions.filter(r => r.parent_id === country.id);
-                if (children.length === 0) return null;
-                return (
-                  <div key={country.id}>
-                    <h4 className="font-semibold text-sm mb-2 text-primary">{country.name_ar}</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                      {children.map((region) => (
-                        <label key={region.id} className="flex items-center gap-2 text-sm cursor-pointer p-1.5 rounded hover:bg-accent">
-                          <Checkbox checked={selectedRegions.includes(region.id)} onCheckedChange={() => toggleRegion(region.id)} />
-                          <span>{region.name_ar}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+              <RegionSelector
+                regions={regions}
+                mode="multi"
+                selectedIds={selectedRegions}
+                onSelectedIdsChange={setSelectedRegions}
+                allowCustom={true}
+                required={true}
+              />
 
               <Button onClick={handleSaveAreas} className="gap-2"><Save className="w-4 h-4" /> حفظ المناطق</Button>
             </CardContent>

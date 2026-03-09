@@ -497,6 +497,47 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_regions: {
+        Row: {
+          created_at: string | null
+          id: string
+          name_ar: string
+          parent_region_id: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_by: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name_ar: string
+          parent_region_id?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_by: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name_ar?: string
+          parent_region_id?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_regions_parent_region_id_fkey"
+            columns: ["parent_region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_addresses: {
         Row: {
           address_name: string
