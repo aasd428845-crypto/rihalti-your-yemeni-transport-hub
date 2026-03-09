@@ -72,7 +72,7 @@ export function useServiceRequests() {
         await supabase.from('notifications').insert({
           user_id: data.partner_id,
           title: '🔔 طلب جديد',
-          body: `طلب ${data.type === 'shipment' ? 'شحنة' : data.type === 'delivery' ? 'توصيل' : 'سيارة أجرة'} جديد من ${data.from_city} إلى ${data.to_city}`,
+          body: `طلب ${data.type === 'shipment' ? 'طرد' : data.type === 'delivery' ? 'توصيل' : 'سيارة أجرة'} جديد من ${data.from_city} إلى ${data.to_city}`,
         } as any);
       } catch (e) { console.error(e); }
     }

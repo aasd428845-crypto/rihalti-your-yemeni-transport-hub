@@ -51,8 +51,8 @@ export const useNotifications = () => {
   const sendShipmentUpdate = useCallback((userId: string, status: string) => {
     return sendPushNotification({
       userId,
-      title: 'تحديث الشحنة 📦',
-      body: `حالة شحنتك: ${status}`,
+      title: 'تحديث الطرد 📦',
+      body: `حالة طردك: ${status}`,
       sound: 'default',
       data: { type: 'shipment' },
     });

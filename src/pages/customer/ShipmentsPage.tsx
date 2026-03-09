@@ -239,7 +239,7 @@ const ShipmentsPage = () => {
               <div><Label className="flex items-center gap-1"><User className="w-3 h-3" /> اسم المستلم *</Label><Input value={form.recipient_name} onChange={(e) => setForm({ ...form, recipient_name: e.target.value })} /></div>
               <div><Label className="flex items-center gap-1"><Phone className="w-3 h-3" /> هاتف المستلم *</Label><Input value={form.recipient_phone} onChange={(e) => setForm({ ...form, recipient_phone: e.target.value })} /></div>
             </div>
-            <div><Label className="flex items-center gap-1"><FileText className="w-3 h-3" /> وصف الشحنة</Label><Textarea value={form.item_description} onChange={(e) => setForm({ ...form, item_description: e.target.value })} placeholder="وصف الأغراض المراد شحنها" /></div>
+            <div><Label className="flex items-center gap-1"><FileText className="w-3 h-3" /> وصف الطرد</Label><Textarea value={form.item_description} onChange={(e) => setForm({ ...form, item_description: e.target.value })} placeholder="وصف الأغراض المراد إرسالها" /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="flex items-center gap-1"><Weight className="w-3 h-3" /> الوزن (كجم)</Label><Input type="number" value={form.item_weight} onChange={(e) => setForm({ ...form, item_weight: e.target.value })} /></div>
               <div><Label>الأبعاد</Label><Input value={form.item_dimensions} onChange={(e) => setForm({ ...form, item_dimensions: e.target.value })} placeholder="مثال: 30x20x10 سم" /></div>
