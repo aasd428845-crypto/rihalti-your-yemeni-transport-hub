@@ -29,7 +29,7 @@ const TripFilters = ({ regions, onFilter, initialParams }: TripFiltersProps) => 
     fetchDistinctBusCompanies().then(setBusCompanies).catch(() => {});
   }, []);
 
-  const allCities = regions?.filter(r => r.type === "governorate" || r.type === "city") || [];
+  const allRegions = regions || [];
 
   const applyFilters = () => {
     onFilter({
