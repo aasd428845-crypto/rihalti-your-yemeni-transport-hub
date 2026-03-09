@@ -166,6 +166,7 @@ const AdminMonitoring = () => {
             )}
           </TabsTrigger>
           <TabsTrigger value="analytics">التحليلات</TabsTrigger>
+          <TabsTrigger value="health">صحة النظام</TabsTrigger>
           <TabsTrigger value="daily">الإحصائيات اليومية</TabsTrigger>
         </TabsList>
 
