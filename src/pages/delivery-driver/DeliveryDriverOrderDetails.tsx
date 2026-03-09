@@ -25,6 +25,7 @@ const STATUS_BADGES: Record<string, { label: string; variant: "default" | "secon
   assigned: { label: "تم التعيين", variant: "default" },
   picked_up: { label: "تم الاستلام", variant: "default" },
   in_transit: { label: "في الطريق", variant: "default" },
+  on_the_way: { label: "في الطريق", variant: "default" },
   delivered: { label: "تم التوصيل", variant: "outline" },
   cancelled: { label: "ملغي", variant: "destructive" },
 };
