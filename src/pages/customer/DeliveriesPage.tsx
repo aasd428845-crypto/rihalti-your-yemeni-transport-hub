@@ -13,6 +13,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchDeliveryCompanies, fetchRestaurantsByCompany, createDeliveryOrder } from "@/lib/customerApi";
 import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/common/BackButton";
+import AddressSelector from "@/components/addresses/AddressSelector";
+import type { SelectedAddress } from "@/components/addresses/AddressSelector";
 
 const DeliveriesPage = () => {
   const navigate = useNavigate();
@@ -26,6 +28,8 @@ const DeliveriesPage = () => {
   const [items, setItems] = useState([{ name: "", quantity: 1, price: 0 }]);
   const [searchTerm, setSearchTerm] = useState("");
   const [workingAreas, setWorkingAreas] = useState<Record<string, string[]>>({});
+  const [deliveryLat, setDeliveryLat] = useState(0);
+  const [deliveryLng, setDeliveryLng] = useState(0);
 
   const [customerInfo, setCustomerInfo] = useState({
     name: profile?.full_name || "", phone: profile?.phone || "",
@@ -66,6 +70,17 @@ const DeliveriesPage = () => {
   const deliveryFee = 500;
   const total = subtotal + deliveryFee;
 
+  const handleAddressSelect = (addr: SelectedAddress | null) => {
+    if (!addr) return;
+    setCustomerInfo(prev => ({
+      ...prev,
+      address: addr.full_address,
+      phone: addr.phone || prev.phone,
+    }));
+    setDeliveryLat(addr.latitude || 0);
+    setDeliveryLng(addr.longitude || 0);
+  };
+
   const handleSubmit = async () => {
     if (!user) { toast({ title: "يرجى تسجيل الدخول أولاً", variant: "destructive" }); navigate("/login"); return; }
     if (!customerInfo.name || !customerInfo.phone || !customerInfo.address || items.some(i => !i.name)) {
@@ -79,6 +94,7 @@ const DeliveriesPage = () => {
         customer_name: customerInfo.name, customer_phone: customerInfo.phone,
         customer_address: customerInfo.address, payment_method: customerInfo.payment_method,
         delivery_fee: deliveryFee, notes: customerInfo.notes || undefined,
+        delivery_lat: deliveryLat || undefined, delivery_lng: deliveryLng || undefined,
       });
       toast({ title: "تم إنشاء الطلب بنجاح!" });
       navigate("/history");
@@ -174,7 +190,24 @@ const DeliveriesPage = () => {
             )}
             <div><Label>العناصر</Label>{items.map((item, idx) => (<div key={idx} className="flex gap-2 mt-2"><Input placeholder="اسم العنصر" value={item.name} onChange={e => updateItem(idx, "name", e.target.value)} className="flex-1" /><Input type="number" min={1} value={item.quantity} onChange={e => updateItem(idx, "quantity", Number(e.target.value))} className="w-20" /><Input type="number" min={0} value={item.price} onChange={e => updateItem(idx, "price", Number(e.target.value))} className="w-24" />{items.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeItem(idx)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}</div>))}<Button variant="outline" size="sm" onClick={addItem} className="mt-2 gap-1"><Plus className="w-3 h-3" /> إضافة عنصر</Button></div>
             <div className="grid grid-cols-2 gap-4"><div><Label className="flex items-center gap-1"><User className="w-3 h-3" /> الاسم *</Label><Input value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} /></div><div><Label className="flex items-center gap-1"><Phone className="w-3 h-3" /> الهاتف *</Label><Input value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} /></div></div>
-            <div><Label className="flex items-center gap-1"><MapPin className="w-3 h-3" /> عنوان التوصيل *</Label><Input value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} /></div>
+            
+            {/* Address selector */}
+            <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
+              <AddressSelector
+                label="اختر عنوان التوصيل من المحفوظ"
+                onSelect={handleAddressSelect}
+                showUseMyLocation
+                onUseMyLocation={(lat, lng) => { setDeliveryLat(lat); setDeliveryLng(lng); }}
+              />
+              <div>
+                <Label className="flex items-center gap-1"><MapPin className="w-3 h-3" /> عنوان التوصيل *</Label>
+                <Input value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} placeholder="أو أدخل العنوان يدوياً" />
+              </div>
+              {deliveryLat !== 0 && (
+                <p className="text-xs text-green-600">📍 إحداثيات: {deliveryLat.toFixed(4)}, {deliveryLng.toFixed(4)}</p>
+              )}
+            </div>
+
             <div><Label>ملاحظات</Label><Textarea value={customerInfo.notes} onChange={e => setCustomerInfo({...customerInfo, notes: e.target.value})} /></div>
             <div><Label>طريقة الدفع</Label><Select value={customerInfo.payment_method} onValueChange={v => setCustomerInfo({...customerInfo, payment_method: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cash">نقداً</SelectItem><SelectItem value="card">بطاقة</SelectItem></SelectContent></Select></div>
             <div className="bg-muted p-4 rounded-lg space-y-2"><div className="flex justify-between"><span className="text-foreground">المجموع الفرعي</span><span className="text-foreground">{subtotal} ر.ي</span></div><div className="flex justify-between"><span className="text-foreground">رسوم التوصيل</span><span className="text-foreground">{deliveryFee} ر.ي</span></div><div className="border-t border-border pt-2 flex justify-between font-bold text-lg"><span className="text-foreground">الإجمالي</span><span className="text-primary">{total} ر.ي</span></div></div>

@@ -117,6 +117,25 @@ const RideRequestPage = () => {
               <div className="w-3 h-3 rounded-full bg-green-500" />
               <h3 className="font-semibold text-foreground">نقطة الانطلاق</h3>
             </div>
+            <AddressSelector
+              label="اختر من عناوينك المحفوظة"
+              onSelect={(addr) => {
+                if (addr) {
+                  setForm(f => ({
+                    ...f,
+                    fromAddress: addr.full_address,
+                    fromCity: addr.city || f.fromCity,
+                    pickupLat: addr.latitude || 0,
+                    pickupLng: addr.longitude || 0,
+                  }));
+                }
+              }}
+              showUseMyLocation
+              onUseMyLocation={(lat, lng) => {
+                setForm(f => ({ ...f, pickupLat: lat, pickupLng: lng }));
+                toast({ title: "✅ تم تحديد موقعك", description: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+              }}
+            />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground">المدينة *</Label>
@@ -139,10 +158,6 @@ const RideRequestPage = () => {
                 />
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleLocateMe} disabled={locatingPickup} className="gap-2">
-              <LocateFixed size={14} className={locatingPickup ? "animate-spin" : ""} />
-              {locatingPickup ? "جاري تحديد الموقع..." : "استخدام موقعي الحالي"}
-            </Button>
             {form.pickupLat !== 0 && (
               <p className="text-xs text-green-600">📍 تم تحديد الموقع: {form.pickupLat.toFixed(4)}, {form.pickupLng.toFixed(4)}</p>
             )}
