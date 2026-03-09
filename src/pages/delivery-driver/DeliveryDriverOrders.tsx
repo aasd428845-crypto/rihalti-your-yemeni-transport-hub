@@ -34,7 +34,7 @@ const DeliveryDriverOrders = () => {
             .from("delivery_orders")
             .select("*")
             .eq("rider_id", dd.id)
-            .in("status", ["assigned", "picked_up", "in_transit"])
+            .in("status", ["assigned", "picked_up", "on_the_way", "in_transit"])
             .order("created_at", { ascending: false }),
           supabase
             .from("delivery_orders")
