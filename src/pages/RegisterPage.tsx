@@ -25,7 +25,7 @@ const RegisterPage = () => {
   const { toast } = useToast();
 
   const accountTypes: { value: AccountType; label: string; desc: string; icon: string }[] = [
-    { value: "customer", label: "عميل", desc: "احجز رحلات وأرسل شحنات واطلب توصيل", icon: "🧳" },
+    { value: "customer", label: "عميل", desc: "احجز رحلات وأرسل طرود واطلب توصيل", icon: "🧳" },
   ];
 
   const handleRegister = async (e: React.FormEvent) => {
