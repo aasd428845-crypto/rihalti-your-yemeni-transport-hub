@@ -68,57 +68,100 @@ const SupplierBookings = () => {
       {bookings.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد حجوزات حتى الآن.</CardContent></Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>العميل</TableHead>
-                    <TableHead>الرحلة</TableHead>
-                    <TableHead>المقاعد</TableHead>
-                    <TableHead>المبلغ</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>التاريخ</TableHead>
-                    <TableHead>إجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bookings.map((booking) => {
-                    const trip = trips[booking.trip_id];
-                    return (
-                      <TableRow key={booking.id}>
-                        <TableCell className="font-medium">{profiles[booking.customer_id] || "—"}</TableCell>
-                        <TableCell>{trip ? `${trip.from_city} → ${trip.to_city}` : "—"}</TableCell>
-                        <TableCell>{booking.seat_count}</TableCell>
-                        <TableCell>{Number(booking.total_amount).toLocaleString()} ر.ي</TableCell>
-                        <TableCell><StatusBadge status={booking.status} /></TableCell>
-                        <TableCell className="text-sm">{new Date(booking.created_at).toLocaleDateString("ar")}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => setSelectedBooking(booking)}><Eye className="w-4 h-4" /></Button>
-                            {booking.status === "confirmed" && trip?.driver_phone && (
-                              <Button variant="ghost" size="icon" onClick={() => {
-                                const text = `تفاصيل حجز:\nالعميل: ${profiles[booking.customer_id] || "—"}\nالرحلة: ${trip.from_city} → ${trip.to_city}\nالمقاعد: ${booking.seat_count}\nالمبلغ: ${Number(booking.total_amount).toLocaleString()} ر.ي\nالتاريخ: ${new Date(booking.created_at).toLocaleDateString("ar")}`;
-                                window.open(`https://wa.me/${trip.driver_phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
-                              }} className="text-[hsl(var(--success))]"><MessageCircle className="w-4 h-4" /></Button>
-                            )}
-                            {booking.status === "pending_approval" && (
-                              <>
-                                <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "confirmed")} className="text-[hsl(var(--success))]"><Check className="w-4 h-4" /></Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "cancelled")} className="text-destructive"><X className="w-4 h-4" /></Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <>
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {bookings.map((booking) => {
+              const trip = trips[booking.trip_id];
+              return (
+                <Card key={booking.id} className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-foreground">{profiles[booking.customer_id] || "—"}</span>
+                    <StatusBadge status={booking.status} />
+                  </div>
+                  <div className="space-y-1.5 text-sm text-muted-foreground">
+                    <p><span className="font-medium text-foreground">الرحلة:</span> {trip ? `${trip.from_city} → ${trip.to_city}` : "—"}</p>
+                    <p><span className="font-medium text-foreground">المقاعد:</span> {booking.seat_count}</p>
+                    <p><span className="font-medium text-foreground">المبلغ:</span> {Number(booking.total_amount).toLocaleString()} ر.ي</p>
+                    <p><span className="font-medium text-foreground">التاريخ:</span> {new Date(booking.created_at).toLocaleDateString("ar")}</p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <Button variant="outline" size="sm" className="min-h-[44px] flex-1" onClick={() => setSelectedBooking(booking)}>
+                      <Eye className="w-4 h-4 ml-1" />التفاصيل
+                    </Button>
+                    {booking.status === "confirmed" && trip?.driver_phone && (
+                      <Button variant="outline" size="sm" className="min-h-[44px]" onClick={() => {
+                        const text = `تفاصيل حجز:\nالعميل: ${profiles[booking.customer_id] || "—"}\nالرحلة: ${trip.from_city} → ${trip.to_city}\nالمقاعد: ${booking.seat_count}\nالمبلغ: ${Number(booking.total_amount).toLocaleString()} ر.ي`;
+                        window.open(`https://wa.me/${trip.driver_phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
+                      }}>
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {booking.status === "pending_approval" && (
+                      <>
+                        <Button size="sm" className="min-h-[44px]" onClick={() => handleStatusUpdate(booking.id, "confirmed")}><Check className="w-4 h-4" /></Button>
+                        <Button size="sm" variant="destructive" className="min-h-[44px]" onClick={() => handleStatusUpdate(booking.id, "cancelled")}><X className="w-4 h-4" /></Button>
+                      </>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View */}
+          <Card className="hidden md:block">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>العميل</TableHead>
+                      <TableHead>الرحلة</TableHead>
+                      <TableHead>المقاعد</TableHead>
+                      <TableHead>المبلغ</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>التاريخ</TableHead>
+                      <TableHead>إجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bookings.map((booking) => {
+                      const trip = trips[booking.trip_id];
+                      return (
+                        <TableRow key={booking.id}>
+                          <TableCell className="font-medium">{profiles[booking.customer_id] || "—"}</TableCell>
+                          <TableCell>{trip ? `${trip.from_city} → ${trip.to_city}` : "—"}</TableCell>
+                          <TableCell>{booking.seat_count}</TableCell>
+                          <TableCell>{Number(booking.total_amount).toLocaleString()} ر.ي</TableCell>
+                          <TableCell><StatusBadge status={booking.status} /></TableCell>
+                          <TableCell className="text-sm">{new Date(booking.created_at).toLocaleDateString("ar")}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => setSelectedBooking(booking)}><Eye className="w-4 h-4" /></Button>
+                              {booking.status === "confirmed" && trip?.driver_phone && (
+                                <Button variant="ghost" size="icon" onClick={() => {
+                                  const text = `تفاصيل حجز:\nالعميل: ${profiles[booking.customer_id] || "—"}\nالرحلة: ${trip.from_city} → ${trip.to_city}\nالمقاعد: ${booking.seat_count}\nالمبلغ: ${Number(booking.total_amount).toLocaleString()} ر.ي\nالتاريخ: ${new Date(booking.created_at).toLocaleDateString("ar")}`;
+                                  window.open(`https://wa.me/${trip.driver_phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
+                                }} className="text-[hsl(var(--success))]"><MessageCircle className="w-4 h-4" /></Button>
+                              )}
+                              {booking.status === "pending_approval" && (
+                                <>
+                                  <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "confirmed")} className="text-[hsl(var(--success))]"><Check className="w-4 h-4" /></Button>
+                                  <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "cancelled")} className="text-destructive"><X className="w-4 h-4" /></Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
