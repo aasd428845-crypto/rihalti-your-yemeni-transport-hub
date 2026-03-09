@@ -81,7 +81,7 @@ const PartnerPaymentSettings = () => {
               <div>
                 <Label className="text-base font-medium">الدفع عند الاستلام</Label>
                 <p className="text-sm text-muted-foreground">
-                  السماح للعملاء بالدفع نقداً عند استلام الشحنة أو الطلب
+                  السماح للعملاء بالدفع نقداً عند استلام الطرد أو الطلب
                 </p>
               </div>
             </div>

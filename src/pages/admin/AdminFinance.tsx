@@ -111,7 +111,7 @@ const AdminFinance = () => {
                     <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">لا توجد معاملات</TableCell></TableRow>
                   ) : transactions.map((tx) => (
                     <TableRow key={tx.id}>
-                      <TableCell className="font-medium">{tx.type === "trip" ? "رحلة" : tx.type === "shipment" ? "شحنة" : "توصيل"}</TableCell>
+                      <TableCell className="font-medium">{tx.type === "trip" ? "رحلة" : tx.type === "shipment" ? "طرد" : "توصيل"}</TableCell>
                       <TableCell>{Number(tx.amount).toLocaleString()} ر.ي</TableCell>
                       <TableCell>{Number(tx.platform_fee).toLocaleString()} ر.ي</TableCell>
                       <TableCell>{Number(tx.partner_earning).toLocaleString()} ر.ي</TableCell>
