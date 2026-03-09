@@ -238,6 +238,7 @@ const App = () => (
           </Routes>
           <SupportChatWidget />
           <InstallPWAButton />
+          <UpdateNotification />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
