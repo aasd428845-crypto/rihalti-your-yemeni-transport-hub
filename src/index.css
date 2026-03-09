@@ -287,3 +287,14 @@
     touch-action: manipulation;
   }
 }
+
+/* Fix Leaflet z-index inside dialogs */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-control {
+  z-index: 0 !important;
+}
+.leaflet-container {
+  z-index: 0;
+}
