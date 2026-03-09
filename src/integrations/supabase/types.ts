@@ -77,6 +77,92 @@ export type Database = {
         }
         Relationships: []
       }
+      alert_history: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          id: string
+          is_acknowledged: boolean | null
+          message: string
+          metadata: Json | null
+          metric_value: number | null
+          resolved_at: string | null
+          rule_id: string | null
+          triggered_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          id?: string
+          is_acknowledged?: boolean | null
+          message: string
+          metadata?: Json | null
+          metric_value?: number | null
+          resolved_at?: string | null
+          rule_id?: string | null
+          triggered_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          id?: string
+          is_acknowledged?: boolean | null
+          message?: string
+          metadata?: Json | null
+          metric_value?: number | null
+          resolved_at?: string | null
+          rule_id?: string | null
+          triggered_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_history_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "alert_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alert_rules: {
+        Row: {
+          condition: Json
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          notification_channels: string[] | null
+          rule_name: string
+          rule_type: string
+          severity: string
+          updated_at: string | null
+        }
+        Insert: {
+          condition?: Json
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          notification_channels?: string[] | null
+          rule_name: string
+          rule_type?: string
+          severity?: string
+          updated_at?: string | null
+        }
+        Update: {
+          condition?: Json
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          notification_channels?: string[] | null
+          rule_name?: string
+          rule_type?: string
+          severity?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       approval_requests: {
         Row: {
           admin_notes: string | null
