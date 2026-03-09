@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { updateProfile } from "@/lib/customerApi";
 import { supabase } from "@/integrations/supabase/client";
 import { getPhoneError, formatYemeniPhone } from "@/lib/phoneValidation";
+import LoyaltyPointsCard from "@/components/loyalty/LoyaltyPointsCard";
 
 const AccountPage = () => {
   const { user, profile } = useAuth();
