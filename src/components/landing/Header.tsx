@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, Shield, User, LogOut, LayoutDashboard, MapPin, Bell, ShoppingCart, ChevronDown } from "lucide-react";
+import { Menu, X, Shield, User, LogOut, LayoutDashboard, MapPin, Bell, ShoppingCart, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "next-themes";
 import waslLogo from "@/assets/wasl-logo.png";
 
 const navLinks = [
@@ -21,6 +22,7 @@ const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { user, role, profile, signOut, loading } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -150,6 +152,13 @@ const Header = () => {
               <Button size="sm" className="bg-primary-gradient text-primary-foreground hover:opacity-90 shadow-primary" onClick={() => navigate("/register")}>إنشاء حساب</Button>
             </>
           )}
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="p-2 rounded-lg hover:bg-primary/10 transition-colors border border-primary/20"
+            title={theme === "dark" ? "الوضع النهاري" : "الوضع الليلي"}
+          >
+            {theme === "dark" ? <Sun className="w-4 h-4 text-accent" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
+          </button>
           <button onClick={() => navigate("/login")} className="p-2 rounded-lg hover:bg-primary/10 transition-colors border border-primary/20" title="لوحة تحكم المشرف">
             <Shield className="w-4 h-4 text-muted-foreground" />
           </button>
@@ -185,6 +194,13 @@ const Header = () => {
                 <LayoutDashboard className="w-4 h-4" />{dashboardLabel}
               </button>
             )}
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 rounded-lg transition-colors text-right flex items-center gap-2"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4 text-accent" /> : <Moon className="w-4 h-4" />}
+              {theme === "dark" ? "الوضع النهاري" : "الوضع الليلي"}
+            </button>
             <div className="border-t border-border mt-2 pt-3 flex flex-col gap-2">
               {user ? (
                 <>
