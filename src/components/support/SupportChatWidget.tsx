@@ -17,9 +17,8 @@ const SupportChatWidget = () => {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  if (!user) return null;
-
   const getOrCreateConversation = async () => {
+    if (!user) return;
     setLoading(true);
     // Find existing open support conversation
     const { data: existing } = await supabase
