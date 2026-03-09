@@ -9,6 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import CompleteProfilePage from "./pages/CompleteProfilePage";
 import NotFound from "./pages/NotFound";
 import ShipmentRequestPage from "./pages/ShipmentRequestPage";
 import OrderDetailsPage from "./pages/customer/OrderDetailsPage";
@@ -115,6 +116,7 @@ const App = () => (
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/complete-profile" element={<CompleteProfilePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/invite/:token" element={<InvitePage />} />
             <Route path="/contact" element={<ContactPage />} />

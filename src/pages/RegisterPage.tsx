@@ -6,12 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Bus, Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import PhoneRegisterForm from "@/components/auth/PhoneRegisterForm";
 
 type AccountType = "customer" | "supplier" | "delivery_company";
+type AuthMethod = "email" | "phone";
 
 const RegisterPage = () => {
   const [step, setStep] = useState<1 | 2>(1);
   const [accountType, setAccountType] = useState<AccountType>("customer");
+  const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -156,59 +159,95 @@ const RegisterPage = () => {
                 <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">أو</span></div>
               </div>
 
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div>
-                  <Label htmlFor="fullName">الاسم الكامل</Label>
-                  <div className="relative mt-1">
-                    <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="أدخل اسمك الكامل" className="pr-10 h-11" required />
-                  </div>
-                </div>
+              {/* Auth method tabs */}
+              <div className="flex rounded-lg border border-border overflow-hidden mb-4">
+                <button
+                  onClick={() => setAuthMethod("email")}
+                  className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                    authMethod === "email"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Mail className="w-4 h-4" />
+                  بريد إلكتروني
+                </button>
+                <button
+                  onClick={() => setAuthMethod("phone")}
+                  className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                    authMethod === "phone"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Phone className="w-4 h-4" />
+                  رقم الهاتف
+                </button>
+              </div>
 
-                <div>
-                  <Label htmlFor="email">البريد الإلكتروني</Label>
-                  <div className="relative mt-1">
-                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" className="pr-10 h-11" required dir="ltr" />
+              {authMethod === "phone" ? (
+                <PhoneRegisterForm />
+              ) : (
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div>
+                    <Label htmlFor="fullName">الاسم الكامل</Label>
+                    <div className="relative mt-1">
+                      <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="أدخل اسمك الكامل" className="pr-10 h-11" required />
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <Label htmlFor="phone">رقم الهاتف (اختياري)</Label>
-                  <div className="relative mt-1">
-                    <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+967 7XX XXX XXX" className="pr-10 h-11" dir="ltr" />
+                  <div>
+                    <Label htmlFor="email">البريد الإلكتروني</Label>
+                    <div className="relative mt-1">
+                      <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" className="pr-10 h-11" required dir="ltr" />
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <Label htmlFor="password">كلمة المرور</Label>
-                  <div className="relative mt-1">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="6 أحرف على الأقل"
-                      className="pr-10 pl-10 h-11"
-                      required
-                      minLength={6}
-                      dir="ltr"
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                  <div>
+                    <Label htmlFor="phone">رقم الهاتف (اختياري)</Label>
+                    <div className="relative mt-1">
+                      <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+967 7XX XXX XXX" className="pr-10 h-11" dir="ltr" />
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" className="flex-1 h-11" onClick={() => setStep(1)}>رجوع</Button>
-                  <Button type="submit" className="flex-1 h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90" disabled={loading}>
-                    {loading ? "جاري الإنشاء..." : "إنشاء الحساب"}
-                  </Button>
+                  <div>
+                    <Label htmlFor="password">كلمة المرور</Label>
+                    <div className="relative mt-1">
+                      <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="6 أحرف على الأقل"
+                        className="pr-10 pl-10 h-11"
+                        required
+                        minLength={6}
+                        dir="ltr"
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" className="flex-1 h-11" onClick={() => setStep(1)}>رجوع</Button>
+                    <Button type="submit" className="flex-1 h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90" disabled={loading}>
+                      {loading ? "جاري الإنشاء..." : "إنشاء الحساب"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+
+              {authMethod === "phone" && (
+                <div className="mt-3">
+                  <Button type="button" variant="outline" className="w-full h-11" onClick={() => setStep(1)}>رجوع</Button>
                 </div>
-              </form>
+              )}
             </>
           )}
 
