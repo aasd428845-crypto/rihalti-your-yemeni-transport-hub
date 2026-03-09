@@ -33,7 +33,7 @@ const LoginPage = () => {
         variant: "destructive",
       });
     } else {
-      toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في رحلاتي!" });
+      toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في وصل!" });
       // Fetch role for redirect
       const { data: { user: loggedUser } } = await supabase.auth.getUser();
       if (loggedUser) {
