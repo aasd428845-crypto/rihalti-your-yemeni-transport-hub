@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchTripById, createBooking, fetchSupplierBankAccounts } from "@/lib/customerApi";
+import { fetchTripById, createBooking } from "@/lib/customerApi";
 
 import WhatsAppShareButton from "@/components/trips/WhatsAppShareButton";
 import { format } from "date-fns";
