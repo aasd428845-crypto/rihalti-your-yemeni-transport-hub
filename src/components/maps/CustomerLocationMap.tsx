@@ -2,6 +2,17 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MapPin, Navigation } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix default marker icon
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
 
 interface CustomerLocationMapProps {
   lat?: number;
@@ -62,13 +73,34 @@ const CustomerLocationMap = ({ lat, lng, address, landmark, label = "موقع ا
           </DialogHeader>
           <div className="space-y-3">
             <div className="rounded-lg overflow-hidden border border-border" style={{ height: "300px" }}>
-              <iframe
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lng}`}
-                title="Customer Location"
-              />
+              {open && (
+                <MapContainer
+                  center={[lat, lng]}
+                  zoom={15}
+                  style={{ height: "100%", width: "100%" }}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker position={[lat, lng]}>
+                    <Popup>{label}<br />{address}</Popup>
+                  </Marker>
+                  {myLat && myLng && (
+                    <Marker
+                      position={[myLat, myLng]}
+                      icon={L.divIcon({
+                        className: "bg-primary rounded-full border-2 border-white shadow-lg",
+                        iconSize: [14, 14],
+                        iconAnchor: [7, 7],
+                      })}
+                    >
+                      <Popup>موقعي الحالي</Popup>
+                    </Marker>
+                  )}
+                </MapContainer>
+              )}
             </div>
 
             {address && (
