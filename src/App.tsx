@@ -9,18 +9,21 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import MainLayout from "@/layouts/MainLayout";
 import PageLoader from "@/components/common/PageLoader";
 import Index from "./pages/Index";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import CompleteProfilePage from "./pages/CompleteProfilePage";
-import NotFound from "./pages/NotFound";
-import ShipmentRequestPage from "./pages/ShipmentRequestPage";
-import OrderDetailsPage from "./pages/customer/OrderDetailsPage";
-import AboutPage from "./pages/AboutPage";
-import ContactPage from "./pages/ContactPage";
-import TermsPage from "./pages/TermsPage";
-import PrivacyPage from "./pages/PrivacyPage";
+
+// Auth pages (lazy loaded)
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
+
+// Static pages (lazy loaded)
+const NotFound = lazy(() => import("./pages/NotFound"));
+const ShipmentRequestPage = lazy(() => import("./pages/ShipmentRequestPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 // Admin (lazy loaded)
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
