@@ -12,7 +12,7 @@ const menuItems = [
   { title: "لوحة التحكم", url: "/supplier", icon: LayoutDashboard },
   { title: "الرحلات", url: "/supplier/trips", icon: Bus },
   { title: "الحجوزات", url: "/supplier/bookings", icon: CalendarCheck },
-  { title: "الشحنات", url: "/supplier/shipments", icon: Package },
+  { title: "الطرود", url: "/supplier/shipments", icon: Package },
   { title: "المالية", url: "/supplier/finance", icon: DollarSign },
   { title: "الإعدادات", url: "/supplier/settings", icon: Settings },
   { title: "الرسائل", url: "/supplier/messages", icon: MessageCircle },
