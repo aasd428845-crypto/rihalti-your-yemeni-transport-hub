@@ -63,15 +63,15 @@ const CheckoutPage = () => {
 
     setSubmitting(true);
     try {
-      await createBooking({
+      const bookingData = await createBooking({
         trip_id: trip.id,
         customer_id: user.id,
         seat_count: seatCount,
         total_amount: totalAmount,
-        payment_method: paymentMethod,
+        payment_method: "pending",
       });
-      toast({ title: "تم الحجز بنجاح! 🎉", description: "سيتم إرسال تفاصيل الحجز إليك." });
-      navigate("/history");
+      toast({ title: "تم الحجز بنجاح! 🎉", description: "سيتم توجيهك لإتمام الدفع." });
+      navigate(`/payment/booking/${bookingData.id}`);
     } catch (err: any) {
       toast({ title: "خطأ في الحجز", description: err.message, variant: "destructive" });
     } finally {
