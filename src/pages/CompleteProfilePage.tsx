@@ -55,7 +55,7 @@ const CompleteProfilePage = () => {
         data: { full_name: fullName.trim() },
       });
 
-      toast({ title: "تم حفظ البيانات بنجاح!", description: "مرحباً بك في رحلاتي" });
+      toast({ title: "تم حفظ البيانات بنجاح!", description: "مرحباً بك في وصل" });
       navigate("/");
     } catch (err: any) {
       toast({ title: "خطأ", description: err?.message || "فشل في حفظ البيانات", variant: "destructive" });
