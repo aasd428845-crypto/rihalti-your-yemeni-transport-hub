@@ -226,6 +226,8 @@ export const createShipmentRequest = async (shipment: ShipmentFormData & { custo
     delivery_address: shipment.delivery_address,
     delivery_lat: shipment.delivery_lat,
     delivery_lng: shipment.delivery_lng,
+    pickup_landmark: shipment.pickup_landmark,
+    delivery_landmark: shipment.delivery_landmark,
     recipient_name: shipment.recipient_name,
     recipient_phone: shipment.recipient_phone,
     item_description: shipment.item_description,

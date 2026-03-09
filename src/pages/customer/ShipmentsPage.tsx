@@ -224,6 +224,15 @@ const ShipmentsPage = () => {
                 <Label>أقرب معلم للمستلم (اختياري)</Label>
                 <Input value={form.delivery_landmark} onChange={(e) => setForm({ ...form, delivery_landmark: e.target.value })} placeholder="مثال: مقابل البنك المركزي" />
               </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">تحديد موقع التسليم على الخريطة (اختياري)</Label>
+                <MapPicker
+                  lat={form.delivery_lat || undefined}
+                  lng={form.delivery_lng || undefined}
+                  onLocationSelect={(lat, lng) => setForm(f => ({ ...f, delivery_lat: lat, delivery_lng: lng }))}
+                  height="200px"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
