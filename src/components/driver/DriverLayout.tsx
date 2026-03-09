@@ -3,10 +3,13 @@ import { Navigate, Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DriverSidebar from "./DriverSidebar";
 import LocationGate from "./LocationGate";
-import { Menu } from "lucide-react";
+import { Menu, Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "next-themes";
 
 const DriverLayout = () => {
   const { role, loading, user } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   if (loading) {
     return (
