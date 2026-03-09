@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 const tabs = [
   { label: "🚌 رحلة", placeholder: "من أين إلى أين؟ ابحث عن رحلتك..." },
-  { label: "📦 شحنة", placeholder: "أرسل شحنتك... اختر المدينة" },
+  { label: "📦 طرد", placeholder: "أرسل طردك... اختر المدينة" },
   { label: "🛵 توصيل", placeholder: "اطلب التوصيل من مطاعمك المفضلة..." },
 ];
 
@@ -143,7 +143,7 @@ const Hero = () => {
               </Link>
               <Link to="/shipments" className="flex-1">
                 <Button variant="outline" size="sm" className="w-full border-primary/30 text-primary-glow hover:bg-primary/10 gap-1">
-                  <Package className="w-3.5 h-3.5" />أرسل شحنة
+                  <Package className="w-3.5 h-3.5" />أرسل طرد
                 </Button>
               </Link>
               <Link to="/deliveries" className="flex-1">

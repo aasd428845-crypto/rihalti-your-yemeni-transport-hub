@@ -21,7 +21,7 @@ export default function AdminDeliveryProofs() {
     fetchProofs();
   }, []);
 
-  const typeLabels: Record<string, string> = { shipment: 'شحنة', delivery: 'توصيل', ride: 'رحلة' };
+  const typeLabels: Record<string, string> = { shipment: 'طرد', delivery: 'توصيل', ride: 'رحلة' };
 
   return (
     <div className="space-y-6" dir="rtl">

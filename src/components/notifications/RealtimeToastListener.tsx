@@ -66,12 +66,12 @@ const RealtimeToastListener = () => {
 
           const statusMessages: Record<string, string> = {
             accepted: "تم قبول طلب الشحن ✅",
-            priced: "تم تسعير شحنتك 💰",
-            picked_up: "تم استلام شحنتك 📦",
-            on_the_way: "شحنتك في الطريق 🚚",
-            delivered: "تم توصيل شحنتك بنجاح ✅",
-            cancelled: "تم إلغاء طلب الشحن ❌",
-            rejected: "تم رفض طلب الشحن",
+            priced: "تم تسعير طردك 💰",
+            picked_up: "تم استلام طردك 📦",
+            on_the_way: "طردك في الطريق 🚚",
+            delivered: "تم توصيل طردك بنجاح ✅",
+            cancelled: "تم إلغاء طلب الطرد ❌",
+            rejected: "تم رفض طلب الطرد",
           };
 
           const msg = statusMessages[s.status];

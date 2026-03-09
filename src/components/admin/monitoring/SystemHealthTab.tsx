@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 const ACTION_LABELS: Record<string, string> = {
   fix_stuck_trip: "إصلاح رحلة عالقة",
-  fix_stuck_shipment: "إصلاح شحنة عالقة",
+  fix_stuck_shipment: "إصلاح طرد عالق",
   fix_stuck_delivery: "إصلاح توصيل عالق",
   fix_stuck_ride: "إصلاح أجرة عالقة",
   auto_resolve_errors: "حل أخطاء قديمة",

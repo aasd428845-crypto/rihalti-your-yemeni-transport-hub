@@ -18,7 +18,7 @@ export default function BarcodeDisplay({ barcode, orderId, orderType, showPrint 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const typeLabel = orderType === 'shipment' ? 'شحنة' : orderType === 'delivery' ? 'توصيل' : 'رحلة';
+    const typeLabel = orderType === 'shipment' ? 'طرد' : orderType === 'delivery' ? 'توصيل' : 'رحلة';
 
     printWindow.document.write(`
       <html dir="rtl">

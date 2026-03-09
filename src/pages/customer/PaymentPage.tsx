@@ -22,7 +22,7 @@ import BackButton from "@/components/common/BackButton";
 
 const entityLabels: Record<string, string> = {
   booking: "حجز رحلة",
-  shipment: "شحنة",
+  shipment: "طرد",
   delivery: "طلب توصيل",
   ride: "رحلة أجرة",
 };

@@ -155,7 +155,7 @@ const ShipmentsPage = () => {
                       )}
                       {supplier.phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" />{supplier.phone}</p>}
                       <Button variant="outline" size="sm" className="w-full mt-4 gap-1">
-                        <Package className="w-3 h-3" />إرسال شحنة
+                        <Package className="w-3 h-3" />إرسال طرد
                       </Button>
                     </CardContent>
                   </Card>
@@ -178,11 +178,11 @@ const ShipmentsPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
         <Button variant="ghost" onClick={() => setStep("select")} className="mb-6 gap-2">
-          <ArrowRight className="w-4 h-4" />العودة لاختيار المورد
+          <ArrowRight className="w-4 h-4" />العودة لاختيار صاحب المكتب
         </Button>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-primary" />طلب شحنة جديدة - {selectedSupplier?.full_name}</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-primary" />طلب طرد جديد - {selectedSupplier?.full_name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div><Label>نوع الشحن</Label><Select value={form.shipment_type} onValueChange={(v) => setForm({ ...form, shipment_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="door_to_door">من الباب إلى الباب</SelectItem><SelectItem value="office_to_office">من المكتب إلى المكتب</SelectItem></SelectContent></Select></div>
@@ -239,7 +239,7 @@ const ShipmentsPage = () => {
               <div><Label className="flex items-center gap-1"><User className="w-3 h-3" /> اسم المستلم *</Label><Input value={form.recipient_name} onChange={(e) => setForm({ ...form, recipient_name: e.target.value })} /></div>
               <div><Label className="flex items-center gap-1"><Phone className="w-3 h-3" /> هاتف المستلم *</Label><Input value={form.recipient_phone} onChange={(e) => setForm({ ...form, recipient_phone: e.target.value })} /></div>
             </div>
-            <div><Label className="flex items-center gap-1"><FileText className="w-3 h-3" /> وصف الشحنة</Label><Textarea value={form.item_description} onChange={(e) => setForm({ ...form, item_description: e.target.value })} placeholder="وصف الأغراض المراد شحنها" /></div>
+            <div><Label className="flex items-center gap-1"><FileText className="w-3 h-3" /> وصف الطرد</Label><Textarea value={form.item_description} onChange={(e) => setForm({ ...form, item_description: e.target.value })} placeholder="وصف الأغراض المراد إرسالها" /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="flex items-center gap-1"><Weight className="w-3 h-3" /> الوزن (كجم)</Label><Input type="number" value={form.item_weight} onChange={(e) => setForm({ ...form, item_weight: e.target.value })} /></div>
               <div><Label>الأبعاد</Label><Input value={form.item_dimensions} onChange={(e) => setForm({ ...form, item_dimensions: e.target.value })} placeholder="مثال: 30x20x10 سم" /></div>

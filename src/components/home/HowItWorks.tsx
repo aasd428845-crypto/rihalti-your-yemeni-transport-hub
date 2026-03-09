@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Search, Wallet, Navigation, FileCheck, ChevronDown, Zap } from "lucide-react";
 
 const steps = [
-  { icon: Search, title: "ابحث واختر", desc: "ابحث عن رحلتك أو أرسل شحنتك أو اطلب توصيل من مطاعمك المفضلة", colorClass: "text-primary-glow", bgActive: "bg-primary/20 border-primary/40", labelBg: "bg-primary/15 text-primary-glow" },
+  { icon: Search, title: "ابحث واختر", desc: "ابحث عن رحلتك أو أرسل طردك أو اطلب توصيل من مطاعمك المفضلة", colorClass: "text-primary-glow", bgActive: "bg-primary/20 border-primary/40", labelBg: "bg-primary/15 text-primary-glow" },
   { icon: Wallet, title: "احجز وادفع", desc: "اختر الخدمة المناسبة وادفع بطريقة آمنة وسهلة — نقداً أو تحويل بنكي", colorClass: "text-blue-400", bgActive: "bg-blue-400/20 border-blue-400/40", labelBg: "bg-blue-400/15 text-blue-400" },
-  { icon: Navigation, title: "تتبع مباشر", desc: "تابع رحلتك أو شحنتك لحظة بلحظة على الخريطة", colorClass: "text-accent", bgActive: "bg-accent/20 border-accent/40", labelBg: "bg-accent/15 text-accent" },
-  { icon: FileCheck, title: "تأكيد التسليم", desc: "تأكيد وصول الرحلة أو الشحنة مع إيصال إلكتروني فوري", colorClass: "text-purple-400", bgActive: "bg-purple-400/20 border-purple-400/40", labelBg: "bg-purple-400/15 text-purple-400" },
+  { icon: Navigation, title: "تتبع مباشر", desc: "تابع رحلتك أو طردك لحظة بلحظة على الخريطة", colorClass: "text-accent", bgActive: "bg-accent/20 border-accent/40", labelBg: "bg-accent/15 text-accent" },
+  { icon: FileCheck, title: "تأكيد التسليم", desc: "تأكيد وصول الرحلة أو الطرد مع إيصال إلكتروني فوري", colorClass: "text-purple-400", bgActive: "bg-purple-400/20 border-purple-400/40", labelBg: "bg-purple-400/15 text-purple-400" },
 ];
 
 const HowItWorks = () => {

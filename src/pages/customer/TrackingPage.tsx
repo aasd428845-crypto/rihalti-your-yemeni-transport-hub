@@ -118,7 +118,7 @@ const TrackingPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5 text-primary" />
-                {resultType === "shipment" ? "تفاصيل الشحنة" : "تفاصيل الطلب"}
+                {resultType === "shipment" ? "تفاصيل الطرد" : "تفاصيل الطلب"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

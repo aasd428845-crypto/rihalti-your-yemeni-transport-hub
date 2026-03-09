@@ -110,7 +110,7 @@ export default function SupplierOrderDetails() {
           <Icon className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h2 className="text-lg font-bold">تفاصيل {orderType === 'shipment' ? 'الشحنة' : 'التوصيل'}</h2>
+          <h2 className="text-lg font-bold">تفاصيل {orderType === 'shipment' ? 'الطرد' : 'التوصيل'}</h2>
           <Badge className="text-xs">{statusLabels[order.status] || order.status}</Badge>
         </div>
       </div>

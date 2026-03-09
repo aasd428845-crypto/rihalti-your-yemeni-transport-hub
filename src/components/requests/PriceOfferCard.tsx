@@ -42,7 +42,7 @@ export function PriceOfferCard({ request, onClose }: Props) {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
               <span style={{ color: '#8BA8A0', fontSize: '13px' }}>نوع الطلب</span>
               <span style={{ color: '#fff', fontSize: '13px', fontWeight: '600' }}>
-                {request.type === 'shipment' ? '📦 شحنة' : request.type === 'delivery' ? '🛵 توصيل' : '🚗 سيارة أجرة'}
+                {request.type === 'shipment' ? '📦 طرد' : request.type === 'delivery' ? '🛵 توصيل' : '🚗 سيارة أجرة'}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>

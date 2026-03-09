@@ -21,7 +21,7 @@ const AppDownload = () => {
               حمّل تطبيق وصل الآن
             </h2>
             <p className="text-muted-foreground text-[15px] leading-relaxed mb-8">
-              جميع خدماتنا متاحة على هاتفك. احجز رحلتك، أرسل شحنتك، أو اطلب التوصيل في أي وقت ومن أي مكان.
+              جميع خدماتنا متاحة على هاتفك. احجز رحلتك، أرسل طردك، أو اطلب التوصيل في أي وقت ومن أي مكان.
             </p>
 
             <div className="flex flex-col gap-3.5 mb-8">

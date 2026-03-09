@@ -34,7 +34,7 @@ export default function ShipmentRequestPage() {
       return;
     }
     if (selectedType === 'shipment' && !form.description) {
-      alert('يرجى وصف محتوى الشحنة');
+      alert('يرجى وصف محتوى الطرد');
       return;
     }
     setLoading(true);
@@ -159,7 +159,7 @@ export default function ShipmentRequestPage() {
               {selectedType === 'shipment' && (
                 <>
                   <div style={{ marginBottom: '14px' }}>
-                    <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>محتوى الشحنة *</label>
+                    <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>محتوى الطرد *</label>
                     <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="مثال: شاشة كمبيوتر، ملابس..."
                       style={{ width: '100%', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                   </div>
