@@ -112,6 +112,7 @@ import SupportChatWidget from "./components/support/SupportChatWidget";
 import InstallPage from "./pages/InstallPage";
 import { InstallPWAButton } from "./components/InstallPWAButton";
 import { UpdateNotification } from "./components/UpdateNotification";
+import RealtimeToastListener from "./components/notifications/RealtimeToastListener";
 
 const queryClient = new QueryClient();
 
