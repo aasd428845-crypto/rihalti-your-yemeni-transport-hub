@@ -102,7 +102,7 @@ const TripDetailsPage = () => {
     );
   }
 
-  const supplierName = trip.supplier?.full_name || "مورد";
+  const supplierName = trip.supplier?.full_name || "صاحب مكتب";
   const supplierLogo = trip.supplier?.logo_url;
 
   return (
