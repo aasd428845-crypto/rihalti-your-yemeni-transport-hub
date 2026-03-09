@@ -211,6 +211,7 @@ const AdminTransactions = () => {
                       </TableCell>
                       <TableCell>
                         <Button size="sm" variant="ghost" onClick={() => openDetails(t)}><Eye className="w-4 h-4" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => navigate(`/admin/partner/${t.partner_id}`)} title="ملف الشريك"><UserCircle className="w-4 h-4" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
