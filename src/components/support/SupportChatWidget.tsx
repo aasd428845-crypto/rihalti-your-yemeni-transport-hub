@@ -58,8 +58,8 @@ const SupportChatWidget = () => {
   };
 
   useEffect(() => {
-    if (open && !conversationId) getOrCreateConversation();
-  }, [open]);
+    if (open && !conversationId && user) getOrCreateConversation();
+  }, [open, user]);
 
   useEffect(() => {
     if (!conversationId) return;
