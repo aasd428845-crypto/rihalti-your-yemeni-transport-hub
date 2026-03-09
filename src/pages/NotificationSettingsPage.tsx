@@ -199,7 +199,7 @@ const NotificationSettingsPage = () => {
                         <SelectContent>
                           <SelectItem value="default">افتراضي</SelectItem>
                           <SelectItem value="trip_reminder">تذكير رحلة</SelectItem>
-                          <SelectItem value="new_shipment">شحنة جديدة</SelectItem>
+                          <SelectItem value="new_shipment">طرد جديد</SelectItem>
                           <SelectItem value="promotion">عرض ترويجي</SelectItem>
                           <SelectItem value="payment_success">تأكيد دفع</SelectItem>
                         </SelectContent>

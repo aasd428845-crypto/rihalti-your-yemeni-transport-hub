@@ -258,7 +258,7 @@ const TripDetailsPage = () => {
                 {/* Show bank accounts for direct payment */}
                 {paymentMethod === "direct_to_supplier" && bankAccounts && bankAccounts.length > 0 && (
                   <div className="bg-accent rounded-lg p-3 space-y-2">
-                    <p className="text-xs font-medium text-accent-foreground">حسابات المورد البنكية:</p>
+                    <p className="text-xs font-medium text-accent-foreground">حسابات صاحب المكتب البنكية:</p>
                     {bankAccounts.map((acc: any) => (
                       <div key={acc.id} className="text-xs text-accent-foreground">
                         <p>{acc.bank_name} - {acc.account_number}</p>

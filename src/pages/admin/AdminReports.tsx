@@ -99,7 +99,7 @@ const AdminReports = () => {
   const servicesPieData = stats
     ? [
         { name: "رحلات", value: stats.trips },
-        { name: "شحنات", value: stats.shipments },
+        { name: "طرود", value: stats.shipments },
         { name: "توصيلات", value: stats.deliveries },
         { name: "أجرة", value: stats.rides },
       ]

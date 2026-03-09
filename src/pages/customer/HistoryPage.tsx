@@ -293,7 +293,7 @@ const HistoryPage = () => {
                 })}
               </div>
             ) : (
-              <EmptyState icon={<Package className="w-12 h-12" />} text="لا توجد شحنات" />
+              <EmptyState icon={<Package className="w-12 h-12" />} text="لا توجد طرود" />
             )}
           </TabsContent>
 

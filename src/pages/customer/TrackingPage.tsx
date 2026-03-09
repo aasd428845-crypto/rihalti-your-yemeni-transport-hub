@@ -88,7 +88,7 @@ const TrackingPage = () => {
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
-        <h1 className="text-3xl font-bold text-foreground mb-2">تتبع الشحنة</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">تتبع الطرد</h1>
         <p className="text-muted-foreground mb-8">أدخل رقم التتبع أو رقم الطلب للمتابعة</p>
 
         <Card className="mb-8">

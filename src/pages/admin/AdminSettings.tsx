@@ -163,7 +163,7 @@ const AdminSettings = () => {
                   {[
                     { key: "global_commission_booking", label: "عمولة الحجوزات" },
                     { key: "global_commission_delivery", label: "عمولة التوصيل" },
-                    { key: "global_commission_shipment", label: "عمولة الشحنات" },
+                    { key: "global_commission_shipment", label: "عمولة الطرود" },
                     { key: "global_commission_ride", label: "عمولة الأجرة" },
                   ].map((item) => (
                     <div key={item.key} className="flex flex-col sm:flex-row sm:items-center gap-2">
