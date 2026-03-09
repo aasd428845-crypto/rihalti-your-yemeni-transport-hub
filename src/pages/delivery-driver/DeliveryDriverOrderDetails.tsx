@@ -146,7 +146,7 @@ const DeliveryDriverOrderDetails = () => {
   const flow = STATUS_FLOW[order.status];
   const canAct = canAccept || (isMyOrder && flow);
   const hasLocation = order.delivery_lat && order.delivery_lng;
-  const chatUnlocked = isMyOrder && ["assigned", "picked_up", "in_transit"].includes(order.status);
+  const chatUnlocked = isMyOrder && ["assigned", "picked_up", "in_transit", "on_the_way"].includes(order.status);
 
   const handleAction = () => {
     if (canAccept) return acceptOrder();
