@@ -57,9 +57,11 @@ export interface ShipmentFormData {
   pickup_address: string;
   pickup_lat?: number;
   pickup_lng?: number;
+  pickup_landmark?: string;
   delivery_address: string;
   delivery_lat?: number;
   delivery_lng?: number;
+  delivery_landmark?: string;
   recipient_name: string;
   recipient_phone: string;
   item_description: string;
