@@ -34,7 +34,7 @@ export default function ShipmentRequestPage() {
       return;
     }
     if (selectedType === 'shipment' && !form.description) {
-      alert('يرجى وصف محتوى الشحنة');
+      alert('يرجى وصف محتوى الطرد');
       return;
     }
     setLoading(true);
