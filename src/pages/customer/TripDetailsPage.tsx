@@ -7,11 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchTripById, createBooking, fetchSupplierBankAccounts } from "@/lib/customerApi";
+import { fetchTripById, createBooking } from "@/lib/customerApi";
 
 import WhatsAppShareButton from "@/components/trips/WhatsAppShareButton";
 import { format } from "date-fns";
@@ -34,7 +33,6 @@ const TripDetailsPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [seatCount, setSeatCount] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [booking, setBooking] = useState(false);
 
   const { data: trip, isLoading } = useQuery({
@@ -43,11 +41,6 @@ const TripDetailsPage = () => {
     enabled: !!id,
   });
 
-  const { data: bankAccounts } = useQuery({
-    queryKey: ["supplier-banks", trip?.supplier?.user_id],
-    queryFn: () => fetchSupplierBankAccounts(trip!.supplier!.user_id),
-    enabled: !!trip?.supplier?.user_id && paymentMethod === "direct_to_supplier",
-  });
 
   const finalPrice = trip?.is_offer && trip?.offer_value
     ? trip.offer_type === "percentage"
@@ -65,12 +58,12 @@ const TripDetailsPage = () => {
 
     setBooking(true);
     try {
-      await createBooking({
+      const bookingData = await createBooking({
         customer_id: user.id,
         trip_id: trip.id,
         seat_count: seatCount,
         total_amount: Math.round(finalPrice * seatCount),
-        payment_method: paymentMethod,
+        payment_method: "pending",
       });
 
       // Award loyalty points
@@ -85,8 +78,8 @@ const TripDetailsPage = () => {
         });
       } catch {}
 
-      toast({ title: "تم الحجز بنجاح! 🎉 (+10 نقاط ولاء)", description: "يمكنك متابعة حجزك من صفحة السجل." });
-      navigate("/history");
+      toast({ title: "تم الحجز بنجاح! 🎉 (+10 نقاط ولاء)", description: "سيتم توجيهك لإتمام الدفع." });
+      navigate(`/payment/booking/${bookingData.id}`);
     } catch (err: any) {
       toast({ title: "خطأ في الحجز", description: err.message, variant: "destructive" });
     } finally {
@@ -261,31 +254,6 @@ const TripDetailsPage = () => {
                     <Button variant="outline" size="icon" onClick={() => setSeatCount(Math.min(trip.available_seats, seatCount + 1))} disabled={seatCount >= trip.available_seats}>+</Button>
                   </div>
                 </div>
-
-                <div>
-                  <Label className="text-sm">طريقة الدفع</Label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">نقداً عند الصعود</SelectItem>
-                      <SelectItem value="bank_transfer">تحويل بنكي (حسابات المنصة)</SelectItem>
-                      <SelectItem value="direct_to_supplier">دفع مباشر لصاحب المكتب</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Show bank accounts for direct payment */}
-                {paymentMethod === "direct_to_supplier" && bankAccounts && bankAccounts.length > 0 && (
-                  <div className="bg-accent rounded-lg p-3 space-y-2">
-                    <p className="text-xs font-medium text-accent-foreground">حسابات صاحب المكتب البنكية:</p>
-                    {bankAccounts.map((acc: any) => (
-                      <div key={acc.id} className="text-xs text-accent-foreground">
-                        <p>{acc.bank_name} - {acc.account_number}</p>
-                        {acc.iban && <p className="text-[10px]">IBAN: {acc.iban}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 <Separator />
 

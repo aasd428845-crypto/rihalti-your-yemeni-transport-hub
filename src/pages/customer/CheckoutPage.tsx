@@ -34,7 +34,7 @@ const CheckoutPage = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -63,15 +63,15 @@ const CheckoutPage = () => {
 
     setSubmitting(true);
     try {
-      await createBooking({
+      const bookingData = await createBooking({
         trip_id: trip.id,
         customer_id: user.id,
         seat_count: seatCount,
         total_amount: totalAmount,
-        payment_method: paymentMethod,
+        payment_method: "pending",
       });
-      toast({ title: "تم الحجز بنجاح! 🎉", description: "سيتم إرسال تفاصيل الحجز إليك." });
-      navigate("/history");
+      toast({ title: "تم الحجز بنجاح! 🎉", description: "سيتم توجيهك لإتمام الدفع." });
+      navigate(`/payment/booking/${bookingData.id}`);
     } catch (err: any) {
       toast({ title: "خطأ في الحجز", description: err.message, variant: "destructive" });
     } finally {
@@ -181,23 +181,13 @@ const CheckoutPage = () => {
           </CardContent>
         </Card>
 
-        {/* Payment Methods */}
+        {/* Payment info note */}
         <Card className="mb-6">
-          <CardContent className="p-5 space-y-3">
-            <h3 className="font-bold text-foreground mb-2 flex items-center gap-2"><CreditCard className="w-4 h-4" /> طريقة الدفع</h3>
-            {[
-              { value: "cash", label: "نقداً عند الصعود", desc: "الدفع نقداً للسائق" },
-              { value: "bank_transfer", label: "تحويل بنكي", desc: "حوالة إلى حساب المنصة" },
-              { value: "jawali", label: "جوالي", desc: "الدفع عبر جوالي الكريمي" },
-            ].map((m) => (
-              <label key={m.value} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === m.value ? "border-primary bg-accent" : "border-border hover:border-primary/50"}`}>
-                <input type="radio" name="payment" value={m.value} checked={paymentMethod === m.value} onChange={() => setPaymentMethod(m.value)} className="accent-primary" />
-                <div>
-                  <p className="font-medium text-foreground">{m.label}</p>
-                  <p className="text-xs text-muted-foreground">{m.desc}</p>
-                </div>
-              </label>
-            ))}
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <CreditCard className="w-5 h-5 text-primary shrink-0" />
+              <p className="text-sm">سيتم اختيار طريقة الدفع في الخطوة التالية بعد تأكيد الحجز</p>
+            </div>
           </CardContent>
         </Card>
 

@@ -1,50 +1,137 @@
 
+# خطة التفعيل الشامل والنهائي لمنصة "رحلاتي"
 
-# خطة إصلاح وتفعيل نظام الدفع المتكامل
+## المشكلة الرئيسية المكتشفة
 
-## المشكلة الرئيسية
-1. مسار صفحة الدفع في `App.tsx` هو `/payment` بدون parameters، لكن `PaymentPage` يستخدم `useParams<{ entityType, entityId }>` — لذلك الصفحة لا تعمل أبداً
-2. صفحات الحجز (TripDetailsPage, CheckoutPage) توجّه المستخدم إلى `/history` بعد الحجز بدلاً من صفحة الدفع
-3. صفحة طلب المطعم (RestaurantCheckoutPage) لا توجّه إلى صفحة الدفع
-4. لا يوجد ربط بين الحجز وصفحة الدفع في أي مكان
+المشكلة الجوهرية التي تمنع ظهور الرحلات: عندما ينشئ المورد رحلة، يتم إدخالها في جدول `trips` بحالة `pending`، لكن صفحة الموافقات في لوحة المشرف (`AdminApprovals`) تبحث فقط في جدول `approval_requests` وليس في `trips`. لذلك لا تظهر الرحلات المعلقة للمشرف للموافقة عليها، وبالتالي لا تظهر أبداً في صفحة البحث العام.
 
-## التغييرات المطلوبة
+---
 
-### 1. إصلاح المسار في App.tsx
-- تغيير `/payment` إلى `/payment/:entityType/:entityId`
-- إبقاء `/payment-success` كما هو
+## الخطة التنفيذية
 
-### 2. تعديل TripDetailsPage
-- بعد `createBooking` بنجاح، التوجيه إلى `/payment/booking/${booking.id}` بدلاً من `/history`
-- إزالة اختيار طريقة الدفع من هذه الصفحة (سيكون في صفحة الدفع)
+### المرحلة 1: إصلاح نظام الموافقات (الأولوية القصوى)
 
-### 3. تعديل CheckoutPage
-- بعد `createBooking` بنجاح، التوجيه إلى `/payment/booking/${booking.id}` بدلاً من `/history`
-- إزالة اختيار طريقة الدفع (سيكون في صفحة الدفع الموحدة)
+**1.1 إعادة بناء صفحة الموافقات (`AdminApprovals.tsx`)**
 
-### 4. تعديل RestaurantCheckoutPage
-- بعد إنشاء الطلب بنجاح، التوجيه إلى `/payment/delivery/${order.id}`
+بدلاً من الاعتماد فقط على جدول `approval_requests`، ستقوم الصفحة بجلب البيانات من مصادر متعددة:
+- الرحلات المعلقة من `trips` (حيث `status = 'pending'`)
+- طلبات الشحن المعلقة من `shipment_requests` (حيث `status = 'pending_approval'`)
+- طلبات التوصيل المعلقة من `delivery_orders` (حيث `status = 'pending'`)
+- طلبات الانضمام من `partner_join_requests` (حيث `status = 'pending'`)
+- طلبات الموافقة العامة من `approval_requests`
 
-### 5. تحسين PaymentPage
-- التأكد من دعم جميع أنواع الكيانات (booking, shipment, delivery, ride)
-- عرض تفاصيل مناسبة لكل نوع خدمة (اسم الرحلة، المدينة، إلخ)
-- دعم `entityType = 'delivery'` بشكل صحيح
+عند الموافقة على رحلة: تحديث `trips.status` إلى `approved` مباشرة.
+عند الرفض: تحديث `trips.status` إلى `rejected`.
 
-### 6. لا تغييرات على قاعدة البيانات
-- جداول `payment_transactions` و `payment_accounts` موجودة بالفعل
-- `AdminPaymentReview` و `SupplierPayments` تعمل بشكل صحيح
+**1.2 إضافة دوال API جديدة في `adminApi.ts`**
+
+```text
+getPendingTrips()      - جلب الرحلات المعلقة مع بيانات المورد
+approveTrip(id)        - تحديث حالة الرحلة إلى approved
+rejectTrip(id, reason) - تحديث حالة الرحلة إلى rejected
+```
+
+**1.3 إضافة إعدادات الموافقة التلقائية في `AdminSettings`**
+
+إضافة مفاتيح Toggle لكل نوع:
+- `auto_approve_trips` 
+- `auto_approve_shipments`
+- `auto_approve_deliveries`
+
+يتم تخزينها في جدول `admin_settings`.
+
+**1.4 تحديث منطق إنشاء الرحلة في المورد**
+
+في `SupplierTrips.tsx`، عند إنشاء رحلة:
+- جلب إعداد `auto_approve_trips` من `admin_settings`
+- إذا كان مفعلاً: إنشاء الرحلة بحالة `approved`
+- إذا كان معطلاً: إنشاء الرحلة بحالة `pending`
+
+---
+
+### المرحلة 2: تحسين واجهات العميل
+
+**2.1 إعادة تصميم صفحة الشحنات (`ShipmentsPage.tsx`)**
+
+- إضافة قسم ترحيبي مع أيقونة وعنوان جذاب
+- عرض بطاقات الموردين بشكل احترافي مع:
+  - صورة/شعار المورد (من `logo_url`)
+  - الاسم، المدينة، رقم الهاتف
+  - مناطق العمل (جلب من `supplier_working_areas` مع `regions`)
+  - تقييم نجوم (مؤقتاً ثابت)
+  - زر "إرسال شحنة"
+- إضافة شريط بحث وفلترة حسب المدينة
+- تحسين تصميم نموذج الشحن
+
+**2.2 إعادة تصميم صفحة التوصيل (`DeliveriesPage.tsx`)**
+
+نفس مفهوم صفحة الشحنات مع:
+- بطاقات شركات التوصيل مع الشعار ومناطق التغطية
+- رسالة ترحيبية جذابة
+- تصميم احترافي للنموذج
+
+**2.3 تحديث قسم الإحصائيات (`StatsSection.tsx`)**
+
+استبدال الأرقام الثابتة (`10,000+`، `50+`، إلخ) ببيانات حقيقية من قاعدة البيانات باستخدام `fetchHomeStats()` الموجودة في `customerApi.ts`.
+
+---
+
+### المرحلة 3: تحسينات الواجهة العامة
+
+**3.1 إضافة نظام الإشعارات في الهيدر**
+
+- إضافة أيقونة جرس بجانب اسم المستخدم في `Header.tsx`
+- عرض عدد الإشعارات غير المقروءة
+- قائمة منسدلة بآخر الإشعارات (من جدول `notifications`)
+- دالة `fetchUnreadNotifications` في `customerApi.ts`
+
+**3.2 تحسين الألوان والتباين**
+
+مراجعة وإصلاح:
+- التأكد من عدم وجود نص أبيض على خلفية فاتحة
+- استخدام `text-foreground` بدلاً من `text-white` على الخلفيات الفاتحة
+- تحسين ألوان الأيقونات في جميع المكونات
+
+**3.3 تحسين القوائم الجانبية**
+
+- التأكد من وجود زر إغلاق (X) واضح في القوائم الجانبية للوحات التحكم
+- زر هامبورغر لإعادة فتح القائمة (موجود فعلياً عبر `SidebarTrigger`)
+
+---
+
+### المرحلة 4: تكامل البيانات
+
+**4.1 إدخال إعدادات الموافقة التلقائية**
+
+إدخال سجلات في `admin_settings`:
+- `auto_approve_trips` = `false`
+- `auto_approve_shipments` = `false`  
+- `auto_approve_deliveries` = `false`
+
+**4.2 تحديث `entityTypeLabels` في `admin.types.ts`**
+
+إضافة تصنيفات جديدة:
+- `pending_trip`: "رحلة معلقة"
+- `pending_shipment`: "طلب شحن معلق"
+
+---
 
 ## الملفات المتأثرة
-- `src/App.tsx` — إصلاح المسار
-- `src/pages/customer/TripDetailsPage.tsx` — توجيه إلى صفحة الدفع
-- `src/pages/customer/CheckoutPage.tsx` — توجيه إلى صفحة الدفع
-- `src/pages/customer/RestaurantCheckoutPage.tsx` — توجيه إلى صفحة الدفع
-- `src/pages/customer/PaymentPage.tsx` — تحسين عرض التفاصيل حسب نوع الخدمة
 
-## ما لن يتغير
-- لوحة المشرف (AdminPaymentReview) — تعمل بالفعل
-- لوحة الشريك (SupplierPayments) — تعمل بالفعل
-- PaymentSuccessPage — تعمل بالفعل
-- paymentApi.ts — يعمل بالفعل
-- هيكل قاعدة البيانات — لا تغيير
+| الملف | نوع التغيير |
+|-------|-------------|
+| `src/pages/admin/AdminApprovals.tsx` | إعادة بناء كاملة |
+| `src/pages/admin/AdminSettings.tsx` | إضافة إعدادات الموافقة التلقائية |
+| `src/lib/adminApi.ts` | إضافة دوال الموافقة على الرحلات |
+| `src/pages/customer/ShipmentsPage.tsx` | إعادة تصميم كامل |
+| `src/pages/customer/DeliveriesPage.tsx` | إعادة تصميم كامل |
+| `src/components/landing/StatsSection.tsx` | استبدال البيانات الثابتة |
+| `src/components/landing/Header.tsx` | إضافة الإشعارات |
+| `src/lib/customerApi.ts` | إضافة دوال الإشعارات ومناطق العمل |
+| `src/pages/supplier/SupplierTrips.tsx` | تحديث منطق الموافقة التلقائية |
+| `src/types/admin.types.ts` | إضافة تصنيفات جديدة |
 
+## قاعدة البيانات
+
+- إدخال بيانات في `admin_settings` (3 سجلات للموافقة التلقائية) عبر أداة الإدراج
+- لا حاجة لتغييرات في هيكل الجداول (كل الجداول والأعمدة المطلوبة موجودة)
