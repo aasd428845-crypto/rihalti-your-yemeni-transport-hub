@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import MainLayout from "@/layouts/MainLayout";
+import PageLoader from "@/components/common/PageLoader";
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -17,59 +19,59 @@ import ShipmentRequestPage from "./pages/ShipmentRequestPage";
 import OrderDetailsPage from "./pages/customer/OrderDetailsPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
-// Admin
-import AdminLayout from "./components/admin/AdminLayout";
-import AdminOverview from "./pages/admin/AdminOverview";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminApprovals from "./pages/admin/AdminApprovals";
-import AdminFinance from "./pages/admin/AdminFinance";
-import AdminSettings from "./pages/admin/AdminSettings";
-import AdminInvitations from "./pages/admin/AdminInvitations";
-import AdminCancellations from "./pages/admin/AdminCancellations";
-import AdminMessages from "./pages/admin/AdminMessages";
-import AdminReports from "./pages/admin/AdminReports";
-import AdminJoinRequests from "./pages/admin/AdminJoinRequests";
-import AdminTransactions from "./pages/admin/AdminTransactions";
-import AdminInvoices from "./pages/admin/AdminInvoices";
-import AdminViolations from "./pages/admin/AdminViolations";
-import AdminChatMonitoring from "./pages/admin/AdminChatMonitoring";
-import AdminDeliveryProofs from "./pages/admin/AdminDeliveryProofs";
-import AdminPaymentReview from "./pages/admin/AdminPaymentReview";
-import AdminPartnerControls from "./pages/admin/AdminPartnerControls";
-import AdminSupportMessages from "./pages/admin/AdminSupportMessages";
-import AdminSendNotification from "./pages/admin/AdminSendNotification";
-import AdminNotificationLogs from "./pages/admin/AdminNotificationLogs";
-import AdminPartnerProfile from "./pages/admin/AdminPartnerProfile";
-import AdminMonitoring from "./pages/admin/AdminMonitoring";
+// Admin (lazy loaded)
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminApprovals = lazy(() => import("./pages/admin/AdminApprovals"));
+const AdminFinance = lazy(() => import("./pages/admin/AdminFinance"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminInvitations = lazy(() => import("./pages/admin/AdminInvitations"));
+const AdminCancellations = lazy(() => import("./pages/admin/AdminCancellations"));
+const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
+const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
+const AdminJoinRequests = lazy(() => import("./pages/admin/AdminJoinRequests"));
+const AdminTransactions = lazy(() => import("./pages/admin/AdminTransactions"));
+const AdminInvoices = lazy(() => import("./pages/admin/AdminInvoices"));
+const AdminViolations = lazy(() => import("./pages/admin/AdminViolations"));
+const AdminChatMonitoring = lazy(() => import("./pages/admin/AdminChatMonitoring"));
+const AdminDeliveryProofs = lazy(() => import("./pages/admin/AdminDeliveryProofs"));
+const AdminPaymentReview = lazy(() => import("./pages/admin/AdminPaymentReview"));
+const AdminPartnerControls = lazy(() => import("./pages/admin/AdminPartnerControls"));
+const AdminSupportMessages = lazy(() => import("./pages/admin/AdminSupportMessages"));
+const AdminSendNotification = lazy(() => import("./pages/admin/AdminSendNotification"));
+const AdminNotificationLogs = lazy(() => import("./pages/admin/AdminNotificationLogs"));
+const AdminPartnerProfile = lazy(() => import("./pages/admin/AdminPartnerProfile"));
+const AdminMonitoring = lazy(() => import("./pages/admin/AdminMonitoring"));
 import InvitePage from "./pages/InvitePage";
-// Supplier
-import SupplierLayout from "./components/supplier/SupplierLayout";
-import SupplierDashboard from "./pages/supplier/SupplierDashboard";
-import SupplierTrips from "./pages/supplier/SupplierTrips";
-import SupplierBookings from "./pages/supplier/SupplierBookings";
-import SupplierShipments from "./pages/supplier/SupplierShipments";
-import SupplierFinance from "./pages/supplier/SupplierFinance";
-import SupplierSettings from "./pages/supplier/SupplierSettings";
-import SupplierMessages from "./pages/supplier/SupplierMessages";
-import SupplierPromotions from "./pages/supplier/SupplierPromotions";
-import SupplierOrderDetails from "./pages/supplier/SupplierOrderDetails";
-import SupplierPayments from "./pages/supplier/SupplierPayments";
-import PartnerPaymentSettings from "./pages/supplier/PartnerPaymentSettings";
+// Supplier (lazy loaded)
+const SupplierLayout = lazy(() => import("./components/supplier/SupplierLayout"));
+const SupplierDashboard = lazy(() => import("./pages/supplier/SupplierDashboard"));
+const SupplierTrips = lazy(() => import("./pages/supplier/SupplierTrips"));
+const SupplierBookings = lazy(() => import("./pages/supplier/SupplierBookings"));
+const SupplierShipments = lazy(() => import("./pages/supplier/SupplierShipments"));
+const SupplierFinance = lazy(() => import("./pages/supplier/SupplierFinance"));
+const SupplierSettings = lazy(() => import("./pages/supplier/SupplierSettings"));
+const SupplierMessages = lazy(() => import("./pages/supplier/SupplierMessages"));
+const SupplierPromotions = lazy(() => import("./pages/supplier/SupplierPromotions"));
+const SupplierOrderDetails = lazy(() => import("./pages/supplier/SupplierOrderDetails"));
+const SupplierPayments = lazy(() => import("./pages/supplier/SupplierPayments"));
+const PartnerPaymentSettings = lazy(() => import("./pages/supplier/PartnerPaymentSettings"));
 // Partner
 import PartnerProfilePage from "./pages/partner/PartnerProfilePage";
 import PublicPartnerProfilePage from "./pages/partner/PublicPartnerProfilePage";
-// Delivery
-import DeliveryLayout from "./components/delivery/DeliveryLayout";
-import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
-import DeliveryRestaurants from "./pages/delivery/DeliveryRestaurants";
-import DeliveryMenuManagement from "./pages/delivery/DeliveryMenuManagement";
-import DeliveryOrders from "./pages/delivery/DeliveryOrders";
-import DeliveryRiders from "./pages/delivery/DeliveryRiders";
-import DeliveryFinance from "./pages/delivery/DeliveryFinance";
-import DeliveryIntegrations from "./pages/delivery/DeliveryIntegrations";
-import DeliverySettings from "./pages/delivery/DeliverySettings";
-import DeliveryReports from "./pages/delivery/DeliveryReports";
-import DeliveryPayments from "./pages/delivery/DeliveryPayments";
+// Delivery (lazy loaded)
+const DeliveryLayout = lazy(() => import("./components/delivery/DeliveryLayout"));
+const DeliveryDashboard = lazy(() => import("./pages/delivery/DeliveryDashboard"));
+const DeliveryRestaurants = lazy(() => import("./pages/delivery/DeliveryRestaurants"));
+const DeliveryMenuManagement = lazy(() => import("./pages/delivery/DeliveryMenuManagement"));
+const DeliveryOrders = lazy(() => import("./pages/delivery/DeliveryOrders"));
+const DeliveryRiders = lazy(() => import("./pages/delivery/DeliveryRiders"));
+const DeliveryFinance = lazy(() => import("./pages/delivery/DeliveryFinance"));
+const DeliveryIntegrations = lazy(() => import("./pages/delivery/DeliveryIntegrations"));
+const DeliverySettings = lazy(() => import("./pages/delivery/DeliverySettings"));
+const DeliveryReports = lazy(() => import("./pages/delivery/DeliveryReports"));
+const DeliveryPayments = lazy(() => import("./pages/delivery/DeliveryPayments"));
 // Customer Pages
 import TripsPage from "./pages/customer/TripsPage";
 import TripDetailsPage from "./pages/customer/TripDetailsPage";
@@ -92,24 +94,24 @@ import NotificationsPage from "./pages/NotificationsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 import PaymentPage from "./pages/customer/PaymentPage";
 import PaymentSuccessPage from "./pages/customer/PaymentSuccessPage";
-// Driver
-import DriverLayout from "./components/driver/DriverLayout";
-import DriverDashboard from "./pages/driver/DriverDashboard";
-import DriverRideDetails from "./pages/driver/DriverRideDetails";
-import DriverActiveRide from "./pages/driver/DriverActiveRide";
-import DriverProfile from "./pages/driver/DriverProfile";
-import DriverHistory from "./pages/driver/DriverHistory";
-import DriverEarnings from "./pages/driver/DriverEarnings";
-import DriverSettings from "./pages/driver/DriverSettings";
-// Delivery Driver
-import DeliveryDriverLayout from "./components/delivery-driver/DeliveryDriverLayout";
-import DeliveryDriverDashboard from "./pages/delivery-driver/DeliveryDriverDashboard";
-import DeliveryDriverOrders from "./pages/delivery-driver/DeliveryDriverOrders";
-import DeliveryDriverEarnings from "./pages/delivery-driver/DeliveryDriverEarnings";
-import DeliveryDriverProfile from "./pages/delivery-driver/DeliveryDriverProfile";
-import DeliveryDriverSettings from "./pages/delivery-driver/DeliveryDriverSettings";
-import DeliveryDriverOrderDetails from "./pages/delivery-driver/DeliveryDriverOrderDetails";
-import DeliveryDriverHistory from "./pages/delivery-driver/DeliveryDriverHistory";
+// Driver (lazy loaded)
+const DriverLayout = lazy(() => import("./components/driver/DriverLayout"));
+const DriverDashboard = lazy(() => import("./pages/driver/DriverDashboard"));
+const DriverRideDetails = lazy(() => import("./pages/driver/DriverRideDetails"));
+const DriverActiveRide = lazy(() => import("./pages/driver/DriverActiveRide"));
+const DriverProfile = lazy(() => import("./pages/driver/DriverProfile"));
+const DriverHistory = lazy(() => import("./pages/driver/DriverHistory"));
+const DriverEarnings = lazy(() => import("./pages/driver/DriverEarnings"));
+const DriverSettings = lazy(() => import("./pages/driver/DriverSettings"));
+// Delivery Driver (lazy loaded)
+const DeliveryDriverLayout = lazy(() => import("./components/delivery-driver/DeliveryDriverLayout"));
+const DeliveryDriverDashboard = lazy(() => import("./pages/delivery-driver/DeliveryDriverDashboard"));
+const DeliveryDriverOrders = lazy(() => import("./pages/delivery-driver/DeliveryDriverOrders"));
+const DeliveryDriverEarnings = lazy(() => import("./pages/delivery-driver/DeliveryDriverEarnings"));
+const DeliveryDriverProfile = lazy(() => import("./pages/delivery-driver/DeliveryDriverProfile"));
+const DeliveryDriverSettings = lazy(() => import("./pages/delivery-driver/DeliveryDriverSettings"));
+const DeliveryDriverOrderDetails = lazy(() => import("./pages/delivery-driver/DeliveryDriverOrderDetails"));
+const DeliveryDriverHistory = lazy(() => import("./pages/delivery-driver/DeliveryDriverHistory"));
 import SupportChatWidget from "./components/support/SupportChatWidget";
 import InstallPage from "./pages/InstallPage";
 import { InstallPWAButton } from "./components/InstallPWAButton";
@@ -126,6 +128,7 @@ const App = () => (
         <Sonner position="top-center" dir="rtl" richColors closeButton />
         <BrowserRouter>
           <AuthProvider>
+            <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Pages with MainLayout (Header + Footer) */}
               <Route element={<MainLayout />}>
@@ -247,6 +250,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
             <SupportChatWidget />
             <InstallPWAButton />
             <UpdateNotification />

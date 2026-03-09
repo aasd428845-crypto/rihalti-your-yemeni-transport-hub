@@ -158,7 +158,7 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90" disabled={loading}>
+            <Button type="submit" className="w-full h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90" disabled={loading} loading={loading}>
               {loading ? "جاري التسجيل..." : "تسجيل الدخول"}
             </Button>
           </form>

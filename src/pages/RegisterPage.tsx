@@ -236,7 +236,7 @@ const RegisterPage = () => {
 
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" className="flex-1 h-11" onClick={() => setStep(1)}>رجوع</Button>
-                    <Button type="submit" className="flex-1 h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90" disabled={loading}>
+                    <Button type="submit" className="flex-1 h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90" disabled={loading} loading={loading}>
                       {loading ? "جاري الإنشاء..." : "إنشاء الحساب"}
                     </Button>
                   </div>
