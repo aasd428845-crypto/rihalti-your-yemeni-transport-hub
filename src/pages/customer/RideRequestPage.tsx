@@ -42,26 +42,6 @@ const RideRequestPage = () => {
     "مأرب", "حجة", "صعدة", "عمران", "البيضاء", "لحج", "أبين", "شبوة",
   ];
 
-  const handleLocateMe = async () => {
-    if (!navigator.geolocation) {
-      toast({ title: "خطأ", description: "المتصفح لا يدعم تحديد الموقع", variant: "destructive" });
-      return;
-    }
-    setLocatingPickup(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setForm(f => ({ ...f, pickupLat: pos.coords.latitude, pickupLng: pos.coords.longitude }));
-        toast({ title: "✅ تم تحديد موقعك", description: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}` });
-        setLocatingPickup(false);
-      },
-      () => {
-        toast({ title: "خطأ", description: "تعذر تحديد الموقع", variant: "destructive" });
-        setLocatingPickup(false);
-      },
-      { enableHighAccuracy: true }
-    );
-  };
-
   const handleSubmit = async () => {
     if (!user) {
       toast({ title: "يرجى تسجيل الدخول", variant: "destructive" });
