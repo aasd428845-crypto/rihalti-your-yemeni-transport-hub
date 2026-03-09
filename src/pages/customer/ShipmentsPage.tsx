@@ -182,7 +182,7 @@ const ShipmentsPage = () => {
         </Button>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-primary" />طلب شحنة جديدة - {selectedSupplier?.full_name}</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-primary" />طلب طرد جديد - {selectedSupplier?.full_name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div><Label>نوع الشحن</Label><Select value={form.shipment_type} onValueChange={(v) => setForm({ ...form, shipment_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="door_to_door">من الباب إلى الباب</SelectItem><SelectItem value="office_to_office">من المكتب إلى المكتب</SelectItem></SelectContent></Select></div>

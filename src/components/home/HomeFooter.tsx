@@ -4,9 +4,9 @@ import { Phone, Mail, MapPin, MessageCircle, Bus } from "lucide-react";
 const links = {
   "خدماتنا": [
     { name: "رحلات بين المدن", path: "/trips" },
-    { name: "شحنات آمنة", path: "/shipments" },
+    { name: "طرود آمنة", path: "/shipments" },
     { name: "توصيل محلي", path: "/deliveries" },
-    { name: "تتبع الشحنات", path: "/tracking" },
+    { name: "تتبع الطرود", path: "/tracking" },
     { name: "المطاعم", path: "/restaurants" },
   ],
   "للعملاء": [
