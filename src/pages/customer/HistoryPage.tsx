@@ -350,6 +350,14 @@ const HistoryPage = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
+                            {(d.status === 'completed' || d.status === 'delivered') && !ratedIds.has(d.id) && (
+                              <Button variant="outline" size="sm" className="gap-1" onClick={() => setRatingTarget({
+                                revieweeId: d.delivery_company_id, revieweeName: "شركة التوصيل",
+                                entityType: "delivery", entityId: d.id,
+                              })}>
+                                <Star className="w-3 h-3" /> قيّم
+                              </Button>
+                            )}
                             {canCancel(d.status) && (
                               <Button variant="outline" size="sm" className="text-destructive gap-1" onClick={() => setCancelModal({ type: "delivery", id: d.id })}>
                                 <XCircle className="w-4 h-4" /> إلغاء
