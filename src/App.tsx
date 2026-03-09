@@ -19,6 +19,8 @@ import ShipmentRequestPage from "./pages/ShipmentRequestPage";
 import OrderDetailsPage from "./pages/customer/OrderDetailsPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 // Admin (lazy loaded)
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
@@ -135,6 +137,8 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/trips" element={<TripsPage />} />
                 <Route path="/trips/:id" element={<TripDetailsPage />} />
                 <Route path="/checkout/:tripId" element={<CheckoutPage />} />
