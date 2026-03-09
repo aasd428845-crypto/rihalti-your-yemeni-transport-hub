@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { User, Lock, Save, Phone } from "lucide-react";
+import BackButton from "@/components/common/BackButton";
+import Header from "@/components/landing/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,7 +83,9 @@ const AccountPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
+      <Header />
       <div className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
+        <BackButton />
         <h1 className="text-3xl font-bold text-foreground mb-8">حسابي</h1>
 
         <Card className="mb-6">

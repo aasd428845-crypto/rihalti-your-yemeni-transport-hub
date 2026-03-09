@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Package, Clock, CheckCircle, Truck, MapPin, Phone, Star, ChefHat, ArrowRight } from "lucide-react";
+import BackButton from "@/components/common/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/landing/Header";
@@ -120,6 +121,7 @@ const OrderTrackingPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       <Header />
       <div className="container mx-auto px-4 py-6 max-w-3xl">
+        <BackButton />
         <h1 className="text-2xl font-bold mb-6">تتبع الطلب</h1>
 
         {/* Status Progress */}

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import BackButton from "@/components/common/BackButton";
+import Header from "@/components/landing/Header";
 import { Search, Package, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,7 +89,9 @@ const TrackingPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
+      <Header />
       <div className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
+        <BackButton />
         <h1 className="text-3xl font-bold text-foreground mb-2">تتبع الطرد</h1>
         <p className="text-muted-foreground mb-8">أدخل رقم التتبع أو رقم الطلب للمتابعة</p>
 

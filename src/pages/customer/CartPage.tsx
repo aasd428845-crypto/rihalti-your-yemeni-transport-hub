@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Store } from "lucide-react";
+import BackButton from "@/components/common/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/landing/Header";
@@ -147,6 +148,7 @@ const CartPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       <Header />
       <div className="container mx-auto px-4 py-6 max-w-3xl pb-32">
+        <BackButton />
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <ShoppingCart className="w-6 h-6" /> سلة الطلبات
         </h1>

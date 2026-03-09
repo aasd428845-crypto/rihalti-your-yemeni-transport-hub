@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import BackButton from "@/components/common/BackButton";
+import Header from "@/components/landing/Header";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Bus, Package, Bike, Clock, XCircle, DollarSign, Bell, Star } from "lucide-react";
@@ -175,7 +177,9 @@ const HistoryPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
+      <Header />
       <div className="container mx-auto px-4 pt-24 pb-12">
+        <BackButton />
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-foreground">السجل والطلبات</h1>
           {attentionCount > 0 && (

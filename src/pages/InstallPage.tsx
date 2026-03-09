@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Download, Smartphone, CheckCircle, Share2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import BackButton from "@/components/common/BackButton";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -46,7 +47,9 @@ const InstallPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4" dir="rtl">
-      <Card className="max-w-md w-full">
+      <div className="max-w-md w-full">
+        <BackButton />
+      <Card>
         <CardContent className="p-8 text-center space-y-6">
           <div className="w-20 h-20 mx-auto rounded-2xl overflow-hidden shadow-lg">
             <img src="/icons/icon-192x192.png" alt="وصل" className="w-full h-full object-cover" />
@@ -125,6 +128,7 @@ const InstallPage = () => {
           </Button>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
