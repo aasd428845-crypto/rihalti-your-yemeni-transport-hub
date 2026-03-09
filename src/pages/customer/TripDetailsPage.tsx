@@ -42,11 +42,6 @@ const TripDetailsPage = () => {
     enabled: !!id,
   });
 
-  const { data: bankAccounts } = useQuery({
-    queryKey: ["supplier-banks", trip?.supplier?.user_id],
-    queryFn: () => fetchSupplierBankAccounts(trip!.supplier!.user_id),
-    enabled: !!trip?.supplier?.user_id && paymentMethod === "direct_to_supplier",
-  });
 
   const finalPrice = trip?.is_offer && trip?.offer_value
     ? trip.offer_type === "percentage"
