@@ -123,10 +123,22 @@ const TripDetailsPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       <Header />
       <div className="container mx-auto px-4 pt-24 pb-12 max-w-4xl">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6 gap-2">
-          <ArrowRight className="w-4 h-4" />
-          العودة
-        </Button>
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
+            <ArrowRight className="w-4 h-4" />
+            العودة
+          </Button>
+          <WhatsAppShareButton
+            tripData={{
+              from_city: trip.from_city,
+              to_city: trip.to_city,
+              departure_time: trip.departure_time,
+              price: finalPrice,
+              supplier_name: supplierName,
+              available_seats: trip.available_seats,
+            }}
+          />
+        </div>
 
         {/* Trip Image */}
         <div className="relative rounded-xl overflow-hidden mb-6 h-64 md:h-80">
