@@ -51,7 +51,7 @@ const SupplierDashboard = () => {
         <StatCard title="الرحلات النشطة" value={stats.activeTrips} icon={Bus} />
         <StatCard title="رحلات معلقة" value={stats.pendingTrips} icon={Clock} color="text-yellow-600" />
         <StatCard title="الحجوزات المؤكدة" value={stats.confirmedBookings} icon={CalendarCheck} />
-        <StatCard title="شحنات بانتظار التسعير" value={stats.pendingPricing} icon={Package} color="text-orange-600" />
+        <StatCard title="طرود بانتظار التسعير" value={stats.pendingPricing} icon={Package} color="text-orange-600" />
         <StatCard title="إجمالي الإيرادات" value={`${stats.totalIncome.toLocaleString()} ر.ي`} icon={TrendingUp} color="text-green-600" />
         <StatCard title="المصروفات" value={`${stats.totalExpenses.toLocaleString()} ر.ي`} icon={TrendingDown} color="text-destructive" />
         <StatCard title="صافي الربح" value={`${stats.netProfit.toLocaleString()} ر.ي`} icon={DollarSign} color="text-primary" />
