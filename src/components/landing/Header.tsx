@@ -15,6 +15,7 @@ const navLinks = [
   { label: "أجرة", href: "/ride/request" },
   { label: "تتبع الطرد", href: "/tracking" },
   { label: "عن المنصة", href: "/about" },
+  { label: "اتصل بنا", href: "/contact" },
 ];
 
 const Header = () => {
