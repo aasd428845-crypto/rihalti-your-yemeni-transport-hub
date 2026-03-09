@@ -104,11 +104,8 @@ const TripDetailsPage = () => {
 
   if (!trip) {
     return (
-      <div className="min-h-screen bg-background" dir="rtl">
-        <Header />
-        <div className="flex items-center justify-center pt-32">
-          <p className="text-muted-foreground">الرحلة غير موجودة</p>
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <p className="text-muted-foreground">الرحلة غير موجودة</p>
       </div>
     );
   }
