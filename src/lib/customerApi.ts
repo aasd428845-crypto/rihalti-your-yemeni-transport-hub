@@ -171,7 +171,7 @@ export const createBooking = async (booking: BookingFormData & { customer_id: st
     customer_id: booking.customer_id,
     seat_count: booking.seat_count,
     total_amount: booking.total_amount,
-    payment_method: booking.payment_method,
+    payment_method: null,
     status,
     payment_status: "pending",
   }).select().single();
