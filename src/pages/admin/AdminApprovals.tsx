@@ -276,7 +276,7 @@ const AdminApprovals = () => {
       return (
         <div className="text-sm text-muted-foreground space-y-1">
           <p className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {d.from} → {d.to}</p>
-          <p>المورد: {d.supplier} | السعر: {d.price?.toLocaleString()} ر.ي | المقاعد: {d.seats}</p>
+          <p>صاحب المكتب: {d.supplier} | السعر: {d.price?.toLocaleString()} ر.ي | المقاعد: {d.seats}</p>
           {d.company && <p>شركة النقل: {d.company}</p>}
         </div>
       );
