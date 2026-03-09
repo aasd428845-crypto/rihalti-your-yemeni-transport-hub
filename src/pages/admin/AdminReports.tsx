@@ -156,7 +156,7 @@ const AdminReports = () => {
             <CardContent className="p-4 text-center">
               <Package className="w-5 h-5 mx-auto text-primary mb-1" />
               <p className="text-2xl font-bold">{stats.shipments}</p>
-              <p className="text-[10px] text-muted-foreground">شحنات</p>
+              <p className="text-[10px] text-muted-foreground">طرود</p>
             </CardContent>
           </Card>
           <Card>
