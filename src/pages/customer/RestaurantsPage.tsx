@@ -8,8 +8,6 @@ import { Search, Star, Clock, Truck, MapPin, UtensilsCrossed, ChefHat, Pizza, Be
 import BackButton from "@/components/common/BackButton";
 import { getActiveRestaurants } from "@/lib/restaurantApi";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/landing/Header";
-import Footer from "@/components/landing/Footer";
 
 const cuisineFilters = [
   { key: "all", label: "الكل", icon: UtensilsCrossed },
