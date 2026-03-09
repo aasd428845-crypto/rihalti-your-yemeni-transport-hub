@@ -24,7 +24,7 @@ const AppDownloadSection = () => {
               </div>
 
               <h2 className="text-3xl md:text-4xl font-black mb-4">
-                حمّل تطبيق رحلاتي الآن
+                حمّل تطبيق وصل الآن
               </h2>
               <p className="text-primary-foreground/80 mb-8 leading-relaxed">
                 جميع خدماتنا متاحة الآن على هاتفك الذكي. احجز رحلتك، أرسل شحنتك، أو اطلب التوصيل في أي وقت ومن أي مكان.
