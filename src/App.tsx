@@ -118,9 +118,8 @@ const DeliveryDriverProfile = lazy(() => import("./pages/delivery-driver/Deliver
 const DeliveryDriverSettings = lazy(() => import("./pages/delivery-driver/DeliveryDriverSettings"));
 const DeliveryDriverOrderDetails = lazy(() => import("./pages/delivery-driver/DeliveryDriverOrderDetails"));
 const DeliveryDriverHistory = lazy(() => import("./pages/delivery-driver/DeliveryDriverHistory"));
-import SupportChatWidget from "./components/support/SupportChatWidget";
-import InstallPage from "./pages/InstallPage";
-import { InstallPWAButton } from "./components/InstallPWAButton";
+const SupportChatWidget = lazy(() => import("./components/support/SupportChatWidget"));
+const InstallPage = lazy(() => import("./pages/InstallPage"));
 import { UpdateNotification } from "./components/UpdateNotification";
 import RealtimeToastListener from "./components/notifications/RealtimeToastListener";
 
