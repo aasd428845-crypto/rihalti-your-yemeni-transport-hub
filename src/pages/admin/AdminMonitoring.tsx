@@ -336,6 +336,11 @@ const AdminMonitoring = () => {
           </div>
         </TabsContent>
 
+        {/* System Health Tab */}
+        <TabsContent value="health" className="space-y-4">
+          <SystemHealthTab />
+        </TabsContent>
+
         {/* Daily Stats Tab */}
         <TabsContent value="daily" className="space-y-4">
           <Card>
