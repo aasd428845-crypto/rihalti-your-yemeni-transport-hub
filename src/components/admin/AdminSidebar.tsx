@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield,
   Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert,
-  MessageCircle, QrCode, CreditCard, Headphones, Bell, BarChart3, Wallet
+  MessageCircle, QrCode, CreditCard, Headphones, Bell, BarChart3, Wallet, Activity
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
