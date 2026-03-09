@@ -7,13 +7,16 @@ import BackButton from "@/components/common/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Plus, Trash2, Star, Phone, Navigation } from "lucide-react";
+import { MapPin, Plus, Trash2, Star, Phone, Navigation, Building2, Map } from "lucide-react";
 import { getPhoneError, formatYemeniPhone } from "@/lib/phoneValidation";
 import MapPicker from "@/components/maps/MapPicker";
+
+const YEMEN_CITIES = ["صنعاء", "عدن", "تعز", "الحديدة", "إب", "المكلا", "ذمار", "عمران", "صعدة", "حجة", "البيضاء", "مأرب", "لحج", "أبين", "شبوة", "المهرة", "الضالع", "ريمة", "سيئون", "سقطرى"];
 
 const AddressesPage = () => {
   const { user, profile, loading: authLoading } = useAuth();
@@ -22,12 +25,18 @@ const AddressesPage = () => {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Form state
   const [formName, setFormName] = useState("");
-  const [formAddress, setFormAddress] = useState("");
+  const [formCity, setFormCity] = useState("");
+  const [formDistrict, setFormDistrict] = useState("");
+  const [formStreet, setFormStreet] = useState("");
+  const [formBuilding, setFormBuilding] = useState("");
+  const [formLandmark, setFormLandmark] = useState("");
   const [formDefault, setFormDefault] = useState(false);
   const [formPhone, setFormPhone] = useState("");
   const [phoneSource, setPhoneSource] = useState("primary");
-  const [formLandmark, setFormLandmark] = useState("");
   const [formLat, setFormLat] = useState<number | undefined>();
   const [formLng, setFormLng] = useState<number | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -47,11 +56,6 @@ const AddressesPage = () => {
 
   useEffect(() => { load(); }, [user?.id]);
 
-  // Get user phone numbers for dropdown
-  const userPhones = [];
-  if (profile?.phone) userPhones.push({ label: `الأساسي: +967${profile.phone}`, value: profile.phone });
-  if ((profile as any)?.phone_secondary) userPhones.push({ label: `الثانوي: +967${(profile as any).phone_secondary}`, value: (profile as any).phone_secondary });
-
   const handlePhoneSourceChange = (val: string) => {
     setPhoneSource(val);
     if (val === "primary" && profile?.phone) setFormPhone(profile.phone);
@@ -60,28 +64,38 @@ const AddressesPage = () => {
   };
 
   const resetForm = () => {
-    setFormName(""); setFormAddress(""); setFormDefault(false);
-    setFormPhone(""); setPhoneSource("primary"); setFormLandmark("");
+    setFormName(""); setFormCity(""); setFormDistrict(""); setFormStreet("");
+    setFormBuilding(""); setFormLandmark(""); setFormDefault(false);
+    setFormPhone(""); setPhoneSource("primary");
     setFormLat(undefined); setFormLng(undefined);
   };
 
+  const buildFullAddress = () => {
+    return [formCity, formDistrict, formStreet, formBuilding && `مبنى ${formBuilding}`].filter(Boolean).join("، ");
+  };
+
   const handleAdd = async () => {
-    if (!user || !formName.trim() || !formAddress.trim()) {
-      toast({ title: "يرجى ملء اسم العنوان والعنوان الكامل", variant: "destructive" });
+    if (!user || !formName.trim() || !formCity.trim()) {
+      toast({ title: "يرجى ملء اسم العنوان والمدينة على الأقل", variant: "destructive" });
       return;
     }
     if (formPhone) {
       const phoneErr = getPhoneError(formPhone);
       if (phoneErr) { toast({ title: phoneErr, variant: "destructive" }); return; }
     }
+    setSaving(true);
     try {
       await createAddress({
         customer_id: user.id,
         address_name: formName,
-        full_address: formAddress,
+        full_address: buildFullAddress(),
+        city: formCity,
+        district: formDistrict || undefined,
+        street: formStreet || undefined,
+        building_number: formBuilding || undefined,
+        landmark: formLandmark || undefined,
         is_default: formDefault,
         phone: formPhone || undefined,
-        landmark: formLandmark || undefined,
         latitude: formLat,
         longitude: formLng,
       });
@@ -91,6 +105,8 @@ const AddressesPage = () => {
       load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -140,6 +156,10 @@ const AddressesPage = () => {
                         {addr.is_default && <span className="inline-flex items-center gap-0.5 text-xs bg-secondary/20 text-secondary px-1.5 py-0.5 rounded-full"><Star className="w-3 h-3 fill-secondary" /> افتراضي</span>}
                       </p>
                       <p className="text-sm text-muted-foreground mt-0.5">{addr.full_address}</p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                        {addr.city && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Building2 className="w-3 h-3" />{addr.city}</span>}
+                        {addr.district && <span className="text-xs text-muted-foreground">{addr.district}</span>}
+                      </div>
                       {addr.phone && (
                         <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                           <Phone className="w-3 h-3" /> +967{addr.phone}
@@ -163,19 +183,46 @@ const AddressesPage = () => {
 
         {/* Add Address Dialog */}
         <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto">
+          <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader><DialogTitle className="flex items-center gap-2"><Plus className="w-5 h-5 text-primary" /> إضافة عنوان جديد</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>اسم العنوان <span className="text-destructive">*</span></Label>
                 <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="المنزل، العمل، بيت العائلة..." className="mt-1" />
               </div>
+
+              {/* City */}
               <div>
-                <Label>العنوان الكامل <span className="text-destructive">*</span></Label>
-                <Input value={formAddress} onChange={(e) => setFormAddress(e.target.value)} placeholder="المدينة، الحي، الشارع، رقم المبنى..." className="mt-1" />
+                <Label>المدينة <span className="text-destructive">*</span></Label>
+                <Select value={formCity} onValueChange={setFormCity}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
+                  <SelectContent>
+                    {YEMEN_CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* District */}
               <div>
-                <Label>علامة مميزة</Label>
+                <Label>الحي / المنطقة</Label>
+                <Input value={formDistrict} onChange={(e) => setFormDistrict(e.target.value)} placeholder="اسم الحي أو المنطقة" className="mt-1" />
+              </div>
+
+              {/* Street */}
+              <div>
+                <Label>الشارع</Label>
+                <Input value={formStreet} onChange={(e) => setFormStreet(e.target.value)} placeholder="اسم أو رقم الشارع" className="mt-1" />
+              </div>
+
+              {/* Building number */}
+              <div>
+                <Label className="flex items-center gap-1"><Building2 className="w-3 h-3 text-primary" /> رقم المبنى</Label>
+                <Input value={formBuilding} onChange={(e) => setFormBuilding(e.target.value)} placeholder="رقم المبنى أو الشقة" className="mt-1" />
+              </div>
+
+              {/* Landmark */}
+              <div>
+                <Label className="flex items-center gap-1"><Navigation className="w-3 h-3 text-primary" /> أقرب معلم</Label>
                 <Input value={formLandmark} onChange={(e) => setFormLandmark(e.target.value)} placeholder="بجوار مسجد..., مقابل..." className="mt-1" />
               </div>
               
@@ -183,9 +230,7 @@ const AddressesPage = () => {
               <div>
                 <Label className="flex items-center gap-1"><Phone className="w-3 h-3 text-primary" /> رقم الهاتف للعنوان</Label>
                 <Select value={phoneSource} onValueChange={handlePhoneSourceChange}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {profile?.phone && <SelectItem value="primary">الرقم الأساسي: +967{profile.phone}</SelectItem>}
                     {(profile as any)?.phone_secondary && <SelectItem value="secondary">الرقم الثانوي: +967{(profile as any).phone_secondary}</SelectItem>}
@@ -209,7 +254,7 @@ const AddressesPage = () => {
 
               {/* Map */}
               <div>
-                <Label>الموقع على الخريطة (اختياري)</Label>
+                <Label className="flex items-center gap-1"><Map className="w-3 h-3 text-primary" /> الموقع على الخريطة</Label>
                 <div className="mt-1">
                   <MapPicker lat={formLat} lng={formLng} onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }} height="200px" />
                 </div>
@@ -222,7 +267,9 @@ const AddressesPage = () => {
             </div>
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
-              <Button onClick={handleAdd} className="gap-1"><MapPin className="w-4 h-4" /> حفظ العنوان</Button>
+              <Button onClick={handleAdd} disabled={saving} className="gap-1">
+                <MapPin className="w-4 h-4" /> {saving ? "جاري الحفظ..." : "حفظ العنوان"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
