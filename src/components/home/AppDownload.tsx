@@ -9,13 +9,14 @@ const features = [
 ];
 
 const AppDownload = () => {
+  const { ref, isVisible } = useScrollAnimation();
   const handleStoreClick = (store: string) => {
     toast.info(`تطبيق وصل على ${store} قيد التطوير وسيتوفر قريبًا!`);
   };
 
   return (
-    <section className="py-24 bg-background">
-      <div className="container mx-auto px-4 max-w-[1100px]">
+    <section className="py-24 bg-background" ref={ref}>
+      <div className="container mx-auto px-4 max-w-[1100px]" style={{ opacity: isVisible ? 1 : 0, transform: isVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'all 0.7s ease-out' }}>
         <div className="bg-gradient-to-br from-primary/10 to-blue-500/5 rounded-3xl border border-primary/15 p-10 md:p-14 grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
           {/* Content */}
           <div>

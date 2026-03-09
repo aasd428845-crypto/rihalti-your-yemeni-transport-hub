@@ -65,10 +65,12 @@ const Testimonials = () => {
 
   const filtered = cat === "الكل" ? reviews : reviews.filter((t) => t.cat === cat);
 
+  const { ref, isVisible } = useScrollAnimation();
+
   return (
-    <section className="py-24 bg-secondary">
+    <section className="py-24 bg-secondary" ref={ref}>
       <div className="container mx-auto px-4 max-w-[1100px]">
-        <div className="text-center mb-12">
+        <div className="text-center mb-12" style={{ opacity: isVisible ? 1 : 0, transform: isVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'all 0.7s ease-out' }}>
           <span className="glow-badge mb-4 inline-flex">
             <Star className="w-3 h-3" />
             آراء العملاء
