@@ -18,8 +18,9 @@ import {
   DollarSign,
   Settings,
   LogOut,
-  FileText,
+  Home,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { title: "لوحة التحكم", url: "/driver", icon: LayoutDashboard },
@@ -66,6 +67,12 @@ const DriverSidebar = () => {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => navigate("/")} tooltip="العودة للرئيسية">
+              <Home className="w-4 h-4" />
+              <span>العودة للرئيسية</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleSignOut} tooltip="تسجيل الخروج">
               <LogOut className="w-4 h-4" />
