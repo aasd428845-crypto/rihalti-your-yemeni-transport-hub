@@ -106,6 +106,7 @@ import DeliveryDriverSettings from "./pages/delivery-driver/DeliveryDriverSettin
 import DeliveryDriverOrderDetails from "./pages/delivery-driver/DeliveryDriverOrderDetails";
 import DeliveryDriverHistory from "./pages/delivery-driver/DeliveryDriverHistory";
 import SupportChatWidget from "./components/support/SupportChatWidget";
+import InstallPage from "./pages/InstallPage";
 
 const queryClient = new QueryClient();
 
