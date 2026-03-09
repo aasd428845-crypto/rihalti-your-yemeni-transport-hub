@@ -178,7 +178,7 @@ const ShipmentsPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
         <Button variant="ghost" onClick={() => setStep("select")} className="mb-6 gap-2">
-          <ArrowRight className="w-4 h-4" />العودة لاختيار المورد
+          <ArrowRight className="w-4 h-4" />العودة لاختيار صاحب المكتب
         </Button>
         <Card>
           <CardHeader>
