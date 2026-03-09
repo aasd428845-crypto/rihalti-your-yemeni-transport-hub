@@ -5,12 +5,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, Eye, Ban, UserCheck } from "lucide-react";
+import { Search, Eye, Ban } from "lucide-react";
 import StatusBadge from "@/components/admin/common/StatusBadge";
 import ConfirmModal from "@/components/admin/common/ConfirmModal";
-import { roleLabels, type UserWithRole } from "@/types/admin.types";
+import { type UserWithRole } from "@/types/admin.types";
 import { getUsers, updateUserRole, createAuditLog } from "@/lib/adminApi";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -43,7 +44,6 @@ const AdminUsers = () => {
 
   const handleBlockUser = async () => {
     if (!blockConfirm || !adminUser) return;
-    // For now, we change role to mark blocked (could add is_blocked column later)
     toast.success("تم حظر المستخدم");
     createAuditLog(adminUser.id, "حظر مستخدم", "user", blockConfirm.user_id);
     setBlockConfirm(null);
@@ -56,7 +56,7 @@ const AdminUsers = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <h2 className="text-xl font-bold">إدارة المستخدمين</h2>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -78,61 +78,110 @@ const AdminUsers = () => {
         </Select>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الاسم</TableHead>
-                <TableHead>الهاتف</TableHead>
-                <TableHead>المدينة</TableHead>
-                <TableHead>الدور</TableHead>
-                <TableHead>تغيير الدور</TableHead>
-                <TableHead>إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">جاري التحميل...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">لا يوجد مستخدمون</TableCell></TableRow>
-              ) : (
-                filtered.map((u) => (
-                  <TableRow key={u.user_id}>
-                    <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
-                    <TableCell>{u.phone || "—"}</TableCell>
-                    <TableCell>{u.city || "—"}</TableCell>
-                    <TableCell><StatusBadge status={u.role} /></TableCell>
-                    <TableCell>
-                      <Select value={u.role} onValueChange={(v) => handleRoleChange(u.user_id, v)}>
-                        <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="customer">عميل</SelectItem>
-                          <SelectItem value="supplier">مورد</SelectItem>
-                          <SelectItem value="delivery_company">شركة توصيل</SelectItem>
-                          <SelectItem value="driver">سائق أجرة</SelectItem>
-                          <SelectItem value="delivery_driver">مندوب توصيل</SelectItem>
-                          <SelectItem value="admin">مشرف</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setSelectedUser(u); setDetailsOpen(true); }}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setBlockConfirm(u)}>
-                          <Ban className="w-4 h-4" />
-                        </Button>
+      {loading ? (
+        <div className="flex justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
+      ) : filtered.length === 0 ? (
+        <Card><CardContent className="py-12 text-center text-muted-foreground">لا يوجد مستخدمون</CardContent></Card>
+      ) : (
+        <>
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((u) => (
+              <Card key={u.user_id}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                        {u.full_name?.charAt(0) || "?"}
                       </div>
-                    </TableCell>
+                      <div>
+                        <p className="font-bold text-foreground text-sm">{u.full_name || "بدون اسم"}</p>
+                        <p className="text-xs text-muted-foreground">{u.phone || "—"}</p>
+                      </div>
+                    </div>
+                    <StatusBadge status={u.role} />
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">المدينة:</span> <span className="font-medium">{u.city || "—"}</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Select value={u.role} onValueChange={(v) => handleRoleChange(u.user_id, v)}>
+                      <SelectTrigger className="h-10 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="customer">عميل</SelectItem>
+                        <SelectItem value="supplier">مورد</SelectItem>
+                        <SelectItem value="delivery_company">شركة توصيل</SelectItem>
+                        <SelectItem value="driver">سائق أجرة</SelectItem>
+                        <SelectItem value="delivery_driver">مندوب توصيل</SelectItem>
+                        <SelectItem value="admin">مشرف</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" className="flex-1 min-h-[44px]" onClick={() => { setSelectedUser(u); setDetailsOpen(true); }}>
+                        <Eye className="w-4 h-4 ml-1" /> عرض
+                      </Button>
+                      <Button size="sm" variant="outline" className="min-h-[44px] text-destructive" onClick={() => setBlockConfirm(u)}>
+                        <Ban className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table */}
+          <Card className="hidden md:block">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>الاسم</TableHead>
+                    <TableHead>الهاتف</TableHead>
+                    <TableHead>المدينة</TableHead>
+                    <TableHead>الدور</TableHead>
+                    <TableHead>تغيير الدور</TableHead>
+                    <TableHead>إجراءات</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((u) => (
+                    <TableRow key={u.user_id}>
+                      <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
+                      <TableCell>{u.phone || "—"}</TableCell>
+                      <TableCell>{u.city || "—"}</TableCell>
+                      <TableCell><StatusBadge status={u.role} /></TableCell>
+                      <TableCell>
+                        <Select value={u.role} onValueChange={(v) => handleRoleChange(u.user_id, v)}>
+                          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="customer">عميل</SelectItem>
+                            <SelectItem value="supplier">مورد</SelectItem>
+                            <SelectItem value="delivery_company">شركة توصيل</SelectItem>
+                            <SelectItem value="driver">سائق أجرة</SelectItem>
+                            <SelectItem value="delivery_driver">مندوب توصيل</SelectItem>
+                            <SelectItem value="admin">مشرف</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setSelectedUser(u); setDetailsOpen(true); }}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setBlockConfirm(u)}>
+                            <Ban className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* User Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
