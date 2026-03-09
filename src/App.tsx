@@ -38,6 +38,7 @@ import AdminSupportMessages from "./pages/admin/AdminSupportMessages";
 import AdminSendNotification from "./pages/admin/AdminSendNotification";
 import AdminNotificationLogs from "./pages/admin/AdminNotificationLogs";
 import AdminPartnerProfile from "./pages/admin/AdminPartnerProfile";
+import AdminMonitoring from "./pages/admin/AdminMonitoring";
 import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
@@ -167,6 +168,7 @@ const App = () => (
               <Route path="send-notification" element={<AdminSendNotification />} />
               <Route path="notification-logs" element={<AdminNotificationLogs />} />
               <Route path="partner/:id" element={<AdminPartnerProfile />} />
+              <Route path="monitoring" element={<AdminMonitoring />} />
             </Route>
             <Route path="/supplier" element={<SupplierLayout />}>
               <Route index element={<SupplierDashboard />} />
