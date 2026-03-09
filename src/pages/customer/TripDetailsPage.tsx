@@ -262,31 +262,6 @@ const TripDetailsPage = () => {
                   </div>
                 </div>
 
-                <div>
-                  <Label className="text-sm">طريقة الدفع</Label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">نقداً عند الصعود</SelectItem>
-                      <SelectItem value="bank_transfer">تحويل بنكي (حسابات المنصة)</SelectItem>
-                      <SelectItem value="direct_to_supplier">دفع مباشر لصاحب المكتب</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Show bank accounts for direct payment */}
-                {paymentMethod === "direct_to_supplier" && bankAccounts && bankAccounts.length > 0 && (
-                  <div className="bg-accent rounded-lg p-3 space-y-2">
-                    <p className="text-xs font-medium text-accent-foreground">حسابات صاحب المكتب البنكية:</p>
-                    {bankAccounts.map((acc: any) => (
-                      <div key={acc.id} className="text-xs text-accent-foreground">
-                        <p>{acc.bank_name} - {acc.account_number}</p>
-                        {acc.iban && <p className="text-[10px]">IBAN: {acc.iban}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
                 <Separator />
 
                 {/* Price Summary */}

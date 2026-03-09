@@ -90,7 +90,7 @@ const RestaurantCheckoutPage = () => {
         customer_address: address,
         items: cart,
         subtotal, delivery_fee: deliveryFee, tax, total,
-        payment_method: form.payment_method,
+        payment_method: "pending",
         notes: form.notes || undefined,
       });
       // Send notification to delivery company
@@ -106,8 +106,8 @@ const RestaurantCheckoutPage = () => {
         });
       } catch {}
       const orderId = order?.id;
-      toast({ title: "تم تأكيد الطلب بنجاح! 🎉" });
-      navigate(orderId ? `/track-order/${orderId}` : "/history");
+      toast({ title: "تم تأكيد الطلب بنجاح! 🎉", description: "سيتم توجيهك لإتمام الدفع." });
+      navigate(orderId ? `/payment/delivery/${orderId}` : "/history");
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally { setSubmitting(false); }
