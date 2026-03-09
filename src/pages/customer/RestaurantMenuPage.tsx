@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import BackButton from "@/components/common/BackButton";
-import Header from "@/components/landing/Header";
+
 
 interface CartItem {
   id: string;
@@ -131,7 +131,6 @@ const RestaurantMenuPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
       {/* Restaurant Header */}
       <div className="relative">
         <div className="h-48 md:h-64 bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden">

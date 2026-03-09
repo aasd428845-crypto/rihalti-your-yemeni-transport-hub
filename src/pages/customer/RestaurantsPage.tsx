@@ -8,8 +8,6 @@ import { Search, Star, Clock, Truck, MapPin, UtensilsCrossed, ChefHat, Pizza, Be
 import BackButton from "@/components/common/BackButton";
 import { getActiveRestaurants } from "@/lib/restaurantApi";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/landing/Header";
-import Footer from "@/components/landing/Footer";
 
 const cuisineFilters = [
   { key: "all", label: "الكل", icon: UtensilsCrossed },
@@ -50,8 +48,7 @@ const RestaurantsPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <div className="container mx-auto px-4 pt-24 pb-6 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <BackButton />
         {/* Hero */}
         <div className="text-center mb-8">
@@ -146,7 +143,6 @@ const RestaurantsPage = () => {
           </div>
         )}
       </div>
-      <Footer />
     </div>
   );
 };

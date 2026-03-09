@@ -13,7 +13,7 @@ import BackButton from "@/components/common/BackButton";
 import { getRestaurantById, getCart, createOrderFromCart, clearCart } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/landing/Header";
+
 
 interface CartItem {
   id: string;
@@ -115,18 +115,15 @@ const RestaurantCheckoutPage = () => {
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   if (cart.length === 0) return (
-    <div className="min-h-screen bg-background" dir="rtl"><Header />
-      <div className="container mx-auto px-4 py-20 text-center">
-        <ShoppingCart className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
-        <p className="text-muted-foreground mb-4">السلة فارغة</p>
-        <Button onClick={() => navigate(`/restaurants/${restaurantId}`)}>العودة للمنيو</Button>
-      </div>
+    <div className="container mx-auto px-4 py-20 text-center">
+      <ShoppingCart className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
+      <p className="text-muted-foreground mb-4">السلة فارغة</p>
+      <Button onClick={() => navigate(`/restaurants/${restaurantId}`)}>العودة للمنيو</Button>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
       <div className="container mx-auto px-4 py-6 max-w-3xl">
         <BackButton />
         <h1 className="text-2xl font-bold mb-6">إتمام الطلب</h1>

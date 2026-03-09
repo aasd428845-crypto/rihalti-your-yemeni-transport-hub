@@ -5,7 +5,7 @@ import { Bus } from "lucide-react";
 import { searchTrips, fetchRegions } from "@/lib/customerApi";
 import TripCard from "@/components/trips/TripCard";
 import TripFilters from "@/components/trips/TripFilters";
-import Header from "@/components/landing/Header";
+
 import BackButton from "@/components/common/BackButton";
 import type { TripSearchParams } from "@/types/customer.types";
 
@@ -42,8 +42,7 @@ const TripsPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <div className="container mx-auto px-4 pt-24 pb-12">
+      <div className="container mx-auto px-4 py-8">
         <BackButton />
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">البحث عن رحلة</h1>

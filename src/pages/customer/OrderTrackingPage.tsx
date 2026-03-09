@@ -9,7 +9,7 @@ import { Package, Clock, CheckCircle, Truck, MapPin, Phone, Star, ChefHat, Arrow
 import BackButton from "@/components/common/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/landing/Header";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { createReview } from "@/lib/restaurantApi";
@@ -97,21 +97,15 @@ const OrderTrackingPage = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <div className="flex justify-center py-20">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
+    <div className="flex justify-center py-20">
+      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
     </div>
   );
 
   if (!order) return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <div className="container mx-auto px-4 py-20 text-center">
-        <p className="text-muted-foreground">الطلب غير موجود</p>
-        <Button onClick={() => navigate("/history")} className="mt-4">العودة للطلبات</Button>
-      </div>
+    <div className="container mx-auto px-4 py-20 text-center">
+      <p className="text-muted-foreground">الطلب غير موجود</p>
+      <Button onClick={() => navigate("/history")} className="mt-4">العودة للطلبات</Button>
     </div>
   );
 
@@ -119,7 +113,6 @@ const OrderTrackingPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
       <div className="container mx-auto px-4 py-6 max-w-3xl">
         <BackButton />
         <h1 className="text-2xl font-bold mb-6">تتبع الطلب</h1>

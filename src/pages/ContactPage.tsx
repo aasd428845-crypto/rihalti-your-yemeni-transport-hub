@@ -1,6 +1,4 @@
 import { useState } from "react";
-import Header from "@/components/landing/Header";
-import Footer from "@/components/landing/Footer";
 import BackButton from "@/components/common/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,8 +52,7 @@ const ContactPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <main className="container mx-auto px-4 pt-24 pb-12">
+      <main className="container mx-auto px-4 py-8">
         <BackButton />
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-foreground mb-2">تواصل معنا</h1>
@@ -110,7 +107,7 @@ const ContactPage = () => {
           </div>
         </div>
       </main>
-      <Footer />
+      
     </div>
   );
 };

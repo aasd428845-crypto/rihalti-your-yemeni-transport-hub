@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import MainLayout from "@/layouts/MainLayout";
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -126,43 +127,49 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              <Route path="/" element={<Index />} />
+              {/* Pages with MainLayout (Header + Footer) */}
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/trips" element={<TripsPage />} />
+                <Route path="/trips/:id" element={<TripDetailsPage />} />
+                <Route path="/checkout/:tripId" element={<CheckoutPage />} />
+                <Route path="/shipments" element={<ShipmentsPage />} />
+                <Route path="/deliveries" element={<DeliveriesPage />} />
+                <Route path="/restaurants" element={<RestaurantsPage />} />
+                <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
+                <Route path="/restaurant-checkout" element={<RestaurantCheckoutPage />} />
+                <Route path="/history" element={<HistoryPage />} />
+                <Route path="/ride/request" element={<RideRequestPage />} />
+                <Route path="/ride/:id" element={<RideDetailsPage />} />
+                <Route path="/ride/track/:id" element={<RideTrackingPage />} />
+                <Route path="/order/:type/:id" element={<OrderDetailsPage />} />
+                <Route path="/order/track/:type/:id" element={<OrderTrackingPage />} />
+                <Route path="/payment" element={<PaymentPage />} />
+                <Route path="/payment-success" element={<PaymentSuccessPage />} />
+                <Route path="/tracking" element={<TrackingPage />} />
+                <Route path="/account" element={<AccountPage />} />
+                <Route path="/addresses" element={<AddressesPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/notification-settings" element={<NotificationSettingsPage />} />
+                <Route path="/shipment-request" element={<ShipmentRequestPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/partner/public/:id" element={<PublicPartnerProfilePage />} />
+                <Route path="/install" element={<InstallPage />} />
+              </Route>
+
+              {/* Auth pages (no layout) */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/complete-profile" element={<CompleteProfilePage />} />
-              <Route path="/about" element={<AboutPage />} />
               <Route path="/invite/:token" element={<InvitePage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/install" element={<InstallPage />} />
-              {/* Customer Pages */}
-              <Route path="/trips" element={<TripsPage />} />
-              <Route path="/trips/:id" element={<TripDetailsPage />} />
-              <Route path="/checkout/:tripId" element={<CheckoutPage />} />
-              <Route path="/shipments" element={<ShipmentsPage />} />
-              <Route path="/deliveries" element={<DeliveriesPage />} />
-              <Route path="/restaurants" element={<RestaurantsPage />} />
-              <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
-              <Route path="/restaurant-checkout" element={<RestaurantCheckoutPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/ride/request" element={<RideRequestPage />} />
-              <Route path="/ride/:id" element={<RideDetailsPage />} />
-              <Route path="/ride/track/:id" element={<RideTrackingPage />} />
-              <Route path="/order/:type/:id" element={<OrderDetailsPage />} />
-              <Route path="/order/track/:type/:id" element={<OrderTrackingPage />} />
-              <Route path="/payment" element={<PaymentPage />} />
-              <Route path="/payment-success" element={<PaymentSuccessPage />} />
-              <Route path="/tracking" element={<TrackingPage />} />
-              <Route path="/account" element={<AccountPage />} />
-              <Route path="/addresses" element={<AddressesPage />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/notification-settings" element={<NotificationSettingsPage />} />
-              <Route path="/shipment-request" element={<ShipmentRequestPage />} />
-              <Route path="/cart" element={<CartPage />} />
+
               {/* Partner Profile */}
               <Route path="/partner/profile" element={<PartnerProfilePage />} />
-              <Route path="/partner/public/:id" element={<PublicPartnerProfilePage />} />
+
               {/* Admin */}
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminOverview />} />

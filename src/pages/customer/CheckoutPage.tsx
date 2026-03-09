@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchTripById, createBooking } from "@/lib/customerApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/landing/Header";
+
 import BackButton from "@/components/common/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,22 +81,16 @@ const CheckoutPage = () => {
 
   if (isLoading || authLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 pt-24 pb-12 flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
 
   if (!trip) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 pt-24 pb-12 text-center">
-          <p className="text-muted-foreground">الرحلة غير موجودة</p>
-        </div>
+      <div className="text-center py-20">
+        <p className="text-muted-foreground">الرحلة غير موجودة</p>
       </div>
     );
   }
@@ -105,8 +99,7 @@ const CheckoutPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <div className="container mx-auto px-4 pt-24 pb-12 max-w-3xl">
+      <div className="container mx-auto px-4 py-8 max-w-3xl">
         <BackButton fallback={`/trips/${tripId}`} />
 
         <h1 className="text-2xl font-bold text-foreground mb-6">إتمام الحجز</h1>

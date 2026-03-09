@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchTripById, createBooking, fetchSupplierBankAccounts } from "@/lib/customerApi";
-import Header from "@/components/landing/Header";
+
 import WhatsAppShareButton from "@/components/trips/WhatsAppShareButton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -96,22 +96,16 @@ const TripDetailsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex items-center justify-center pt-32">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
 
   if (!trip) {
     return (
-      <div className="min-h-screen bg-background" dir="rtl">
-        <Header />
-        <div className="flex items-center justify-center pt-32">
-          <p className="text-muted-foreground">الرحلة غير موجودة</p>
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <p className="text-muted-foreground">الرحلة غير موجودة</p>
       </div>
     );
   }
@@ -121,8 +115,7 @@ const TripDetailsPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <div className="container mx-auto px-4 pt-24 pb-12 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
           <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
             <ArrowRight className="w-4 h-4" />

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, MapPin, Phone, Star, FileText, MessageSquare, Map } from "lucide-react";
-import Header from "@/components/landing/Header";
+
 import BackButton from "@/components/common/BackButton";
 import ReviewsList, { AverageRating } from "@/components/reviews/ReviewsList";
 import PartnerWorkingAreasMap from "@/components/maps/PartnerWorkingAreasMap";
@@ -49,30 +49,23 @@ const PublicPartnerProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background" dir="rtl">
-        <Header />
-        <div className="container mx-auto px-4 pt-24 pb-12 flex justify-center">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
+      <div className="flex justify-center py-20">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-background" dir="rtl">
-        <Header />
-        <div className="container mx-auto px-4 pt-24 pb-12 text-center">
-          <h2 className="text-xl font-bold">الملف الشخصي غير موجود</h2>
-        </div>
+      <div className="text-center py-20">
+        <h2 className="text-xl font-bold">الملف الشخصي غير موجود</h2>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <div className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
         <BackButton />
 
         <Card className="overflow-hidden">

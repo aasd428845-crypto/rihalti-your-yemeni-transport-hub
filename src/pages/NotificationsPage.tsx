@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, BellOff, Check, ArrowRight, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/landing/Header";
+
 
 const NotificationsPage = () => {
   const { user } = useAuth();
@@ -57,8 +57,7 @@ const NotificationsPage = () => {
 
   return (
     <>
-      <Header />
-      <div className="pt-20 pb-10 container mx-auto px-4 max-w-2xl" dir="rtl">
+      <div className="pb-10 container mx-auto px-4 max-w-2xl" dir="rtl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-accent transition-colors">

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, Volume2, Smartphone, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import Header from "@/components/landing/Header";
+
 
 interface NotificationSettings {
   enable_push_notifications: boolean;
@@ -99,19 +99,15 @@ const NotificationSettingsPage = () => {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <div className="pt-20 flex justify-center items-center min-h-screen">
-          <div className="animate-pulse text-muted-foreground">جاري التحميل...</div>
-        </div>
-      </>
+      <div className="flex justify-center items-center py-20">
+        <div className="animate-pulse text-muted-foreground">جاري التحميل...</div>
+      </div>
     );
   }
 
   return (
     <>
-      <Header />
-      <div className="pt-20 pb-10 container mx-auto px-4 max-w-2xl" dir="rtl">
+      <div className="pb-10 container mx-auto px-4 max-w-2xl" dir="rtl">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors">
           <ArrowRight className="w-4 h-4" />
           <span>رجوع</span>
