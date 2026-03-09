@@ -22,6 +22,7 @@ const statusLabels: Record<string, string> = { pending: "قيد الانتظار
 const paymentLabels: Record<string, string> = { cash: "نقدي", later: "مؤجل", transfer: "تحويل" };
 
 const AdminTransactions = () => {
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("all");
