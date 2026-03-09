@@ -25,6 +25,8 @@ const menuItems = [
   { title: "التقارير", url: "/admin/reports", icon: FileText },
   { title: "التحويلات البنكية", url: "/admin/payment-review", icon: CreditCard },
   { title: "صلاحيات الشركاء", url: "/admin/partner-controls", icon: Shield },
+  { title: "إرسال إشعار", url: "/admin/send-notification", icon: Bell },
+  { title: "سجل الإشعارات", url: "/admin/notification-logs", icon: FileText },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
   { title: "رسائل الدعم", url: "/admin/support-messages", icon: Headphones },
 ];
