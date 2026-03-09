@@ -52,7 +52,10 @@ const AdminLayout = () => {
               <Menu className="w-5 h-5" />
             </SidebarTrigger>
             <h1 className="text-sm font-bold text-foreground flex-1">لوحة تحكم المشرف</h1>
-            
+            {/* Theme Toggle */}
+            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
             {/* Notifications Bell */}
             <Popover>
               <PopoverTrigger asChild>
