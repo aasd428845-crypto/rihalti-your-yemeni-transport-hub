@@ -1,0 +1,26 @@
+{
+  "name": "رحلاتي - منصة النقل اليمنية",
+  "short_name": "رحلاتي",
+  "description": "أول منصة يمنية متكاملة لخدمات النقل والشحن والتوصيل",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f4f0",
+  "theme_color": "#0f5e59",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

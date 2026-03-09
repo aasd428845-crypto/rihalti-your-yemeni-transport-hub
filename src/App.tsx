@@ -106,6 +106,7 @@ import DeliveryDriverSettings from "./pages/delivery-driver/DeliveryDriverSettin
 import DeliveryDriverOrderDetails from "./pages/delivery-driver/DeliveryDriverOrderDetails";
 import DeliveryDriverHistory from "./pages/delivery-driver/DeliveryDriverHistory";
 import SupportChatWidget from "./components/support/SupportChatWidget";
+import InstallPage from "./pages/InstallPage";
 
 const queryClient = new QueryClient();
 
@@ -126,6 +127,7 @@ const App = () => (
             <Route path="/about" element={<AboutPage />} />
             <Route path="/invite/:token" element={<InvitePage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/install" element={<InstallPage />} />
             {/* Customer Pages */}
             <Route path="/trips" element={<TripsPage />} />
             <Route path="/trips/:id" element={<TripDetailsPage />} />
