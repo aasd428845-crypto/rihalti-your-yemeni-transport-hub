@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import ConfirmModal from "@/components/admin/common/ConfirmModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -69,23 +76,38 @@ const DeleteAccountButton = () => {
         </CardContent>
       </Card>
 
-      {showConfirm && (
-        <ConfirmModal
-          open={showConfirm}
-          onOpenChange={(open) => { setShowConfirm(open); if (!open) setConfirmText(""); }}
-          title="⚠️ تأكيد حذف الحساب"
-          description=""
-          confirmLabel={deleting ? "جاري الحذف..." : "حذف نهائياً"}
-          variant="destructive"
-          onConfirm={handleDelete}
-        />
-      )}
-
-      {showConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none">
-          {/* The ConfirmModal handles the dialog, but we add a text input via a separate approach */}
-        </div>
-      )}
+      <Dialog open={showConfirm} onOpenChange={(open) => { setShowConfirm(open); if (!open) setConfirmText(""); }}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>⚠️ تأكيد حذف الحساب</DialogTitle>
+            <DialogDescription>
+              هذا الإجراء لا يمكن التراجع عنه. اكتب <strong className="text-destructive">{DELETE_CONFIRM_TEXT}</strong> للتأكيد.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="confirm-delete">نص التأكيد</Label>
+            <Input
+              id="confirm-delete"
+              placeholder={DELETE_CONFIRM_TEXT}
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              dir="rtl"
+            />
+          </div>
+          <DialogFooter className="flex-row-reverse gap-2">
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting || confirmText !== DELETE_CONFIRM_TEXT}
+            >
+              {deleting ? "جاري الحذف..." : "حذف نهائياً"}
+            </Button>
+            <Button variant="outline" onClick={() => setShowConfirm(false)}>
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
