@@ -236,6 +236,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           <SupportChatWidget />
+          <InstallPWAButton />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
