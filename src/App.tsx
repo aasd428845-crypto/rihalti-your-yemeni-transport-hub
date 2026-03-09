@@ -128,6 +128,7 @@ const App = () => (
         <Sonner position="top-center" dir="rtl" richColors closeButton />
         <BrowserRouter>
           <AuthProvider>
+            <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Pages with MainLayout (Header + Footer) */}
               <Route element={<MainLayout />}>
