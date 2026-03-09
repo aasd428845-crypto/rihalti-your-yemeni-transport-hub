@@ -141,7 +141,7 @@ const AdminPartnerProfile = () => {
   if (loading) return <div className="flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   if (!profile) return <div className="text-center py-20 text-muted-foreground">لم يتم العثور على الشريك</div>;
 
-  const roleLabels: Record<string, string> = { supplier: "مورد", delivery_company: "شركة توصيل", driver: "سائق", delivery_driver: "سائق توصيل" };
+  const roleLabels: Record<string, string> = { supplier: "صاحب مكتب", delivery_company: "شركة توصيل", driver: "سائق", delivery_driver: "سائق توصيل" };
   const isTrialActive = profile.is_trial_active && profile.trial_end_date && new Date(profile.trial_end_date) > new Date();
 
   return (

@@ -50,7 +50,7 @@ const AdminDashboard = () => {
 
       {/* KPI Cards Row 1 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="إجمالي المستخدمين" value={stats.totalUsers} icon={Users} description={`عملاء: ${stats.customers} | موردون: ${stats.suppliers} | توصيل: ${stats.deliveryCompanies} | سائقون: ${stats.drivers}`} />
+        <StatCard title="إجمالي المستخدمين" value={stats.totalUsers} icon={Users} description={`عملاء: ${stats.customers} | أصحاب مكاتب: ${stats.suppliers} | توصيل: ${stats.deliveryCompanies} | سائقون: ${stats.drivers}`} />
         <StatCard title="المعاملات" value={stats.txMonth} icon={TrendingUp} description={`اليوم: ${stats.txToday} | الأسبوع: ${stats.txWeek}`} />
         <StatCard title="إيرادات المنصة" value={`${stats.platformEarnings.toLocaleString()} ر.ي`} icon={DollarSign} description={`إجمالي المعاملات: ${stats.totalRevenue.toLocaleString()} ر.ي`} />
         <StatCard title="الفواتير المستحقة" value={stats.pendingInvoiceCount + stats.overdueInvoiceCount} icon={Receipt} description={`معلقة: ${stats.pendingInvoiceTotal.toLocaleString()} | متأخرة: ${stats.overdueInvoiceTotal.toLocaleString()} ر.ي`} />

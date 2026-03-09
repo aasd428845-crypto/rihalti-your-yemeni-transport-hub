@@ -98,7 +98,7 @@ const AdminInvitations = () => {
               ) : invitations.map((inv) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-medium">{inv.email}</TableCell>
-                  <TableCell>{inv.role === "supplier" ? "مورد" : inv.role === "driver" ? "سائق" : "شركة توصيل"}</TableCell>
+                  <TableCell>{inv.role === "supplier" ? "صاحب مكتب" : inv.role === "driver" ? "سائق" : "شركة توصيل"}</TableCell>
                   <TableCell>
                     {inv.used_at ? (
                       <StatusBadge status="completed" />

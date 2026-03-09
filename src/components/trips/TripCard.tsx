@@ -19,7 +19,7 @@ const TripCard = ({ trip }: TripCardProps) => {
       : trip.price - trip.offer_value
     : trip.price;
 
-  const supplierName = trip.supplier?.full_name || "مورد";
+  const supplierName = trip.supplier?.full_name || "صاحب مكتب";
   const supplierLogo = trip.supplier?.logo_url;
 
   return (

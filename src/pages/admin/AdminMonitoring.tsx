@@ -353,7 +353,7 @@ const AdminMonitoring = () => {
                     <th className="px-3 py-2 text-right">المستخدمون</th>
                     <th className="px-3 py-2 text-right">جدد</th>
                     <th className="px-3 py-2 text-right">رحلات</th>
-                    <th className="px-3 py-2 text-right">شحنات</th>
+                    <th className="px-3 py-2 text-right">طرود</th>
                     <th className="px-3 py-2 text-right">توصيلات</th>
                     <th className="px-3 py-2 text-right">أجرة</th>
                     <th className="px-3 py-2 text-right">معاملات</th>

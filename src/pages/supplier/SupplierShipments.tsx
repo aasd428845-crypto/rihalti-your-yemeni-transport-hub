@@ -73,7 +73,7 @@ const SupplierShipments = () => {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <h2 className="text-xl font-bold">إدارة الشحنات</h2>
+      <h2 className="text-xl font-bold">إدارة الطرود</h2>
 
       {requests.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد طلبات شحن حالياً.</CardContent></Card>

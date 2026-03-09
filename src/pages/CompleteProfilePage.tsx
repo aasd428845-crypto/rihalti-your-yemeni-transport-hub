@@ -76,12 +76,10 @@ const CompleteProfilePage = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-hero-gradient flex items-center justify-center">
-              <Bus className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img src="/icons/icon-192x192.png" alt="وصل" className="w-12 h-12 rounded-xl object-cover" />
             <div className="text-right">
-              <div className="text-xl font-black text-foreground">رحلاتي</div>
-              <div className="text-xs text-muted-foreground">المنصة اليمنية للنقل</div>
+              <div className="text-xl font-black text-foreground">وصل</div>
+              <div className="text-xs text-muted-foreground">منصة النقل الذكية</div>
             </div>
           </div>
         </div>

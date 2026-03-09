@@ -257,7 +257,7 @@ const AdminSettings = () => {
                   <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="customer">العملاء</SelectItem>
-                    <SelectItem value="supplier">الموردون</SelectItem>
+                    <SelectItem value="supplier">أصحاب المكاتب</SelectItem>
                     <SelectItem value="delivery_company">شركات التوصيل</SelectItem>
                   </SelectContent>
                 </Select>
