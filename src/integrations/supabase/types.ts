@@ -266,8 +266,12 @@ export type Database = {
         Row: {
           created_at: string | null
           customer_id: string
+          customer_notes: string | null
           id: string
+          payer_name: string | null
+          payer_phone: string | null
           payment_method: string | null
+          payment_receipt_url: string | null
           payment_status: string | null
           seat_count: number
           status: string | null
@@ -277,8 +281,12 @@ export type Database = {
         Insert: {
           created_at?: string | null
           customer_id: string
+          customer_notes?: string | null
           id?: string
+          payer_name?: string | null
+          payer_phone?: string | null
           payment_method?: string | null
+          payment_receipt_url?: string | null
           payment_status?: string | null
           seat_count?: number
           status?: string | null
@@ -288,8 +296,12 @@ export type Database = {
         Update: {
           created_at?: string | null
           customer_id?: string
+          customer_notes?: string | null
           id?: string
+          payer_name?: string | null
+          payer_phone?: string | null
           payment_method?: string | null
+          payment_receipt_url?: string | null
           payment_status?: string | null
           seat_count?: number
           status?: string | null
