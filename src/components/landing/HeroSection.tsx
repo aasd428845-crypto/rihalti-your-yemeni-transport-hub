@@ -34,7 +34,7 @@ const HeroSection = () => {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight">
               النقل البري في اليمن
               <br />
-              <span className="text-gradient-gold inline-block">أسهل وأسرع</span> مع رحلاتي
+              <span className="text-gradient-gold inline-block">أسهل وأسرع</span> مع وصل
             </h1>
 
             <p className="text-lg text-primary-foreground/80 max-w-lg leading-relaxed">
