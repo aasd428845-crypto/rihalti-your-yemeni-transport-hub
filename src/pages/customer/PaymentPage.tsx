@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   getPlatformBankAccounts,
-  getPartnerAccounts,
   createPaymentTransaction,
   createFinancialTransaction,
   uploadPaymentReceipt,
@@ -22,8 +22,10 @@ import {
   getCashOnDeliverySetting,
 } from "@/lib/paymentApi";
 import { getPartnerSettings, PartnerSettings } from "@/lib/partnerSettingsApi";
-import { Upload, CreditCard, Building2, CheckCircle, Loader2, Banknote, MapPin, Calendar, Users, Bus } from "lucide-react";
+import { fetchSupplierBankAccounts } from "@/lib/customerApi";
+import { Upload, CreditCard, Building2, CheckCircle, Loader2, Banknote, MapPin, Calendar, Users, Bus, StickyNote } from "lucide-react";
 import BackButton from "@/components/common/BackButton";
+import { supabase } from "@/integrations/supabase/client";
 
 const entityLabels: Record<string, string> = {
   booking: "حجز رحلة",
@@ -39,15 +41,22 @@ const PaymentPage = () => {
   const { sendPushNotification } = useNotifications();
 
   const [entity, setEntity] = useState<any>(null);
-  const [platformAccounts, setPlatformAccounts] = useState<any[]>([]);
-  const [partnerAccounts, setPartnerAccounts] = useState<any[]>([]);
   const [partnerSettings, setPartnerSettings] = useState<PartnerSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
-  const [transferRef, setTransferRef] = useState("");
+
+  // Partner bank accounts (for partner_transfer)
+  const [partnerBankAccounts, setPartnerBankAccounts] = useState<any[]>([]);
+  // Platform bank accounts (fallback)
+  const [platformAccounts, setPlatformAccounts] = useState<any[]>([]);
+
+  // Transfer form fields
+  const [payerName, setPayerName] = useState("");
+  const [payerPhone, setPayerPhone] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [customerNotes, setCustomerNotes] = useState("");
 
   // Booking-specific state
   const [tripDetails, setTripDetails] = useState<any>(null);
@@ -61,10 +70,6 @@ const PaymentPage = () => {
       try {
         const entityData = await getEntityDetails(entityType, entityId) as any;
         setEntity(entityData);
-
-        // Fetch platform bank accounts
-        const platAccs = await getPlatformBankAccounts();
-        setPlatformAccounts(platAccs);
 
         // Fetch system-level cash setting
         const cashSetting = await getCashOnDeliverySetting();
@@ -86,7 +91,6 @@ const PaymentPage = () => {
         let partnerId: string | null = null;
 
         if (entityType === "booking" && entityData?.trip_id) {
-          // For bookings, get trip details to find supplier
           const trip = await getTripDetails(entityData.trip_id);
           setTripDetails(trip);
           partnerId = trip?.supplier_id;
@@ -94,18 +98,34 @@ const PaymentPage = () => {
           if (partnerId) {
             const profile = await getSupplierProfile(partnerId);
             setSupplierInfo(profile);
+            // Fetch partner's bank accounts
+            const banks = await fetchSupplierBankAccounts(partnerId);
+            setPartnerBankAccounts(banks || []);
           }
         } else {
           partnerId = entityData?.supplier_id || entityData?.delivery_company_id || entityData?.driver_id;
+          if (partnerId) {
+            const banks = await fetchSupplierBankAccounts(partnerId);
+            setPartnerBankAccounts(banks || []);
+          }
         }
 
+        // Fetch platform bank accounts as fallback
+        const platAccs = await getPlatformBankAccounts();
+        setPlatformAccounts(platAccs);
+
         if (partnerId) {
-          const [pSettings, pAccs] = await Promise.all([
-            getPartnerSettings(partnerId),
-            getPartnerAccounts(partnerId),
-          ]);
+          const pSettings = await getPartnerSettings(partnerId);
           setPartnerSettings(pSettings);
-          setPartnerAccounts(pAccs);
+        }
+
+        // Pre-fill payer name from profile
+        if (user) {
+          const { data: prof } = await supabase.from("profiles").select("full_name, phone").eq("user_id", user.id).maybeSingle();
+          if (prof) {
+            setPayerName(prof.full_name || "");
+            setPayerPhone(prof.phone || "");
+          }
         }
       } catch (err) {
         console.error(err);
@@ -139,29 +159,11 @@ const PaymentPage = () => {
   const getAvailableMethods = () => {
     const methods: { value: string; label: string; description: string }[] = [];
 
-    // Platform bank transfer
-    if (platformAccounts.length > 0) {
-      methods.push({
-        value: "platform_transfer",
-        label: "تحويل بنكي إلى المنصة",
-        description: "حوّل المبلغ إلى حساب المنصة البنكي",
-      });
-    }
+    const isRide = entityType === "ride";
+    const isBooking = entityType === "booking";
 
-    // Direct partner transfer if allowed
-    if (partnerSettings?.allow_direct_payment && partnerAccounts.length > 0) {
-      methods.push({
-        value: "partner_transfer",
-        label: entityType === "booking" ? "تحويل بنكي مباشر إلى صاحب المكتب" : "تحويل بنكي إلى الشريك",
-        description: entityType === "booking" ? "حوّل المبلغ مباشرة إلى حساب صاحب المكتب" : "حوّل المبلغ مباشرة إلى حساب مقدم الخدمة",
-      });
-    }
-
-    // Cash option - check both system-level and partner-level
+    // Cash option
     if (cashEnabled) {
-      const isRide = entityType === "ride";
-      const isBooking = entityType === "booking";
-
       if (isRide) {
         if (partnerSettings?.cash_on_ride_enabled !== false) {
           methods.push({
@@ -189,23 +191,45 @@ const PaymentPage = () => {
       }
     }
 
+    // Partner bank transfer (partner's own accounts)
+    if (partnerBankAccounts.length > 0) {
+      methods.push({
+        value: "partner_transfer",
+        label: isBooking ? "تحويل إلى حساب صاحب المكتب" : "تحويل بنكي إلى الشريك",
+        description: isBooking ? "حوّل المبلغ إلى الحساب البنكي لصاحب المكتب" : "حوّل المبلغ مباشرة إلى حساب مقدم الخدمة",
+      });
+    }
+
+    // Platform bank transfer (fallback if no partner accounts)
+    if (platformAccounts.length > 0 && partnerBankAccounts.length === 0) {
+      methods.push({
+        value: "platform_transfer",
+        label: "تحويل بنكي إلى المنصة",
+        description: "حوّل المبلغ إلى حساب المنصة البنكي",
+      });
+    }
+
     return methods;
   };
 
   const availableMethods = getAvailableMethods();
   const isBankTransfer = paymentMethod === "platform_transfer" || paymentMethod === "partner_transfer";
-  const displayedAccounts = paymentMethod === "partner_transfer" ? partnerAccounts : platformAccounts;
+  const displayedAccounts = paymentMethod === "partner_transfer" ? partnerBankAccounts : platformAccounts;
 
   const handleSubmit = async () => {
     if (!user || !entityType || !entityId || !paymentMethod) return;
 
     if (isBankTransfer) {
-      if (!transferRef.trim()) {
-        toast({ title: "خطأ", description: "يرجى إدخال رقم الحوالة", variant: "destructive" });
+      if (!payerName.trim()) {
+        toast({ title: "خطأ", description: "يرجى إدخال اسمك", variant: "destructive" });
+        return;
+      }
+      if (!payerPhone.trim()) {
+        toast({ title: "خطأ", description: "يرجى إدخال رقم هاتفك", variant: "destructive" });
         return;
       }
       if (!receiptFile) {
-        toast({ title: "خطأ", description: "يرجى رفع صورة الحوالة", variant: "destructive" });
+        toast({ title: "خطأ", description: "يرجى رفع صورة إيصال الدفع", variant: "destructive" });
         return;
       }
     }
@@ -218,12 +242,13 @@ const PaymentPage = () => {
       const partnerEarning = amount - commission;
       const payMethodDb = paymentMethod === "cash" ? "cash" : "bank_transfer";
 
-      // 1. Create payment transaction
+      // Upload receipt if bank transfer
       let receiptUrl: string | undefined;
       if (isBankTransfer && receiptFile) {
         receiptUrl = await uploadPaymentReceipt(user.id, receiptFile);
       }
 
+      // Create payment transaction
       const paymentTx = await createPaymentTransaction({
         user_id: user.id,
         related_entity_id: entityId,
@@ -231,11 +256,23 @@ const PaymentPage = () => {
         amount,
         payment_method: payMethodDb,
         transfer_receipt_url: receiptUrl,
-        transfer_reference: isBankTransfer ? transferRef.trim() : undefined,
+        transfer_reference: isBankTransfer ? payerPhone.trim() : undefined,
         partner_id: paymentMethod === "partner_transfer" ? partnerId : undefined,
       });
 
-      // 2. Create financial transaction
+      // Update booking with payment info
+      if (entityType === "booking") {
+        await supabase.from("bookings").update({
+          payment_method: payMethodDb,
+          payment_status: "pending",
+          payer_name: payerName.trim() || null,
+          payer_phone: payerPhone.trim() || null,
+          payment_receipt_url: receiptUrl || null,
+          customer_notes: customerNotes.trim() || null,
+        } as any).eq("id", entityId);
+      }
+
+      // Create financial transaction
       if (partnerId) {
         await createFinancialTransaction({
           transaction_type: entityType,
@@ -253,25 +290,25 @@ const PaymentPage = () => {
         });
       }
 
-      // 3. Send notifications
+      // Notifications
       if (isBankTransfer) {
         try {
           await sendPushNotification({
             targetRole: "admin",
             title: "تحويل بنكي جديد 🏦",
-            body: `عميل قام برفع حوالة بمبلغ ${amount.toLocaleString()} ر.ي - ${entityLabels[entityType] || entityType}`,
+            body: `عميل قام برفع إيصال دفع بمبلغ ${amount.toLocaleString()} ر.ي - ${entityLabels[entityType] || entityType}`,
             data: { type: "payment", entityType, entityId },
           });
-          if (paymentMethod === "partner_transfer" && partnerId) {
+          if (partnerId) {
             await sendPushNotification({
               userId: partnerId,
-              title: "حوالة بنكية جديدة 🏦",
+              title: "إيصال دفع جديد 🏦",
               body: `عميل حوّل مبلغ ${amount.toLocaleString()} ر.ي إلى حسابك`,
               data: { type: "payment_direct" },
             });
           }
         } catch {}
-        toast({ title: "تم بنجاح", description: "تم إرسال طلب الدفع وسيتم مراجعته قريباً" });
+        toast({ title: "تم بنجاح", description: "تم إرسال إيصال الدفع وسيتم مراجعته قريباً" });
       } else {
         toast({ title: "تم بنجاح", description: entityType === "booking" ? "تم تأكيد الدفع نقداً عند الصعود" : "تم تأكيد الدفع نقداً عند الاستلام" });
       }
@@ -320,7 +357,6 @@ const PaymentPage = () => {
               <Badge variant="outline">{entityLabels[entityType || ""] || entityType}</Badge>
             </div>
 
-            {/* Booking-specific details with trip info */}
             {entityType === "booking" && entity && (
               <>
                 {tripDetails && (
@@ -335,7 +371,7 @@ const PaymentPage = () => {
                     </div>
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> موعد الانطلاق</span>
-                      <span className="font-medium">{tripDetails.departure_time}</span>
+                      <span className="font-medium">{new Date(tripDetails.departure_time).toLocaleString("ar")}</span>
                     </div>
                     {tripDetails.bus_company && (
                       <div className="flex justify-between items-center text-sm">
@@ -358,7 +394,6 @@ const PaymentPage = () => {
               </>
             )}
 
-            {/* Delivery details */}
             {entityType === "delivery" && entity && (
               <>
                 <div className="flex justify-between items-center text-sm">
@@ -372,7 +407,6 @@ const PaymentPage = () => {
               </>
             )}
 
-            {/* Shipment details */}
             {entityType === "shipment" && entity && (
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">نوع الشحنة</span>
@@ -380,7 +414,6 @@ const PaymentPage = () => {
               </div>
             )}
 
-            {/* Amount */}
             <div className="border-t pt-3 flex justify-between items-center">
               <span className="text-muted-foreground font-medium">المبلغ المطلوب</span>
               <span className="text-xl font-bold text-primary">{amount.toLocaleString()} ر.ي</span>
@@ -419,7 +452,7 @@ const PaymentPage = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Building2 className="w-5 h-5" />
-                {paymentMethod === "partner_transfer" ? "حسابات الشريك" : "حسابات المنصة"}
+                {paymentMethod === "partner_transfer" ? "حساب صاحب المكتب" : "حسابات المنصة"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -451,35 +484,45 @@ const PaymentPage = () => {
           </Card>
         )}
 
-        {/* Upload Form (shown for transfer methods) */}
+        {/* Transfer Form (shown for bank transfer) */}
         {isBankTransfer && (
           <Card>
-            <CardHeader><CardTitle className="text-lg">تأكيد التحويل</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-lg">بيانات الدفع</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="transferRef">رقم الحوالة *</Label>
+                <Label htmlFor="payerName">الاسم الكامل *</Label>
                 <Input
-                  id="transferRef"
-                  placeholder="أدخل رقم الحوالة أو المرجع"
-                  value={transferRef}
-                  onChange={(e) => setTransferRef(e.target.value)}
+                  id="payerName"
+                  placeholder="أدخل اسمك الكامل"
+                  value={payerName}
+                  onChange={(e) => setPayerName(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label>صورة الحوالة *</Label>
+                <Label htmlFor="payerPhone">رقم الهاتف *</Label>
+                <Input
+                  id="payerPhone"
+                  placeholder="أدخل رقم هاتفك"
+                  value={payerPhone}
+                  onChange={(e) => setPayerPhone(e.target.value)}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>صورة إيصال الدفع *</Label>
                 <div
                   className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => document.getElementById("receipt-file")?.click()}
                 >
                   {previewUrl ? (
                     <div className="space-y-2">
-                      <img src={previewUrl} alt="صورة الحوالة" className="max-h-48 mx-auto rounded-lg" />
+                      <img src={previewUrl} alt="صورة الإيصال" className="max-h-48 mx-auto rounded-lg" />
                       <p className="text-sm text-muted-foreground">{receiptFile?.name}</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       <Upload className="w-10 h-10 text-muted-foreground mx-auto" />
-                      <p className="text-muted-foreground">اضغط لرفع صورة الحوالة</p>
+                      <p className="text-muted-foreground">اضغط لرفع صورة إيصال الدفع</p>
                       <p className="text-xs text-muted-foreground">JPG, PNG, PDF - حد أقصى 5MB</p>
                     </div>
                   )}
@@ -490,20 +533,40 @@ const PaymentPage = () => {
           </Card>
         )}
 
+        {/* Customer Notes (always shown when payment method is selected) */}
+        {paymentMethod && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <StickyNote className="w-5 h-5" />
+                ملاحظات (اختياري)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder={entityType === "booking" ? "مثال: أريد أن ينتظرني السائق أمام المنزل / مكان الانتظار..." : "أضف أي ملاحظة تريد إبلاغها لمقدم الخدمة"}
+                value={customerNotes}
+                onChange={(e) => setCustomerNotes(e.target.value)}
+                rows={3}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Submit */}
         {paymentMethod && (
           <Button
             className="w-full"
             size="lg"
             onClick={handleSubmit}
-            disabled={submitting || (isBankTransfer && (!transferRef.trim() || !receiptFile))}
+            disabled={submitting || (isBankTransfer && (!payerName.trim() || !payerPhone.trim() || !receiptFile))}
           >
             {submitting ? (
               <Loader2 className="w-4 h-4 animate-spin ml-2" />
             ) : (
               <CheckCircle className="w-4 h-4 ml-2" />
             )}
-            {submitting ? "جارٍ الإرسال..." : isBankTransfer ? "تأكيد التحويل" : "تأكيد الدفع نقداً"}
+            {submitting ? "جارٍ الإرسال..." : isBankTransfer ? "تأكيد الدفع وإرسال الإيصال" : "تأكيد الدفع نقداً"}
           </Button>
         )}
       </div>

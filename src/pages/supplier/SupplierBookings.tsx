@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/admin/common/StatusBadge";
-import { Check, X, Eye, MessageCircle } from "lucide-react";
+import { Check, X, Eye, MessageCircle, Image } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,29 +16,27 @@ const SupplierBookings = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [profiles, setProfiles] = useState<Record<string, any>>({});
   const [trips, setTrips] = useState<Record<string, any>>({});
 
   const loadData = async () => {
     if (!user?.id) return;
     const { data } = await getSupplierBookings(user.id);
-    // Hide pending_approval items (awaiting admin approval)
     const bookingsList = (data || []).filter((b: any) => b.status !== "pending_approval");
     setBookings(bookingsList);
 
-    // Fetch customer names and trip info
     const customerIds = [...new Set(bookingsList.map((b: any) => b.customer_id))];
     const tripIds = [...new Set(bookingsList.map((b: any) => b.trip_id))];
 
     if (customerIds.length > 0) {
-      const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name").in("user_id", customerIds);
-      const map: Record<string, string> = {};
-      (profilesData || []).forEach((p: any) => { map[p.user_id] = p.full_name; });
+      const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name, phone").in("user_id", customerIds);
+      const map: Record<string, any> = {};
+      (profilesData || []).forEach((p: any) => { map[p.user_id] = p; });
       setProfiles(map);
     }
 
     if (tripIds.length > 0) {
-      const { data: tripsData } = await supabase.from("trips").select("id, from_city, to_city, departure_time").in("id", tripIds);
+      const { data: tripsData } = await supabase.from("trips").select("id, from_city, to_city, departure_time, driver_phone").in("id", tripIds);
       const map: Record<string, any> = {};
       (tripsData || []).forEach((t: any) => { map[t.id] = t; });
       setTrips(map);
@@ -59,6 +57,30 @@ const SupplierBookings = () => {
     }
   };
 
+  const buildWhatsAppText = (booking: any) => {
+    const trip = trips[booking.trip_id];
+    const profile = profiles[booking.customer_id];
+    let text = `📋 تفاصيل حجز جديد:\n`;
+    text += `👤 العميل: ${booking.payer_name || profile?.full_name || "—"}\n`;
+    text += `📱 الهاتف: ${booking.payer_phone || profile?.phone || "—"}\n`;
+    if (trip) {
+      text += `🚌 الرحلة: ${trip.from_city} → ${trip.to_city}\n`;
+      text += `📅 الموعد: ${new Date(trip.departure_time).toLocaleString("ar")}\n`;
+    }
+    text += `💺 المقاعد: ${booking.seat_count}\n`;
+    text += `💰 المبلغ: ${Number(booking.total_amount).toLocaleString()} ر.ي\n`;
+    text += `💳 طريقة الدفع: ${booking.payment_method === "cash" ? "نقداً" : booking.payment_method === "bank_transfer" ? "تحويل بنكي" : booking.payment_method || "—"}\n`;
+    if (booking.customer_notes) {
+      text += `📝 ملاحظات العميل: ${booking.customer_notes}\n`;
+    }
+    return text;
+  };
+
+  const openWhatsApp = (booking: any, phone: string) => {
+    const text = buildWhatsAppText(booking);
+    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
   if (loading) return <div className="flex items-center justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
@@ -73,27 +95,28 @@ const SupplierBookings = () => {
           <div className="md:hidden space-y-3">
             {bookings.map((booking) => {
               const trip = trips[booking.trip_id];
+              const profile = profiles[booking.customer_id];
               return (
                 <Card key={booking.id} className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-foreground">{profiles[booking.customer_id] || "—"}</span>
+                    <span className="font-semibold text-foreground">{booking.payer_name || profile?.full_name || "—"}</span>
                     <StatusBadge status={booking.status} />
                   </div>
                   <div className="space-y-1.5 text-sm text-muted-foreground">
                     <p><span className="font-medium text-foreground">الرحلة:</span> {trip ? `${trip.from_city} → ${trip.to_city}` : "—"}</p>
                     <p><span className="font-medium text-foreground">المقاعد:</span> {booking.seat_count}</p>
                     <p><span className="font-medium text-foreground">المبلغ:</span> {Number(booking.total_amount).toLocaleString()} ر.ي</p>
-                    <p><span className="font-medium text-foreground">التاريخ:</span> {new Date(booking.created_at).toLocaleDateString("ar")}</p>
+                    <p><span className="font-medium text-foreground">الدفع:</span> {booking.payment_method === "cash" ? "نقداً" : booking.payment_method === "bank_transfer" ? "تحويل بنكي" : "—"}</p>
+                    {booking.customer_notes && (
+                      <p><span className="font-medium text-foreground">ملاحظات:</span> {booking.customer_notes}</p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 mt-3">
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
                     <Button variant="outline" size="sm" className="min-h-[44px] flex-1" onClick={() => setSelectedBooking(booking)}>
                       <Eye className="w-4 h-4 ml-1" />التفاصيل
                     </Button>
-                    {booking.status === "confirmed" && trip?.driver_phone && (
-                      <Button variant="outline" size="sm" className="min-h-[44px]" onClick={() => {
-                        const text = `تفاصيل حجز:\nالعميل: ${profiles[booking.customer_id] || "—"}\nالرحلة: ${trip.from_city} → ${trip.to_city}\nالمقاعد: ${booking.seat_count}\nالمبلغ: ${Number(booking.total_amount).toLocaleString()} ر.ي`;
-                        window.open(`https://wa.me/${trip.driver_phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
-                      }}>
+                    {trip?.driver_phone && (
+                      <Button variant="outline" size="sm" className="min-h-[44px]" onClick={() => openWhatsApp(booking, trip.driver_phone)}>
                         <MessageCircle className="w-4 h-4" />
                       </Button>
                     )}
@@ -117,37 +140,44 @@ const SupplierBookings = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>العميل</TableHead>
+                      <TableHead>الهاتف</TableHead>
                       <TableHead>الرحلة</TableHead>
                       <TableHead>المقاعد</TableHead>
                       <TableHead>المبلغ</TableHead>
+                      <TableHead>الدفع</TableHead>
                       <TableHead>الحالة</TableHead>
-                      <TableHead>التاريخ</TableHead>
                       <TableHead>إجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {bookings.map((booking) => {
                       const trip = trips[booking.trip_id];
+                      const profile = profiles[booking.customer_id];
                       return (
                         <TableRow key={booking.id}>
-                          <TableCell className="font-medium">{profiles[booking.customer_id] || "—"}</TableCell>
+                          <TableCell className="font-medium">{booking.payer_name || profile?.full_name || "—"}</TableCell>
+                          <TableCell className="font-mono text-sm">{booking.payer_phone || profile?.phone || "—"}</TableCell>
                           <TableCell>{trip ? `${trip.from_city} → ${trip.to_city}` : "—"}</TableCell>
                           <TableCell>{booking.seat_count}</TableCell>
                           <TableCell>{Number(booking.total_amount).toLocaleString()} ر.ي</TableCell>
+                          <TableCell>
+                            {booking.payment_method === "cash" ? "نقداً" : booking.payment_method === "bank_transfer" ? "تحويل" : "—"}
+                            {booking.payment_receipt_url && (
+                              <a href={booking.payment_receipt_url} target="_blank" rel="noopener noreferrer" className="inline-block mr-1">
+                                <Image className="w-4 h-4 text-primary inline" />
+                              </a>
+                            )}
+                          </TableCell>
                           <TableCell><StatusBadge status={booking.status} /></TableCell>
-                          <TableCell className="text-sm">{new Date(booking.created_at).toLocaleDateString("ar")}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Button variant="ghost" size="icon" onClick={() => setSelectedBooking(booking)}><Eye className="w-4 h-4" /></Button>
-                              {booking.status === "confirmed" && trip?.driver_phone && (
-                                <Button variant="ghost" size="icon" onClick={() => {
-                                  const text = `تفاصيل حجز:\nالعميل: ${profiles[booking.customer_id] || "—"}\nالرحلة: ${trip.from_city} → ${trip.to_city}\nالمقاعد: ${booking.seat_count}\nالمبلغ: ${Number(booking.total_amount).toLocaleString()} ر.ي\nالتاريخ: ${new Date(booking.created_at).toLocaleDateString("ar")}`;
-                                  window.open(`https://wa.me/${trip.driver_phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
-                                }} className="text-[hsl(var(--success))]"><MessageCircle className="w-4 h-4" /></Button>
+                              {trip?.driver_phone && (
+                                <Button variant="ghost" size="icon" onClick={() => openWhatsApp(booking, trip.driver_phone)} className="text-green-600"><MessageCircle className="w-4 h-4" /></Button>
                               )}
                               {(booking.status === "pending_approval" || booking.status === "pending") && (
                                 <>
-                                  <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "confirmed")} className="text-[hsl(var(--success))]"><Check className="w-4 h-4" /></Button>
+                                  <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "confirmed")} className="text-green-600"><Check className="w-4 h-4" /></Button>
                                   <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "cancelled")} className="text-destructive"><X className="w-4 h-4" /></Button>
                                 </>
                               )}
@@ -164,20 +194,87 @@ const SupplierBookings = () => {
         </>
       )}
 
+      {/* Booking Details Dialog */}
       <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
-        <DialogContent dir="rtl">
+        <DialogContent dir="rtl" className="max-w-lg">
           <DialogHeader><DialogTitle>تفاصيل الحجز</DialogTitle></DialogHeader>
-          {selectedBooking && (
-            <div className="space-y-3 text-sm">
-              <p><strong>العميل:</strong> {profiles[selectedBooking.customer_id] || "—"}</p>
-              <p><strong>عدد المقاعد:</strong> {selectedBooking.seat_count}</p>
-              <p><strong>المبلغ:</strong> {Number(selectedBooking.total_amount).toLocaleString()} ر.ي</p>
-              <p><strong>طريقة الدفع:</strong> {selectedBooking.payment_method || "—"}</p>
-              <p><strong>حالة الدفع:</strong> {selectedBooking.payment_status}</p>
-              <p><strong>الحالة:</strong> <StatusBadge status={selectedBooking.status} /></p>
-              <p><strong>التاريخ:</strong> {new Date(selectedBooking.created_at).toLocaleString("ar")}</p>
-            </div>
-          )}
+          {selectedBooking && (() => {
+            const trip = trips[selectedBooking.trip_id];
+            const profile = profiles[selectedBooking.customer_id];
+            return (
+              <div className="space-y-4 text-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-muted-foreground">العميل</span>
+                    <p className="font-medium">{selectedBooking.payer_name || profile?.full_name || "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">الهاتف</span>
+                    <p className="font-medium font-mono">{selectedBooking.payer_phone || profile?.phone || "—"}</p>
+                  </div>
+                  {trip && (
+                    <>
+                      <div>
+                        <span className="text-muted-foreground">من</span>
+                        <p className="font-medium">{trip.from_city}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">إلى</span>
+                        <p className="font-medium">{trip.to_city}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">موعد الانطلاق</span>
+                        <p className="font-medium">{new Date(trip.departure_time).toLocaleString("ar")}</p>
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground">المقاعد</span>
+                    <p className="font-medium">{selectedBooking.seat_count}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">المبلغ</span>
+                    <p className="font-medium">{Number(selectedBooking.total_amount).toLocaleString()} ر.ي</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">طريقة الدفع</span>
+                    <p className="font-medium">{selectedBooking.payment_method === "cash" ? "نقداً" : selectedBooking.payment_method === "bank_transfer" ? "تحويل بنكي" : selectedBooking.payment_method || "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">حالة الدفع</span>
+                    <p className="font-medium">{selectedBooking.payment_status || "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">الحالة</span>
+                    <StatusBadge status={selectedBooking.status} />
+                  </div>
+                </div>
+
+                {selectedBooking.customer_notes && (
+                  <div className="border rounded-lg p-3 bg-muted/30">
+                    <span className="text-muted-foreground text-xs">📝 ملاحظات العميل</span>
+                    <p className="font-medium mt-1">{selectedBooking.customer_notes}</p>
+                  </div>
+                )}
+
+                {selectedBooking.payment_receipt_url && (
+                  <div className="space-y-2">
+                    <span className="text-muted-foreground text-xs">صورة إيصال الدفع</span>
+                    <a href={selectedBooking.payment_receipt_url} target="_blank" rel="noopener noreferrer">
+                      <img src={selectedBooking.payment_receipt_url} alt="إيصال الدفع" className="max-h-48 rounded-lg border" />
+                    </a>
+                  </div>
+                )}
+
+                {trip?.driver_phone && (
+                  <Button className="w-full" variant="outline" onClick={() => openWhatsApp(selectedBooking, trip.driver_phone)}>
+                    <MessageCircle className="w-4 h-4 ml-2" />
+                    إرسال التفاصيل للسائق عبر واتساب
+                  </Button>
+                )}
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
