@@ -160,7 +160,7 @@ const Header = () => {
           >
             {theme === "dark" ? <Sun className="w-4 h-4 text-accent" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
           </button>
-          <button onClick={() => navigate("/login")} className="p-2 rounded-lg hover:bg-primary/10 transition-colors border border-primary/20" title="لوحة تحكم المشرف">
+          <button onClick={() => navigate(user && role === "admin" ? "/admin" : "/login")} className="p-2 rounded-lg hover:bg-primary/10 transition-colors border border-primary/20" title="لوحة تحكم المشرف">
             <Shield className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
