@@ -846,13 +846,18 @@ export type Database = {
           metadata: Json | null
           notes: string | null
           paid_at: string | null
+          partner_bank_account: string | null
           partner_earning: number
           partner_id: string
+          partner_name: string | null
+          partner_phone: string | null
           payment_method: string
           payment_status: string | null
           payment_transaction_id: string | null
           platform_commission: number
           reference_id: string
+          transaction_date: string | null
+          transaction_time: string | null
           transaction_type: string
           updated_at: string | null
         }
@@ -866,13 +871,18 @@ export type Database = {
           metadata?: Json | null
           notes?: string | null
           paid_at?: string | null
+          partner_bank_account?: string | null
           partner_earning?: number
           partner_id: string
+          partner_name?: string | null
+          partner_phone?: string | null
           payment_method?: string
           payment_status?: string | null
           payment_transaction_id?: string | null
           platform_commission?: number
           reference_id: string
+          transaction_date?: string | null
+          transaction_time?: string | null
           transaction_type: string
           updated_at?: string | null
         }
@@ -886,13 +896,18 @@ export type Database = {
           metadata?: Json | null
           notes?: string | null
           paid_at?: string | null
+          partner_bank_account?: string | null
           partner_earning?: number
           partner_id?: string
+          partner_name?: string | null
+          partner_phone?: string | null
           payment_method?: string
           payment_status?: string | null
           payment_transaction_id?: string | null
           platform_commission?: number
           reference_id?: string
+          transaction_date?: string | null
+          transaction_time?: string | null
           transaction_type?: string
           updated_at?: string | null
         }
