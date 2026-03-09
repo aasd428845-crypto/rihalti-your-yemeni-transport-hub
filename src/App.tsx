@@ -108,6 +108,7 @@ import DeliveryDriverHistory from "./pages/delivery-driver/DeliveryDriverHistory
 import SupportChatWidget from "./components/support/SupportChatWidget";
 import InstallPage from "./pages/InstallPage";
 import { InstallPWAButton } from "./components/InstallPWAButton";
+import { UpdateNotification } from "./components/UpdateNotification";
 
 const queryClient = new QueryClient();
 
