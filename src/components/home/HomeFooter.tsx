@@ -13,6 +13,8 @@ const links = {
   "للعملاء": [
     { name: "عن المنصة", path: "/about" },
     { name: "اتصل بنا", path: "/contact" },
+    { name: "الشروط والأحكام", path: "/terms" },
+    { name: "سياسة الخصوصية", path: "/privacy" },
   ],
   "للشركاء": [
     { name: "انضم كصاحب مكتب", path: "/register" },
@@ -31,7 +33,6 @@ const HomeFooter = () => {
   return (
     <footer className="bg-[hsl(213,54%,5%)] pt-20 pb-7 border-t border-primary/10">
       <div className="container mx-auto px-4 max-w-[1300px]">
-        {/* Main Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-14">
           {/* Brand */}
           <div className="lg:col-span-1">
@@ -45,15 +46,15 @@ const HomeFooter = () => {
               المنصة الرائدة في خدمات النقل البري في اليمن، نربط المسافرين بشركات النقل الموثوقة.
             </p>
             <div className="flex flex-col gap-2.5">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs">
+              <a href="tel:+9671234567" className="flex items-center gap-2 text-muted-foreground text-xs hover:text-primary-glow transition-colors">
                 <Phone className="w-3.5 h-3.5 text-primary-glow" /> +967 1 234 567
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground text-xs">
+              </a>
+              <a href="https://wa.me/96771234567" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-muted-foreground text-xs hover:text-primary-glow transition-colors">
                 <MessageCircle className="w-3.5 h-3.5 text-primary-glow" /> +967 71 234 567
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground text-xs">
+              </a>
+              <a href="mailto:support@wasl-ye.com" className="flex items-center gap-2 text-muted-foreground text-xs hover:text-primary-glow transition-colors">
                 <Mail className="w-3.5 h-3.5 text-primary-glow" /> support@wasl-ye.com
-              </div>
+              </a>
             </div>
           </div>
 
@@ -63,7 +64,7 @@ const HomeFooter = () => {
               <h4 className="text-foreground font-bold text-sm mb-4">{title}</h4>
               <ul className="flex flex-col gap-2">
                 {items.map((item) => (
-                  <li key={item.name}>
+                  <li key={item.name + item.path}>
                     {item.path.startsWith("http") ? (
                       <a href={item.path} target="_blank" rel="noopener noreferrer" className="text-muted-foreground text-sm hover:text-primary-glow transition-colors">
                         {item.name}
@@ -99,9 +100,8 @@ const HomeFooter = () => {
         <div className="border-t border-border/10 pt-6 flex flex-wrap justify-between items-center gap-4">
           <span className="text-muted-foreground text-sm">© {new Date().getFullYear()} وصل. جميع الحقوق محفوظة. 🇾🇪</span>
           <div className="flex gap-4 flex-wrap">
-            {["سياسة الخصوصية", "الشروط والأحكام"].map((item) => (
-              <a key={item} href="#" className="text-muted-foreground text-xs hover:text-primary-glow transition-colors">{item}</a>
-            ))}
+            <Link to="/terms" className="text-muted-foreground text-xs hover:text-primary-glow transition-colors">الشروط والأحكام</Link>
+            <Link to="/privacy" className="text-muted-foreground text-xs hover:text-primary-glow transition-colors">سياسة الخصوصية</Link>
           </div>
         </div>
       </div>

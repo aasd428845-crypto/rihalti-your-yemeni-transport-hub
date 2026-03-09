@@ -1,4 +1,5 @@
 import { Smartphone, Clock, Headphones, Download, Bus, Zap } from "lucide-react";
+import { toast } from "sonner";
 
 const features = [
   { icon: Clock, label: "توفير الوقت", sub: "احجز في دقيقتين بدلاً من ساعات الانتظار", colorClass: "text-primary-glow bg-primary/15" },
@@ -7,6 +8,10 @@ const features = [
 ];
 
 const AppDownload = () => {
+  const handleStoreClick = (store: string) => {
+    toast.info(`تطبيق وصل على ${store} قيد التطوير وسيتوفر قريبًا!`);
+  };
+
   return (
     <section className="py-24 bg-background">
       <div className="container mx-auto px-4 max-w-[1100px]">
@@ -45,6 +50,7 @@ const AppDownload = () => {
               {["Google Play", "App Store", "AppGallery"].map((store) => (
                 <button
                   key={store}
+                  onClick={() => handleStoreClick(store)}
                   className="bg-card/80 border border-primary/20 text-foreground px-5 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all hover:bg-primary/15"
                 >
                   <Download className="w-3.5 h-3.5 text-primary-glow" />
