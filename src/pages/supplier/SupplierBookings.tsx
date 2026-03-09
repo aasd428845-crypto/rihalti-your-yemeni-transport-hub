@@ -145,7 +145,7 @@ const SupplierBookings = () => {
                                   window.open(`https://wa.me/${trip.driver_phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
                                 }} className="text-[hsl(var(--success))]"><MessageCircle className="w-4 h-4" /></Button>
                               )}
-                              {booking.status === "pending_approval" && (
+                              {(booking.status === "pending_approval" || booking.status === "pending") && (
                                 <>
                                   <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "confirmed")} className="text-[hsl(var(--success))]"><Check className="w-4 h-4" /></Button>
                                   <Button variant="ghost" size="icon" onClick={() => handleStatusUpdate(booking.id, "cancelled")} className="text-destructive"><X className="w-4 h-4" /></Button>

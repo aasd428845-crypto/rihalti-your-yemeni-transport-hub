@@ -83,8 +83,8 @@ const DeliveryDriverOrders = () => {
   const getNextAction = (status: string) => {
     switch (status) {
       case "assigned": return { label: "تم الاستلام", next: "picked_up" };
-      case "picked_up": return { label: "في الطريق", next: "in_transit" };
-      case "in_transit": return { label: "تم التوصيل", next: "delivered" };
+      case "picked_up": return { label: "في الطريق", next: "on_the_way" };
+      case "in_transit": case "on_the_way": return { label: "تم التوصيل", next: "delivered" };
       default: return null;
     }
   };

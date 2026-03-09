@@ -105,6 +105,7 @@ const DeliveryDriverOrderDetails = () => {
       const statusMessages: Record<string, string> = {
         picked_up: "تم استلام طلبك من المطعم 📦",
         in_transit: "طلبك في الطريق إليك 🚚",
+        on_the_way: "طلبك في الطريق إليك 🚚",
         delivered: "تم توصيل طلبك بنجاح ✅",
       };
       if (order.customer_id && statusMessages[newStatus]) {
