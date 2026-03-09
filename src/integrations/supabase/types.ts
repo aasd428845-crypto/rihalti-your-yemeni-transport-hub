@@ -2078,6 +2078,7 @@ export type Database = {
           default_address: string | null
           default_lat: number | null
           default_lng: number | null
+          description: string | null
           full_name: string
           full_name_arabic: string | null
           google_id: string | null
@@ -2094,6 +2095,7 @@ export type Database = {
           phone: string | null
           phone_secondary: string | null
           phone_verified: boolean | null
+          profile_completed: boolean | null
           rejection_reason: string | null
           selfie_image: string | null
           trial_end_date: string | null
@@ -2117,6 +2119,7 @@ export type Database = {
           default_address?: string | null
           default_lat?: number | null
           default_lng?: number | null
+          description?: string | null
           full_name?: string
           full_name_arabic?: string | null
           google_id?: string | null
@@ -2133,6 +2136,7 @@ export type Database = {
           phone?: string | null
           phone_secondary?: string | null
           phone_verified?: boolean | null
+          profile_completed?: boolean | null
           rejection_reason?: string | null
           selfie_image?: string | null
           trial_end_date?: string | null
@@ -2156,6 +2160,7 @@ export type Database = {
           default_address?: string | null
           default_lat?: number | null
           default_lng?: number | null
+          description?: string | null
           full_name?: string
           full_name_arabic?: string | null
           google_id?: string | null
@@ -2172,6 +2177,7 @@ export type Database = {
           phone?: string | null
           phone_secondary?: string | null
           phone_verified?: boolean | null
+          profile_completed?: boolean | null
           rejection_reason?: string | null
           selfie_image?: string | null
           trial_end_date?: string | null
