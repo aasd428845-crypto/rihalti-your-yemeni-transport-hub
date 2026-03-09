@@ -44,19 +44,19 @@ const AdminNotificationLogs = lazy(() => import("./pages/admin/AdminNotification
 const AdminPartnerProfile = lazy(() => import("./pages/admin/AdminPartnerProfile"));
 const AdminMonitoring = lazy(() => import("./pages/admin/AdminMonitoring"));
 import InvitePage from "./pages/InvitePage";
-// Supplier
-import SupplierLayout from "./components/supplier/SupplierLayout";
-import SupplierDashboard from "./pages/supplier/SupplierDashboard";
-import SupplierTrips from "./pages/supplier/SupplierTrips";
-import SupplierBookings from "./pages/supplier/SupplierBookings";
-import SupplierShipments from "./pages/supplier/SupplierShipments";
-import SupplierFinance from "./pages/supplier/SupplierFinance";
-import SupplierSettings from "./pages/supplier/SupplierSettings";
-import SupplierMessages from "./pages/supplier/SupplierMessages";
-import SupplierPromotions from "./pages/supplier/SupplierPromotions";
-import SupplierOrderDetails from "./pages/supplier/SupplierOrderDetails";
-import SupplierPayments from "./pages/supplier/SupplierPayments";
-import PartnerPaymentSettings from "./pages/supplier/PartnerPaymentSettings";
+// Supplier (lazy loaded)
+const SupplierLayout = lazy(() => import("./components/supplier/SupplierLayout"));
+const SupplierDashboard = lazy(() => import("./pages/supplier/SupplierDashboard"));
+const SupplierTrips = lazy(() => import("./pages/supplier/SupplierTrips"));
+const SupplierBookings = lazy(() => import("./pages/supplier/SupplierBookings"));
+const SupplierShipments = lazy(() => import("./pages/supplier/SupplierShipments"));
+const SupplierFinance = lazy(() => import("./pages/supplier/SupplierFinance"));
+const SupplierSettings = lazy(() => import("./pages/supplier/SupplierSettings"));
+const SupplierMessages = lazy(() => import("./pages/supplier/SupplierMessages"));
+const SupplierPromotions = lazy(() => import("./pages/supplier/SupplierPromotions"));
+const SupplierOrderDetails = lazy(() => import("./pages/supplier/SupplierOrderDetails"));
+const SupplierPayments = lazy(() => import("./pages/supplier/SupplierPayments"));
+const PartnerPaymentSettings = lazy(() => import("./pages/supplier/PartnerPaymentSettings"));
 // Partner
 import PartnerProfilePage from "./pages/partner/PartnerProfilePage";
 import PublicPartnerProfilePage from "./pages/partner/PublicPartnerProfilePage";
