@@ -1,14 +1,18 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// ==================== Payment Accounts ====================
-export const getPlatformAccounts = async () => {
+// ==================== Platform Bank Accounts ====================
+export const getPlatformBankAccounts = async () => {
   const { data, error } = await supabase
-    .from("payment_accounts" as any)
+    .from("platform_bank_accounts")
     .select("*")
-    .eq("account_type", "platform")
     .eq("is_active", true);
   if (error) throw error;
   return data || [];
+};
+
+// Legacy - kept for backward compatibility
+export const getPlatformAccounts = async () => {
+  return getPlatformBankAccounts();
 };
 
 export const getPartnerAccounts = async (partnerId: string) => {
@@ -19,6 +23,45 @@ export const getPartnerAccounts = async (partnerId: string) => {
     .eq("is_active", true);
   if (error) throw error;
   return data || [];
+};
+
+// ==================== Settings ====================
+export const getAccountingSettings = async () => {
+  const { data } = await supabase
+    .from("accounting_settings")
+    .select("*")
+    .limit(1)
+    .single();
+  return data;
+};
+
+export const getCashOnDeliverySetting = async (): Promise<boolean> => {
+  const { data } = await supabase
+    .from("admin_settings")
+    .select("value")
+    .eq("key", "cash_on_delivery_enabled")
+    .maybeSingle();
+  return data?.value === "true";
+};
+
+// ==================== Trip & Supplier Details ====================
+export const getTripDetails = async (tripId: string) => {
+  const { data, error } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("id", tripId)
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+export const getSupplierProfile = async (supplierId: string) => {
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name, company_name, phone")
+    .eq("user_id", supplierId)
+    .single();
+  return data;
 };
 
 // ==================== Payment Transactions ====================
@@ -35,6 +78,29 @@ export const createPaymentTransaction = async (tx: {
   const { data, error } = await supabase
     .from("payment_transactions" as any)
     .insert(tx)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+export const createFinancialTransaction = async (ft: {
+  transaction_type: string;
+  reference_id: string;
+  customer_id: string;
+  partner_id: string;
+  amount: number;
+  platform_commission: number;
+  partner_earning: number;
+  payment_method: string;
+  payment_status: string;
+  payment_transaction_id?: string;
+  partner_name?: string;
+  partner_phone?: string;
+}) => {
+  const { data, error } = await supabase
+    .from("financial_transactions")
+    .insert(ft)
     .select()
     .single();
   if (error) throw error;

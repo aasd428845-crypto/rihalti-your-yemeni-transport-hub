@@ -1,52 +1,137 @@
 
+# خطة التفعيل الشامل والنهائي لمنصة "رحلاتي"
 
-# خطة تحسين صفحة دفع الرحلات (PaymentPage)
+## المشكلة الرئيسية المكتشفة
 
-## الوضع الحالي
-- المسار `/payment/:entityType/:entityId` يعمل ✅
-- التوجيه من TripDetailsPage و CheckoutPage إلى `/payment/booking/${id}` يعمل ✅
-- صفحة PaymentPage موجودة وتعمل مع كل أنواع الخدمات ✅
-- الجداول المطلوبة موجودة: `payment_transactions`, `financial_transactions`, `payment_accounts`, `platform_bank_accounts`, `partner_settings`, `accounting_settings`, `admin_settings` ✅
+المشكلة الجوهرية التي تمنع ظهور الرحلات: عندما ينشئ المورد رحلة، يتم إدخالها في جدول `trips` بحالة `pending`، لكن صفحة الموافقات في لوحة المشرف (`AdminApprovals`) تبحث فقط في جدول `approval_requests` وليس في `trips`. لذلك لا تظهر الرحلات المعلقة للمشرف للموافقة عليها، وبالتالي لا تظهر أبداً في صفحة البحث العام.
 
-## ما يحتاج تحسين
+---
 
-### 1. عرض تفاصيل الرحلة والحجز
-- حالياً الصفحة تعرض فقط `seat_count` للحجوزات
-- يجب جلب بيانات الرحلة (`trips`) والمورد (`profiles`) عند `entityType === "booking"` لعرض: المدينة من/إلى، تاريخ الانطلاق، اسم صاحب المكتب، شركة النقل
+## الخطة التنفيذية
 
-### 2. إنشاء financial_transactions بعد الدفع
-- حالياً يتم إنشاء `payment_transactions` فقط
-- يجب إنشاء `financial_transactions` مع حساب العمولة من جدول `accounting_settings` (حقل `global_commission_booking`)
-- الدفع النقدي: `payment_status = 'pending'` (سيُحصّل لاحقاً)
-- التحويل البنكي: `payment_status = 'pending'` (بانتظار المراجعة)
+### المرحلة 1: إصلاح نظام الموافقات (الأولوية القصوى)
 
-### 3. استخدام platform_bank_accounts بدلاً من payment_accounts
-- يوجد جدول `platform_bank_accounts` مخصص لحسابات المنصة (يُستخدم في AdminSettings)
-- يجب استخدامه كمصدر أساسي لعرض حسابات المنصة البنكية
+**1.1 إعادة بناء صفحة الموافقات (`AdminApprovals.tsx`)**
 
-### 4. جلب إعداد الدفع النقدي من admin_settings
-- إضافة جلب `cash_on_delivery_enabled` من `admin_settings` كإعداد عام للنظام
-- دمجه مع إعدادات الشريك (`partner_settings.cash_on_delivery_enabled`)
+بدلاً من الاعتماد فقط على جدول `approval_requests`، ستقوم الصفحة بجلب البيانات من مصادر متعددة:
+- الرحلات المعلقة من `trips` (حيث `status = 'pending'`)
+- طلبات الشحن المعلقة من `shipment_requests` (حيث `status = 'pending_approval'`)
+- طلبات التوصيل المعلقة من `delivery_orders` (حيث `status = 'pending'`)
+- طلبات الانضمام من `partner_join_requests` (حيث `status = 'pending'`)
+- طلبات الموافقة العامة من `approval_requests`
+
+عند الموافقة على رحلة: تحديث `trips.status` إلى `approved` مباشرة.
+عند الرفض: تحديث `trips.status` إلى `rejected`.
+
+**1.2 إضافة دوال API جديدة في `adminApi.ts`**
+
+```text
+getPendingTrips()      - جلب الرحلات المعلقة مع بيانات المورد
+approveTrip(id)        - تحديث حالة الرحلة إلى approved
+rejectTrip(id, reason) - تحديث حالة الرحلة إلى rejected
+```
+
+**1.3 إضافة إعدادات الموافقة التلقائية في `AdminSettings`**
+
+إضافة مفاتيح Toggle لكل نوع:
+- `auto_approve_trips` 
+- `auto_approve_shipments`
+- `auto_approve_deliveries`
+
+يتم تخزينها في جدول `admin_settings`.
+
+**1.4 تحديث منطق إنشاء الرحلة في المورد**
+
+في `SupplierTrips.tsx`، عند إنشاء رحلة:
+- جلب إعداد `auto_approve_trips` من `admin_settings`
+- إذا كان مفعلاً: إنشاء الرحلة بحالة `approved`
+- إذا كان معطلاً: إنشاء الرحلة بحالة `pending`
+
+---
+
+### المرحلة 2: تحسين واجهات العميل
+
+**2.1 إعادة تصميم صفحة الشحنات (`ShipmentsPage.tsx`)**
+
+- إضافة قسم ترحيبي مع أيقونة وعنوان جذاب
+- عرض بطاقات الموردين بشكل احترافي مع:
+  - صورة/شعار المورد (من `logo_url`)
+  - الاسم، المدينة، رقم الهاتف
+  - مناطق العمل (جلب من `supplier_working_areas` مع `regions`)
+  - تقييم نجوم (مؤقتاً ثابت)
+  - زر "إرسال شحنة"
+- إضافة شريط بحث وفلترة حسب المدينة
+- تحسين تصميم نموذج الشحن
+
+**2.2 إعادة تصميم صفحة التوصيل (`DeliveriesPage.tsx`)**
+
+نفس مفهوم صفحة الشحنات مع:
+- بطاقات شركات التوصيل مع الشعار ومناطق التغطية
+- رسالة ترحيبية جذابة
+- تصميم احترافي للنموذج
+
+**2.3 تحديث قسم الإحصائيات (`StatsSection.tsx`)**
+
+استبدال الأرقام الثابتة (`10,000+`، `50+`، إلخ) ببيانات حقيقية من قاعدة البيانات باستخدام `fetchHomeStats()` الموجودة في `customerApi.ts`.
+
+---
+
+### المرحلة 3: تحسينات الواجهة العامة
+
+**3.1 إضافة نظام الإشعارات في الهيدر**
+
+- إضافة أيقونة جرس بجانب اسم المستخدم في `Header.tsx`
+- عرض عدد الإشعارات غير المقروءة
+- قائمة منسدلة بآخر الإشعارات (من جدول `notifications`)
+- دالة `fetchUnreadNotifications` في `customerApi.ts`
+
+**3.2 تحسين الألوان والتباين**
+
+مراجعة وإصلاح:
+- التأكد من عدم وجود نص أبيض على خلفية فاتحة
+- استخدام `text-foreground` بدلاً من `text-white` على الخلفيات الفاتحة
+- تحسين ألوان الأيقونات في جميع المكونات
+
+**3.3 تحسين القوائم الجانبية**
+
+- التأكد من وجود زر إغلاق (X) واضح في القوائم الجانبية للوحات التحكم
+- زر هامبورغر لإعادة فتح القائمة (موجود فعلياً عبر `SidebarTrigger`)
+
+---
+
+### المرحلة 4: تكامل البيانات
+
+**4.1 إدخال إعدادات الموافقة التلقائية**
+
+إدخال سجلات في `admin_settings`:
+- `auto_approve_trips` = `false`
+- `auto_approve_shipments` = `false`  
+- `auto_approve_deliveries` = `false`
+
+**4.2 تحديث `entityTypeLabels` في `admin.types.ts`**
+
+إضافة تصنيفات جديدة:
+- `pending_trip`: "رحلة معلقة"
+- `pending_shipment`: "طلب شحن معلق"
+
+---
 
 ## الملفات المتأثرة
-- `src/pages/customer/PaymentPage.tsx` — التعديل الوحيد
 
-## التغييرات التفصيلية في PaymentPage.tsx
+| الملف | نوع التغيير |
+|-------|-------------|
+| `src/pages/admin/AdminApprovals.tsx` | إعادة بناء كاملة |
+| `src/pages/admin/AdminSettings.tsx` | إضافة إعدادات الموافقة التلقائية |
+| `src/lib/adminApi.ts` | إضافة دوال الموافقة على الرحلات |
+| `src/pages/customer/ShipmentsPage.tsx` | إعادة تصميم كامل |
+| `src/pages/customer/DeliveriesPage.tsx` | إعادة تصميم كامل |
+| `src/components/landing/StatsSection.tsx` | استبدال البيانات الثابتة |
+| `src/components/landing/Header.tsx` | إضافة الإشعارات |
+| `src/lib/customerApi.ts` | إضافة دوال الإشعارات ومناطق العمل |
+| `src/pages/supplier/SupplierTrips.tsx` | تحديث منطق الموافقة التلقائية |
+| `src/types/admin.types.ts` | إضافة تصنيفات جديدة |
 
-1. **إضافة states جديدة**: `tripDetails`, `supplierInfo`, `accountingSettings`, `platformBankAccounts`, `cashEnabled`
-2. **تحسين دالة التحميل**: عند `entityType === "booking"`:
-   - جلب الرحلة من `trips` باستخدام `entity.trip_id`
-   - جلب بيانات المورد من `profiles` باستخدام `trip.supplier_id`
-   - جلب حسابات المنصة من `platform_bank_accounts`
-   - جلب إعداد النقدي من `admin_settings` (key: `cash_on_delivery_enabled`)
-   - جلب نسبة العمولة من `accounting_settings`
-3. **تحسين ملخص المعاملة**: عرض مدن الرحلة، التاريخ، عدد المقاعد، اسم صاحب المكتب
-4. **تحسين خيارات الدفع**: إضافة "نقداً عند الصعود" مع تسمية مناسبة للرحلات
-5. **إنشاء financial_transactions**: بعد إنشاء `payment_transactions`، إنشاء سجل مالي بالعمولة المحسوبة من `accounting_settings`
-6. **عرض حسابات المنصة**: من `platform_bank_accounts` بدلاً من `payment_accounts`
+## قاعدة البيانات
 
-## لا تغييرات على
-- قاعدة البيانات (كل الجداول موجودة)
-- باقي الصفحات (TripDetailsPage, CheckoutPage, Admin, Supplier)
-- المسارات في App.tsx
-
+- إدخال بيانات في `admin_settings` (3 سجلات للموافقة التلقائية) عبر أداة الإدراج
+- لا حاجة لتغييرات في هيكل الجداول (كل الجداول والأعمدة المطلوبة موجودة)
