@@ -152,7 +152,7 @@ const NotificationSettingsPage = () => {
                     <Switch checked={settings.notify_trip_reminders} onCheckedChange={(v) => updateSetting("notify_trip_reminders", v)} />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label>تحديثات الشحنات</Label>
+                    <Label>تحديثات الطرود</Label>
                     <Switch checked={settings.notify_shipment_updates} onCheckedChange={(v) => updateSetting("notify_shipment_updates", v)} />
                   </div>
                   <div className="flex items-center justify-between">
