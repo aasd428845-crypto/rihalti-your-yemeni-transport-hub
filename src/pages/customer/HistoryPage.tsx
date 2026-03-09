@@ -58,6 +58,24 @@ const HistoryPage = () => {
   const [cancelModal, setCancelModal] = useState<{ type: string; id: string } | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<{
+    revieweeId: string; revieweeName: string;
+    entityType: "supplier" | "delivery" | "driver"; entityId: string;
+  } | null>(null);
+  const [ratedIds, setRatedIds] = useState<Set<string>>(new Set());
+
+  // Load already-rated entity IDs
+  useEffect(() => {
+    if (!user) return;
+    const loadRated = async () => {
+      const { data } = await supabase
+        .from("reviews" as any)
+        .select("entity_id")
+        .eq("reviewer_id", user.id);
+      if (data) setRatedIds(new Set((data as any[]).map((r: any) => r.entity_id).filter(Boolean)));
+    };
+    loadRated();
+  }, [user]);
 
   const { data: bookings, isLoading: loadingBookings } = useQuery({
     queryKey: ["my-bookings", user?.id],
