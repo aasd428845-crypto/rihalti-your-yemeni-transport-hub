@@ -381,33 +381,54 @@ export type Database = {
       customer_addresses: {
         Row: {
           address_name: string
+          building_number: string | null
+          city: string | null
           created_at: string | null
           customer_id: string
+          district: string | null
           full_address: string
           id: string
           is_default: boolean | null
+          landmark: string | null
           latitude: number | null
           longitude: number | null
+          phone: string | null
+          street: string | null
+          updated_at: string | null
         }
         Insert: {
           address_name: string
+          building_number?: string | null
+          city?: string | null
           created_at?: string | null
           customer_id: string
+          district?: string | null
           full_address: string
           id?: string
           is_default?: boolean | null
+          landmark?: string | null
           latitude?: number | null
           longitude?: number | null
+          phone?: string | null
+          street?: string | null
+          updated_at?: string | null
         }
         Update: {
           address_name?: string
+          building_number?: string | null
+          city?: string | null
           created_at?: string | null
           customer_id?: string
+          district?: string | null
           full_address?: string
           id?: string
           is_default?: boolean | null
+          landmark?: string | null
           latitude?: number | null
           longitude?: number | null
+          phone?: string | null
+          street?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
