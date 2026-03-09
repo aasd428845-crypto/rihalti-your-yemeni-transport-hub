@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, Shield, User, LogOut, LayoutDashboard, MapPin, Bell, ShoppingCart, ChevronDown } from "lucide-react";
+import { Menu, X, Shield, User, LogOut, LayoutDashboard, MapPin, Bell, ShoppingCart, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "next-themes";
 import waslLogo from "@/assets/wasl-logo.png";
 
 const navLinks = [
