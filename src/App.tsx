@@ -34,6 +34,7 @@ import AdminChatMonitoring from "./pages/admin/AdminChatMonitoring";
 import AdminDeliveryProofs from "./pages/admin/AdminDeliveryProofs";
 import AdminPaymentReview from "./pages/admin/AdminPaymentReview";
 import AdminPartnerControls from "./pages/admin/AdminPartnerControls";
+import AdminSupportMessages from "./pages/admin/AdminSupportMessages";
 import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
