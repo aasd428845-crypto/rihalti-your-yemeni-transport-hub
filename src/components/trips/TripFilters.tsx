@@ -64,40 +64,28 @@ const TripFilters = ({ regions, onFilter, initialParams }: TripFiltersProps) => 
       </CardHeader>
       <CardContent className="space-y-4">
         {/* From */}
-        <div>
-          <Label className="text-xs mb-1 block">من</Label>
-          <div className="relative">
-            <MapPin className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="مدينة الانطلاق"
-              value={fromCity}
-              onChange={(e) => setFromCity(e.target.value)}
-              className="pr-8 text-sm"
-              list="filter-cities-from"
-            />
-            <datalist id="filter-cities-from">
-              {allCities.map((c) => <option key={c.id} value={c.name_ar} />)}
-            </datalist>
-          </div>
-        </div>
+        <RegionSelector
+          regions={allRegions}
+          label="من"
+          placeholder="مدينة الانطلاق"
+          mode="single"
+          value={fromCity}
+          onValueChange={setFromCity}
+          filterTypes={["governorate", "city"]}
+          allowCustom={false}
+        />
 
         {/* To */}
-        <div>
-          <Label className="text-xs mb-1 block">إلى</Label>
-          <div className="relative">
-            <MapPin className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="مدينة الوصول"
-              value={toCity}
-              onChange={(e) => setToCity(e.target.value)}
-              className="pr-8 text-sm"
-              list="filter-cities-to"
-            />
-            <datalist id="filter-cities-to">
-              {allCities.map((c) => <option key={c.id} value={c.name_ar} />)}
-            </datalist>
-          </div>
-        </div>
+        <RegionSelector
+          regions={allRegions}
+          label="إلى"
+          placeholder="مدينة الوصول"
+          mode="single"
+          value={toCity}
+          onValueChange={setToCity}
+          filterTypes={["governorate", "city"]}
+          allowCustom={false}
+        />
 
         {/* Date */}
         <div>
