@@ -69,7 +69,7 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 right-0 left-0 z-50 glass border-b border-border/50">
+    <header className="fixed top-0 right-0 left-0 z-50 bg-card/90 backdrop-blur-md border-b border-border/50 shadow-sm">
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
         <a href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }} className="flex items-center gap-2">
           <img src={waslLogo} alt="وصل" className="w-10 h-10 rounded-xl object-cover" />
@@ -81,14 +81,14 @@ const Header = () => {
 
         <nav className="hidden lg:flex items-center gap-1">
           {navLinks.map((link) => (
-            <button key={link.href} onClick={() => handleNavClick(link.href)} className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-accent">
+            <button key={link.href} onClick={() => handleNavClick(link.href)} className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-muted">
               {link.label}
             </button>
           ))}
           {user && (
             <>
-              <button onClick={() => navigate("/history")} className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-accent">السجل</button>
-              <button onClick={() => navigate("/addresses")} className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-accent">
+              <button onClick={() => navigate("/history")} className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-muted">السجل</button>
+              <button onClick={() => navigate("/addresses")} className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-muted">
                 <MapPin className="w-4 h-4 inline ml-1" />عناويني
               </button>
             </>
@@ -100,10 +100,10 @@ const Header = () => {
             <div className="w-20 h-9 rounded-lg bg-muted animate-pulse" />
           ) : user ? (
             <>
-              <button onClick={() => navigate("/cart")} className="p-2 rounded-lg hover:bg-accent transition-colors" title="السلة">
+              <button onClick={() => navigate("/cart")} className="p-2 rounded-lg hover:bg-muted transition-colors" title="السلة">
                 <ShoppingCart className="w-5 h-5 text-muted-foreground" />
               </button>
-              <button onClick={() => navigate("/notifications")} className="relative p-2 rounded-lg hover:bg-accent transition-colors" title="الإشعارات">
+              <button onClick={() => navigate("/notifications")} className="relative p-2 rounded-lg hover:bg-muted transition-colors" title="الإشعارات">
                 <Bell className="w-5 h-5 text-muted-foreground" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
@@ -117,7 +117,7 @@ const Header = () => {
                   <LayoutDashboard className="w-4 h-4" />{dashboardLabel}
                 </Button>
               )}
-              <button onClick={() => navigate("/account")} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent/80 transition-colors">
+              <button onClick={() => navigate("/account")} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
                 <User className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">{profile?.full_name || user.email}</span>
               </button>
@@ -133,49 +133,49 @@ const Header = () => {
           )}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 rounded-lg hover:bg-accent transition-colors"
+            className="p-2 rounded-lg hover:bg-muted transition-colors"
             title={theme === "dark" ? "الوضع النهاري" : "الوضع الليلي"}
           >
             {theme === "dark" ? <Sun className="w-4 h-4 text-muted-foreground" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
           </button>
-          <button onClick={() => navigate("/login")} className="p-2 rounded-lg hover:bg-accent transition-colors" title="لوحة تحكم المشرف">
+          <button onClick={() => navigate("/login")} className="p-2 rounded-lg hover:bg-muted transition-colors" title="لوحة تحكم المشرف">
             <Shield className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
 
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2 rounded-lg hover:bg-accent transition-colors">
+        <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors">
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
 
       {mobileOpen && (
-        <div className="lg:hidden glass border-t border-border/50 animate-fade-in">
+        <div className="lg:hidden bg-card/95 backdrop-blur-md border-t border-border/50 animate-fade-in">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
             <div className="flex justify-end mb-2">
-              <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg hover:bg-accent transition-colors">
+              <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg hover:bg-muted transition-colors">
                 <X className="w-5 h-5 text-foreground" />
               </button>
             </div>
             {navLinks.map((link) => (
-              <button key={link.href} onClick={() => handleNavClick(link.href)} className="px-4 py-3 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors text-right">{link.label}</button>
+              <button key={link.href} onClick={() => handleNavClick(link.href)} className="px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors text-right">{link.label}</button>
             ))}
             {user && (
               <>
-                <button onClick={() => handleNavClick("/history")} className="px-4 py-3 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors text-right">السجل</button>
-                <button onClick={() => handleNavClick("/addresses")} className="px-4 py-3 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors text-right">عناويني</button>
-                <button onClick={() => handleNavClick("/account")} className="px-4 py-3 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors text-right">حسابي</button>
-                <button onClick={() => handleNavClick("/contact")} className="px-4 py-3 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors text-right">تواصل معنا</button>
+                <button onClick={() => handleNavClick("/history")} className="px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors text-right">السجل</button>
+                <button onClick={() => handleNavClick("/addresses")} className="px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors text-right">عناويني</button>
+                <button onClick={() => handleNavClick("/account")} className="px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors text-right">حسابي</button>
+                <button onClick={() => handleNavClick("/contact")} className="px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors text-right">تواصل معنا</button>
               </>
             )}
             {user && dashboardLabel && dashboardPath && (
-              <button onClick={() => handleNavClick(dashboardPath)} className="px-4 py-3 text-sm font-medium text-primary hover:bg-accent rounded-lg transition-colors text-right flex items-center gap-2">
+              <button onClick={() => handleNavClick(dashboardPath)} className="px-4 py-3 text-sm font-medium text-primary hover:bg-muted rounded-lg transition-colors text-right flex items-center gap-2">
                 <LayoutDashboard className="w-4 h-4" />{dashboardLabel}
               </button>
             )}
             <div className="border-t border-border mt-2 pt-3 flex flex-col gap-2">
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="px-4 py-3 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors text-right flex items-center gap-2"
+                className="px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors text-right flex items-center gap-2"
               >
                 {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 {theme === "dark" ? "الوضع النهاري" : "الوضع الليلي"}
