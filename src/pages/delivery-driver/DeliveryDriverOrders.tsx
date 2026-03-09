@@ -74,7 +74,7 @@ const DeliveryDriverOrders = () => {
     switch (status) {
       case "assigned": return "تم التعيين";
       case "picked_up": return "تم الاستلام";
-      case "in_transit": return "في الطريق";
+      case "in_transit": case "on_the_way": return "في الطريق";
       case "delivered": return "تم التوصيل";
       default: return status;
     }
