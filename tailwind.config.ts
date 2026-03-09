@@ -16,41 +16,17 @@ export default {
   		fontFamily: {
   			cairo: [
   				'Cairo',
+  				'Inter',
   				'sans-serif'
   			],
   			sans: [
-  				'Source Sans Pro',
+  				'Cairo',
+  				'Inter',
   				'ui-sans-serif',
   				'system-ui',
   				'-apple-system',
-  				'BlinkMacSystemFont',
-  				'Segoe UI',
-  				'Roboto',
-  				'Helvetica Neue',
-  				'Arial',
-  				'Noto Sans',
   				'sans-serif'
   			],
-  			serif: [
-  				'Source Serif Pro',
-  				'ui-serif',
-  				'Georgia',
-  				'Cambria',
-  				'Times New Roman',
-  				'Times',
-  				'serif'
-  			],
-  			mono: [
-  				'Source Code Pro',
-  				'ui-monospace',
-  				'SFMono-Regular',
-  				'Menlo',
-  				'Monaco',
-  				'Consolas',
-  				'Liberation Mono',
-  				'Courier New',
-  				'monospace'
-  			]
   		},
   		colors: {
   			border: 'hsl(var(--border))',
@@ -113,66 +89,32 @@ export default {
   		},
   		keyframes: {
   			'accordion-down': {
-  				from: {
-  					height: '0'
-  				},
-  				to: {
-  					height: 'var(--radix-accordion-content-height)'
-  				}
+  				from: { height: '0' },
+  				to: { height: 'var(--radix-accordion-content-height)' }
   			},
   			'accordion-up': {
-  				from: {
-  					height: 'var(--radix-accordion-content-height)'
-  				},
-  				to: {
-  					height: '0'
-  				}
+  				from: { height: 'var(--radix-accordion-content-height)' },
+  				to: { height: '0' }
   			},
   			'fade-in': {
-  				from: {
-  					opacity: '0',
-  					transform: 'translateY(20px)'
-  				},
-  				to: {
-  					opacity: '1',
-  					transform: 'translateY(0)'
-  				}
+  				from: { opacity: '0', transform: 'translateY(20px)' },
+  				to: { opacity: '1', transform: 'translateY(0)' }
   			},
   			'slide-in-right': {
-  				from: {
-  					opacity: '0',
-  					transform: 'translateX(-30px)'
-  				},
-  				to: {
-  					opacity: '1',
-  					transform: 'translateX(0)'
-  				}
+  				from: { opacity: '0', transform: 'translateX(-30px)' },
+  				to: { opacity: '1', transform: 'translateX(0)' }
   			},
   			'count-up': {
-  				from: {
-  					opacity: '0',
-  					transform: 'scale(0.5)'
-  				},
-  				to: {
-  					opacity: '1',
-  					transform: 'scale(1)'
-  				}
+  				from: { opacity: '0', transform: 'scale(0.5)' },
+  				to: { opacity: '1', transform: 'scale(1)' }
   			},
   			float: {
-  				'0%, 100%': {
-  					transform: 'translateY(0)'
-  				},
-  				'50%': {
-  					transform: 'translateY(-10px)'
-  				}
+  				'0%, 100%': { transform: 'translateY(0)' },
+  				'50%': { transform: 'translateY(-10px)' }
   			},
-		'pulse-gold': {
-				'0%, 100%': {
-					boxShadow: '0 0 0 0 hsl(42 76% 50% / 0.4)'
-				},
-				'50%': {
-					boxShadow: '0 0 0 15px hsl(42 76% 50% / 0)'
-				}
+  			'pulse-gold': {
+  				'0%, 100%': { boxShadow: '0 0 0 0 hsl(24 95% 53% / 0.4)' },
+  				'50%': { boxShadow: '0 0 0 15px hsl(24 95% 53% / 0)' }
   			}
   		},
   		animation: {

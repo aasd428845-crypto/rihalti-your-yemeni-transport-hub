@@ -1,132 +1,119 @@
-@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Source+Serif+Pro:wght@400;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 140 8% 95%;
-    --foreground: 150 20% 10%;
+    --background: 214 32% 97%;
+    --foreground: 222 47% 11%;
 
-    --card: 140 10% 98%;
-    --card-foreground: 150 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
 
-    --popover: 140 8% 92%;
-    --popover-foreground: 150 20% 10%;
+    --popover: 214 32% 95%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 160 72% 22%;
-    --primary-foreground: 45 60% 92%;
+    --primary: 228 82% 24%;
+    --primary-foreground: 210 40% 96%;
 
-    --secondary: 42 76% 50%;
-    --secondary-foreground: 160 72% 12%;
+    --secondary: 222 40% 43%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 140 6% 82%;
-    --muted-foreground: 150 10% 35%;
+    --muted: 214 20% 90%;
+    --muted-foreground: 215 16% 37%;
 
-    --accent: 42 80% 94%;
-    --accent-foreground: 160 72% 22%;
+    --accent: 24 95% 53%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 50%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 140 6% 82%;
-    --input: 140 6% 82%;
-    --ring: 160 72% 22%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 228 82% 24%;
 
-    --radius: 1rem;
+    --radius: 0.75rem;
 
     /* Custom tokens */
-    --hero-gradient: linear-gradient(135deg, hsl(160 72% 18%), hsl(155 65% 22%), hsl(160 72% 26%));
-    --gold: 42 76% 50%;
-    --gold-light: 42 70% 65%;
-    --gold-dark: 42 85% 38%;
-    --teal-light: 160 40% 92%;
-    --teal-dark: 160 72% 14%;
-    --success: 150 60% 40%;
+    --hero-gradient: linear-gradient(135deg, hsl(228 82% 20%), hsl(222 45% 38%), hsl(228 82% 28%));
+    --gold: 24 95% 53%;
+    --gold-light: 24 90% 65%;
+    --gold-dark: 24 95% 42%;
+    --success: 160 60% 40%;
     --success-foreground: 0 0% 100%;
 
-    --sidebar-background: 160 72% 12%;
-    --sidebar-foreground: 45 60% 92%;
-    --sidebar-primary: 42 76% 50%;
-    --sidebar-primary-foreground: 160 72% 12%;
-    --sidebar-accent: 160 50% 20%;
-    --sidebar-accent-foreground: 45 60% 92%;
-    --sidebar-border: 160 40% 22%;
-    --sidebar-ring: 42 76% 50%;
-    --chart-1: 160 72% 30%;
-    --chart-2: 42 76% 50%;
-    --chart-3: 150 60% 40%;
-    --chart-4: 160 50% 20%;
-    --chart-5: 42 70% 65%;
-    --sidebar: 160 72% 12%;
-    --font-sans: 'Source Sans Pro', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
-    --font-serif: 'Source Serif Pro', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-    --font-mono: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --sidebar-background: 228 82% 16%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 24 95% 53%;
+    --sidebar-primary-foreground: 228 82% 12%;
+    --sidebar-accent: 228 60% 24%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 228 50% 26%;
+    --sidebar-ring: 24 95% 53%;
+    --chart-1: 228 82% 30%;
+    --chart-2: 24 95% 53%;
+    --chart-3: 160 60% 40%;
+    --chart-4: 222 40% 30%;
+    --chart-5: 24 90% 65%;
+    --sidebar: 228 82% 16%;
+    --font-sans: 'Cairo', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
     --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.25);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
 
   .dark {
-    --background: 160 20% 8%;
-    --foreground: 140 10% 95%;
-    --card: 160 15% 12%;
-    --card-foreground: 140 10% 95%;
-    --popover: 160 12% 16%;
-    --popover-foreground: 140 10% 95%;
-    --primary: 42 76% 50%;
-    --primary-foreground: 160 72% 10%;
-    --secondary: 160 50% 25%;
-    --secondary-foreground: 140 10% 95%;
-    --muted: 160 10% 25%;
-    --muted-foreground: 140 10% 70%;
-    --accent: 160 40% 15%;
-    --accent-foreground: 42 76% 55%;
+    --background: 228 30% 8%;
+    --foreground: 214 20% 95%;
+    --card: 228 25% 12%;
+    --card-foreground: 214 20% 95%;
+    --popover: 228 20% 16%;
+    --popover-foreground: 214 20% 95%;
+    --primary: 24 95% 53%;
+    --primary-foreground: 228 82% 10%;
+    --secondary: 228 40% 28%;
+    --secondary-foreground: 214 20% 95%;
+    --muted: 228 15% 22%;
+    --muted-foreground: 214 15% 65%;
+    --accent: 228 30% 18%;
+    --accent-foreground: 24 95% 60%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 85% 97%;
-    --border: 160 10% 22%;
-    --input: 160 10% 22%;
-    --ring: 42 76% 50%;
-    --sidebar-background: 160 72% 8%;
-    --sidebar-foreground: 140 10% 95%;
-    --sidebar-primary: 42 76% 50%;
-    --sidebar-primary-foreground: 160 72% 10%;
-    --sidebar-accent: 160 50% 15%;
-    --sidebar-accent-foreground: 42 70% 65%;
-    --sidebar-border: 160 15% 18%;
-    --sidebar-ring: 42 76% 50%;
-    --chart-1: 160 60% 35%;
-    --chart-2: 42 76% 55%;
-    --chart-3: 150 50% 45%;
-    --chart-4: 160 40% 25%;
-    --chart-5: 42 65% 70%;
-    --sidebar: 160 72% 8%;
+    --border: 228 15% 22%;
+    --input: 228 15% 22%;
+    --ring: 24 95% 53%;
+    --sidebar-background: 228 82% 8%;
+    --sidebar-foreground: 214 20% 95%;
+    --sidebar-primary: 24 95% 53%;
+    --sidebar-primary-foreground: 228 82% 10%;
+    --sidebar-accent: 228 40% 18%;
+    --sidebar-accent-foreground: 24 90% 65%;
+    --sidebar-border: 228 20% 18%;
+    --sidebar-ring: 24 95% 53%;
+    --chart-1: 228 70% 40%;
+    --chart-2: 24 95% 55%;
+    --chart-3: 160 50% 45%;
+    --chart-4: 222 35% 30%;
+    --chart-5: 24 85% 68%;
+    --sidebar: 228 82% 8%;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
     --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-    --radius: 1rem;
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.25);
+    --radius: 0.75rem;
   }
 }
 
@@ -147,7 +134,6 @@
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Safe area padding for mobile notches */
   @supports (padding: env(safe-area-inset-top)) {
     body {
       padding-top: env(safe-area-inset-top);
@@ -157,7 +143,6 @@
     }
   }
 
-  /* Improve table scroll on mobile */
   .overflow-x-auto {
     -webkit-overflow-scrolling: touch;
   }
@@ -166,12 +151,12 @@
 @layer utilities {
   .text-gradient-primary {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(160 72% 18%), hsl(160 72% 30%));
+    background-image: linear-gradient(135deg, hsl(228 82% 20%), hsl(228 82% 32%));
   }
 
   .text-gradient-gold {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(42 76% 50%), hsl(42 85% 38%));
+    background-image: linear-gradient(135deg, hsl(24 95% 53%), hsl(24 95% 42%));
   }
 
   .bg-hero-gradient {
@@ -179,15 +164,15 @@
   }
 
   .bg-gold-gradient {
-    background: linear-gradient(135deg, hsl(40 85% 55%), hsl(40 90% 42%));
+    background: linear-gradient(135deg, hsl(24 95% 53%), hsl(24 95% 42%));
   }
 
   .shadow-primary {
-    box-shadow: 0 10px 30px -10px hsl(160 72% 22% / 0.3);
+    box-shadow: 0 10px 30px -10px hsl(228 82% 24% / 0.3);
   }
 
   .shadow-gold {
-    box-shadow: 0 10px 30px -10px hsl(42 76% 50% / 0.4);
+    box-shadow: 0 10px 30px -10px hsl(24 95% 53% / 0.4);
   }
 
   .glass {
@@ -199,7 +184,6 @@
   }
 }
 
-/* Touch-friendly improvements */
 @layer base {
   button, a, [role="button"], [type="button"], [type="submit"] {
     cursor: pointer;
