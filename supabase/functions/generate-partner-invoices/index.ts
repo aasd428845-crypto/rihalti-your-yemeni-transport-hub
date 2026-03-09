@@ -1,4 +1,3 @@
-// supabase/functions/generate-partner-invoices/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -15,6 +14,13 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // Parse optional body for period_type override
+    let requestedPeriodType = "weekly";
+    try {
+      const body = await req.json();
+      if (body?.period_type) requestedPeriodType = body.period_type;
+    } catch {}
+
     // Get accounting settings
     const { data: settings } = await supabase
       .from("accounting_settings")
@@ -24,7 +30,7 @@ serve(async (req) => {
 
     const dueDays = settings?.payment_due_days || 7;
 
-    // Get all partners (suppliers, delivery companies, drivers)
+    // Get all partners
     const { data: roles } = await supabase
       .from("user_roles")
       .select("user_id, role")
@@ -37,10 +43,21 @@ serve(async (req) => {
     }
 
     const today = new Date();
-    const periodEnd = new Date(today);
-    periodEnd.setDate(periodEnd.getDate() - 1); // Yesterday
-    const periodStart = new Date(periodEnd);
-    periodStart.setDate(periodStart.getDate() - 6); // Last 7 days
+    let periodStart: Date, periodEnd: Date;
+
+    if (requestedPeriodType === "monthly") {
+      periodEnd = new Date(today.getFullYear(), today.getMonth(), 0); // Last day of prev month
+      periodStart = new Date(periodEnd.getFullYear(), periodEnd.getMonth(), 1);
+    } else if (requestedPeriodType === "yearly") {
+      periodEnd = new Date(today.getFullYear() - 1, 11, 31);
+      periodStart = new Date(today.getFullYear() - 1, 0, 1);
+    } else {
+      // weekly
+      periodEnd = new Date(today);
+      periodEnd.setDate(periodEnd.getDate() - 1);
+      periodStart = new Date(periodEnd);
+      periodStart.setDate(periodStart.getDate() - 6);
+    }
 
     const periodStartStr = periodStart.toISOString().split("T")[0];
     const periodEndStr = periodEnd.toISOString().split("T")[0];
@@ -48,6 +65,18 @@ serve(async (req) => {
     let invoicesCreated = 0;
 
     for (const partner of roles) {
+      // Check if partner is in trial period
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_trial_active, trial_end_date")
+        .eq("user_id", partner.user_id)
+        .maybeSingle();
+
+      if (profile?.is_trial_active && profile?.trial_end_date) {
+        const trialEnd = new Date(profile.trial_end_date);
+        if (trialEnd > today) continue; // Skip partners in active trial
+      }
+
       // Check if invoice already exists for this period
       const { data: existing } = await supabase
         .from("partner_invoices")
@@ -83,6 +112,7 @@ serve(async (req) => {
         invoice_number: invoiceNumber,
         period_start: periodStartStr,
         period_end: periodEndStr,
+        period_type: requestedPeriodType,
         total_transactions: txns.length,
         total_amount: totalAmount,
         total_commission: totalCommission,
@@ -108,7 +138,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, invoicesCreated }),
+      JSON.stringify({ success: true, invoicesCreated, periodType: requestedPeriodType }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
