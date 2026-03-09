@@ -14,6 +14,7 @@ import { fetchDeliveryCompanies, fetchRestaurantsByCompany, createDeliveryOrder 
 import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/common/BackButton";
 import AddressSelector from "@/components/addresses/AddressSelector";
+import { AverageRating } from "@/components/reviews/ReviewsList";
 import type { SelectedAddress } from "@/components/addresses/AddressSelector";
 
 const DeliveriesPage = () => {
