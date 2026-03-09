@@ -5,7 +5,7 @@ import { Bus } from "lucide-react";
 import { searchTrips, fetchRegions } from "@/lib/customerApi";
 import TripCard from "@/components/trips/TripCard";
 import TripFilters from "@/components/trips/TripFilters";
-import Header from "@/components/landing/Header";
+
 import BackButton from "@/components/common/BackButton";
 import type { TripSearchParams } from "@/types/customer.types";
 
