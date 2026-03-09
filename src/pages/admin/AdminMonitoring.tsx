@@ -13,6 +13,7 @@ import {
 import { AlertRule, AlertHistoryItem, getAlertRules, getAlertHistory, subscribeToAlerts } from "@/lib/alertsApi";
 import AlertRulesManager from "@/components/admin/monitoring/AlertRulesManager";
 import AlertHistoryList from "@/components/admin/monitoring/AlertHistoryList";
+import SystemHealthTab from "@/components/admin/monitoring/SystemHealthTab";
 import { toast } from "sonner";
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -165,6 +166,7 @@ const AdminMonitoring = () => {
             )}
           </TabsTrigger>
           <TabsTrigger value="analytics">التحليلات</TabsTrigger>
+          <TabsTrigger value="health">صحة النظام</TabsTrigger>
           <TabsTrigger value="daily">الإحصائيات اليومية</TabsTrigger>
         </TabsList>
 
@@ -332,6 +334,11 @@ const AdminMonitoring = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* System Health Tab */}
+        <TabsContent value="health" className="space-y-4">
+          <SystemHealthTab />
         </TabsContent>
 
         {/* Daily Stats Tab */}
