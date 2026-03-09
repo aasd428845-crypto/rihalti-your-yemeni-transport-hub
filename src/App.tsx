@@ -48,7 +48,7 @@ const AdminSendNotification = lazy(() => import("./pages/admin/AdminSendNotifica
 const AdminNotificationLogs = lazy(() => import("./pages/admin/AdminNotificationLogs"));
 const AdminPartnerProfile = lazy(() => import("./pages/admin/AdminPartnerProfile"));
 const AdminMonitoring = lazy(() => import("./pages/admin/AdminMonitoring"));
-import InvitePage from "./pages/InvitePage";
+const InvitePage = lazy(() => import("./pages/InvitePage"));
 // Supplier (lazy loaded)
 const SupplierLayout = lazy(() => import("./components/supplier/SupplierLayout"));
 const SupplierDashboard = lazy(() => import("./pages/supplier/SupplierDashboard"));
