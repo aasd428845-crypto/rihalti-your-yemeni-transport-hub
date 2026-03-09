@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 
 const DeliveryDriverLayout = () => {
   const { role, loading, user } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   if (loading) {
     return (
