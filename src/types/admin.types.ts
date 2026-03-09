@@ -9,6 +9,7 @@ export interface UserWithRole {
   role: AppRole;
   created_at: string;
   is_blocked?: boolean;
+  account_status?: string | null;
 }
 
 export interface Trip {
