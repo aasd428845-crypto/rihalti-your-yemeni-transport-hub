@@ -89,6 +89,7 @@ const ShipmentsPage = () => {
         item_dimensions: form.item_dimensions || undefined, payment_method: form.payment_method,
         pickup_lat: form.pickup_lat || undefined, pickup_lng: form.pickup_lng || undefined,
         delivery_lat: form.delivery_lat || undefined, delivery_lng: form.delivery_lng || undefined,
+        pickup_landmark: form.pickup_landmark || undefined, delivery_landmark: form.delivery_landmark || undefined,
       });
       toast({ title: "تم إرسال طلب الشحن بنجاح!", description: "سيتم مراجعته وتسعيره قريباً." });
       navigate("/history");
