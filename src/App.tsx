@@ -168,6 +168,7 @@ const App = () => (
               <Route path="send-notification" element={<AdminSendNotification />} />
               <Route path="notification-logs" element={<AdminNotificationLogs />} />
               <Route path="partner/:id" element={<AdminPartnerProfile />} />
+              <Route path="monitoring" element={<AdminMonitoring />} />
             </Route>
             <Route path="/supplier" element={<SupplierLayout />}>
               <Route index element={<SupplierDashboard />} />

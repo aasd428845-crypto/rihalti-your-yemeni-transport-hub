@@ -60,6 +60,7 @@ const menuGroups = [
     label: "التقارير والإعدادات",
     items: [
       { title: "التقارير", url: "/admin/reports", icon: BarChart3 },
+      { title: "المراقبة والتحليلات", url: "/admin/monitoring", icon: Activity },
       { title: "الإعدادات", url: "/admin/settings", icon: Settings },
     ],
   },
