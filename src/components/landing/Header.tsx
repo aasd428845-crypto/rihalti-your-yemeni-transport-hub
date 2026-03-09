@@ -194,6 +194,13 @@ const Header = () => {
                 <LayoutDashboard className="w-4 h-4" />{dashboardLabel}
               </button>
             )}
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 rounded-lg transition-colors text-right flex items-center gap-2"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4 text-accent" /> : <Moon className="w-4 h-4" />}
+              {theme === "dark" ? "الوضع النهاري" : "الوضع الليلي"}
+            </button>
             <div className="border-t border-border mt-2 pt-3 flex flex-col gap-2">
               {user ? (
                 <>
