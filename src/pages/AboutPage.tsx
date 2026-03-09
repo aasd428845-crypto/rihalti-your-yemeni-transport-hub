@@ -1,5 +1,4 @@
-import Header from "@/components/landing/Header";
-import Footer from "@/components/landing/Footer";
+import BackButton from "@/components/common/BackButton";
 import BackButton from "@/components/common/BackButton";
 import { Bus, Shield, Users, MapPin, Star, Clock } from "lucide-react";
 

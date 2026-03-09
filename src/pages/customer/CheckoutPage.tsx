@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchTripById, createBooking } from "@/lib/customerApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/landing/Header";
+
 import BackButton from "@/components/common/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

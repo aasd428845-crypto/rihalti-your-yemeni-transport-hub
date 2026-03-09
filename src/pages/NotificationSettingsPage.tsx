@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, Volume2, Smartphone, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import Header from "@/components/landing/Header";
+
 
 interface NotificationSettings {
   enable_push_notifications: boolean;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import BackButton from "@/components/common/BackButton";
-import Header from "@/components/landing/Header";
+
 import { Search, Package, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

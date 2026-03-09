@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, BellOff, Check, ArrowRight, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/landing/Header";
+
 
 const NotificationsPage = () => {
   const { user } = useAuth();

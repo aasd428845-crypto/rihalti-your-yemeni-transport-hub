@@ -1,6 +1,4 @@
 import { useState } from "react";
-import Header from "@/components/landing/Header";
-import Footer from "@/components/landing/Footer";
 import BackButton from "@/components/common/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, MapPin, Phone, Star, FileText, MessageSquare, Map } from "lucide-react";
-import Header from "@/components/landing/Header";
+
 import BackButton from "@/components/common/BackButton";
 import ReviewsList, { AverageRating } from "@/components/reviews/ReviewsList";
 import PartnerWorkingAreasMap from "@/components/maps/PartnerWorkingAreasMap";

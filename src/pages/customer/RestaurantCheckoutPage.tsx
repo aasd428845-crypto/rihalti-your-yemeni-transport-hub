@@ -13,7 +13,7 @@ import BackButton from "@/components/common/BackButton";
 import { getRestaurantById, getCart, createOrderFromCart, clearCart } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/landing/Header";
+
 
 interface CartItem {
   id: string;

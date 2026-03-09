@@ -9,8 +9,6 @@ import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Store } from "lucide-rea
 import BackButton from "@/components/common/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/landing/Header";
-import Footer from "@/components/landing/Footer";
 
 interface CartItem {
   id: string;

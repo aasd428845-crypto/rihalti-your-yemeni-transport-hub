@@ -9,7 +9,7 @@ import { Package, Clock, CheckCircle, Truck, MapPin, Phone, Star, ChefHat, Arrow
 import BackButton from "@/components/common/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/landing/Header";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { createReview } from "@/lib/restaurantApi";
