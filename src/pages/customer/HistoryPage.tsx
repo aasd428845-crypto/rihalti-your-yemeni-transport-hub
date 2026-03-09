@@ -172,7 +172,7 @@ const HistoryPage = () => {
               <Bus className="w-4 h-4" /> الرحلات
             </TabsTrigger>
             <TabsTrigger value="shipments" className="gap-2 relative">
-              <Package className="w-4 h-4" /> الشحنات
+              <Package className="w-4 h-4" /> الطرود
               {pricedShipments.length > 0 && (
                 <span className="absolute -top-1 -left-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center">
                   {pricedShipments.length}
