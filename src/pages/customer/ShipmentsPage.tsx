@@ -155,7 +155,7 @@ const ShipmentsPage = () => {
                       )}
                       {supplier.phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" />{supplier.phone}</p>}
                       <Button variant="outline" size="sm" className="w-full mt-4 gap-1">
-                        <Package className="w-3 h-3" />إرسال شحنة
+                        <Package className="w-3 h-3" />إرسال طرد
                       </Button>
                     </CardContent>
                   </Card>
