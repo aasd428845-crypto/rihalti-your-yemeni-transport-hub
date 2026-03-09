@@ -128,6 +128,7 @@ const InstallPage = () => {
           </Button>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
