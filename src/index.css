@@ -198,3 +198,12 @@
     @apply bg-black/20 backdrop-blur-md border border-white/10;
   }
 }
+
+/* Touch-friendly improvements */
+@layer base {
+  button, a, [role="button"], [type="button"], [type="submit"] {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
