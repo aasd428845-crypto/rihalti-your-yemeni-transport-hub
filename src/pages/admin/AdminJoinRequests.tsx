@@ -109,7 +109,7 @@ const AdminJoinRequests = () => {
     await supabase.from("notifications").insert({
       user_id: u.user_id,
       title: "تمت الموافقة على طلبك! 🎉",
-      body: "مرحباً بك في منصة رحلاتي. يمكنك الآن البدء في استخدام المنصة.",
+      body: "مرحباً بك في منصة وصل. يمكنك الآن البدء في استخدام المنصة.",
     });
 
     createAuditLog(user.id, "موافقة على طلب انضمام", "profile", u.user_id, { role: u.role });

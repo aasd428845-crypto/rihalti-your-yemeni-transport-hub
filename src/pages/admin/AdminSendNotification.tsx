@@ -34,7 +34,7 @@ const ROLE_OPTIONS = [
 
 const ROLE_LABELS: Record<string, string> = {
   customer: "عميل",
-  supplier: "مورد",
+  supplier: "صاحب مكتب",
   delivery_company: "شركة توصيل",
   driver: "سائق",
   delivery_driver: "مندوب",

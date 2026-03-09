@@ -312,7 +312,7 @@ const AdminApprovals = () => {
           <TabsTrigger value="all">الكل ({requests.length})</TabsTrigger>
           <TabsTrigger value="trip">رحلات ({requests.filter(r => r.source === "trip").length})</TabsTrigger>
           <TabsTrigger value="booking">حجوزات ({requests.filter(r => r.source === "booking").length})</TabsTrigger>
-          <TabsTrigger value="shipment">شحنات ({requests.filter(r => r.source === "shipment").length})</TabsTrigger>
+          <TabsTrigger value="shipment">طرود ({requests.filter(r => r.source === "shipment").length})</TabsTrigger>
           <TabsTrigger value="delivery_order">توصيل ({requests.filter(r => r.source === "delivery_order").length})</TabsTrigger>
           <TabsTrigger value="partner_join">شركاء ({requests.filter(r => r.source === "partner_join").length})</TabsTrigger>
         </TabsList>

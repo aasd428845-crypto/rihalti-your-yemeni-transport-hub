@@ -156,7 +156,7 @@ const AdminMessages = () => {
                   <SelectContent>
                     <SelectItem value="all">جميع المستخدمين</SelectItem>
                     <SelectItem value="customer">العملاء</SelectItem>
-                    <SelectItem value="supplier">الموردون</SelectItem>
+                    <SelectItem value="supplier">أصحاب المكاتب</SelectItem>
                     <SelectItem value="delivery_company">شركات التوصيل</SelectItem>
                   </SelectContent>
                 </Select>

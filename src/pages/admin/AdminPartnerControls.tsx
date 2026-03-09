@@ -151,7 +151,7 @@ const AdminPartnerControls = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">الكل</SelectItem>
-            <SelectItem value="supplier">مورد</SelectItem>
+            <SelectItem value="supplier">صاحب مكتب</SelectItem>
             <SelectItem value="delivery_company">شركة توصيل</SelectItem>
             <SelectItem value="driver">سائق</SelectItem>
           </SelectContent>
