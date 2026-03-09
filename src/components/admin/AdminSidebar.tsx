@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield, Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert, MessageCircle, QrCode, CreditCard, Headphones } from "lucide-react";
+import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield, Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert, MessageCircle, QrCode, CreditCard, Headphones, Bell } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
