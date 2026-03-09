@@ -39,7 +39,10 @@ const SupplierLayout = () => {
             <SidebarTrigger>
               <Menu className="w-5 h-5" />
             </SidebarTrigger>
-            <h1 className="text-sm font-bold text-foreground">لوحة تحكم صاحب المكتب</h1>
+            <h1 className="text-sm font-bold text-foreground flex-1">لوحة تحكم صاحب المكتب</h1>
+            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
           </header>
           <div className="flex-1 p-4 md:p-6 bg-background overflow-auto">
             {!isComplete && isOnProfilePage && (
