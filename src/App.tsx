@@ -19,6 +19,8 @@ import ShipmentRequestPage from "./pages/ShipmentRequestPage";
 import OrderDetailsPage from "./pages/customer/OrderDetailsPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 // Admin (lazy loaded)
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
