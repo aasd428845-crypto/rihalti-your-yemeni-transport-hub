@@ -34,6 +34,7 @@ import AdminChatMonitoring from "./pages/admin/AdminChatMonitoring";
 import AdminDeliveryProofs from "./pages/admin/AdminDeliveryProofs";
 import AdminPaymentReview from "./pages/admin/AdminPaymentReview";
 import AdminPartnerControls from "./pages/admin/AdminPartnerControls";
+import AdminSupportMessages from "./pages/admin/AdminSupportMessages";
 import InvitePage from "./pages/InvitePage";
 // Supplier
 import SupplierLayout from "./components/supplier/SupplierLayout";
@@ -100,6 +101,7 @@ import DeliveryDriverProfile from "./pages/delivery-driver/DeliveryDriverProfile
 import DeliveryDriverSettings from "./pages/delivery-driver/DeliveryDriverSettings";
 import DeliveryDriverOrderDetails from "./pages/delivery-driver/DeliveryDriverOrderDetails";
 import DeliveryDriverHistory from "./pages/delivery-driver/DeliveryDriverHistory";
+import SupportChatWidget from "./components/support/SupportChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -158,6 +160,7 @@ const App = () => (
               <Route path="reports" element={<AdminReports />} />
               <Route path="payment-review" element={<AdminPaymentReview />} />
               <Route path="partner-controls" element={<AdminPartnerControls />} />
+              <Route path="support-messages" element={<AdminSupportMessages />} />
             </Route>
             <Route path="/supplier" element={<SupplierLayout />}>
               <Route index element={<SupplierDashboard />} />
@@ -221,6 +224,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <SupportChatWidget />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

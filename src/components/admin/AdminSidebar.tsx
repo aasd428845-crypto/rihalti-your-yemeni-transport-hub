@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield, Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert, MessageCircle, QrCode, CreditCard } from "lucide-react";
+import { LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield, Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert, MessageCircle, QrCode, CreditCard, Headphones } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +26,7 @@ const menuItems = [
   { title: "التحويلات البنكية", url: "/admin/payment-review", icon: CreditCard },
   { title: "صلاحيات الشركاء", url: "/admin/partner-controls", icon: Shield },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
+  { title: "رسائل الدعم", url: "/admin/support-messages", icon: Headphones },
 ];
 
 const AdminSidebar = () => {
