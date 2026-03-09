@@ -131,6 +131,13 @@ const Header = () => {
               <Button size="sm" className="bg-hero-gradient text-primary-foreground hover:opacity-90 shadow-primary" onClick={() => navigate("/register")}>إنشاء حساب</Button>
             </>
           )}
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="p-2 rounded-lg hover:bg-accent transition-colors"
+            title={theme === "dark" ? "الوضع النهاري" : "الوضع الليلي"}
+          >
+            {theme === "dark" ? <Sun className="w-4 h-4 text-muted-foreground" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
+          </button>
           <button onClick={() => navigate("/login")} className="p-2 rounded-lg hover:bg-accent transition-colors" title="لوحة تحكم المشرف">
             <Shield className="w-4 h-4 text-muted-foreground" />
           </button>
