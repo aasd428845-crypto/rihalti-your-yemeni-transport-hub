@@ -173,6 +173,13 @@ const Header = () => {
               </button>
             )}
             <div className="border-t border-border mt-2 pt-3 flex flex-col gap-2">
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="px-4 py-3 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors text-right flex items-center gap-2"
+              >
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                {theme === "dark" ? "الوضع النهاري" : "الوضع الليلي"}
+              </button>
               {user ? (
                 <>
                   <div className="px-4 py-2 text-sm text-muted-foreground">{profile?.full_name || user.email}</div>
