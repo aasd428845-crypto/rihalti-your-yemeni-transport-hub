@@ -242,6 +242,37 @@ const PaymentPage = () => {
               <span className="text-muted-foreground">نوع الخدمة</span>
               <Badge variant="outline">{entityLabels[entityType || ""] || entityType}</Badge>
             </div>
+            {/* Entity-specific details */}
+            {entityType === "booking" && entity && (
+              <>
+                {entity.trip_id && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">عدد المقاعد</span>
+                    <span className="font-medium">{entity.seat_count}</span>
+                  </div>
+                )}
+              </>
+            )}
+            {entityType === "delivery" && entity && (
+              <>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">اسم العميل</span>
+                  <span className="font-medium">{entity.customer_name}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">العنوان</span>
+                  <span className="font-medium text-xs max-w-[200px] truncate">{entity.customer_address}</span>
+                </div>
+              </>
+            )}
+            {entityType === "shipment" && entity && (
+              <>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">نوع الشحنة</span>
+                  <span className="font-medium">{entity.shipment_type}</span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">المبلغ المطلوب</span>
               <span className="text-xl font-bold text-primary">{amount.toLocaleString()} ر.ي</span>
