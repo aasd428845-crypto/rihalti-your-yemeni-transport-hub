@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Lock, Save } from "lucide-react";
+import { User, Lock, Save, Phone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateProfile } from "@/lib/customerApi";
 import { supabase } from "@/integrations/supabase/client";
+import { getPhoneError, formatYemeniPhone } from "@/lib/phoneValidation";
 
 const AccountPage = () => {
   const { user, profile } = useAuth();
@@ -15,7 +16,7 @@ const AccountPage = () => {
   const [saving, setSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
-  const [form, setForm] = useState({ full_name: "", phone: "", city: "" });
+  const [form, setForm] = useState({ full_name: "", phone: "", phone_secondary: "", city: "" });
   const [passwords, setPasswords] = useState({ newPassword: "", confirmPassword: "" });
 
   useEffect(() => {
@@ -23,6 +24,7 @@ const AccountPage = () => {
       setForm({
         full_name: profile.full_name || "",
         phone: profile.phone || "",
+        phone_secondary: (profile as any).phone_secondary || "",
         city: profile.city || "",
       });
     }
@@ -30,10 +32,15 @@ const AccountPage = () => {
 
   const handleSaveProfile = async () => {
     if (!user) return;
+    const phoneErr = form.phone ? getPhoneError(form.phone) : null;
+    const phone2Err = form.phone_secondary ? getPhoneError(form.phone_secondary) : null;
+    if (phoneErr) { toast({ title: "رقم الهاتف الأساسي: " + phoneErr, variant: "destructive" }); return; }
+    if (phone2Err) { toast({ title: "رقم الهاتف الثانوي: " + phone2Err, variant: "destructive" }); return; }
+    
     setSaving(true);
     try {
       await updateProfile(user.id, form);
-      toast({ title: "تم تحديث الملف الشخصي بنجاح" });
+      toast({ title: "✅ تم تحديث الملف الشخصي بنجاح" });
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
@@ -94,8 +101,32 @@ const AccountPage = () => {
               <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
             </div>
             <div>
-              <Label>رقم الهاتف</Label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <Label className="flex items-center gap-1"><Phone className="w-3 h-3 text-primary" /> رقم الهاتف الأساسي</Label>
+              <div className="flex gap-2 mt-1">
+                <div className="flex items-center justify-center bg-muted rounded-md px-3 h-10 text-sm font-medium text-muted-foreground border border-input shrink-0" dir="ltr">+967</div>
+                <Input 
+                  value={form.phone} 
+                  onChange={(e) => setForm({ ...form, phone: formatYemeniPhone(e.target.value) })} 
+                  placeholder="7XX XXX XXX" 
+                  dir="ltr" 
+                  maxLength={9}
+                />
+              </div>
+              {form.phone && getPhoneError(form.phone) && <p className="text-xs text-destructive mt-1">{getPhoneError(form.phone)}</p>}
+            </div>
+            <div>
+              <Label className="flex items-center gap-1"><Phone className="w-3 h-3 text-secondary" /> رقم الهاتف الثانوي (اختياري)</Label>
+              <div className="flex gap-2 mt-1">
+                <div className="flex items-center justify-center bg-muted rounded-md px-3 h-10 text-sm font-medium text-muted-foreground border border-input shrink-0" dir="ltr">+967</div>
+                <Input 
+                  value={form.phone_secondary} 
+                  onChange={(e) => setForm({ ...form, phone_secondary: formatYemeniPhone(e.target.value) })} 
+                  placeholder="7XX XXX XXX" 
+                  dir="ltr" 
+                  maxLength={9}
+                />
+              </div>
+              {form.phone_secondary && getPhoneError(form.phone_secondary) && <p className="text-xs text-destructive mt-1">{getPhoneError(form.phone_secondary)}</p>}
             </div>
             <div>
               <Label>المدينة</Label>
