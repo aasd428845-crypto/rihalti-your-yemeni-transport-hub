@@ -273,6 +273,9 @@ const AccountPage = () => {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Delete Account */}
+        <DeleteAccountButton />
       </div>
     </div>
   );
