@@ -40,7 +40,7 @@ const SupplierDashboard = () => {
   const chartData = [
     { name: "الرحلات", value: stats.totalTrips },
     { name: "الحجوزات", value: stats.totalBookings },
-    { name: "الشحنات", value: stats.totalShipmentRequests },
+    { name: "الطرود", value: stats.totalShipmentRequests },
   ];
 
   return (
