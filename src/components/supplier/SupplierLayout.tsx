@@ -27,7 +27,7 @@ const SupplierLayout = () => {
             <SidebarTrigger>
               <Menu className="w-5 h-5" />
             </SidebarTrigger>
-            <h1 className="text-sm font-bold text-foreground">لوحة تحكم المورد</h1>
+            <h1 className="text-sm font-bold text-foreground">لوحة تحكم صاحب المكتب</h1>
           </header>
           <div className="flex-1 p-4 md:p-6 bg-background overflow-auto">
             <Outlet />

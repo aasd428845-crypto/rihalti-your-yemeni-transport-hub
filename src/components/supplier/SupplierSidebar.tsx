@@ -37,8 +37,8 @@ const SupplierSidebar = () => {
                 <Bus className="w-4 h-4 text-primary-foreground" />
               </div>
               <div className="text-right">
-                <div className="font-bold text-sm text-sidebar-foreground">لوحة المورد</div>
-                <div className="text-[10px] text-muted-foreground">{profile?.full_name || "المورد"}</div>
+                 <div className="font-bold text-sm text-sidebar-foreground">لوحة صاحب المكتب</div>
+                <div className="text-[10px] text-muted-foreground">{profile?.full_name || "صاحب المكتب"}</div>
               </div>
             </div>
           </SidebarGroupLabel>

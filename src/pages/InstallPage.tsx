@@ -53,7 +53,7 @@ const InstallPage = () => {
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold text-foreground font-cairo">تثبيت تطبيق رحلاتي</h1>
+            <h1 className="text-2xl font-bold text-foreground font-cairo">تثبيت تطبيق وصل</h1>
             <p className="text-muted-foreground mt-2 text-sm">
               ثبّت التطبيق على جهازك للوصول السريع وتجربة أفضل
             </p>
