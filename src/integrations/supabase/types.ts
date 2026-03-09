@@ -2738,6 +2738,48 @@ export type Database = {
           },
         ]
       }
+      support_messages: {
+        Row: {
+          admin_reply: string | null
+          created_at: string | null
+          id: string
+          message: string
+          replied_at: string | null
+          replied_by: string | null
+          status: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string
+          user_phone: string | null
+        }
+        Insert: {
+          admin_reply?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          replied_at?: string | null
+          replied_by?: string | null
+          status?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name: string
+          user_phone?: string | null
+        }
+        Update: {
+          admin_reply?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          replied_at?: string | null
+          replied_by?: string | null
+          status?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string
+          user_phone?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
