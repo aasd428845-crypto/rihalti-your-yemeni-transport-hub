@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Search, Star, Clock, Truck, MapPin, UtensilsCrossed, ChefHat, Pizza, Beef, Fish, IceCream, Coffee } from "lucide-react";
+import BackButton from "@/components/common/BackButton";
 import { getActiveRestaurants } from "@/lib/restaurantApi";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/landing/Header";
