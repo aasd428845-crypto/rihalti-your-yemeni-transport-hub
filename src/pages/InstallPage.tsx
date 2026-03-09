@@ -49,11 +49,11 @@ const InstallPage = () => {
       <Card className="max-w-md w-full">
         <CardContent className="p-8 text-center space-y-6">
           <div className="w-20 h-20 mx-auto rounded-2xl overflow-hidden shadow-lg">
-            <img src="/icons/icon-192x192.png" alt="رحلاتي" className="w-full h-full object-cover" />
+            <img src="/icons/icon-192x192.png" alt="وصل" className="w-full h-full object-cover" />
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold text-foreground font-cairo">تثبيت تطبيق رحلاتي</h1>
+            <h1 className="text-2xl font-bold text-foreground font-cairo">تثبيت تطبيق وصل</h1>
             <p className="text-muted-foreground mt-2 text-sm">
               ثبّت التطبيق على جهازك للوصول السريع وتجربة أفضل
             </p>

@@ -24,10 +24,10 @@ const AppDownloadSection = () => {
               </div>
 
               <h2 className="text-3xl md:text-4xl font-black mb-4">
-                حمّل تطبيق رحلاتي الآن
+                حمّل تطبيق وصل الآن
               </h2>
               <p className="text-primary-foreground/80 mb-8 leading-relaxed">
-                جميع خدماتنا متاحة الآن على هاتفك الذكي. احجز رحلتك، أرسل شحنتك، أو اطلب التوصيل في أي وقت ومن أي مكان.
+                جميع خدماتنا متاحة الآن على هاتفك الذكي. احجز رحلتك، أرسل طردك، أو اطلب التوصيل في أي وقت ومن أي مكان.
               </p>
 
               <div className="space-y-4 mb-8">
@@ -62,7 +62,7 @@ const AppDownloadSection = () => {
               <div className="w-64 h-[500px] bg-white/10 rounded-[2.5rem] border-4 border-white/20 flex flex-col items-center pt-8 px-4 relative overflow-hidden">
                 <div className="w-20 h-5 bg-white/20 rounded-full mb-6" />
                 <div className="text-center mb-4">
-                  <div className="text-2xl font-black text-primary-foreground">رحلاتي</div>
+                  <div className="text-2xl font-black text-primary-foreground">وصل</div>
                   <div className="text-xs text-primary-foreground/60">08:30</div>
                 </div>
 

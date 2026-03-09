@@ -194,7 +194,7 @@ const DriverDashboard = () => {
             )}
           </TabsTrigger>
           <TabsTrigger value="active" className="flex-1">
-            رحلاتي النشطة
+             رحلاتي النشطة
             {activeRides.length > 0 && (
               <Badge variant="secondary" className="mr-2 text-xs">{activeRides.length}</Badge>
             )}

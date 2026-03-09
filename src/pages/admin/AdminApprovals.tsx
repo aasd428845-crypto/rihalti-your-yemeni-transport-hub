@@ -73,7 +73,7 @@ const AdminApprovals = () => {
             price: t.price,
             seats: t.available_seats,
             company: t.bus_company,
-            supplier: nameMap[t.supplier_id] || "مورد",
+            supplier: nameMap[t.supplier_id] || "صاحب مكتب",
           },
         });
       }
@@ -276,7 +276,7 @@ const AdminApprovals = () => {
       return (
         <div className="text-sm text-muted-foreground space-y-1">
           <p className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {d.from} → {d.to}</p>
-          <p>المورد: {d.supplier} | السعر: {d.price?.toLocaleString()} ر.ي | المقاعد: {d.seats}</p>
+          <p>صاحب المكتب: {d.supplier} | السعر: {d.price?.toLocaleString()} ر.ي | المقاعد: {d.seats}</p>
           {d.company && <p>شركة النقل: {d.company}</p>}
         </div>
       );
@@ -312,7 +312,7 @@ const AdminApprovals = () => {
           <TabsTrigger value="all">الكل ({requests.length})</TabsTrigger>
           <TabsTrigger value="trip">رحلات ({requests.filter(r => r.source === "trip").length})</TabsTrigger>
           <TabsTrigger value="booking">حجوزات ({requests.filter(r => r.source === "booking").length})</TabsTrigger>
-          <TabsTrigger value="shipment">شحنات ({requests.filter(r => r.source === "shipment").length})</TabsTrigger>
+          <TabsTrigger value="shipment">طرود ({requests.filter(r => r.source === "shipment").length})</TabsTrigger>
           <TabsTrigger value="delivery_order">توصيل ({requests.filter(r => r.source === "delivery_order").length})</TabsTrigger>
           <TabsTrigger value="partner_join">شركاء ({requests.filter(r => r.source === "partner_join").length})</TabsTrigger>
         </TabsList>

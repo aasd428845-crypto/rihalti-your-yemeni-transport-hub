@@ -12,7 +12,7 @@ const menuItems = [
   { title: "لوحة التحكم", url: "/supplier", icon: LayoutDashboard },
   { title: "الرحلات", url: "/supplier/trips", icon: Bus },
   { title: "الحجوزات", url: "/supplier/bookings", icon: CalendarCheck },
-  { title: "الشحنات", url: "/supplier/shipments", icon: Package },
+  { title: "الطرود", url: "/supplier/shipments", icon: Package },
   { title: "المالية", url: "/supplier/finance", icon: DollarSign },
   { title: "الإعدادات", url: "/supplier/settings", icon: Settings },
   { title: "الرسائل", url: "/supplier/messages", icon: MessageCircle },
@@ -37,8 +37,8 @@ const SupplierSidebar = () => {
                 <Bus className="w-4 h-4 text-primary-foreground" />
               </div>
               <div className="text-right">
-                <div className="font-bold text-sm text-sidebar-foreground">لوحة المورد</div>
-                <div className="text-[10px] text-muted-foreground">{profile?.full_name || "المورد"}</div>
+                 <div className="font-bold text-sm text-sidebar-foreground">لوحة صاحب المكتب</div>
+                <div className="text-[10px] text-muted-foreground">{profile?.full_name || "صاحب المكتب"}</div>
               </div>
             </div>
           </SidebarGroupLabel>

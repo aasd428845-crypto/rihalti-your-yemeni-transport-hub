@@ -94,7 +94,7 @@ const SystemHealthTab = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
             { label: "رحلات عالقة", value: health.stuckTrips, icon: Plane },
-            { label: "شحنات عالقة", value: health.stuckShipments, icon: Package },
+            { label: "طرود عالقة", value: health.stuckShipments, icon: Package },
             { label: "توصيلات عالقة", value: health.stuckDeliveries, icon: Truck },
             { label: "أجرة عالقة", value: health.stuckRides, icon: Car },
             { label: "أخطاء غير محلولة", value: health.unresolvedErrors, icon: Bug },

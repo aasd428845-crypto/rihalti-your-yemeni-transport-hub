@@ -144,7 +144,7 @@ export interface AuditLog {
 
 export const roleLabels: Record<string, string> = {
   customer: "عميل",
-  supplier: "مورد",
+  supplier: "صاحب مكتب",
   delivery_company: "شركة توصيل",
   driver: "سائق أجرة",
   delivery_driver: "مندوب توصيل",
@@ -179,12 +179,12 @@ export const statusColors: Record<string, string> = {
 
 export const entityTypeLabels: Record<string, string> = {
   trip: "رحلة",
-  shipment: "شحنة",
+  shipment: "طرد",
   delivery: "توصيل",
-  supplier_registration: "تسجيل مورد",
+  supplier_registration: "تسجيل صاحب مكتب",
   delivery_registration: "تسجيل شركة توصيل",
   booking: "حجز",
   pending_trip: "رحلة معلقة",
-  pending_shipment: "طلب شحن معلق",
+  pending_shipment: "طرد معلق",
   pending_delivery: "طلب توصيل معلق",
 };

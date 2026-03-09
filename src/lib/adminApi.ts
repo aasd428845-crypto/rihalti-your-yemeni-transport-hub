@@ -196,7 +196,7 @@ export const getDashboardStats = async () => {
   // Transaction type distribution
   const typeDistribution = [
     { name: "حجز", value: allTx.filter(t => t.transaction_type === "booking").length },
-    { name: "شحن", value: allTx.filter(t => t.transaction_type === "shipment").length },
+    { name: "طرد", value: allTx.filter(t => t.transaction_type === "shipment").length },
     { name: "توصيل", value: allTx.filter(t => t.transaction_type === "delivery").length },
     { name: "أجرة", value: allTx.filter(t => t.transaction_type === "ride").length },
   ];

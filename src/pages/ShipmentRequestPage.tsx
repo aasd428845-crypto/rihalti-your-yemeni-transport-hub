@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 type RequestType = 'shipment' | 'delivery' | 'taxi';
 
 const typeConfig = {
-  shipment: { label: 'إرسال شحنة', icon: Package, color: '#0A7C4E', desc: 'أرسل بضاعتك بين المدن' },
+  shipment: { label: 'إرسال طرد', icon: Package, color: '#0A7C4E', desc: 'أرسل بضاعتك بين المدن' },
   delivery: { label: 'طلب توصيل', icon: Truck, color: '#2563EB', desc: 'توصيل محلي سريع' },
   taxi: { label: 'سيارة أجرة', icon: Car, color: '#D97706', desc: 'انتقل بين المدن والمناطق' },
 };

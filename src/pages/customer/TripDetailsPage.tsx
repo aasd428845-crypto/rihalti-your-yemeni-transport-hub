@@ -102,7 +102,7 @@ const TripDetailsPage = () => {
     );
   }
 
-  const supplierName = trip.supplier?.full_name || "مورد";
+  const supplierName = trip.supplier?.full_name || "صاحب مكتب";
   const supplierLogo = trip.supplier?.logo_url;
 
   return (
@@ -250,7 +250,7 @@ const TripDetailsPage = () => {
                     <SelectContent>
                       <SelectItem value="cash">نقداً عند الصعود</SelectItem>
                       <SelectItem value="bank_transfer">تحويل بنكي (حسابات المنصة)</SelectItem>
-                      <SelectItem value="direct_to_supplier">دفع مباشر للمورد</SelectItem>
+                      <SelectItem value="direct_to_supplier">دفع مباشر لصاحب المكتب</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -258,7 +258,7 @@ const TripDetailsPage = () => {
                 {/* Show bank accounts for direct payment */}
                 {paymentMethod === "direct_to_supplier" && bankAccounts && bankAccounts.length > 0 && (
                   <div className="bg-accent rounded-lg p-3 space-y-2">
-                    <p className="text-xs font-medium text-accent-foreground">حسابات المورد البنكية:</p>
+                    <p className="text-xs font-medium text-accent-foreground">حسابات صاحب المكتب البنكية:</p>
                     {bankAccounts.map((acc: any) => (
                       <div key={acc.id} className="text-xs text-accent-foreground">
                         <p>{acc.bank_name} - {acc.account_number}</p>

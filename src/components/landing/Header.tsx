@@ -8,10 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 const navLinks = [
   { label: "المطاعم", href: "/restaurants" },
   { label: "الرحلات", href: "/trips" },
-  { label: "الشحنات", href: "/shipments" },
+  { label: "الطرود", href: "/shipments" },
   { label: "التوصيل", href: "/deliveries" },
   { label: "أجرة", href: "/ride/request" },
-  { label: "تتبع الشحنة", href: "/tracking" },
+  { label: "تتبع الطرد", href: "/tracking" },
   { label: "عن المنصة", href: "/about" },
 ];
 
@@ -47,7 +47,7 @@ const Header = () => {
   };
 
   const getDashboardLabel = () => {
-    if (role === "supplier") return "لوحة تحكم المورد";
+    if (role === "supplier") return "لوحة تحكم صاحب المكتب";
     if (role === "delivery_company") return "لوحة تحكم التوصيل";
     if (role === "admin") return "لوحة تحكم المشرف";
     return null;
@@ -73,8 +73,8 @@ const Header = () => {
             <Bus className="w-5 h-5 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold text-foreground leading-tight">رحلاتي</span>
-            <span className="text-[10px] text-muted-foreground leading-tight">المنصة اليمنية للنقل</span>
+            <span className="text-lg font-bold text-foreground leading-tight">وصل</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">منصة النقل الذكية</span>
           </div>
         </a>
 
@@ -99,11 +99,9 @@ const Header = () => {
             <div className="w-20 h-9 rounded-lg bg-muted animate-pulse" />
           ) : user ? (
             <>
-              {/* Cart */}
               <button onClick={() => navigate("/cart")} className="p-2 rounded-lg hover:bg-accent transition-colors" title="السلة">
                 <ShoppingCart className="w-5 h-5 text-muted-foreground" />
               </button>
-              {/* Notifications */}
               <button onClick={() => navigate("/notifications")} className="relative p-2 rounded-lg hover:bg-accent transition-colors" title="الإشعارات">
                 <Bell className="w-5 h-5 text-muted-foreground" />
                 {unreadCount > 0 && (

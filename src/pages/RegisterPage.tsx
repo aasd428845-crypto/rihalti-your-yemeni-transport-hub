@@ -25,7 +25,7 @@ const RegisterPage = () => {
   const { toast } = useToast();
 
   const accountTypes: { value: AccountType; label: string; desc: string; icon: string }[] = [
-    { value: "customer", label: "عميل", desc: "احجز رحلات وأرسل شحنات واطلب توصيل", icon: "🧳" },
+    { value: "customer", label: "عميل", desc: "احجز رحلات وأرسل طرود واطلب توصيل", icon: "🧳" },
   ];
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -86,8 +86,8 @@ const RegisterPage = () => {
               <Bus className="w-6 h-6 text-primary-foreground" />
             </div>
             <div className="text-right">
-              <div className="text-xl font-black text-foreground">رحلاتي</div>
-              <div className="text-xs text-muted-foreground">المنصة اليمنية للنقل</div>
+               <div className="text-xl font-black text-foreground">وصل</div>
+              <div className="text-xs text-muted-foreground">منصة النقل الذكية</div>
             </div>
           </a>
         </div>
@@ -127,8 +127,8 @@ const RegisterPage = () => {
               ))}
 
               <div className="bg-muted/50 rounded-xl p-4 text-sm text-muted-foreground">
-                <p className="font-semibold text-foreground mb-1">🏢 هل أنت مورد أو شركة توصيل؟</p>
-                <p>تواصل مع فريق الدعم لإنشاء حساب مورد أو شركة توصيل.</p>
+                <p className="font-semibold text-foreground mb-1">🏢 هل أنت صاحب مكتب أو شركة توصيل؟</p>
+                <p>تواصل مع فريق الدعم لإنشاء حساب صاحب مكتب أو شركة توصيل.</p>
                 <a href="#contact" className="text-primary font-semibold hover:underline mt-1 inline-block">تواصل معنا →</a>
               </div>
 

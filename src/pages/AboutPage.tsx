@@ -10,9 +10,9 @@ const AboutPage = () => {
       <main className="container mx-auto px-4 pt-24 pb-12">
         <BackButton />
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-bold text-foreground mb-4">عن منصة رحلاتي</h1>
+           <h1 className="text-3xl font-bold text-foreground mb-4">عن منصة وصل</h1>
           <p className="text-muted-foreground mb-8 leading-relaxed">
-            رحلاتي هي أول منصة يمنية متكاملة لخدمات النقل البري، تربط الركاب بشركات النقل الموثوقة وتوفر خدمات الشحن والتوصيل بين المدن اليمنية والوجهات الدولية.
+            وصل هي أول منصة يمنية متكاملة لخدمات النقل، تربط العملاء بشركات النقل الموثوقة وتوفر خدمات الطرود والتوصيل بين المدن اليمنية والوجهات الدولية.
           </p>
 
           <div className="grid sm:grid-cols-2 gap-6 mb-12">

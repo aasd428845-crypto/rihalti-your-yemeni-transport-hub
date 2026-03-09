@@ -44,9 +44,9 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "رحلاتي - منصة النقل اليمنية",
-        short_name: "رحلاتي",
-        description: "أول منصة يمنية متكاملة لخدمات النقل والشحن والتوصيل",
+        name: "وصل - منصة النقل الذكية",
+        short_name: "وصل",
+        description: "أول منصة يمنية متكاملة لخدمات النقل والطرود والتوصيل",
         start_url: "/",
         display: "standalone",
         background_color: "#f5f4f0",

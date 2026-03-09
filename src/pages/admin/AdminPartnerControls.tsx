@@ -12,7 +12,7 @@ import { upsertPartnerSettings, getAllPartnerSettings, PartnerSettings } from "@
 import { Loader2, Search, Shield, Users } from "lucide-react";
 
 const roleLabels: Record<string, string> = {
-  supplier: "مورد",
+  supplier: "صاحب مكتب",
   delivery_company: "شركة توصيل",
   driver: "سائق",
 };
@@ -151,7 +151,7 @@ const AdminPartnerControls = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">الكل</SelectItem>
-            <SelectItem value="supplier">مورد</SelectItem>
+            <SelectItem value="supplier">صاحب مكتب</SelectItem>
             <SelectItem value="delivery_company">شركة توصيل</SelectItem>
             <SelectItem value="driver">سائق</SelectItem>
           </SelectContent>

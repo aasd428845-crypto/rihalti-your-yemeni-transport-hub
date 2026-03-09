@@ -140,7 +140,7 @@ const AdminDashboard = () => {
                     <div className="text-left">
                       <p className="font-bold">{Number(tx.amount).toLocaleString()} ر.ي</p>
                       <Badge variant="outline" className="text-[10px]">
-                        {tx.transaction_type === "booking" ? "حجز" : tx.transaction_type === "shipment" ? "شحن" : tx.transaction_type === "delivery" ? "توصيل" : "أجرة"}
+                        {tx.transaction_type === "booking" ? "حجز" : tx.transaction_type === "shipment" ? "طرد" : tx.transaction_type === "delivery" ? "توصيل" : "أجرة"}
                       </Badge>
                     </div>
                   </div>

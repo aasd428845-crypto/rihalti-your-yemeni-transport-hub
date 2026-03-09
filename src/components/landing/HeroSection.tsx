@@ -34,11 +34,11 @@ const HeroSection = () => {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight">
               النقل البري في اليمن
               <br />
-              <span className="text-gradient-gold inline-block">أسهل وأسرع</span> مع رحلاتي
+              <span className="text-gradient-gold inline-block">أسهل وأسرع</span> مع وصل
             </h1>
 
             <p className="text-lg text-primary-foreground/80 max-w-lg leading-relaxed">
-              منصة متكاملة تربط الركاب بشركات النقل الموثوقة وتوفر خدمات شحن وتوصيل آمنة بين المدن اليمنية.
+              منصة متكاملة تربط العملاء بشركات النقل الموثوقة وتوفر خدمات طرود وتوصيل آمنة بين المدن اليمنية.
             </p>
 
             {/* Search Bar */}
@@ -81,7 +81,7 @@ const HeroSection = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
               </Button>
               <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-white/10" onClick={() => navigate("/shipments")}>
-                أرسل شحنة
+                أرسل طرد
               </Button>
               <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-white/10" onClick={() => navigate("/deliveries")}>
                 اطلب توصيل
@@ -112,12 +112,12 @@ const HeroSection = () => {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-secondary" />
-                  <span className="font-bold text-primary-foreground">شحنة تجارية</span>
+                  <span className="font-bold text-primary-foreground">طرد تجاري</span>
                 </div>
                 <span className="text-xs text-primary-foreground/60">تعز ← المكلا</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-secondary font-bold text-xl">شحن آمن</span>
+                <span className="text-secondary font-bold text-xl">إرسال آمن</span>
                 <span className="text-sm text-primary-foreground/70">توصيل سريع</span>
               </div>
             </div>

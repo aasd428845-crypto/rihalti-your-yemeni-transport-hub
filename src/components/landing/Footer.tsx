@@ -9,9 +9,9 @@ const footerLinks = {
     title: "خدماتنا",
     links: [
       { label: "رحلات بين المدن", href: "/trips" },
-      { label: "شحنات آمنة", href: "/shipments" },
+      { label: "طرود آمنة", href: "/shipments" },
       { label: "توصيل محلي", href: "/deliveries" },
-      { label: "تتبع الشحنات", href: "/tracking" },
+      { label: "تتبع الطرود", href: "/tracking" },
     ],
   },
   travelers: {
@@ -26,9 +26,9 @@ const footerLinks = {
   partners: {
     title: "للشركاء",
     links: [
-      { label: "انضم كمورد", href: "/contact" },
+      { label: "انضم كصاحب مكتب", href: "/contact" },
       { label: "انضم كشركة توصيل", href: "/contact" },
-      { label: "لوحة تحكم المورد", href: "/supplier" },
+      { label: "لوحة تحكم صاحب المكتب", href: "/supplier" },
       { label: "لوحة تحكم التوصيل", href: "/delivery" },
     ],
   },
@@ -85,11 +85,11 @@ const Footer = () => {
                 <Bus className="w-5 h-5 text-secondary-foreground" />
               </div>
               <div>
-                <div className="font-bold text-lg">رحلاتي</div>
-                <div className="text-[10px] text-primary-foreground/60">المنصة اليمنية للنقل</div>
+                <div className="font-bold text-lg">وصل</div>
+                <div className="text-[10px] text-primary-foreground/60">منصة النقل الذكية</div>
               </div>
             </div>
-            <p className="text-sm text-primary-foreground/60 leading-relaxed mb-4">المنصة الرائدة في خدمات النقل البري في اليمن</p>
+            <p className="text-sm text-primary-foreground/60 leading-relaxed mb-4">المنصة الرائدة في خدمات النقل والتوصيل في اليمن</p>
           </div>
 
           {Object.values(footerLinks).map((section) => (
@@ -113,12 +113,12 @@ const Footer = () => {
           <div className="flex flex-wrap gap-6 justify-center text-sm text-primary-foreground/60 mb-6">
             <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-secondary" /><span>+967 1 234 567</span></div>
             <div className="flex items-center gap-2"><MessageCircle className="w-4 h-4 text-secondary" /><span>+967 71 234 567</span></div>
-            <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-secondary" /><span>support@rihlati.com</span></div>
+            <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-secondary" /><span>support@wasl.com</span></div>
           </div>
 
           <div className="text-center text-xs text-primary-foreground/40">
             <div className="flex items-center justify-center gap-2">
-              <p>© 2024 رحلاتي. جميع الحقوق محفوظة. صنعاء، اليمن 🇾🇪</p>
+              <p>© 2024 وصل. جميع الحقوق محفوظة. صنعاء، اليمن 🇾🇪</p>
               <Link to="/admin" className="opacity-20 hover:opacity-60 transition-opacity" title="لوحة التحكم">
                 <Shield className="w-3.5 h-3.5" />
               </Link>
