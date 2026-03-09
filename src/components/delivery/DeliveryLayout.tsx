@@ -2,12 +2,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DeliverySidebar from "./DeliverySidebar";
-import { Menu } from "lucide-react";
+import { Menu, Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "next-themes";
 import { usePartnerProfileCheck } from "@/hooks/usePartnerProfileCheck";
 
 const DeliveryLayout = () => {
   const { role, loading, user } = useAuth();
   const { isComplete, checking } = usePartnerProfileCheck();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
 
   if (loading || checking) {
@@ -35,7 +38,10 @@ const DeliveryLayout = () => {
             <SidebarTrigger>
               <Menu className="w-5 h-5" />
             </SidebarTrigger>
-            <h1 className="text-sm font-bold text-foreground">لوحة تحكم شركة التوصيل</h1>
+            <h1 className="text-sm font-bold text-foreground flex-1">لوحة تحكم شركة التوصيل</h1>
+            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
           </header>
           <div className="flex-1 p-4 md:p-6 bg-background overflow-auto">
             {!isComplete && isOnProfilePage && (

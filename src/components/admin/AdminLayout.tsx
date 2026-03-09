@@ -3,7 +3,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AdminSidebar from "./AdminSidebar";
-import { Menu, Bell } from "lucide-react";
+import { Menu, Bell, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 const AdminLayout = () => {
   const { role, loading, user } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [alerts, setAlerts] = useState<{ overdueInvoices: number; pendingJoins: number; openSupport: number }>({ overdueInvoices: 0, pendingJoins: 0, openSupport: 0 });
 
   useEffect(() => {
@@ -50,7 +52,10 @@ const AdminLayout = () => {
               <Menu className="w-5 h-5" />
             </SidebarTrigger>
             <h1 className="text-sm font-bold text-foreground flex-1">لوحة تحكم المشرف</h1>
-            
+            {/* Theme Toggle */}
+            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
             {/* Notifications Bell */}
             <Popover>
               <PopoverTrigger asChild>
