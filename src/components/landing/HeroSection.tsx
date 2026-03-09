@@ -112,7 +112,7 @@ const HeroSection = () => {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-secondary" />
-                  <span className="font-bold text-primary-foreground">شحنة تجارية</span>
+                  <span className="font-bold text-primary-foreground">طرد تجاري</span>
                 </div>
                 <span className="text-xs text-primary-foreground/60">تعز ← المكلا</span>
               </div>
