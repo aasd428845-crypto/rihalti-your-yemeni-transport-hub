@@ -122,8 +122,6 @@ const SupplierSettings = () => {
     else toast({ title: "تم حفظ المناطق" });
   };
 
-  // Group regions by country for display
-  const countryRegions = regions.filter(r => r.type === "country");
 
   return (
     <div className="space-y-6">
