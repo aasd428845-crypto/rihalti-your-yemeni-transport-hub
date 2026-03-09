@@ -10,6 +10,7 @@ import { usePartnerProfileCheck } from "@/hooks/usePartnerProfileCheck";
 const SupplierLayout = () => {
   const { role, loading, user } = useAuth();
   const { isComplete, checking } = usePartnerProfileCheck();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
 
   if (loading || checking) {
