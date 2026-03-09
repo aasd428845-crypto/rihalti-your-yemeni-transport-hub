@@ -5,8 +5,8 @@ const steps = [
     icon: Search,
     step: "خطوة 1",
     title: "ابحث واختر",
-    description: "ابحث عن رحلتك أو أرسل شحنتك أو اطلب توصيل من مطاعمك المفضلة",
-    tags: ["رحلات", "شحنات", "توصيل"],
+    description: "ابحث عن رحلتك أو أرسل طردك أو اطلب توصيل من مطاعمك المفضلة",
+    tags: ["رحلات", "طرود", "توصيل"],
   },
   {
     icon: CreditCard,
@@ -18,13 +18,13 @@ const steps = [
     icon: MapPin,
     step: "خطوة 3",
     title: "تتبع مباشر",
-    description: "تابع رحلتك أو شحنتك لحظة بلحظة على الخريطة",
+    description: "تابع رحلتك أو طردك لحظة بلحظة على الخريطة",
   },
   {
     icon: CheckCircle,
     step: "خطوة 4",
     title: "تأكيد التسليم",
-    description: "تأكيد وصول الرحلة أو الشحنة مع إيصال إلكتروني",
+    description: "تأكيد وصول الرحلة أو الطرد مع إيصال إلكتروني",
   },
 ];
 
@@ -45,7 +45,6 @@ const HowItWorksSection = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {steps.map((s, i) => (
             <div key={s.step} className="relative group">
-              {/* Connector line */}
               {i < steps.length - 1 && (
                 <div className="hidden lg:block absolute top-10 -left-3 w-6 h-0.5 bg-border" />
               )}

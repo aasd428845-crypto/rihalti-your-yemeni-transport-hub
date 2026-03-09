@@ -13,8 +13,8 @@ const services = [
   },
   {
     icon: Package,
-    title: "شحنات آمنة",
-    description: "أرسل شحنتك بثقة مع نظام التتبع المتكامل والتأمين على البضائع",
+    title: "طرود آمنة",
+    description: "أرسل طردك بثقة مع نظام التتبع المتكامل والتأمين على البضائع",
     features: ["تتبع لحظي", "تأمين شامل", "أسعار تنافسية"],
     color: "secondary" as const,
     route: "/request/shipment",
@@ -53,7 +53,7 @@ const ServicesSection = () => {
         <div className="text-center mb-14">
           <span className="inline-block px-4 py-1.5 rounded-full bg-accent text-accent-foreground text-sm font-semibold mb-4">خدماتنا المتكاملة</span>
           <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">نقدم مجموعة متكاملة من خدمات النقل</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">لتغطية جميع احتياجاتك في التنقل والشحن والتوصيل داخل اليمن</p>
+          <p className="text-muted-foreground max-w-2xl mx-auto">لتغطية جميع احتياجاتك في التنقل والطرود والتوصيل داخل اليمن</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
