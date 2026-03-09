@@ -118,33 +118,25 @@ const CartPage = () => {
   }, [carts, restaurants]);
 
   if (loading) return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <div className="flex justify-center py-20">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
+    <div className="flex justify-center py-20">
+      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
     </div>
   );
 
   if (carts.length === 0) return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
-      <div className="container mx-auto px-4 py-20 text-center">
-        <ShoppingCart className="w-20 h-20 mx-auto text-muted-foreground/20 mb-4" />
-        <h2 className="text-xl font-bold mb-2">السلة فارغة</h2>
-        <p className="text-muted-foreground mb-6">لم تقم بإضافة أي أصناف بعد</p>
-        <Button onClick={() => navigate("/restaurants")} className="gap-2">
-          <Store className="w-4 h-4" />
-          تصفح المطاعم
-        </Button>
-      </div>
-      <Footer />
+    <div className="container mx-auto px-4 py-20 text-center">
+      <ShoppingCart className="w-20 h-20 mx-auto text-muted-foreground/20 mb-4" />
+      <h2 className="text-xl font-bold mb-2">السلة فارغة</h2>
+      <p className="text-muted-foreground mb-6">لم تقم بإضافة أي أصناف بعد</p>
+      <Button onClick={() => navigate("/restaurants")} className="gap-2">
+        <Store className="w-4 h-4" />
+        تصفح المطاعم
+      </Button>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Header />
       <div className="container mx-auto px-4 py-6 max-w-3xl pb-32">
         <BackButton />
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
