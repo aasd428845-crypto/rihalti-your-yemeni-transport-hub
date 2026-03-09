@@ -118,141 +118,137 @@ import RealtimeToastListener from "./components/notifications/RealtimeToastListe
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner position="top-center" dir="rtl" richColors closeButton />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/complete-profile" element={<CompleteProfilePage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/invite/:token" element={<InvitePage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/install" element={<InstallPage />} />
-            {/* Customer Pages */}
-            <Route path="/trips" element={<TripsPage />} />
-            <Route path="/trips/:id" element={<TripDetailsPage />} />
-            <Route path="/checkout/:tripId" element={<CheckoutPage />} />
-            <Route path="/shipments" element={<ShipmentsPage />} />
-            <Route path="/deliveries" element={<DeliveriesPage />} />
-            <Route path="/history" element={<HistoryPage />} />
-            <Route path="/account" element={<AccountPage />} />
-            <Route path="/tracking" element={<TrackingPage />} />
-            <Route path="/addresses" element={<AddressesPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/notification-settings" element={<NotificationSettingsPage />} />
-            {/* Order Details */}
-            <Route path="/order/:type/:id" element={<OrderDetailsPage />} />
-            {/* Service Requests */}
-            <Route path="/request" element={<ShipmentRequestPage />} />
-            <Route path="/request/shipment" element={<ShipmentRequestPage />} />
-            <Route path="/request/delivery" element={<ShipmentRequestPage />} />
-            <Route path="/request/taxi" element={<ShipmentRequestPage />} />
-            {/* Admin */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminOverview />} />
-              <Route path="users" element={<AdminUsers />} />
-              <Route path="approvals" element={<AdminApprovals />} />
-              <Route path="finance" element={<AdminFinance />} />
-              <Route path="settings" element={<AdminSettings />} />
-              <Route path="invitations" element={<AdminInvitations />} />
-              <Route path="cancellations" element={<AdminCancellations />} />
-              <Route path="join-requests" element={<AdminJoinRequests />} />
-              <Route path="transactions" element={<AdminTransactions />} />
-              <Route path="invoices" element={<AdminInvoices />} />
-              <Route path="violations" element={<AdminViolations />} />
-              <Route path="messages" element={<AdminMessages />} />
-              <Route path="chat-monitoring" element={<AdminChatMonitoring />} />
-              <Route path="delivery-proofs" element={<AdminDeliveryProofs />} />
-              <Route path="reports" element={<AdminReports />} />
-              <Route path="payment-review" element={<AdminPaymentReview />} />
-              <Route path="partner-controls" element={<AdminPartnerControls />} />
-              <Route path="support-messages" element={<AdminSupportMessages />} />
-              <Route path="send-notification" element={<AdminSendNotification />} />
-              <Route path="notification-logs" element={<AdminNotificationLogs />} />
-              <Route path="partner/:id" element={<AdminPartnerProfile />} />
-              <Route path="monitoring" element={<AdminMonitoring />} />
-            </Route>
-            <Route path="/supplier" element={<SupplierLayout />}>
-              <Route index element={<SupplierDashboard />} />
-              <Route path="trips" element={<SupplierTrips />} />
-              <Route path="bookings" element={<SupplierBookings />} />
-              <Route path="shipments" element={<SupplierShipments />} />
-              <Route path="order/:type/:id" element={<SupplierOrderDetails />} />
-              <Route path="finance" element={<SupplierFinance />} />
-              <Route path="settings" element={<SupplierSettings />} />
-              <Route path="messages" element={<SupplierMessages />} />
-              <Route path="promotions" element={<SupplierPromotions />} />
-              <Route path="payments" element={<SupplierPayments />} />
-              <Route path="payment-settings" element={<PartnerPaymentSettings />} />
-              <Route path="profile" element={<PartnerProfilePage />} />
-            </Route>
-            <Route path="/delivery" element={<DeliveryLayout />}>
-              <Route index element={<DeliveryDashboard />} />
-              <Route path="restaurants" element={<DeliveryRestaurants />} />
-              <Route path="restaurants/:restaurantId/menu" element={<DeliveryMenuManagement />} />
-              <Route path="orders" element={<DeliveryOrders />} />
-              <Route path="riders" element={<DeliveryRiders />} />
-              <Route path="finance" element={<DeliveryFinance />} />
-              <Route path="reports" element={<DeliveryReports />} />
-              <Route path="integrations" element={<DeliveryIntegrations />} />
-              <Route path="settings" element={<DeliverySettings />} />
-              <Route path="payments" element={<DeliveryPayments />} />
-              <Route path="payment-settings" element={<PartnerPaymentSettings />} />
-              <Route path="profile" element={<PartnerProfilePage />} />
-            </Route>
-            {/* Public Partner Profile */}
-            <Route path="/partner/public/:id" element={<PublicPartnerProfilePage />} />
-            {/* Customer Restaurant Pages */}
-            <Route path="/restaurants" element={<RestaurantsPage />} />
-            <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
-            <Route path="/restaurants/:id/checkout" element={<RestaurantCheckoutPage />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/track-order/:id" element={<OrderTrackingPage />} />
-            {/* Payment Pages */}
-            <Route path="/payment/:entityType/:entityId" element={<PaymentPage />} />
-            <Route path="/payment-success" element={<PaymentSuccessPage />} />
-            {/* Customer Ride Pages */}
-            <Route path="/ride/request" element={<RideRequestPage />} />
-            <Route path="/ride/:id" element={<RideDetailsPage />} />
-            <Route path="/ride/:id/tracking" element={<RideTrackingPage />} />
-            {/* Driver */}
-            <Route path="/driver" element={<DriverLayout />}>
-              <Route index element={<DriverDashboard />} />
-              <Route path="rides/:id" element={<DriverRideDetails />} />
-              <Route path="active-ride/:id" element={<DriverActiveRide />} />
-              <Route path="profile" element={<DriverProfile />} />
-              <Route path="history" element={<DriverHistory />} />
-              <Route path="earnings" element={<DriverEarnings />} />
-              <Route path="settings" element={<DriverSettings />} />
-            </Route>
-            {/* Delivery Driver */}
-            <Route path="/delivery-driver" element={<DeliveryDriverLayout />}>
-              <Route index element={<DeliveryDriverDashboard />} />
-              <Route path="orders" element={<DeliveryDriverOrders />} />
-              <Route path="orders/:id" element={<DeliveryDriverOrderDetails />} />
-              <Route path="history" element={<DeliveryDriverHistory />} />
-              <Route path="earnings" element={<DeliveryDriverEarnings />} />
-              <Route path="profile" element={<DeliveryDriverProfile />} />
-              <Route path="settings" element={<DeliveryDriverSettings />} />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <SupportChatWidget />
-          <InstallPWAButton />
-          <UpdateNotification />
-          <RealtimeToastListener />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="wasl-theme">
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner position="top-center" dir="rtl" richColors closeButton />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/complete-profile" element={<CompleteProfilePage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/invite/:token" element={<InvitePage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/install" element={<InstallPage />} />
+              {/* Customer Pages */}
+              <Route path="/trips" element={<TripsPage />} />
+              <Route path="/trips/:id" element={<TripDetailsPage />} />
+              <Route path="/checkout/:tripId" element={<CheckoutPage />} />
+              <Route path="/shipments" element={<ShipmentsPage />} />
+              <Route path="/deliveries" element={<DeliveriesPage />} />
+              <Route path="/restaurants" element={<RestaurantsPage />} />
+              <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
+              <Route path="/restaurant-checkout" element={<RestaurantCheckoutPage />} />
+              <Route path="/history" element={<HistoryPage />} />
+              <Route path="/ride/request" element={<RideRequestPage />} />
+              <Route path="/ride/:id" element={<RideDetailsPage />} />
+              <Route path="/ride/track/:id" element={<RideTrackingPage />} />
+              <Route path="/order/:type/:id" element={<OrderDetailsPage />} />
+              <Route path="/order/track/:type/:id" element={<OrderTrackingPage />} />
+              <Route path="/payment" element={<PaymentPage />} />
+              <Route path="/payment-success" element={<PaymentSuccessPage />} />
+              <Route path="/tracking" element={<TrackingPage />} />
+              <Route path="/account" element={<AccountPage />} />
+              <Route path="/addresses" element={<AddressesPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/notification-settings" element={<NotificationSettingsPage />} />
+              <Route path="/shipment-request" element={<ShipmentRequestPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              {/* Partner Profile */}
+              <Route path="/partner/profile" element={<PartnerProfilePage />} />
+              <Route path="/partner/public/:id" element={<PublicPartnerProfilePage />} />
+              {/* Admin */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminOverview />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="approvals" element={<AdminApprovals />} />
+                <Route path="finance" element={<AdminFinance />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="invitations" element={<AdminInvitations />} />
+                <Route path="cancellations" element={<AdminCancellations />} />
+                <Route path="messages" element={<AdminMessages />} />
+                <Route path="reports" element={<AdminReports />} />
+                <Route path="join-requests" element={<AdminJoinRequests />} />
+                <Route path="transactions" element={<AdminTransactions />} />
+                <Route path="invoices" element={<AdminInvoices />} />
+                <Route path="violations" element={<AdminViolations />} />
+                <Route path="chat-monitoring" element={<AdminChatMonitoring />} />
+                <Route path="delivery-proofs" element={<AdminDeliveryProofs />} />
+                <Route path="payment-review" element={<AdminPaymentReview />} />
+                <Route path="partner-controls" element={<AdminPartnerControls />} />
+                <Route path="support-messages" element={<AdminSupportMessages />} />
+                <Route path="send-notification" element={<AdminSendNotification />} />
+                <Route path="notification-logs" element={<AdminNotificationLogs />} />
+                <Route path="partner-profile/:id" element={<AdminPartnerProfile />} />
+                <Route path="monitoring" element={<AdminMonitoring />} />
+              </Route>
+              {/* Supplier */}
+              <Route path="/supplier" element={<SupplierLayout />}>
+                <Route index element={<SupplierDashboard />} />
+                <Route path="trips" element={<SupplierTrips />} />
+                <Route path="shipments" element={<SupplierShipments />} />
+                <Route path="bookings" element={<SupplierBookings />} />
+                <Route path="messages" element={<SupplierMessages />} />
+                <Route path="finance" element={<SupplierFinance />} />
+                <Route path="payments" element={<SupplierPayments />} />
+                <Route path="promotions" element={<SupplierPromotions />} />
+                <Route path="settings" element={<SupplierSettings />} />
+                <Route path="order/:id" element={<SupplierOrderDetails />} />
+                <Route path="profile" element={<PartnerProfilePage />} />
+                <Route path="payment-settings" element={<PartnerPaymentSettings />} />
+              </Route>
+              {/* Delivery Company */}
+              <Route path="/delivery" element={<DeliveryLayout />}>
+                <Route index element={<DeliveryDashboard />} />
+                <Route path="orders" element={<DeliveryOrders />} />
+                <Route path="restaurants" element={<DeliveryRestaurants />} />
+                <Route path="menu/:restaurantId" element={<DeliveryMenuManagement />} />
+                <Route path="riders" element={<DeliveryRiders />} />
+                <Route path="finance" element={<DeliveryFinance />} />
+                <Route path="reports" element={<DeliveryReports />} />
+                <Route path="settings" element={<DeliverySettings />} />
+                <Route path="payments" element={<DeliveryPayments />} />
+                <Route path="integrations" element={<DeliveryIntegrations />} />
+                <Route path="profile" element={<PartnerProfilePage />} />
+              </Route>
+              {/* Driver */}
+              <Route path="/driver" element={<DriverLayout />}>
+                <Route index element={<DriverDashboard />} />
+                <Route path="ride/:id" element={<DriverRideDetails />} />
+                <Route path="active-ride/:id" element={<DriverActiveRide />} />
+                <Route path="history" element={<DriverHistory />} />
+                <Route path="earnings" element={<DriverEarnings />} />
+                <Route path="profile" element={<DriverProfile />} />
+                <Route path="settings" element={<DriverSettings />} />
+              </Route>
+              {/* Delivery Driver */}
+              <Route path="/delivery-driver" element={<DeliveryDriverLayout />}>
+                <Route index element={<DeliveryDriverDashboard />} />
+                <Route path="orders" element={<DeliveryDriverOrders />} />
+                <Route path="order/:id" element={<DeliveryDriverOrderDetails />} />
+                <Route path="history" element={<DeliveryDriverHistory />} />
+                <Route path="earnings" element={<DeliveryDriverEarnings />} />
+                <Route path="profile" element={<DeliveryDriverProfile />} />
+                <Route path="settings" element={<DeliveryDriverSettings />} />
+              </Route>
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <SupportChatWidget />
+            <InstallPWAButton />
+            <UpdateNotification />
+            <RealtimeToastListener />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
