@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { MapPin, Plus, LocateFixed } from "lucide-react";
+import { MapPin, Plus, LocateFixed, Phone, Navigation } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getPhoneError, formatYemeniPhone } from "@/lib/phoneValidation";
+import MapPicker from "@/components/maps/MapPicker";
 
 export interface SelectedAddress {
   id: string;
@@ -31,7 +33,7 @@ interface AddressSelectorProps {
 }
 
 const AddressSelector = ({ label = "اختر عنوان", onSelect, showUseMyLocation, onUseMyLocation, className }: AddressSelectorProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +41,11 @@ const AddressSelector = ({ label = "اختر عنوان", onSelect, showUseMyLoc
   const [locating, setLocating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAddress, setNewAddress] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [phoneSource, setPhoneSource] = useState("primary");
+  const [newLandmark, setNewLandmark] = useState("");
+  const [newLat, setNewLat] = useState<number | undefined>();
+  const [newLng, setNewLng] = useState<number | undefined>();
 
   const load = async () => {
     if (!user) return;
@@ -60,16 +67,36 @@ const AddressSelector = ({ label = "اختر عنوان", onSelect, showUseMyLoc
     if (addr) onSelect(addr);
   };
 
+  const handlePhoneSourceChange = (val: string) => {
+    setPhoneSource(val);
+    if (val === "primary" && profile?.phone) setNewPhone(profile.phone);
+    else if (val === "secondary" && (profile as any)?.phone_secondary) setNewPhone((profile as any).phone_secondary);
+    else if (val === "custom") setNewPhone("");
+  };
+
   const handleAdd = async () => {
     if (!user || !newName.trim() || !newAddress.trim()) {
-      toast({ title: "يرجى ملء جميع الحقول", variant: "destructive" });
+      toast({ title: "يرجى ملء جميع الحقول المطلوبة", variant: "destructive" });
       return;
     }
+    if (newPhone) {
+      const phoneErr = getPhoneError(newPhone);
+      if (phoneErr) { toast({ title: phoneErr, variant: "destructive" }); return; }
+    }
     try {
-      await createAddress({ customer_id: user.id, address_name: newName, full_address: newAddress });
-      toast({ title: "تم إضافة العنوان ✅" });
+      await createAddress({
+        customer_id: user.id,
+        address_name: newName,
+        full_address: newAddress,
+        phone: newPhone || undefined,
+        landmark: newLandmark || undefined,
+        latitude: newLat,
+        longitude: newLng,
+      });
+      toast({ title: "✅ تم إضافة العنوان" });
       setShowAddForm(false);
-      setNewName(""); setNewAddress("");
+      setNewName(""); setNewAddress(""); setNewPhone(""); setNewLandmark("");
+      setNewLat(undefined); setNewLng(undefined); setPhoneSource("primary");
       load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -85,7 +112,7 @@ const AddressSelector = ({ label = "اختر عنوان", onSelect, showUseMyLoc
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         onUseMyLocation?.(pos.coords.latitude, pos.coords.longitude);
-        toast({ title: "✅ تم تحديد موقعك", description: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}` });
+        toast({ title: "✅ تم تحديد موقعك" });
         setLocating(false);
       },
       () => {
@@ -130,15 +157,43 @@ const AddressSelector = ({ label = "اختر عنوان", onSelect, showUseMyLoc
       </div>
 
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent dir="rtl">
-          <DialogHeader><DialogTitle>إضافة عنوان جديد</DialogTitle></DialogHeader>
+        <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Plus className="w-5 h-5 text-primary" /> إضافة عنوان جديد</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label>اسم العنوان</Label><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="المنزل، العمل..." className="mt-1" /></div>
-            <div><Label>العنوان الكامل</Label><Input value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="المدينة، الحي، الشارع..." className="mt-1" /></div>
+            <div><Label>اسم العنوان <span className="text-destructive">*</span></Label><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="المنزل، العمل..." className="mt-1" /></div>
+            <div><Label>العنوان الكامل <span className="text-destructive">*</span></Label><Input value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="المدينة، الحي، الشارع..." className="mt-1" /></div>
+            <div><Label>علامة مميزة</Label><Input value={newLandmark} onChange={e => setNewLandmark(e.target.value)} placeholder="بجوار..." className="mt-1" /></div>
+            
+            {/* Phone selector */}
+            <div>
+              <Label className="flex items-center gap-1"><Phone className="w-3 h-3 text-primary" /> رقم الهاتف</Label>
+              <Select value={phoneSource} onValueChange={handlePhoneSourceChange}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {profile?.phone && <SelectItem value="primary">الأساسي: +967{profile.phone}</SelectItem>}
+                  {(profile as any)?.phone_secondary && <SelectItem value="secondary">الثانوي: +967{(profile as any).phone_secondary}</SelectItem>}
+                  <SelectItem value="custom">إدخال رقم آخر</SelectItem>
+                </SelectContent>
+              </Select>
+              {phoneSource === "custom" && (
+                <div className="flex gap-2 mt-2">
+                  <div className="flex items-center justify-center bg-muted rounded-md px-3 h-10 text-sm font-medium text-muted-foreground border border-input shrink-0" dir="ltr">+967</div>
+                  <Input value={newPhone} onChange={e => setNewPhone(formatYemeniPhone(e.target.value))} placeholder="7XX XXX XXX" dir="ltr" maxLength={9} />
+                </div>
+              )}
+              {newPhone && getPhoneError(newPhone) && <p className="text-xs text-destructive mt-1">{getPhoneError(newPhone)}</p>}
+            </div>
+
+            <div>
+              <Label>الموقع على الخريطة</Label>
+              <div className="mt-1">
+                <MapPicker lat={newLat} lng={newLng} onLocationSelect={(lat, lng) => { setNewLat(lat); setNewLng(lng); }} height="180px" />
+              </div>
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowAddForm(false)}>إلغاء</Button>
-            <Button onClick={handleAdd}>حفظ</Button>
+            <Button onClick={handleAdd} className="gap-1"><MapPin className="w-4 h-4" /> حفظ</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
