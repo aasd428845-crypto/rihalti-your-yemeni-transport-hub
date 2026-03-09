@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 const AdminLayout = () => {
   const { role, loading, user } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [alerts, setAlerts] = useState<{ overdueInvoices: number; pendingJoins: number; openSupport: number }>({ overdueInvoices: 0, pendingJoins: 0, openSupport: 0 });
 
   useEffect(() => {
