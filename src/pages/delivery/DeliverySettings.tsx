@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,16 +17,24 @@ const DeliverySettings = () => {
   const [passwordForm, setPasswordForm] = useState({ password: "", confirm: "" });
   const [bankForm, setBankForm] = useState({ bank_name: "", account_name: "", account_number: "", iban: "" });
   const [banks, setBanks] = useState<any[]>([]);
+  const [cashEnabled, setCashEnabled] = useState(true);
 
   useEffect(() => {
     if (profile) setProfileForm({ full_name: profile.full_name, phone: profile.phone || "", city: profile.city || "" });
     loadBanks();
+    loadPaymentSettings();
   }, [profile]);
 
   const loadBanks = async () => {
     if (!user) return;
     const { data } = await supabase.from("partner_bank_accounts").select("*").eq("partner_id", user.id);
     setBanks(data || []);
+  };
+
+  const loadPaymentSettings = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("partner_settings" as any).select("*").eq("partner_id", user.id).maybeSingle();
+    if (data) setCashEnabled((data as any).cash_on_delivery_enabled ?? true);
   };
 
   const updateProfile = async () => {
@@ -75,12 +84,32 @@ const DeliverySettings = () => {
     }
   };
 
+  const toggleCash = async (enabled: boolean) => {
+    if (!user) return;
+    setCashEnabled(enabled);
+    try {
+      await supabase.from("partner_settings" as any).upsert({
+        partner_id: user.id,
+        cash_on_delivery_enabled: enabled,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "partner_id" });
+      toast({ title: enabled ? "تم تفعيل الدفع النقدي" : "تم إيقاف الدفع النقدي" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-6" dir="rtl">
       <h2 className="text-2xl font-bold">الإعدادات</h2>
 
       <Tabs defaultValue="profile">
-        <TabsList><TabsTrigger value="profile">الملف الشخصي</TabsTrigger><TabsTrigger value="password">كلمة المرور</TabsTrigger><TabsTrigger value="banks">الحسابات البنكية</TabsTrigger></TabsList>
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="profile">الملف الشخصي</TabsTrigger>
+          <TabsTrigger value="password">كلمة المرور</TabsTrigger>
+          <TabsTrigger value="banks">الحسابات البنكية</TabsTrigger>
+          <TabsTrigger value="payment">خيارات الدفع</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="profile">
           <Card>
@@ -128,6 +157,26 @@ const DeliverySettings = () => {
                 </div>
                 <Button onClick={addBank}>إضافة حساب</Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payment">
+          <Card>
+            <CardHeader><CardTitle className="text-base">خيارات الدفع للعملاء</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <p className="font-medium">الدفع نقداً عند الاستلام</p>
+                  <p className="text-sm text-muted-foreground">السماح للعملاء بالدفع نقداً للمندوب</p>
+                </div>
+                <Switch checked={cashEnabled} onCheckedChange={toggleCash} />
+              </div>
+              {!cashEnabled && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg text-sm text-amber-700 dark:text-amber-300">
+                  ⚠️ عند إيقاف الدفع النقدي، سيُلزم العملاء بالتحويل البنكي فقط. تأكد من إضافة حساباتك البنكية في تبويب "الحسابات البنكية".
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
