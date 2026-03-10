@@ -585,7 +585,7 @@ const PaymentPage = () => {
             className="w-full"
             size="lg"
             onClick={handleSubmit}
-            disabled={submitting || (isBankTransfer && (!payerName.trim() || !payerPhone.trim() || !receiptFile))}
+            disabled={submitting || (isBankTransfer && (!payerName.trim() || !payerPhone.trim() || !transferReference.trim() || !receiptFile))}
           >
             {submitting ? (
               <Loader2 className="w-4 h-4 animate-spin ml-2" />
