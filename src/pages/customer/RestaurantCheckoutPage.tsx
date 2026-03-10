@@ -158,7 +158,7 @@ const RestaurantCheckoutPage = () => {
         customer_phone: phone,
         customer_address: fullAddress,
         items: cart,
-        subtotal, delivery_fee: deliveryFee, tax, total,
+        subtotal, delivery_fee: computedDeliveryFee, tax, total,
         payment_method: "pending",
         notes: form.notes || undefined,
         delivery_lat: selectedAddress.latitude,
