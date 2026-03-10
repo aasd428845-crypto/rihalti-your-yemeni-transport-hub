@@ -90,25 +90,29 @@ const PaymentPage = () => {
         // Determine partner ID
         let partnerId: string | null = null;
 
-        if (entityType === "booking" && entityData?.trip_id) {
-          const trip = await getTripDetails(entityData.trip_id);
-          setTripDetails(trip);
-          partnerId = trip?.supplier_id;
+          if (entityType === "booking" && entityData?.trip_id) {
+            const trip = await getTripDetails(entityData.trip_id);
+            setTripDetails(trip);
+            partnerId = trip?.supplier_id;
 
-          if (partnerId) {
-            const profile = await getSupplierProfile(partnerId);
-            setSupplierInfo(profile);
-            // Fetch partner's bank accounts
-            const banks = await fetchSupplierBankAccounts(partnerId);
-            setPartnerBankAccounts(banks || []);
+            if (partnerId) {
+              const profile = await getSupplierProfile(partnerId);
+              // Remove phone from supplier info shown to customer (privacy)
+              setSupplierInfo(profile ? { full_name: profile.full_name, company_name: profile.company_name } : null);
+              // Fetch partner's bank accounts
+              const banks = await fetchSupplierBankAccounts(partnerId);
+              setPartnerBankAccounts(banks || []);
+            }
+          } else {
+            partnerId = entityData?.supplier_id || entityData?.delivery_company_id || entityData?.driver_id;
+            if (partnerId) {
+              const banks = await fetchSupplierBankAccounts(partnerId);
+              setPartnerBankAccounts(banks || []);
+              // Fetch partner profile without phone
+              const profile = await getSupplierProfile(partnerId);
+              setSupplierInfo(profile ? { full_name: profile.full_name, company_name: profile.company_name } : null);
+            }
           }
-        } else {
-          partnerId = entityData?.supplier_id || entityData?.delivery_company_id || entityData?.driver_id;
-          if (partnerId) {
-            const banks = await fetchSupplierBankAccounts(partnerId);
-            setPartnerBankAccounts(banks || []);
-          }
-        }
 
         // Fetch platform bank accounts as fallback
         const platAccs = await getPlatformBankAccounts();
