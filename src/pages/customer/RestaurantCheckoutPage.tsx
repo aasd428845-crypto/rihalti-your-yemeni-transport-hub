@@ -78,6 +78,7 @@ const RestaurantCheckoutPage = () => {
     if (!address.trim()) { toast({ title: "أدخل عنوان التوصيل", variant: "destructive" }); return; }
     if (!form.phone.trim()) { toast({ title: "أدخل رقم الهاتف", variant: "destructive" }); return; }
     if (cart.length === 0) { toast({ title: "السلة فارغة", variant: "destructive" }); return; }
+    // Notes field is optional - no validation needed
 
     setSubmitting(true);
     try {

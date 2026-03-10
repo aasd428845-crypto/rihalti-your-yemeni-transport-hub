@@ -56,7 +56,8 @@ const CompleteProfilePage = () => {
       });
 
       toast({ title: "تم حفظ البيانات بنجاح!", description: "مرحباً بك في وصل" });
-      navigate("/");
+      // Force reload auth context to pick up updated profile
+      window.location.href = "/";
     } catch (err: any) {
       toast({ title: "خطأ", description: err?.message || "فشل في حفظ البيانات", variant: "destructive" });
     }
