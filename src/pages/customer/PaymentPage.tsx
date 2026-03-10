@@ -54,6 +54,7 @@ const PaymentPage = () => {
   // Transfer form fields
   const [payerName, setPayerName] = useState("");
   const [payerPhone, setPayerPhone] = useState("");
+  const [transferReference, setTransferReference] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [customerNotes, setCustomerNotes] = useState("");
@@ -232,6 +233,10 @@ const PaymentPage = () => {
         toast({ title: "خطأ", description: "يرجى إدخال رقم هاتفك", variant: "destructive" });
         return;
       }
+      if (!transferReference.trim()) {
+        toast({ title: "خطأ", description: "يرجى إدخال رقم الحوالة", variant: "destructive" });
+        return;
+      }
       if (!receiptFile) {
         toast({ title: "خطأ", description: "يرجى رفع صورة إيصال الدفع", variant: "destructive" });
         return;
@@ -260,7 +265,7 @@ const PaymentPage = () => {
         amount,
         payment_method: payMethodDb,
         transfer_receipt_url: receiptUrl,
-        transfer_reference: isBankTransfer ? payerPhone.trim() : undefined,
+        transfer_reference: isBankTransfer ? transferReference.trim() : undefined,
         partner_id: paymentMethod === "partner_transfer" ? partnerId : undefined,
       });
 
@@ -273,6 +278,14 @@ const PaymentPage = () => {
           payer_phone: payerPhone.trim() || null,
           payment_receipt_url: receiptUrl || null,
           customer_notes: customerNotes.trim() || null,
+        } as any).eq("id", entityId);
+      }
+
+      // Update delivery order with payment info
+      if (entityType === "delivery") {
+        await supabase.from("delivery_orders").update({
+          payment_method: payMethodDb,
+          payment_status: "pending",
         } as any).eq("id", entityId);
       }
 
@@ -512,6 +525,16 @@ const PaymentPage = () => {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="transferRef">رقم الحوالة *</Label>
+                <Input
+                  id="transferRef"
+                  placeholder="أدخل رقم الحوالة أو المرجع"
+                  value={transferReference}
+                  onChange={(e) => setTransferReference(e.target.value)}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>صورة إيصال الدفع *</Label>
                 <div
                   className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
@@ -562,7 +585,7 @@ const PaymentPage = () => {
             className="w-full"
             size="lg"
             onClick={handleSubmit}
-            disabled={submitting || (isBankTransfer && (!payerName.trim() || !payerPhone.trim() || !receiptFile))}
+            disabled={submitting || (isBankTransfer && (!payerName.trim() || !payerPhone.trim() || !transferReference.trim() || !receiptFile))}
           >
             {submitting ? (
               <Loader2 className="w-4 h-4 animate-spin ml-2" />
