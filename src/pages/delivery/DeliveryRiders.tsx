@@ -81,6 +81,27 @@ const DeliveryRiders = () => {
     }
   };
 
+  const handleGenerateInvite = async () => {
+    if (!user) return;
+    try {
+      const token = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      await supabase.from("invitation_tokens").insert({
+        email: `rider-${Date.now()}@invite.local`,
+        role: "delivery_driver",
+        token,
+        created_by: user.id,
+        expires_at: expiresAt.toISOString(),
+      });
+      const link = `${window.location.origin}/invite/${token}`;
+      await navigator.clipboard.writeText(link);
+      toast({ title: "تم إنشاء رابط الدعوة ✅", description: "تم نسخ الرابط. أرسله للمندوب ليقوم بالتسجيل وسيتم ربطه بشركتك تلقائياً." });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+  };
+
   const filtered = riders.filter(r => r.full_name.includes(search) || r.phone.includes(search));
   const vehicleLabels: Record<string, string> = { motorcycle: "دراجة نارية", bicycle: "دراجة", car: "سيارة", foot: "مشي" };
 
