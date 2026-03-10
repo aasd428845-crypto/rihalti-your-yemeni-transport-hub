@@ -922,6 +922,81 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_quote_requests: {
+        Row: {
+          created_at: string | null
+          customer_address: string
+          customer_id: string
+          delivery_company_id: string
+          delivery_lat: number | null
+          delivery_lng: number | null
+          id: string
+          order_id: string | null
+          quoted_fee: number | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_address: string
+          customer_id: string
+          delivery_company_id: string
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          id?: string
+          order_id?: string | null
+          quoted_fee?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_address?: string
+          customer_id?: string
+          delivery_company_id?: string
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          id?: string
+          order_id?: string | null
+          quoted_fee?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      delivery_zones: {
+        Row: {
+          created_at: string | null
+          delivery_company_id: string
+          delivery_fee: number
+          estimated_time: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          zone_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_company_id: string
+          delivery_fee?: number
+          estimated_time?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          zone_name: string
+        }
+        Update: {
+          created_at?: string | null
+          delivery_company_id?: string
+          delivery_fee?: number
+          estimated_time?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          zone_name?: string
+        }
+        Relationships: []
+      }
       driver_documents: {
         Row: {
           document_type: string

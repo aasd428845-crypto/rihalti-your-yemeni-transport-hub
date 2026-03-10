@@ -1,4 +1,4 @@
-import { LayoutDashboard, Store, ShoppingBag, Users, DollarSign, Settings, Link2, LogOut, Home, BarChart3, CreditCard } from "lucide-react";
+import { LayoutDashboard, Store, ShoppingBag, Users, DollarSign, Settings, Link2, LogOut, Home, BarChart3, CreditCard, MapPinned } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ const menuItems = [
   { title: "المطاعم", url: "/delivery/restaurants", icon: Store },
   { title: "الطلبات", url: "/delivery/orders", icon: ShoppingBag },
   { title: "المندوبين", url: "/delivery/riders", icon: Users },
+  { title: "مناطق التغطية", url: "/delivery/zones", icon: MapPinned },
   { title: "المالية", url: "/delivery/finance", icon: DollarSign },
   { title: "التقارير", url: "/delivery/reports", icon: BarChart3 },
   { title: "التكامل", url: "/delivery/integrations", icon: Link2 },

@@ -208,16 +208,35 @@ const DeliveryOrders = () => {
               <div className="grid grid-cols-2 gap-2">
                 <div><span className="text-muted-foreground">العميل:</span> {selectedOrder.customer_name}</div>
                 <div><span className="text-muted-foreground">الهاتف:</span> {selectedOrder.customer_phone}</div>
-                <div><span className="text-muted-foreground">العنوان:</span> {selectedOrder.customer_address}</div>
+                <div className="col-span-2"><span className="text-muted-foreground">العنوان:</span> {selectedOrder.customer_address}</div>
                 <div><span className="text-muted-foreground">المبلغ:</span> {Number(selectedOrder.total).toLocaleString()} ر.ي</div>
                 <div><span className="text-muted-foreground">التوصيل:</span> {Number(selectedOrder.delivery_fee).toLocaleString()} ر.ي</div>
-                <div><span className="text-muted-foreground">الدفع:</span> {selectedOrder.payment_method === "cash" ? "نقداً" : "بطاقة"}</div>
+                <div><span className="text-muted-foreground">الدفع:</span> {selectedOrder.payment_method === "cash" ? "نقداً" : selectedOrder.payment_method === "bank_transfer" ? "تحويل بنكي" : selectedOrder.payment_method || "معلق"}</div>
+                {selectedOrder.restaurant && (
+                  <div className="col-span-2"><span className="text-muted-foreground">المطعم:</span> <span className="font-medium">{selectedOrder.restaurant.name_ar}</span></div>
+                )}
+                {selectedOrder.payment_status && (
+                  <div><span className="text-muted-foreground">حالة الدفع:</span> <Badge variant="outline">{selectedOrder.payment_status === "paid" ? "مدفوع" : selectedOrder.payment_status === "pending" ? "معلق" : selectedOrder.payment_status}</Badge></div>
+                )}
               </div>
+
+              {/* Google Maps link */}
+              {selectedOrder.delivery_lat && selectedOrder.delivery_lng && (
+                <a
+                  href={`https://www.google.com/maps?q=${selectedOrder.delivery_lat},${selectedOrder.delivery_lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-primary hover:underline text-sm"
+                >
+                  📍 فتح الموقع في Google Maps
+                </a>
+              )}
+
               <div>
                 <h4 className="font-bold mb-2">العناصر:</h4>
                 {(selectedOrder.items || []).map((item: any, i: number) => (
                   <div key={i} className="flex justify-between border-b py-1">
-                    <span>{item.name} x{item.quantity}</span>
+                    <span>{item.name_ar || item.name} × {item.quantity}</span>
                     <span>{Number(item.price * item.quantity).toLocaleString()} ر.ي</span>
                   </div>
                 ))}

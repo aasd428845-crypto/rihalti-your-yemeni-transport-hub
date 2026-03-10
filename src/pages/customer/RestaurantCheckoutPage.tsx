@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, Phone, CreditCard, Minus, Plus, ArrowRight, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ShoppingCart, Phone, CreditCard, Minus, Plus, ArrowRight, AlertTriangle, MapPin, Loader2 } from "lucide-react";
 import BackButton from "@/components/common/BackButton";
 import AddressSelector, { SelectedAddress } from "@/components/addresses/AddressSelector";
 import { getRestaurantById, getCart, createOrderFromCart } from "@/lib/restaurantApi";
@@ -32,10 +33,14 @@ const RestaurantCheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<SelectedAddress | null>(null);
-  const [form, setForm] = useState({
-    phone: "",
-    notes: "",
-  });
+  const [form, setForm] = useState({ phone: "", notes: "" });
+
+  // Delivery zone pricing
+  const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
+  const [matchedZone, setMatchedZone] = useState<any>(null);
+  const [quoteRequested, setQuoteRequested] = useState(false);
+  const [quoteStatus, setQuoteStatus] = useState<string | null>(null);
+  const [quotedFee, setQuotedFee] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user || !restaurantId) { navigate("/login"); return; }
@@ -48,6 +53,16 @@ const RestaurantCheckoutPage = () => {
         setRestaurant(r);
         if (cartData?.items) setCart(cartData.items as any as CartItem[]);
         setForm(f => ({ ...f, phone: profile?.phone || "" }));
+
+        // Fetch delivery zones for this company
+        if (r?.delivery_company_id) {
+          const { data: zones } = await supabase
+            .from("delivery_zones" as any)
+            .select("*")
+            .eq("delivery_company_id", r.delivery_company_id)
+            .eq("is_active", true);
+          setDeliveryZones(zones || []);
+        }
       } catch (err: any) {
         toast({ title: "خطأ", description: err.message, variant: "destructive" });
       } finally { setLoading(false); }
@@ -55,14 +70,64 @@ const RestaurantCheckoutPage = () => {
     load();
   }, [user, restaurantId]);
 
+  // Match zone when address changes
+  useEffect(() => {
+    if (!selectedAddress || deliveryZones.length === 0) {
+      setMatchedZone(null);
+      return;
+    }
+    // Try to match by district/city/address_name
+    const addressParts = [selectedAddress.district, selectedAddress.city, selectedAddress.address_name, selectedAddress.full_address].filter(Boolean).map(s => s!.toLowerCase());
+    const found = deliveryZones.find((z: any) => {
+      const zoneName = z.zone_name.toLowerCase();
+      return addressParts.some(part => part.includes(zoneName) || zoneName.includes(part));
+    });
+    setMatchedZone(found || null);
+  }, [selectedAddress, deliveryZones]);
+
+  // Realtime for quote response
+  useEffect(() => {
+    if (!user || !quoteRequested) return;
+    const channel = supabase
+      .channel("customer-quote")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "delivery_quote_requests", filter: `customer_id=eq.${user.id}` }, (payload: any) => {
+        if (payload.new.status === "quoted" && payload.new.quoted_fee) {
+          setQuotedFee(Number(payload.new.quoted_fee));
+          setQuoteStatus("quoted");
+          toast({ title: "تم تحديد سعر التوصيل! 🎉", description: `سعر التوصيل: ${Number(payload.new.quoted_fee).toLocaleString()} ر.ي` });
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, quoteRequested]);
+
+  const handleRequestQuote = async () => {
+    if (!user || !restaurant || !selectedAddress) return;
+    try {
+      await supabase.from("delivery_quote_requests" as any).insert({
+        delivery_company_id: restaurant.delivery_company_id,
+        customer_id: user.id,
+        customer_address: selectedAddress.full_address,
+        delivery_lat: selectedAddress.latitude,
+        delivery_lng: selectedAddress.longitude,
+      });
+      setQuoteRequested(true);
+      setQuoteStatus("pending");
+      toast({ title: "تم إرسال طلب التسعيرة", description: "سيتم إبلاغك فور تحديد سعر التوصيل" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+  };
+
   const updateQty = (itemId: string, delta: number) => {
     setCart(prev => prev.map(c => c.id === itemId ? { ...c, quantity: Math.max(0, c.quantity + delta) } : c).filter(c => c.quantity > 0));
   };
 
+  const computedDeliveryFee = matchedZone ? Number(matchedZone.delivery_fee) : quotedFee ?? (restaurant?.delivery_fee || 0);
   const subtotal = useMemo(() => cart.reduce((s, c) => s + c.price * c.quantity, 0), [cart]);
-  const deliveryFee = restaurant?.delivery_fee || 0;
   const tax = 0;
-  const total = subtotal + deliveryFee + tax;
+  const total = subtotal + computedDeliveryFee + tax;
+  const canOrder = selectedAddress && (matchedZone || quotedFee !== null || deliveryZones.length === 0);
 
   const handleSubmit = async () => {
     if (!user || !restaurantId || !restaurant) return;
@@ -93,7 +158,7 @@ const RestaurantCheckoutPage = () => {
         customer_phone: phone,
         customer_address: fullAddress,
         items: cart,
-        subtotal, delivery_fee: deliveryFee, tax, total,
+        subtotal, delivery_fee: computedDeliveryFee, tax, total,
         payment_method: "pending",
         notes: form.notes || undefined,
         delivery_lat: selectedAddress.latitude,
@@ -155,7 +220,13 @@ const RestaurantCheckoutPage = () => {
               <Separator />
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between"><span>المجموع الفرعي</span><span>{subtotal} ر.ي</span></div>
-                <div className="flex justify-between"><span>رسوم التوصيل</span><span>{deliveryFee} ر.ي</span></div>
+                <div className="flex justify-between">
+                  <span className="flex items-center gap-1">
+                    رسوم التوصيل
+                    {matchedZone && <Badge variant="outline" className="text-[10px]">{matchedZone.zone_name}</Badge>}
+                  </span>
+                  <span>{computedDeliveryFee} ر.ي</span>
+                </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-base"><span>الإجمالي</span><span className="text-primary">{total} ر.ي</span></div>
               </div>
@@ -179,6 +250,33 @@ const RestaurantCheckoutPage = () => {
                   <p className="text-muted-foreground">{selectedAddress.full_address}</p>
                   {selectedAddress.landmark && <p className="text-muted-foreground">📍 {selectedAddress.landmark}</p>}
                   {selectedAddress.phone && <p className="text-muted-foreground">📞 {selectedAddress.phone}</p>}
+                </div>
+              )}
+              {/* Zone pricing or quote request */}
+              {selectedAddress && deliveryZones.length > 0 && !matchedZone && quotedFee === null && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg p-3 space-y-2">
+                  <p className="text-sm text-amber-700 dark:text-amber-300">⚠️ منطقتك غير مسجلة في مناطق التغطية</p>
+                  {quoteStatus === "pending" ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>بانتظار رد شركة التوصيل على طلب التسعيرة...</span>
+                    </div>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={handleRequestQuote}>
+                      <MapPin className="w-4 h-4 ml-1" /> طلب تسعيرة توصيل
+                    </Button>
+                  )}
+                </div>
+              )}
+              {matchedZone && (
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 rounded-lg p-2 text-sm text-green-700 dark:text-green-300">
+                  ✅ منطقة التوصيل: {matchedZone.zone_name} — {Number(matchedZone.delivery_fee).toLocaleString()} ر.ي
+                  {matchedZone.estimated_time && <span className="text-muted-foreground"> • {matchedZone.estimated_time}</span>}
+                </div>
+              )}
+              {quotedFee !== null && (
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 rounded-lg p-2 text-sm text-green-700 dark:text-green-300">
+                  ✅ تم تحديد سعر التوصيل: {quotedFee.toLocaleString()} ر.ي
                 </div>
               )}
               {!selectedAddress && (
@@ -214,7 +312,7 @@ const RestaurantCheckoutPage = () => {
             </CardContent>
           </Card>
 
-          <Button className="w-full h-12 text-lg gap-2" onClick={handleSubmit} disabled={submitting || !selectedAddress}>
+          <Button className="w-full h-12 text-lg gap-2" onClick={handleSubmit} disabled={submitting || !canOrder}>
             {submitting ? <div className="animate-spin w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full" /> :
               <>تأكيد الطلب - {total} ر.ي</>}
           </Button>

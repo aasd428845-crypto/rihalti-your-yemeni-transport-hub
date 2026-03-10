@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Edit, Trash2, Award } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Award, Link2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { getRiders, createRider, updateRider, deleteRider, createRiderReward } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import type { Rider } from "@/types/delivery.types";
@@ -80,6 +81,27 @@ const DeliveryRiders = () => {
     }
   };
 
+  const handleGenerateInvite = async () => {
+    if (!user) return;
+    try {
+      const token = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      await supabase.from("invitation_tokens").insert({
+        email: `rider-${Date.now()}@invite.local`,
+        role: "delivery_driver",
+        token,
+        created_by: user.id,
+        expires_at: expiresAt.toISOString(),
+      });
+      const link = `${window.location.origin}/invite/${token}`;
+      await navigator.clipboard.writeText(link);
+      toast({ title: "تم إنشاء رابط الدعوة ✅", description: "تم نسخ الرابط. أرسله للمندوب ليقوم بالتسجيل وسيتم ربطه بشركتك تلقائياً." });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+  };
+
   const filtered = riders.filter(r => r.full_name.includes(search) || r.phone.includes(search));
   const vehicleLabels: Record<string, string> = { motorcycle: "دراجة نارية", bicycle: "دراجة", car: "سيارة", foot: "مشي" };
 
@@ -91,6 +113,9 @@ const DeliveryRiders = () => {
         <h2 className="text-xl md:text-2xl font-bold">إدارة المندوبين</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowReward(true)} className="min-h-[44px]"><Award className="w-4 h-4 ml-1" /> مكافأة</Button>
+          <Button size="sm" variant="outline" onClick={handleGenerateInvite} className="min-h-[44px]">
+            <Link2 className="w-4 h-4 ml-1" /> رابط دعوة مندوب
+          </Button>
           <Button size="sm" onClick={() => { setEditItem(null); setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 }); setShowAdd(true); }} className="min-h-[44px]">
             <Plus className="w-4 h-4 ml-1" /> إضافة مندوب
           </Button>
