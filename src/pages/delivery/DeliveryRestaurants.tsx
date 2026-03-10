@@ -140,7 +140,7 @@ const DeliveryRestaurants = () => {
                 {r.phone && <p className="text-sm text-muted-foreground">📞 {r.phone}</p>}
                 <p className="text-sm text-muted-foreground">العمولة: {r.commission_rate}%</p>
                 <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" variant="default" onClick={() => navigate(`/delivery/restaurants/${r.id}/menu`)}>
+                  <Button size="sm" variant="default" onClick={() => navigate(`/delivery/menu/${r.id}`)}>
                     <Menu className="w-3 h-3 ml-1" /> المنيو
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Edit className="w-3 h-3 ml-1" /> تعديل</Button>
