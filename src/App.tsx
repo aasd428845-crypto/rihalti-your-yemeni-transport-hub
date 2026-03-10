@@ -232,6 +232,7 @@ const App = () => (
                 <Route path="finance" element={<DeliveryFinance />} />
                 <Route path="reports" element={<DeliveryReports />} />
                 <Route path="settings" element={<DeliverySettings />} />
+                <Route path="zones" element={<DeliveryZones />} />
                 <Route path="payments" element={<DeliveryPayments />} />
                 <Route path="integrations" element={<DeliveryIntegrations />} />
                 <Route path="profile" element={<PartnerProfilePage />} />
