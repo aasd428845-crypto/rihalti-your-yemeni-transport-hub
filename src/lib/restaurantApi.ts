@@ -141,13 +141,30 @@ export const createOrderFromCart = async (params: {
   payment_method: string;
   notes?: string;
 }) => {
-  const { data, error } = await supabase.from("delivery_orders").insert({
-    ...params,
+  const insertData: any = {
+    customer_id: params.customer_id,
+    restaurant_id: params.restaurant_id,
+    delivery_company_id: params.delivery_company_id,
+    customer_name: params.customer_name,
+    customer_phone: params.customer_phone,
+    customer_address: params.customer_address,
+    delivery_lat: params.delivery_lat,
+    delivery_lng: params.delivery_lng,
     items: params.items as any,
+    subtotal: params.subtotal,
+    delivery_fee: params.delivery_fee,
+    tax: params.tax,
+    total: params.total,
+    payment_method: params.payment_method,
     status: "pending",
     payment_status: "pending",
     order_type: "restaurant",
-  }).select().single();
+  };
+  // Only include notes if provided (optional field)
+  if (params.notes) {
+    insertData.notes = params.notes;
+  }
+  const { data, error } = await supabase.from("delivery_orders").insert(insertData).select().single();
   if (error) throw error;
 
   // Create financial transaction
