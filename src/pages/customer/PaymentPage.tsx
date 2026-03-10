@@ -515,6 +515,15 @@ const PaymentPage = () => {
                   onChange={(e) => setPayerPhone(e.target.value)}
                   dir="ltr"
                 />
+              <div className="space-y-2">
+                <Label htmlFor="transferRef">رقم الحوالة *</Label>
+                <Input
+                  id="transferRef"
+                  placeholder="أدخل رقم الحوالة أو المرجع"
+                  value={transferReference}
+                  onChange={(e) => setTransferReference(e.target.value)}
+                  dir="ltr"
+                />
               </div>
               <div className="space-y-2">
                 <Label>صورة إيصال الدفع *</Label>
