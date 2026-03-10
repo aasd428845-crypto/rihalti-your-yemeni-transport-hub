@@ -290,7 +290,6 @@ const PaymentPage = () => {
           payment_status: "pending",
           payment_transaction_id: (paymentTx as any)?.id,
           partner_name: supplierInfo?.full_name || supplierInfo?.company_name,
-          partner_phone: supplierInfo?.phone,
         });
       }
 
