@@ -6,14 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, MapPin, Phone, CreditCard, Minus, Plus, Trash2, ArrowRight } from "lucide-react";
+import { ShoppingCart, Phone, CreditCard, Minus, Plus, ArrowRight, AlertTriangle } from "lucide-react";
 import BackButton from "@/components/common/BackButton";
-import { getRestaurantById, getCart, createOrderFromCart, clearCart } from "@/lib/restaurantApi";
+import AddressSelector, { SelectedAddress } from "@/components/addresses/AddressSelector";
+import { getRestaurantById, getCart, createOrderFromCart } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
 
 interface CartItem {
   id: string;
@@ -32,27 +31,22 @@ const RestaurantCheckoutPage = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [addresses, setAddresses] = useState<any[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<SelectedAddress | null>(null);
   const [form, setForm] = useState({
-    address: "",
     phone: "",
     notes: "",
-    payment_method: "cash",
-    selected_address_id: "",
   });
 
   useEffect(() => {
     if (!user || !restaurantId) { navigate("/login"); return; }
     const load = async () => {
       try {
-        const [r, cartData, addrRes] = await Promise.all([
+        const [r, cartData] = await Promise.all([
           getRestaurantById(restaurantId),
           getCart(user.id, restaurantId),
-          supabase.from("customer_addresses").select("*").eq("customer_id", user.id),
         ]);
         setRestaurant(r);
         if (cartData?.items) setCart(cartData.items as any as CartItem[]);
-        if (addrRes.data) setAddresses(addrRes.data);
         setForm(f => ({ ...f, phone: profile?.phone || "" }));
       } catch (err: any) {
         toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -72,13 +66,22 @@ const RestaurantCheckoutPage = () => {
 
   const handleSubmit = async () => {
     if (!user || !restaurantId || !restaurant) return;
-    const address = form.selected_address_id
-      ? addresses.find(a => a.id === form.selected_address_id)?.full_address || form.address
-      : form.address;
-    if (!address.trim()) { toast({ title: "أدخل عنوان التوصيل", variant: "destructive" }); return; }
-    if (!form.phone.trim()) { toast({ title: "أدخل رقم الهاتف", variant: "destructive" }); return; }
-    if (cart.length === 0) { toast({ title: "السلة فارغة", variant: "destructive" }); return; }
-    // Notes field is optional - no validation needed
+
+    if (!selectedAddress) {
+      toast({ title: "يرجى اختيار عنوان التوصيل", description: "اختر عنواناً محفوظاً أو أضف عنواناً جديداً", variant: "destructive" });
+      return;
+    }
+    const phone = selectedAddress.phone || form.phone;
+    if (!phone?.trim()) {
+      toast({ title: "أدخل رقم الهاتف", variant: "destructive" });
+      return;
+    }
+    if (cart.length === 0) {
+      toast({ title: "السلة فارغة", variant: "destructive" });
+      return;
+    }
+
+    const fullAddress = [selectedAddress.full_address, selectedAddress.district, selectedAddress.street, selectedAddress.landmark].filter(Boolean).join("، ");
 
     setSubmitting(true);
     try {
@@ -87,14 +90,15 @@ const RestaurantCheckoutPage = () => {
         restaurant_id: restaurantId,
         delivery_company_id: restaurant.delivery_company_id,
         customer_name: profile?.full_name || "عميل",
-        customer_phone: form.phone,
-        customer_address: address,
+        customer_phone: phone,
+        customer_address: fullAddress,
         items: cart,
         subtotal, delivery_fee: deliveryFee, tax, total,
         payment_method: "pending",
         notes: form.notes || undefined,
+        delivery_lat: selectedAddress.latitude,
+        delivery_lng: selectedAddress.longitude,
       });
-      // Send notification to delivery company
       try {
         await supabase.functions.invoke("send-push-notification", {
           body: {
@@ -158,28 +162,31 @@ const RestaurantCheckoutPage = () => {
             </CardContent>
           </Card>
 
-          {/* Delivery Address */}
+          {/* Delivery Address - Using AddressSelector */}
           <Card>
-            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><MapPin className="w-5 h-5" />عنوان التوصيل</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-lg">عنوان التوصيل</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {addresses.length > 0 && (
-                <div className="space-y-2">
-                  {addresses.map(a => (
-                    <label key={a.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${form.selected_address_id === a.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
-                      <input type="radio" name="address" checked={form.selected_address_id === a.id}
-                        onChange={() => setForm({ ...form, selected_address_id: a.id, address: a.full_address })} className="accent-primary" />
-                      <div>
-                        <p className="font-medium text-sm">{a.address_name}</p>
-                        <p className="text-xs text-muted-foreground">{a.full_address}</p>
-                      </div>
-                    </label>
-                  ))}
+              <AddressSelector
+                label="اختر عنوان التوصيل *"
+                onSelect={(addr) => {
+                  setSelectedAddress(addr);
+                  if (addr?.phone) setForm(f => ({ ...f, phone: addr.phone! }));
+                }}
+              />
+              {selectedAddress && (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm space-y-1">
+                  <p className="font-semibold">{selectedAddress.address_name}</p>
+                  <p className="text-muted-foreground">{selectedAddress.full_address}</p>
+                  {selectedAddress.landmark && <p className="text-muted-foreground">📍 {selectedAddress.landmark}</p>}
+                  {selectedAddress.phone && <p className="text-muted-foreground">📞 {selectedAddress.phone}</p>}
                 </div>
               )}
-              <div>
-                <Label>أو أدخل عنوان جديد</Label>
-                <Input value={form.address} onChange={e => setForm({ ...form, address: e.target.value, selected_address_id: "" })} placeholder="العنوان بالتفصيل..." />
-              </div>
+              {!selectedAddress && (
+                <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 rounded-lg p-3">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>يجب اختيار عنوان محفوظ أو إضافة عنوان جديد لإتمام الطلب</span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -207,7 +214,7 @@ const RestaurantCheckoutPage = () => {
             </CardContent>
           </Card>
 
-          <Button className="w-full h-12 text-lg gap-2" onClick={handleSubmit} disabled={submitting}>
+          <Button className="w-full h-12 text-lg gap-2" onClick={handleSubmit} disabled={submitting || !selectedAddress}>
             {submitting ? <div className="animate-spin w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full" /> :
               <>تأكيد الطلب - {total} ر.ي</>}
           </Button>

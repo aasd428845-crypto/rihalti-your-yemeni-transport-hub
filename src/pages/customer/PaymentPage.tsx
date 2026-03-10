@@ -54,6 +54,7 @@ const PaymentPage = () => {
   // Transfer form fields
   const [payerName, setPayerName] = useState("");
   const [payerPhone, setPayerPhone] = useState("");
+  const [transferReference, setTransferReference] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [customerNotes, setCustomerNotes] = useState("");
