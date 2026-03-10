@@ -91,6 +91,9 @@ const DeliveryRiders = () => {
         <h2 className="text-xl md:text-2xl font-bold">إدارة المندوبين</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowReward(true)} className="min-h-[44px]"><Award className="w-4 h-4 ml-1" /> مكافأة</Button>
+          <Button size="sm" variant="outline" onClick={handleGenerateInvite} className="min-h-[44px]">
+            <Link2 className="w-4 h-4 ml-1" /> رابط دعوة مندوب
+          </Button>
           <Button size="sm" onClick={() => { setEditItem(null); setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 }); setShowAdd(true); }} className="min-h-[44px]">
             <Plus className="w-4 h-4 ml-1" /> إضافة مندوب
           </Button>
