@@ -220,7 +220,13 @@ const RestaurantCheckoutPage = () => {
               <Separator />
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between"><span>المجموع الفرعي</span><span>{subtotal} ر.ي</span></div>
-                <div className="flex justify-between"><span>رسوم التوصيل</span><span>{deliveryFee} ر.ي</span></div>
+                <div className="flex justify-between">
+                  <span className="flex items-center gap-1">
+                    رسوم التوصيل
+                    {matchedZone && <Badge variant="outline" className="text-[10px]">{matchedZone.zone_name}</Badge>}
+                  </span>
+                  <span>{computedDeliveryFee} ر.ي</span>
+                </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-base"><span>الإجمالي</span><span className="text-primary">{total} ر.ي</span></div>
               </div>
