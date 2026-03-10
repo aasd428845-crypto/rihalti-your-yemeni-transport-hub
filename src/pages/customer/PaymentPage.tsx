@@ -281,6 +281,14 @@ const PaymentPage = () => {
         } as any).eq("id", entityId);
       }
 
+      // Update delivery order with payment info
+      if (entityType === "delivery") {
+        await supabase.from("delivery_orders").update({
+          payment_method: payMethodDb,
+          payment_status: "pending",
+        } as any).eq("id", entityId);
+      }
+
       // Create financial transaction
       if (partnerId) {
         await createFinancialTransaction({
