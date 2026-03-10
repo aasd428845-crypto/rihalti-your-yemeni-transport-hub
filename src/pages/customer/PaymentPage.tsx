@@ -515,6 +515,7 @@ const PaymentPage = () => {
                   onChange={(e) => setPayerPhone(e.target.value)}
                   dir="ltr"
                 />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="transferRef">رقم الحوالة *</Label>
                 <Input
