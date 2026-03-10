@@ -257,6 +257,9 @@ const PaymentPage = () => {
         receiptUrl = await uploadPaymentReceipt(user.id, receiptFile);
       }
 
+      // Generate barcode for delivery verification
+      const barcode = `WS-${entityId.slice(0, 8).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+
       // Create payment transaction
       const paymentTx = await createPaymentTransaction({
         user_id: user.id,
@@ -269,7 +272,7 @@ const PaymentPage = () => {
         partner_id: paymentMethod === "partner_transfer" ? partnerId : undefined,
       });
 
-      // Update booking with payment info
+      // Update entity with payment info & barcode
       if (entityType === "booking") {
         await supabase.from("bookings").update({
           payment_method: payMethodDb,
@@ -281,17 +284,17 @@ const PaymentPage = () => {
         } as any).eq("id", entityId);
       }
 
-      // Update delivery order with payment info
       if (entityType === "delivery") {
         await supabase.from("delivery_orders").update({
           payment_method: payMethodDb,
           payment_status: "pending",
+          barcode,
         } as any).eq("id", entityId);
       }
 
       // Create financial transaction
       if (partnerId) {
-        await createFinancialTransaction({
+        const ftData: any = {
           transaction_type: entityType,
           reference_id: entityId,
           customer_id: user.id,
@@ -300,10 +303,17 @@ const PaymentPage = () => {
           platform_commission: commission,
           partner_earning: partnerEarning,
           payment_method: payMethodDb,
-          payment_status: "pending",
+          payment_status: payMethodDb === "cash" ? "pending" : "pending",
           payment_transaction_id: (paymentTx as any)?.id,
           partner_name: supplierInfo?.full_name || supplierInfo?.company_name,
-        });
+        };
+
+        // For cash payments, record as debt: rider owes company, company owes platform
+        if (payMethodDb === "cash") {
+          ftData.notes = `مديونية نقدية: المبلغ ${amount} ر.ي مستلم نقداً. عمولة المنصة: ${commission} ر.ي`;
+        }
+
+        await createFinancialTransaction(ftData);
       }
 
       // Notifications
@@ -326,6 +336,17 @@ const PaymentPage = () => {
         } catch {}
         toast({ title: "تم بنجاح", description: "تم إرسال إيصال الدفع وسيتم مراجعته قريباً" });
       } else {
+        // Cash payment - notify partner about the debt
+        if (partnerId) {
+          try {
+            await sendPushNotification({
+              userId: partnerId,
+              title: "طلب جديد - دفع نقدي 💵",
+              body: `طلب بمبلغ ${amount.toLocaleString()} ر.ي (نقدي). عمولة المنصة: ${commission.toLocaleString()} ر.ي`,
+              data: { type: "cash_order", entityType, entityId },
+            });
+          } catch {}
+        }
         toast({ title: "تم بنجاح", description: entityType === "booking" ? "تم تأكيد الدفع نقداً عند الصعود" : "تم تأكيد الدفع نقداً عند الاستلام" });
       }
 
