@@ -233,6 +233,10 @@ const PaymentPage = () => {
         toast({ title: "خطأ", description: "يرجى إدخال رقم هاتفك", variant: "destructive" });
         return;
       }
+      if (!transferReference.trim()) {
+        toast({ title: "خطأ", description: "يرجى إدخال رقم الحوالة", variant: "destructive" });
+        return;
+      }
       if (!receiptFile) {
         toast({ title: "خطأ", description: "يرجى رفع صورة إيصال الدفع", variant: "destructive" });
         return;
