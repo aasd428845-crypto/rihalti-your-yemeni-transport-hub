@@ -127,6 +127,14 @@ export default function ShipmentRequestPage() {
   }
 
   if (step === 'form') {
+    if (prefilling) {
+      return (
+        <div style={{ minHeight: '100vh', background: '#0D1B2A', display: 'flex', alignItems: 'center', justifyContent: 'center', direction: 'rtl' }}>
+          <Loader2 size={32} color="#8BA8A0" className="animate-spin" />
+          <span style={{ color: '#8BA8A0', marginRight: '12px' }}>جاري تحميل بياناتك...</span>
+        </div>
+      );
+    }
     return (
       <div style={{ minHeight: '100vh', background: '#0D1B2A', padding: '80px 24px', fontFamily: "'Cairo', sans-serif", direction: 'rtl' }}>
         <div style={{ maxWidth: '680px', margin: '0 auto' }}>
