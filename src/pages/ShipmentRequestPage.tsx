@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, MapPin, User, FileText, ArrowLeft, Send, MessageCircle, CheckCircle, Truck, Car } from 'lucide-react';
+import { Package, MapPin, User, FileText, ArrowLeft, Send, MessageCircle, CheckCircle, Truck, Car, Loader2 } from 'lucide-react';
 import { useServiceRequests } from '@/hooks/useServiceRequests';
 import { YEMENI_CITIES } from '@/lib/contactFilter';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 type RequestType = 'shipment' | 'delivery' | 'taxi';
 
@@ -15,16 +16,46 @@ const typeConfig = {
 
 export default function ShipmentRequestPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { createRequest } = useServiceRequests();
   const [step, setStep] = useState<'type' | 'form' | 'sent'>('type');
   const [selectedType, setSelectedType] = useState<RequestType>('shipment');
   const [loading, setLoading] = useState(false);
+  const [prefilling, setPrefilling] = useState(true);
 
   const [form, setForm] = useState({
     from_city: '', to_city: '', from_address: '', to_address: '',
     description: '', quantity: '1', notes: '', receiver_name: '', receiver_phone: '',
   });
+
+  // Auto-fill from profile + default address
+  useEffect(() => {
+    if (!user) { setPrefilling(false); return; }
+    const load = async () => {
+      try {
+        const { data: addr } = await supabase
+          .from('customer_addresses')
+          .select('*')
+          .eq('customer_id', user.id)
+          .eq('is_default', true)
+          .maybeSingle();
+
+        setForm(f => ({
+          ...f,
+          from_city: addr?.city || profile?.city || f.from_city,
+          from_address: addr
+            ? [addr.district, addr.street, addr.building_number, addr.landmark].filter(Boolean).join('، ')
+            : f.from_address,
+          receiver_name: f.receiver_name || '',
+          receiver_phone: f.receiver_phone || '',
+        }));
+      } catch (e) {
+        console.error('Error prefilling form:', e);
+      }
+      setPrefilling(false);
+    };
+    load();
+  }, [user?.id]);
 
   const config = typeConfig[selectedType];
 
@@ -96,6 +127,14 @@ export default function ShipmentRequestPage() {
   }
 
   if (step === 'form') {
+    if (prefilling) {
+      return (
+        <div style={{ minHeight: '100vh', background: '#0D1B2A', display: 'flex', alignItems: 'center', justifyContent: 'center', direction: 'rtl' }}>
+          <Loader2 size={32} color="#8BA8A0" className="animate-spin" />
+          <span style={{ color: '#8BA8A0', marginRight: '12px' }}>جاري تحميل بياناتك...</span>
+        </div>
+      );
+    }
     return (
       <div style={{ minHeight: '100vh', background: '#0D1B2A', padding: '80px 24px', fontFamily: "'Cairo', sans-serif", direction: 'rtl' }}>
         <div style={{ maxWidth: '680px', margin: '0 auto' }}>
