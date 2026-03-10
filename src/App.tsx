@@ -76,6 +76,7 @@ const DeliveryFinance = lazy(() => import("./pages/delivery/DeliveryFinance"));
 const DeliveryIntegrations = lazy(() => import("./pages/delivery/DeliveryIntegrations"));
 const DeliverySettings = lazy(() => import("./pages/delivery/DeliverySettings"));
 const DeliveryReports = lazy(() => import("./pages/delivery/DeliveryReports"));
+const DeliveryZones = lazy(() => import("./pages/delivery/DeliveryZones"));
 const DeliveryPayments = lazy(() => import("./pages/delivery/DeliveryPayments"));
 // Customer Pages (lazy loaded)
 const TripsPage = lazy(() => import("./pages/customer/TripsPage"));
