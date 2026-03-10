@@ -265,7 +265,7 @@ const PaymentPage = () => {
         amount,
         payment_method: payMethodDb,
         transfer_receipt_url: receiptUrl,
-        transfer_reference: isBankTransfer ? payerPhone.trim() : undefined,
+        transfer_reference: isBankTransfer ? transferReference.trim() : undefined,
         partner_id: paymentMethod === "partner_transfer" ? partnerId : undefined,
       });
 
