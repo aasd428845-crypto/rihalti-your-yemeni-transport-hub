@@ -1,4 +1,4 @@
-import { LayoutDashboard, Store, ShoppingBag, Users, DollarSign, Settings, Link2, LogOut, Home, BarChart3, CreditCard } from "lucide-react";
+import { LayoutDashboard, Store, ShoppingBag, Users, DollarSign, Settings, Link2, LogOut, Home, BarChart3, CreditCard, MapPinned } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
