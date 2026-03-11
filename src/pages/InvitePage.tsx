@@ -195,7 +195,7 @@ const InvitePage = () => {
         if (logoUrl) profileUpdate.logo_url = logoUrl;
       }
 
-      if (inviteData.role === "driver") {
+      if (inviteData.role === "driver" || inviteData.role === "delivery_driver") {
         profileUpdate.id_number = idNumber;
         profileUpdate.id_image_front = idFrontUrl;
         profileUpdate.id_image_back = idBackUrl;
