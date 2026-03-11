@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bus, Mail, Lock, User, Phone, Eye, EyeOff, Upload, Camera, Car, CreditCard, ArrowRight, AlertTriangle, CheckCircle, Loader2, Building2, Truck, UserCheck } from "lucide-react";
+import { Bus, Mail, Lock, User, Phone, Eye, EyeOff, Upload, Camera, Car, CreditCard, ArrowRight, AlertTriangle, CheckCircle, Loader2, Building2, Truck, UserCheck, Bike } from "lucide-react";
 import { toast } from "sonner";
 import BackButton from "@/components/common/BackButton";
 
