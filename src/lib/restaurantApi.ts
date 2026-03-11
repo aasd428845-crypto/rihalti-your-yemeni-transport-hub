@@ -10,7 +10,7 @@ export const getActiveRestaurants = async (city?: string) => {
     .order("rating", { ascending: false });
 
   if (city && city !== "all") {
-    query = query.eq("city", city);
+    query = query.eq("city" as any, city);
   }
 
   const { data, error } = await query;
