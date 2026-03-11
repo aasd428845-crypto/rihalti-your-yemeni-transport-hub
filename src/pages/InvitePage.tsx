@@ -210,7 +210,28 @@ const InvitePage = () => {
 
       await supabase.from("profiles").update(profileUpdate).eq("user_id", userId);
 
-      // 4. Mark token as used
+      // 4. If delivery_driver, link to delivery company via riders table
+      if (inviteData.role === "delivery_driver") {
+        const { data: tokenData } = await supabase
+          .from("invitation_tokens")
+          .select("created_by")
+          .eq("token", inviteData.token)
+          .single();
+        if (tokenData?.created_by) {
+          await supabase.from("riders").insert({
+            user_id: userId,
+            delivery_company_id: tokenData.created_by,
+            full_name: fullName,
+            phone,
+            vehicle_type: vehicleType,
+            vehicle_plate: vehiclePlate,
+            is_active: false,
+            is_approved: false,
+          } as any);
+        }
+      }
+
+      // 5. Mark token as used
       await supabase
         .from("invitation_tokens")
         .update({ used_at: new Date().toISOString() })
