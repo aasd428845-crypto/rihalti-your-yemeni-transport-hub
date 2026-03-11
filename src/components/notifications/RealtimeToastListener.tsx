@@ -139,6 +139,25 @@ const RealtimeToastListener = () => {
           }
         }
       )
+      // New financial transactions (for partners)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "financial_transactions" },
+        (payload) => {
+          const ft = payload.new as any;
+          if (ft.partner_id === user.id) {
+            toast("معاملة دفع جديدة 💳", {
+              description: `مبلغ ${Number(ft.amount).toLocaleString()} ر.ي بانتظار مراجعتك`,
+              icon: <DollarSign className="w-4 h-4 text-primary" />,
+              action: {
+                label: "مراجعة",
+                onClick: () => navigate("/delivery/finance"),
+              },
+              duration: 8000,
+            });
+          }
+        }
+      )
       .subscribe();
 
     return () => {
