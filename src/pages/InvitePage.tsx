@@ -23,12 +23,14 @@ const roleLabels: Record<string, string> = {
   supplier: "صاحب مكتب (شركة نقل)",
   delivery_company: "شركة توصيل",
   driver: "سائق (أجرة)",
+  delivery_driver: "مندوب توصيل",
 };
 
 const roleIcons: Record<string, React.ReactNode> = {
   supplier: <Building2 className="w-6 h-6" />,
   delivery_company: <Truck className="w-6 h-6" />,
   driver: <Car className="w-6 h-6" />,
+  delivery_driver: <Bike className="w-6 h-6" />,
 };
 
 const InvitePage = () => {
