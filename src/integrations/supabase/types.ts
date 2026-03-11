@@ -2579,6 +2579,7 @@ export type Database = {
       restaurants: {
         Row: {
           address: string | null
+          city: string | null
           commission_rate: number | null
           cover_image: string | null
           created_at: string | null
@@ -2604,6 +2605,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          city?: string | null
           commission_rate?: number | null
           cover_image?: string | null
           created_at?: string | null
@@ -2629,6 +2631,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          city?: string | null
           commission_rate?: number | null
           cover_image?: string | null
           created_at?: string | null

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bus, Mail, Lock, User, Phone, Eye, EyeOff, Upload, Camera, Car, CreditCard, ArrowRight, AlertTriangle, CheckCircle, Loader2, Building2, Truck, UserCheck } from "lucide-react";
+import { Bus, Mail, Lock, User, Phone, Eye, EyeOff, Upload, Camera, Car, CreditCard, ArrowRight, AlertTriangle, CheckCircle, Loader2, Building2, Truck, UserCheck, Bike } from "lucide-react";
 import { toast } from "sonner";
 import BackButton from "@/components/common/BackButton";
 
@@ -23,12 +23,14 @@ const roleLabels: Record<string, string> = {
   supplier: "صاحب مكتب (شركة نقل)",
   delivery_company: "شركة توصيل",
   driver: "سائق (أجرة)",
+  delivery_driver: "مندوب توصيل",
 };
 
 const roleIcons: Record<string, React.ReactNode> = {
   supplier: <Building2 className="w-6 h-6" />,
   delivery_company: <Truck className="w-6 h-6" />,
   driver: <Car className="w-6 h-6" />,
+  delivery_driver: <Bike className="w-6 h-6" />,
 };
 
 const InvitePage = () => {
@@ -117,8 +119,8 @@ const InvitePage = () => {
       return;
     }
 
-    // Driver-specific validation
-    if (inviteData.role === "driver") {
+    // Driver & delivery_driver specific validation
+    if (inviteData.role === "driver" || inviteData.role === "delivery_driver") {
       if (!idFrontFile || !idBackFile || !selfieFile || !licenseFile || !vehicleImageFile) {
         toast.error("جميع الصور مطلوبة للسائقين");
         return;
@@ -193,7 +195,7 @@ const InvitePage = () => {
         if (logoUrl) profileUpdate.logo_url = logoUrl;
       }
 
-      if (inviteData.role === "driver") {
+      if (inviteData.role === "driver" || inviteData.role === "delivery_driver") {
         profileUpdate.id_number = idNumber;
         profileUpdate.id_image_front = idFrontUrl;
         profileUpdate.id_image_back = idBackUrl;
@@ -208,7 +210,28 @@ const InvitePage = () => {
 
       await supabase.from("profiles").update(profileUpdate).eq("user_id", userId);
 
-      // 4. Mark token as used
+      // 4. If delivery_driver, link to delivery company via riders table
+      if (inviteData.role === "delivery_driver") {
+        const { data: tokenData } = await supabase
+          .from("invitation_tokens")
+          .select("created_by")
+          .eq("token", inviteData.token)
+          .single();
+        if (tokenData?.created_by) {
+          await supabase.from("riders").insert({
+            user_id: userId,
+            delivery_company_id: tokenData.created_by,
+            full_name: fullName,
+            phone,
+            vehicle_type: vehicleType,
+            vehicle_plate: vehiclePlate,
+            is_active: false,
+            is_approved: false,
+          } as any);
+        }
+      }
+
+      // 5. Mark token as used
       await supabase
         .from("invitation_tokens")
         .update({ used_at: new Date().toISOString() })
@@ -415,7 +438,7 @@ const InvitePage = () => {
                 </div>
               )}
 
-              {inviteData.role === "driver" && (
+              {(inviteData.role === "driver" || inviteData.role === "delivery_driver") && (
                 <div>
                   <Label>الاسم الكامل (كما في البطاقة) <span className="text-destructive">*</span></Label>
                   <div className="relative mt-1">
@@ -455,7 +478,7 @@ const InvitePage = () => {
               )}
 
               {/* Driver-specific fields */}
-              {inviteData.role === "driver" && (
+              {(inviteData.role === "driver" || inviteData.role === "delivery_driver") && (
                 <>
                   <div className="border-t border-border pt-4">
                     <h3 className="font-bold text-foreground mb-3 flex items-center gap-2">

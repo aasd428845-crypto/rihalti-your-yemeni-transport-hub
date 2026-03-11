@@ -1,7 +1,18 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // ===== Public Restaurant Queries =====
-export const getActiveRestaurants = async () => {
+export const getActiveRestaurants = async (city?: string) => {
+  if (city && city !== "all") {
+    const { data, error } = await (supabase
+      .from("restaurants")
+      .select("*")
+      .eq("is_active", true) as any)
+      .eq("city", city)
+      .order("is_featured", { ascending: false })
+      .order("rating", { ascending: false });
+    if (error) throw error;
+    return data;
+  }
   const { data, error } = await supabase
     .from("restaurants")
     .select("*")
