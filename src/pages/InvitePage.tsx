@@ -119,8 +119,8 @@ const InvitePage = () => {
       return;
     }
 
-    // Driver-specific validation
-    if (inviteData.role === "driver") {
+    // Driver & delivery_driver specific validation
+    if (inviteData.role === "driver" || inviteData.role === "delivery_driver") {
       if (!idFrontFile || !idBackFile || !selfieFile || !licenseFile || !vehicleImageFile) {
         toast.error("جميع الصور مطلوبة للسائقين");
         return;
