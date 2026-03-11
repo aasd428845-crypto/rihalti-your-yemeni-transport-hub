@@ -438,7 +438,7 @@ const InvitePage = () => {
                 </div>
               )}
 
-              {inviteData.role === "driver" && (
+              {(inviteData.role === "driver" || inviteData.role === "delivery_driver") && (
                 <div>
                   <Label>الاسم الكامل (كما في البطاقة) <span className="text-destructive">*</span></Label>
                   <div className="relative mt-1">
