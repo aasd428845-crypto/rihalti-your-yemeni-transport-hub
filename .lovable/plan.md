@@ -1,137 +1,77 @@
 
-# خطة التفعيل الشامل والنهائي لمنصة "رحلاتي"
 
-## المشكلة الرئيسية المكتشفة
+## خطة إصلاح الربط والمسارات (System Integration Fix)
 
-المشكلة الجوهرية التي تمنع ظهور الرحلات: عندما ينشئ المورد رحلة، يتم إدخالها في جدول `trips` بحالة `pending`، لكن صفحة الموافقات في لوحة المشرف (`AdminApprovals`) تبحث فقط في جدول `approval_requests` وليس في `trips`. لذلك لا تظهر الرحلات المعلقة للمشرف للموافقة عليها، وبالتالي لا تظهر أبداً في صفحة البحث العام.
-
----
-
-## الخطة التنفيذية
-
-### المرحلة 1: إصلاح نظام الموافقات (الأولوية القصوى)
-
-**1.1 إعادة بناء صفحة الموافقات (`AdminApprovals.tsx`)**
-
-بدلاً من الاعتماد فقط على جدول `approval_requests`، ستقوم الصفحة بجلب البيانات من مصادر متعددة:
-- الرحلات المعلقة من `trips` (حيث `status = 'pending'`)
-- طلبات الشحن المعلقة من `shipment_requests` (حيث `status = 'pending_approval'`)
-- طلبات التوصيل المعلقة من `delivery_orders` (حيث `status = 'pending'`)
-- طلبات الانضمام من `partner_join_requests` (حيث `status = 'pending'`)
-- طلبات الموافقة العامة من `approval_requests`
-
-عند الموافقة على رحلة: تحديث `trips.status` إلى `approved` مباشرة.
-عند الرفض: تحديث `trips.status` إلى `rejected`.
-
-**1.2 إضافة دوال API جديدة في `adminApi.ts`**
-
-```text
-getPendingTrips()      - جلب الرحلات المعلقة مع بيانات المورد
-approveTrip(id)        - تحديث حالة الرحلة إلى approved
-rejectTrip(id, reason) - تحديث حالة الرحلة إلى rejected
-```
-
-**1.3 إضافة إعدادات الموافقة التلقائية في `AdminSettings`**
-
-إضافة مفاتيح Toggle لكل نوع:
-- `auto_approve_trips` 
-- `auto_approve_shipments`
-- `auto_approve_deliveries`
-
-يتم تخزينها في جدول `admin_settings`.
-
-**1.4 تحديث منطق إنشاء الرحلة في المورد**
-
-في `SupplierTrips.tsx`، عند إنشاء رحلة:
-- جلب إعداد `auto_approve_trips` من `admin_settings`
-- إذا كان مفعلاً: إنشاء الرحلة بحالة `approved`
-- إذا كان معطلاً: إنشاء الرحلة بحالة `pending`
+### المشكلات المحددة والحلول
 
 ---
 
-### المرحلة 2: تحسين واجهات العميل
+### 1. نظام الموافقات المالية (Payment Approval in Delivery Finance)
 
-**2.1 إعادة تصميم صفحة الشحنات (`ShipmentsPage.tsx`)**
+**المشكلة:** صفحة `DeliveryFinance` تعرض فقط الطلبات المكتملة (`delivered`) ولا تعرض المعاملات المالية الفعلية من جدول `financial_transactions` أو `payment_transactions`.
 
-- إضافة قسم ترحيبي مع أيقونة وعنوان جذاب
-- عرض بطاقات الموردين بشكل احترافي مع:
-  - صورة/شعار المورد (من `logo_url`)
-  - الاسم، المدينة، رقم الهاتف
-  - مناطق العمل (جلب من `supplier_working_areas` مع `regions`)
-  - تقييم نجوم (مؤقتاً ثابت)
-  - زر "إرسال شحنة"
-- إضافة شريط بحث وفلترة حسب المدينة
-- تحسين تصميم نموذج الشحن
-
-**2.2 إعادة تصميم صفحة التوصيل (`DeliveriesPage.tsx`)**
-
-نفس مفهوم صفحة الشحنات مع:
-- بطاقات شركات التوصيل مع الشعار ومناطق التغطية
-- رسالة ترحيبية جذابة
-- تصميم احترافي للنموذج
-
-**2.3 تحديث قسم الإحصائيات (`StatsSection.tsx`)**
-
-استبدال الأرقام الثابتة (`10,000+`، `50+`، إلخ) ببيانات حقيقية من قاعدة البيانات باستخدام `fetchHomeStats()` الموجودة في `customerApi.ts`.
+**الحل:**
+- تعديل `src/pages/delivery/DeliveryFinance.tsx`:
+  - إضافة fetch لـ `financial_transactions` حيث `partner_id = user.id`
+  - عرض جدول "أحدث المعاملات" مع بيانات الدفع الفعلية (نوع الدفع، حالة التأكيد، صورة الإيصال)
+  - إضافة زر **"موافقة على المعاملة"** لكل معاملة حالتها `pending`
+  - عند الضغط: تحديث `payment_status` إلى `confirmed` في `financial_transactions` و `payment_transactions`
+  - إرسال إشعار لحظي للعميل عبر `sendPushNotification` بعنوان "تمت الموافقة على دفعتك ✅"
+- إضافة listener في `RealtimeToastListener` لإشعار الشركة عند وصول معاملة جديدة (مراقبة `INSERT` على `financial_transactions`)
 
 ---
 
-### المرحلة 3: تحسينات الواجهة العامة
+### 2. إصلاح روابط دعوة المندوبين (Invite Links)
 
-**3.1 إضافة نظام الإشعارات في الهيدر**
+**المشكلة الجذرية:** كود `DeliveryRiders.tsx` يولد الدعوة بدور `delivery_driver`، لكن `InvitePage.tsx` لا يتعرف على هذا الدور — `roleLabels` يحتوي فقط على `supplier`, `delivery_company`, `driver`.
 
-- إضافة أيقونة جرس بجانب اسم المستخدم في `Header.tsx`
-- عرض عدد الإشعارات غير المقروءة
-- قائمة منسدلة بآخر الإشعارات (من جدول `notifications`)
-- دالة `fetchUnreadNotifications` في `customerApi.ts`
-
-**3.2 تحسين الألوان والتباين**
-
-مراجعة وإصلاح:
-- التأكد من عدم وجود نص أبيض على خلفية فاتحة
-- استخدام `text-foreground` بدلاً من `text-white` على الخلفيات الفاتحة
-- تحسين ألوان الأيقونات في جميع المكونات
-
-**3.3 تحسين القوائم الجانبية**
-
-- التأكد من وجود زر إغلاق (X) واضح في القوائم الجانبية للوحات التحكم
-- زر هامبورغر لإعادة فتح القائمة (موجود فعلياً عبر `SidebarTrigger`)
+**الحل:**
+- تعديل `src/pages/InvitePage.tsx`:
+  - إضافة `delivery_driver` إلى `roleLabels`: `"delivery_driver": "مندوب توصيل"`
+  - إضافة `delivery_driver` إلى `roleIcons`: أيقونة `Bike`
+  - معاملة `delivery_driver` مثل `driver` في نموذج التسجيل (عرض حقول الهوية والمركبة)
+  - بعد إنشاء الحساب: ربط المندوب بالشركة عبر إدخال سجل في جدول `riders` باستخدام `created_by` من `invitation_tokens` كـ `delivery_company_id`
+- تعديل `DeliveryRiders.tsx`:
+  - استخدام `window.location.origin` بدلاً من رابط lovable الداخلي (هذا موجود فعلاً ✅)
 
 ---
 
-### المرحلة 4: تكامل البيانات
+### 3. فلترة المحتوى بالمدينة (City Filter)
 
-**4.1 إدخال إعدادات الموافقة التلقائية**
+**المشكلة:** جدول `restaurants` لا يحتوي على عمود `city`. لا يوجد أي ربط بالمدينة.
 
-إدخال سجلات في `admin_settings`:
-- `auto_approve_trips` = `false`
-- `auto_approve_shipments` = `false`  
-- `auto_approve_deliveries` = `false`
-
-**4.2 تحديث `entityTypeLabels` في `admin.types.ts`**
-
-إضافة تصنيفات جديدة:
-- `pending_trip`: "رحلة معلقة"
-- `pending_shipment`: "طلب شحن معلق"
+**الحل:**
+- **Migration:** إضافة عمود `city TEXT` لجدول `restaurants`
+- تعديل `src/lib/restaurantApi.ts` > `getActiveRestaurants`:
+  - إضافة parameter اختياري `city?: string`
+  - إذا تم تمرير المدينة، إضافة `.eq("city", city)` للاستعلام
+- تعديل `src/pages/customer/RestaurantsPage.tsx`:
+  - جلب مدينة العميل من `profiles` عبر `useAuth`
+  - تمرير المدينة لـ `getActiveRestaurants(city)`
+  - إضافة مرشح مدينة في الواجهة إذا أراد العميل تغيير المدينة
 
 ---
 
-## الملفات المتأثرة
+### 4. تحسين واجهة المطاعم (UI Enhancement)
 
-| الملف | نوع التغيير |
-|-------|-------------|
-| `src/pages/admin/AdminApprovals.tsx` | إعادة بناء كاملة |
-| `src/pages/admin/AdminSettings.tsx` | إضافة إعدادات الموافقة التلقائية |
-| `src/lib/adminApi.ts` | إضافة دوال الموافقة على الرحلات |
-| `src/pages/customer/ShipmentsPage.tsx` | إعادة تصميم كامل |
-| `src/pages/customer/DeliveriesPage.tsx` | إعادة تصميم كامل |
-| `src/components/landing/StatsSection.tsx` | استبدال البيانات الثابتة |
-| `src/components/landing/Header.tsx` | إضافة الإشعارات |
-| `src/lib/customerApi.ts` | إضافة دوال الإشعارات ومناطق العمل |
-| `src/pages/supplier/SupplierTrips.tsx` | تحديث منطق الموافقة التلقائية |
-| `src/types/admin.types.ts` | إضافة تصنيفات جديدة |
+**الحل:** تعديل `src/pages/customer/RestaurantsPage.tsx`:
+- تطبيق **تدرج لوني** خفيف للخلفية (من ذهبي شفاف لأسود راقي)
+- بطاقات بـ **ظلال ناعمة** (`shadow-lg`) و **حواف مستديرة** (`rounded-2xl`)
+- تأثير `hover`: رفع البطاقة (`hover:-translate-y-1`) مع تغيير لون الحدود (`hover:border-primary/30`)
+- إضافة تأثير **glassmorphism** خفيف للبطاقات المميزة
+- تحسين عرض الصور مع overlay gradient للنص
+- استخدام ألوان محفزة للشهية (أحمر/برتقالي خفيف) في badges المطبخ
 
-## قاعدة البيانات
+---
 
-- إدخال بيانات في `admin_settings` (3 سجلات للموافقة التلقائية) عبر أداة الإدراج
-- لا حاجة لتغييرات في هيكل الجداول (كل الجداول والأعمدة المطلوبة موجودة)
+### ملخص الملفات المتأثرة
+
+| الملف | التغيير |
+|-------|---------|
+| `src/pages/delivery/DeliveryFinance.tsx` | إضافة جدول المعاملات المالية + زر الموافقة |
+| `src/pages/InvitePage.tsx` | دعم دور `delivery_driver` + ربط بالشركة |
+| `src/pages/customer/RestaurantsPage.tsx` | فلترة المدينة + تحسين UI |
+| `src/lib/restaurantApi.ts` | إضافة فلتر المدينة |
+| `src/components/notifications/RealtimeToastListener.tsx` | إشعار الشركة بمعاملة جديدة |
+| **Migration** | إضافة `city` لجدول `restaurants` |
+
