@@ -478,7 +478,7 @@ const InvitePage = () => {
               )}
 
               {/* Driver-specific fields */}
-              {inviteData.role === "driver" && (
+              {(inviteData.role === "driver" || inviteData.role === "delivery_driver") && (
                 <>
                   <div className="border-t border-border pt-4">
                     <h3 className="font-bold text-foreground mb-3 flex items-center gap-2">
