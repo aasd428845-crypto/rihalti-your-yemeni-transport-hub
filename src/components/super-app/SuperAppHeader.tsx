@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MapPin, ChevronDown, Search, Bell, ShoppingCart, X, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import waslLogo from "@/assets/wasl-logo.png";
-
-const CITIES = ["صنعاء", "عدن", "تعز", "المكلا", "إب", "الحديدة", "ذمار", "سيئون", "مأرب", "حجة"];
 
 const DETAIL_PATHS = ["/restaurants/", "/trips/", "/checkout/", "/ride/", "/order/"];
 
@@ -19,10 +17,8 @@ const SuperAppHeader = () => {
   const location = useLocation();
   const { user } = useAuth();
   const [city, setCity] = useState("صنعاء");
-  const [cityOpen, setCityOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
-  const cityRef = useRef<HTMLDivElement>(null);
   const detail = isDetailPage(location.pathname);
 
   useEffect(() => {
@@ -41,14 +37,6 @@ const SuperAppHeader = () => {
       .then(({ count }) => setUnreadCount(count || 0));
   }, [user]);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (cityRef.current && !cityRef.current.contains(e.target as Node)) setCityOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (search.trim()) {
@@ -58,11 +46,11 @@ const SuperAppHeader = () => {
   };
 
   return (
-    <header className="fixed top-0 right-0 left-0 z-50 bg-background/97 backdrop-blur-xl border-b border-border/40 shadow-sm" dir="rtl">
+    <header className="fixed top-0 right-0 left-0 z-50 bg-white dark:bg-background border-b border-border/30 shadow-[0_2px_16px_rgba(0,0,0,0.07)]" dir="rtl">
       <div className="px-4 pt-3 pb-2 max-w-2xl mx-auto">
 
         {detail ? (
-          /* ── Detail Page: Back + Title ─────────────── */
+          /* ── Detail Page: Back + Logo ──────────────── */
           <div className="flex items-center gap-3 h-12">
             <button
               data-testid="btn-back"
@@ -71,60 +59,47 @@ const SuperAppHeader = () => {
             >
               <ArrowRight className="w-5 h-5 text-foreground" />
             </button>
-            <a
-              href="/"
-              onClick={(e) => { e.preventDefault(); navigate("/"); }}
+            <button
+              onClick={() => navigate("/")}
               className="flex items-center gap-2"
             >
               <img src={waslLogo} alt="وصل" className="w-8 h-8 rounded-lg object-cover" />
               <span className="font-extrabold text-lg text-foreground">وصل</span>
-            </a>
+            </button>
           </div>
         ) : (
           <>
-            {/* ── Row 1: Location + Actions ──────────────── */}
-            <div className="flex items-center justify-between mb-2.5">
-              {/* Location picker */}
-              <div ref={cityRef} className="relative">
-                <button
-                  data-testid="btn-location-picker"
-                  onClick={() => setCityOpen(!cityOpen)}
-                  className="flex items-center gap-1.5 group"
-                >
-                  <MapPin className="w-4 h-4 text-primary" />
-                  <div className="text-right">
-                    <p className="text-[10px] text-muted-foreground leading-none mb-0.5">توصيل إلى</p>
-                    <div className="flex items-center gap-1">
-                      <span className="font-bold text-sm text-foreground">{city}</span>
-                      <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${cityOpen ? "rotate-180" : ""}`} />
-                    </div>
+            {/* ── Row 1: Logo + Location + Actions ──────── */}
+            <div className="flex items-center gap-3 mb-2.5">
+
+              {/* Wasl Logo */}
+              <button onClick={() => navigate("/")} className="shrink-0">
+                <img
+                  src={waslLogo}
+                  alt="وصل"
+                  className="w-9 h-9 rounded-xl object-cover shadow-sm border border-border/20"
+                />
+              </button>
+
+              {/* Location picker → navigates to /addresses */}
+              <button
+                data-testid="btn-location-picker"
+                onClick={() => navigate("/addresses")}
+                className="flex items-center gap-1.5 flex-1 group min-w-0"
+              >
+                <MapPin className="w-4 h-4 text-primary shrink-0" />
+                <div className="text-right min-w-0">
+                  <p className="text-[10px] text-muted-foreground leading-none mb-0.5">توصيل إلى</p>
+                  <div className="flex items-center gap-0.5">
+                    <span className="font-bold text-sm text-foreground truncate">{city}</span>
+                    <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
                   </div>
-                </button>
-                {cityOpen && (
-                  <div className="absolute top-full right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl z-50 py-2 min-w-[160px]">
-                    {CITIES.map((c) => (
-                      <button
-                        key={c}
-                        className={`w-full text-right px-4 py-2.5 text-sm hover:bg-muted/60 transition-colors ${city === c ? "font-bold text-primary" : "text-foreground"}`}
-                        onClick={() => { setCity(c); setCityOpen(false); }}
-                      >
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              </button>
 
               {/* Right actions */}
-              <div className="flex items-center gap-1">
-                <a
-                  href="/"
-                  onClick={(e) => { e.preventDefault(); navigate("/"); }}
-                  className="w-9 h-9 flex items-center justify-center"
-                >
-                  <img src={waslLogo} alt="وصل" className="w-8 h-8 rounded-xl object-cover shadow-sm" />
-                </a>
-                {user && (
+              <div className="flex items-center gap-0.5 shrink-0">
+                {user ? (
                   <>
                     <button
                       data-testid="btn-cart-header"
@@ -146,20 +121,27 @@ const SuperAppHeader = () => {
                       )}
                     </button>
                   </>
+                ) : (
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="text-xs font-bold text-primary px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors"
+                  >
+                    دخول
+                  </button>
                 )}
               </div>
             </div>
 
-            {/* ── Row 2: Search Bar ──────────────────────── */}
+            {/* ── Row 2: Search Bar ────────────────────── */}
             <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground pointer-events-none" />
+              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
                 data-testid="input-global-search"
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="ابحث عن مطعم، متجر، وجهة..."
-                className="w-full h-11 pr-10 pl-10 rounded-2xl bg-muted/60 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all placeholder:text-muted-foreground"
+                className="w-full h-11 pr-10 pl-10 rounded-2xl bg-muted/50 border border-border/40 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all placeholder:text-muted-foreground"
               />
               {search && (
                 <button

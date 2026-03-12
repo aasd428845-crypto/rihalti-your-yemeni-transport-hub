@@ -13,8 +13,8 @@ const BANNERS = [
     subtitle: "اطلب من مطاعمك المفضلة الآن",
     cta: "اطلب الآن",
     route: "/restaurants?tab=restaurants",
-    gradient: "from-orange-500 via-amber-400 to-orange-300",
-    emoji: "🍽️",
+    overlay: "from-orange-900/80 via-orange-800/50 to-transparent",
+    img: "https://images.unsplash.com/photo-1526367790999-0150786686a2?w=700&q=80",
     badge: "عرض محدود",
   },
   {
@@ -23,8 +23,8 @@ const BANNERS = [
     subtitle: "احجز مقعدك مع أفضل شركات النقل",
     cta: "احجز الآن",
     route: "/trips",
-    gradient: "from-primary via-emerald-400 to-teal-300",
-    emoji: "🚌",
+    overlay: "from-emerald-900/80 via-emerald-800/50 to-transparent",
+    img: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=700&q=80",
     badge: "جديد",
   },
   {
@@ -33,8 +33,8 @@ const BANNERS = [
     subtitle: "بقالتك وصيدليتك تصل لبابك",
     cta: "اكتشف المتاجر",
     route: "/restaurants?tab=grocery",
-    gradient: "from-violet-500 via-purple-400 to-indigo-300",
-    emoji: "🛒",
+    overlay: "from-violet-900/80 via-violet-800/50 to-transparent",
+    img: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=700&q=80",
     badge: "حصري",
   },
 ];
