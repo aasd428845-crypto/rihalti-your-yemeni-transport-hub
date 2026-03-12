@@ -8,10 +8,10 @@ import { useTheme } from "next-themes";
 import waslLogo from "@/assets/wasl-logo.png";
 
 const navLinks = [
-  { label: "المطاعم", href: "/restaurants" },
+  { label: "المطاعم والتوصيل", href: "/restaurants" },
   { label: "الرحلات", href: "/trips" },
   { label: "الطرود", href: "/shipments" },
-  { label: "التوصيل", href: "/deliveries" },
+  { label: "طلباتي", href: "/deliveries" },
   { label: "أجرة", href: "/ride/request" },
   { label: "تتبع الطرد", href: "/tracking" },
   { label: "عن المنصة", href: "/about" },

@@ -88,6 +88,7 @@ const HistoryPage = lazy(() => import("./pages/customer/HistoryPage"));
 const AccountPage = lazy(() => import("./pages/customer/AccountPage"));
 const TrackingPage = lazy(() => import("./pages/customer/TrackingPage"));
 const AddressesPage = lazy(() => import("./pages/customer/AddressesPage"));
+const DeliveryHubPage = lazy(() => import("./pages/customer/DeliveryHubPage"));
 const RestaurantsPage = lazy(() => import("./pages/customer/RestaurantsPage"));
 const RestaurantMenuPage = lazy(() => import("./pages/customer/RestaurantMenuPage"));
 const RestaurantCheckoutPage = lazy(() => import("./pages/customer/RestaurantCheckoutPage"));
@@ -149,7 +150,8 @@ const App = () => (
                 <Route path="/checkout/:tripId" element={<CheckoutPage />} />
                 <Route path="/shipments" element={<ShipmentsPage />} />
                 <Route path="/deliveries" element={<DeliveriesPage />} />
-                <Route path="/restaurants" element={<RestaurantsPage />} />
+                <Route path="/restaurants" element={<DeliveryHubPage />} />
+                <Route path="/delivery-hub" element={<DeliveryHubPage />} />
                 <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
                 <Route path="/restaurants/:id/checkout" element={<RestaurantCheckoutPage />} />
                 <Route path="/history" element={<HistoryPage />} />
