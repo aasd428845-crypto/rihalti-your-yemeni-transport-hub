@@ -518,6 +518,32 @@ const DeliveryHubPage = () => {
           })}
         </div>
 
+        {/* ── Order Anything Card ─────────────────────────────── */}
+        <div
+          className="mb-8 rounded-2xl overflow-hidden cursor-pointer group shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+          onClick={() => navigate("/shipments")}
+          data-testid="card-order-anything"
+        >
+          <div className="bg-gradient-to-l from-violet-600 via-purple-500 to-indigo-500 p-5 flex items-center gap-4 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10 pointer-events-none">
+              <div className="absolute top-[-30px] right-[-30px] w-[140px] h-[140px] rounded-full bg-white blur-2xl" />
+            </div>
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <span className="text-3xl">🛍️</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-white font-black text-base leading-tight">اطلب أي شيء من أي مكان</h3>
+                <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/30">جديد</span>
+              </div>
+              <p className="text-white/80 text-sm leading-snug">محلات غير مسجلة، منازل، أي مكان في مدينتك</p>
+            </div>
+            <div className="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+              <span className="text-white text-lg font-bold">←</span>
+            </div>
+          </div>
+        </div>
+
         {/* ── Restaurants Tab ─────────────────────────────────── */}
         {activeTab === "restaurants" && (
           <div className="space-y-12">

@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import MainLayout from "@/layouts/MainLayout";
+const SuperAppLayout = lazy(() => import("./layouts/SuperAppLayout"));
 import PageLoader from "@/components/common/PageLoader";
 import Index from "./pages/Index";
 
@@ -138,8 +139,8 @@ const App = () => (
           <AuthProvider>
             <Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* Pages with MainLayout (Header + Footer) */}
-              <Route element={<MainLayout />}>
+              {/* Pages with SuperAppLayout (Super App UX) */}
+              <Route element={<SuperAppLayout />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />

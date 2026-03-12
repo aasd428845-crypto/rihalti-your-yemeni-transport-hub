@@ -1,26 +1,343 @@
-import Hero from "@/components/home/Hero";
-import Services from "@/components/home/Services";
-import Stats from "@/components/home/Stats";
-import HowItWorks from "@/components/home/HowItWorks";
-import Numbers from "@/components/home/Numbers";
-import Partners from "@/components/home/Partners";
-import Testimonials from "@/components/home/Testimonials";
-import AppDownload from "@/components/home/AppDownload";
-import Newsletter from "@/components/home/Newsletter";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight, Star, Clock, Zap, Shield, TrendingUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
-const Index = () => {
+// ─── Promo Banners ────────────────────────────────────────────────────────────
+const BANNERS = [
+  {
+    id: 1,
+    title: "خصم 30% على أول طلب",
+    subtitle: "اطلب من مطاعمك المفضلة الآن",
+    cta: "اطلب الآن",
+    route: "/restaurants?tab=restaurants",
+    gradient: "from-orange-500 via-amber-400 to-orange-300",
+    emoji: "🍽️",
+    badge: "عرض محدود",
+  },
+  {
+    id: 2,
+    title: "رحلات مريحة بين المدن",
+    subtitle: "احجز مقعدك مع أفضل شركات النقل",
+    cta: "احجز الآن",
+    route: "/trips",
+    gradient: "from-primary via-emerald-400 to-teal-300",
+    emoji: "🚌",
+    badge: "جديد",
+  },
+  {
+    id: 3,
+    title: "توصيل سريع في 30 دقيقة",
+    subtitle: "بقالتك وصيدليتك تصل لبابك",
+    cta: "اكتشف المتاجر",
+    route: "/restaurants?tab=grocery",
+    gradient: "from-violet-500 via-purple-400 to-indigo-300",
+    emoji: "🛒",
+    badge: "حصري",
+  },
+];
+
+// ─── Service Grid ──────────────────────────────────────────────────────────────
+const SERVICES = [
+  {
+    id: "restaurants",
+    emoji: "🍽️",
+    label: "مطاعم وتوصيل",
+    desc: "اطلب من مطاعمك المفضلة",
+    route: "/restaurants?tab=restaurants",
+    bgFrom: "from-orange-400",
+    bgTo: "to-amber-300",
+    shadow: "shadow-orange-200 dark:shadow-orange-900/40",
+    isNew: false,
+  },
+  {
+    id: "trips",
+    emoji: "🚌",
+    label: "رحلات بين المدن",
+    desc: "احجز مقعدك بسهولة",
+    route: "/trips",
+    bgFrom: "from-primary",
+    bgTo: "to-emerald-400",
+    shadow: "shadow-emerald-200 dark:shadow-emerald-900/40",
+    isNew: false,
+  },
+  {
+    id: "shipments",
+    emoji: "📦",
+    label: "طرود آمنة",
+    desc: "أرسل طردك بثقة",
+    route: "/shipments",
+    bgFrom: "from-blue-500",
+    bgTo: "to-cyan-400",
+    shadow: "shadow-blue-200 dark:shadow-blue-900/40",
+    isNew: false,
+  },
+  {
+    id: "taxi",
+    emoji: "🚖",
+    label: "سيارة أجرة",
+    desc: "احجز سيارتك فوراً",
+    route: "/ride/request",
+    bgFrom: "from-yellow-500",
+    bgTo: "to-amber-400",
+    shadow: "shadow-yellow-200 dark:shadow-yellow-900/40",
+    isNew: true,
+  },
+];
+
+// ─── Feature pills ────────────────────────────────────────────────────────────
+const FEATURES = [
+  { icon: Zap, label: "توصيل سريع", color: "text-amber-500" },
+  { icon: Shield, label: "دفع آمن", color: "text-emerald-500" },
+  { icon: Star, label: "تقييمات موثوقة", color: "text-orange-500" },
+  { icon: TrendingUp, label: "أسعار تنافسية", color: "text-blue-500" },
+];
+
+// ─── Banner Carousel ──────────────────────────────────────────────────────────
+const BannerCarousel = () => {
+  const navigate = useNavigate();
+  const [current, setCurrent] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout>();
+
+  const startAuto = () => {
+    intervalRef.current = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % BANNERS.length);
+    }, 4000);
+  };
+
+  useEffect(() => {
+    startAuto();
+    return () => clearInterval(intervalRef.current);
+  }, []);
+
+  const go = (dir: "next" | "prev") => {
+    clearInterval(intervalRef.current);
+    setCurrent((prev) => dir === "next" ? (prev + 1) % BANNERS.length : (prev - 1 + BANNERS.length) % BANNERS.length);
+    startAuto();
+  };
+
+  const banner = BANNERS[current];
+
   return (
-    <>
-      <Hero />
-      <Services />
-      <Stats />
-      <HowItWorks />
-      <Numbers />
-      <Partners />
-      <Testimonials />
-      <AppDownload />
-      <Newsletter />
-    </>
+    <div className="relative rounded-3xl overflow-hidden shadow-xl mb-8 mx-0" style={{ minHeight: 160 }}>
+      {/* Banner */}
+      <div
+        className={`bg-gradient-to-l ${banner.gradient} p-6 pr-8 relative min-h-[160px] flex flex-col justify-between transition-all duration-500`}
+      >
+        {/* Badge */}
+        <div className="flex items-start justify-between mb-2">
+          <span className="text-4xl drop-shadow-lg">{banner.emoji}</span>
+          <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm text-xs font-bold">
+            {banner.badge}
+          </Badge>
+        </div>
+
+        <div>
+          <h2 className="text-white font-black text-xl leading-tight mb-1 drop-shadow-md">{banner.title}</h2>
+          <p className="text-white/85 text-sm mb-4">{banner.subtitle}</p>
+          <button
+            onClick={() => navigate(banner.route)}
+            className="bg-white/20 backdrop-blur-sm text-white text-sm font-bold px-5 py-2 rounded-full border border-white/30 hover:bg-white/30 transition-colors"
+          >
+            {banner.cta} ←
+          </button>
+        </div>
+
+        {/* Nav arrows */}
+        <button
+          onClick={() => go("prev")}
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4 text-white" />
+        </button>
+        <button
+          onClick={() => go("next")}
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors"
+        >
+          <ChevronRight className="w-4 h-4 text-white" />
+        </button>
+      </div>
+
+      {/* Dots */}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+        {BANNERS.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={`rounded-full transition-all duration-300 ${i === current ? "w-5 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/40"}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Recent Trips ─────────────────────────────────────────────────────────────
+const RecentTrips = () => {
+  const navigate = useNavigate();
+  const [trips, setTrips] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("trips")
+      .select("id, from_city, to_city, departure_time, price, available_seats")
+      .eq("status", "active")
+      .gt("available_seats", 0)
+      .order("departure_time", { ascending: true })
+      .limit(4)
+      .then(({ data }) => setTrips(data || []));
+  }, []);
+
+  if (trips.length === 0) return null;
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-black text-foreground">رحلات قادمة</h2>
+        <button onClick={() => navigate("/trips")} className="text-sm text-primary font-semibold">
+          عرض الكل ←
+        </button>
+      </div>
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        {trips.map((trip) => (
+          <button
+            key={trip.id}
+            onClick={() => navigate(`/trips/${trip.id}`)}
+            className="min-w-[180px] bg-card rounded-2xl border border-border/40 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0"
+          >
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-lg">🚌</span>
+              <span className="text-xs text-muted-foreground font-medium">
+                {new Date(trip.departure_time).toLocaleDateString("ar-YE", { weekday: "short", month: "short", day: "numeric" })}
+              </span>
+            </div>
+            <p className="font-bold text-sm text-foreground mb-1">
+              {trip.from_city} ← {trip.to_city}
+            </p>
+            <div className="flex items-center justify-between">
+              <span className="text-primary font-black text-sm">{trip.price} ر.ي</span>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                {trip.available_seats} مقعد
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Home Component ──────────────────────────────────────────────────────
+const Index = () => {
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
+
+  return (
+    <div className="min-h-screen bg-background" dir="rtl">
+      <div className="max-w-2xl mx-auto px-4 py-6">
+
+        {/* Greeting */}
+        <div className="mb-6">
+          <p className="text-sm text-muted-foreground">
+            {user ? `مرحباً، ${profile?.full_name?.split(" ")[0] || "بك"} 👋` : "أهلاً بك في وصل 👋"}
+          </p>
+          <h1 className="text-2xl font-black text-foreground leading-tight">
+            ماذا تريد اليوم؟
+          </h1>
+        </div>
+
+        {/* Promo Carousel */}
+        <BannerCarousel />
+
+        {/* Service Grid */}
+        <div className="mb-8">
+          <h2 className="text-lg font-black text-foreground mb-4">خدماتنا</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {SERVICES.map((svc) => (
+              <button
+                key={svc.id}
+                data-testid={`service-card-${svc.id}`}
+                onClick={() => navigate(svc.route)}
+                className={`relative bg-card rounded-2xl border border-border/30 p-5 shadow-md ${svc.shadow} hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group text-right`}
+              >
+                {svc.isNew && (
+                  <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px] font-bold border-0">
+                    جديد 🔥
+                  </Badge>
+                )}
+                {/* Emoji icon in gradient circle */}
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${svc.bgFrom} ${svc.bgTo} flex items-center justify-center mb-3 shadow-md group-hover:scale-110 transition-transform duration-300`}>
+                  <span className="text-3xl drop-shadow-sm">{svc.emoji}</span>
+                </div>
+                <p className="font-black text-sm text-foreground mb-0.5 leading-tight">{svc.label}</p>
+                <p className="text-xs text-muted-foreground">{svc.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Feature Pills */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-8">
+          {FEATURES.map((feat) => (
+            <div
+              key={feat.label}
+              className="flex items-center gap-1.5 shrink-0 bg-card border border-border/40 rounded-full px-4 py-2 shadow-sm"
+            >
+              <feat.icon className={`w-3.5 h-3.5 ${feat.color}`} />
+              <span className="text-xs font-semibold text-foreground whitespace-nowrap">{feat.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Recent Trips */}
+        <RecentTrips />
+
+        {/* Delivery Hub Quick Access */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-black text-foreground">التوصيل السريع</h2>
+            <button onClick={() => navigate("/restaurants")} className="text-sm text-primary font-semibold">
+              عرض الكل ←
+            </button>
+          </div>
+          <div className="flex gap-3">
+            {[
+              { emoji: "🍽️", label: "مطاعم", tab: "restaurants", bg: "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800" },
+              { emoji: "🛒", label: "بقالة", tab: "grocery", bg: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800" },
+              { emoji: "💊", label: "صيدلية", tab: "pharmacy", bg: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800" },
+              { emoji: "📦", label: "طلب خاص", tab: "custom", bg: "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800" },
+            ].map((item) => (
+              <button
+                key={item.tab}
+                onClick={() => navigate(item.tab === "custom" ? "/shipments" : `/restaurants?tab=${item.tab}`)}
+                className={`flex-1 flex flex-col items-center gap-2 py-4 rounded-2xl border ${item.bg} hover:shadow-md transition-all duration-200`}
+              >
+                <span className="text-2xl">{item.emoji}</span>
+                <span className="text-xs font-bold text-foreground">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Platform stats */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[
+            { num: "+500", label: "مطعم" },
+            { num: "+20", label: "مدينة" },
+            { num: "4.9 ⭐", label: "تقييم" },
+          ].map((stat) => (
+            <div key={stat.label} className="bg-card border border-border/40 rounded-2xl p-4 text-center shadow-sm">
+              <p className="font-black text-lg text-primary">{stat.num}</p>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
+      </div>
+    </div>
   );
 };
 
