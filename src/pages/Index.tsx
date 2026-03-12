@@ -43,45 +43,41 @@ const BANNERS = [
 const SERVICES = [
   {
     id: "restaurants",
-    emoji: "🍽️",
+    img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80",
     label: "مطاعم وتوصيل",
     desc: "اطلب من مطاعمك المفضلة",
     route: "/restaurants?tab=restaurants",
-    bgFrom: "from-orange-400",
-    bgTo: "to-amber-300",
+    accentBg: "bg-orange-500",
     shadow: "shadow-orange-200 dark:shadow-orange-900/40",
     isNew: false,
   },
   {
     id: "trips",
-    emoji: "🚌",
+    img: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&q=80",
     label: "رحلات بين المدن",
     desc: "احجز مقعدك بسهولة",
     route: "/trips",
-    bgFrom: "from-primary",
-    bgTo: "to-emerald-400",
+    accentBg: "bg-primary",
     shadow: "shadow-emerald-200 dark:shadow-emerald-900/40",
     isNew: false,
   },
   {
     id: "shipments",
-    emoji: "📦",
+    img: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&q=80",
     label: "طرود آمنة",
     desc: "أرسل طردك بثقة",
     route: "/shipments",
-    bgFrom: "from-blue-500",
-    bgTo: "to-cyan-400",
+    accentBg: "bg-blue-500",
     shadow: "shadow-blue-200 dark:shadow-blue-900/40",
     isNew: false,
   },
   {
     id: "taxi",
-    emoji: "🚖",
+    img: "https://images.unsplash.com/photo-1549924231-f129b911e442?w=400&q=80",
     label: "سيارة أجرة",
     desc: "احجز سيارتك فوراً",
     route: "/ride/request",
-    bgFrom: "from-yellow-500",
-    bgTo: "to-amber-400",
+    accentBg: "bg-amber-500",
     shadow: "shadow-yellow-200 dark:shadow-yellow-900/40",
     isNew: true,
   },
@@ -261,19 +257,32 @@ const Index = () => {
                 key={svc.id}
                 data-testid={`service-card-${svc.id}`}
                 onClick={() => navigate(svc.route)}
-                className={`relative bg-card rounded-2xl border border-border/30 p-5 shadow-md ${svc.shadow} hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group text-right`}
+                className={`relative rounded-2xl overflow-hidden shadow-lg ${svc.shadow} hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group text-right`}
+                style={{ minHeight: 170 }}
               >
+                {/* Real photo background */}
+                <img
+                  src={svc.img}
+                  alt={svc.label}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+
                 {svc.isNew && (
-                  <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px] font-bold border-0">
-                    جديد 🔥
-                  </Badge>
+                  <div className="absolute top-3 left-3 z-10">
+                    <Badge className="bg-primary text-primary-foreground text-[10px] font-bold border-0 shadow-lg">
+                      جديد 🔥
+                    </Badge>
+                  </div>
                 )}
-                {/* Emoji icon in gradient circle */}
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${svc.bgFrom} ${svc.bgTo} flex items-center justify-center mb-3 shadow-md group-hover:scale-110 transition-transform duration-300`}>
-                  <span className="text-3xl drop-shadow-sm">{svc.emoji}</span>
+
+                {/* Text overlay at bottom */}
+                <div className="absolute bottom-0 right-0 left-0 p-4 z-10">
+                  <p className="font-black text-sm text-white leading-tight drop-shadow-md">{svc.label}</p>
+                  <p className="text-xs text-white/80 mt-0.5 drop-shadow-sm">{svc.desc}</p>
                 </div>
-                <p className="font-black text-sm text-foreground mb-0.5 leading-tight">{svc.label}</p>
-                <p className="text-xs text-muted-foreground">{svc.desc}</p>
               </button>
             ))}
           </div>
@@ -305,17 +314,19 @@ const Index = () => {
           </div>
           <div className="flex gap-3">
             {[
-              { emoji: "🍽️", label: "مطاعم", tab: "restaurants", bg: "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800" },
-              { emoji: "🛒", label: "بقالة", tab: "grocery", bg: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800" },
-              { emoji: "💊", label: "صيدلية", tab: "pharmacy", bg: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800" },
-              { emoji: "📦", label: "طلب خاص", tab: "custom", bg: "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800" },
+              { img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=100&q=80", label: "مطاعم", tab: "restaurants", ring: "ring-orange-300 dark:ring-orange-700" },
+              { img: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&q=80", label: "بقالة", tab: "grocery", ring: "ring-emerald-300 dark:ring-emerald-700" },
+              { img: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=100&q=80", label: "صيدلية", tab: "pharmacy", ring: "ring-blue-300 dark:ring-blue-700" },
+              { img: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=100&q=80", label: "طلب خاص", tab: "custom", ring: "ring-purple-300 dark:ring-purple-700" },
             ].map((item) => (
               <button
                 key={item.tab}
                 onClick={() => navigate(item.tab === "custom" ? "/shipments" : `/restaurants?tab=${item.tab}`)}
-                className={`flex-1 flex flex-col items-center gap-2 py-4 rounded-2xl border ${item.bg} hover:shadow-md transition-all duration-200`}
+                className="flex-1 flex flex-col items-center gap-2 py-3 hover:opacity-80 transition-opacity duration-200"
               >
-                <span className="text-2xl">{item.emoji}</span>
+                <div className={`w-14 h-14 rounded-full overflow-hidden ring-2 ${item.ring} shadow-md`}>
+                  <img src={item.img} alt={item.label} className="w-full h-full object-cover" loading="lazy" />
+                </div>
                 <span className="text-xs font-bold text-foreground">{item.label}</span>
               </button>
             ))}

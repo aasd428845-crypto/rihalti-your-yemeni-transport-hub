@@ -121,7 +121,7 @@ const DeliveryDriverProfile = lazy(() => import("./pages/delivery-driver/Deliver
 const DeliveryDriverSettings = lazy(() => import("./pages/delivery-driver/DeliveryDriverSettings"));
 const DeliveryDriverOrderDetails = lazy(() => import("./pages/delivery-driver/DeliveryDriverOrderDetails"));
 const DeliveryDriverHistory = lazy(() => import("./pages/delivery-driver/DeliveryDriverHistory"));
-const SupportChatWidget = lazy(() => import("./components/support/SupportChatWidget"));
+const MorePage = lazy(() => import("./pages/MorePage"));
 const InstallPage = lazy(() => import("./pages/InstallPage"));
 import { InstallPWAButton } from "./components/InstallPWAButton";
 import { UpdateNotification } from "./components/UpdateNotification";
@@ -170,6 +170,7 @@ const App = () => (
                 <Route path="/notification-settings" element={<NotificationSettingsPage />} />
                 <Route path="/shipment-request" element={<ShipmentRequestPage />} />
                 <Route path="/cart" element={<CartPage />} />
+                <Route path="/more" element={<MorePage />} />
                 <Route path="/partner/public/:id" element={<PublicPartnerProfilePage />} />
                 <Route path="/install" element={<InstallPage />} />
               </Route>
@@ -265,7 +266,6 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
-            <SupportChatWidget />
             <InstallPWAButton />
             <UpdateNotification />
             <RealtimeToastListener />

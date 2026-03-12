@@ -1,13 +1,9 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, Tag, Wallet, User, MoreHorizontal } from "lucide-react";
+import { Package, Tag, Wallet, User, MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import waslLogo from "@/assets/wasl-logo.png";
 
-interface BottomNavProps {
-  onMoreOpen: () => void;
-}
-
-const BottomNav = ({ onMoreOpen }: BottomNavProps) => {
+const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, profile } = useAuth();
@@ -49,8 +45,8 @@ const BottomNav = ({ onMoreOpen }: BottomNavProps) => {
       id: "more",
       label: user ? (profile?.full_name?.split(" ")[0] || "حسابي") : "المزيد",
       icon: user ? User : MoreHorizontal,
-      paths: ["/account", "/addresses", "/notifications"],
-      action: () => onMoreOpen(),
+      paths: ["/more", "/account", "/addresses", "/notifications"],
+      action: () => navigate("/more"),
     },
   ];
 
@@ -61,11 +57,10 @@ const BottomNav = ({ onMoreOpen }: BottomNavProps) => {
     >
       <div className="flex items-center justify-around px-2 py-2 max-w-2xl mx-auto pb-[env(safe-area-inset-bottom,8px)]">
         {tabs.map((tab) => {
-          const active = tab.id === "home"
-            ? location.pathname === "/"
-            : tab.id === "more"
-            ? false
-            : isActive(tab.paths);
+          const active =
+            tab.id === "home"
+              ? location.pathname === "/"
+              : isActive(tab.paths);
 
           return (
             <button
@@ -73,9 +68,7 @@ const BottomNav = ({ onMoreOpen }: BottomNavProps) => {
               data-testid={`bottom-nav-${tab.id}`}
               onClick={tab.action}
               className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all duration-200 min-w-[56px] ${
-                active
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                active ? "text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {tab.isLogo ? (
