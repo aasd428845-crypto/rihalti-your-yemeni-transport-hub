@@ -1,7 +1,7 @@
-# وصل (Wasal) - Smart Transportation Platform
+# وصل (Wasal) - Yemeni Transport Super App
 
 ## Overview
-A full-featured Arabic-language transportation platform for Yemen, connecting customers with transport suppliers, delivery companies, and drivers. Built with React/Vite and Supabase.
+A Tier-1 Super App experience for Yemen — HungerStation-quality delivery hub, city-to-city trips, parcel shipping, and taxi booking. Built with React/Vite on the frontend and Supabase as the hosted backend. Full Arabic RTL layout with professional photography and a modern Super App shell.
 
 ## Architecture
 - **Frontend**: React 18 + TypeScript + Vite, running on port 5000

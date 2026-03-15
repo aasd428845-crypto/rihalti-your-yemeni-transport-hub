@@ -117,52 +117,62 @@ const BannerCarousel = () => {
   const banner = BANNERS[current];
 
   return (
-    <div className="relative rounded-3xl overflow-hidden shadow-xl mb-8 mx-0" style={{ minHeight: 160 }}>
-      {/* Banner */}
-      <div
-        className={`bg-gradient-to-l ${banner.gradient} p-6 pr-8 relative min-h-[160px] flex flex-col justify-between transition-all duration-500`}
-      >
-        {/* Badge */}
-        <div className="flex items-start justify-between mb-2">
-          <span className="text-4xl drop-shadow-lg">{banner.emoji}</span>
-          <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm text-xs font-bold">
+    <div className="relative rounded-3xl overflow-hidden shadow-2xl mb-8" style={{ minHeight: 190 }}>
+      {/* Real Photo Background */}
+      <img
+        key={banner.id}
+        src={banner.img}
+        alt={banner.title}
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+        loading="eager"
+      />
+
+      {/* Dark gradient overlay (right-to-left for RTL) */}
+      <div className={`absolute inset-0 bg-gradient-to-l ${banner.overlay}`} />
+
+      {/* Content */}
+      <div className="relative z-10 p-6 min-h-[190px] flex flex-col justify-between">
+        {/* Top row: badge */}
+        <div className="flex justify-start">
+          <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm text-xs font-bold px-3 py-1">
             {banner.badge}
           </Badge>
         </div>
 
+        {/* Bottom text + CTA */}
         <div>
-          <h2 className="text-white font-black text-xl leading-tight mb-1 drop-shadow-md">{banner.title}</h2>
-          <p className="text-white/85 text-sm mb-4">{banner.subtitle}</p>
+          <h2 className="text-white font-black text-xl leading-tight mb-1 drop-shadow-lg">{banner.title}</h2>
+          <p className="text-white/90 text-sm mb-4 drop-shadow-md">{banner.subtitle}</p>
           <button
             onClick={() => navigate(banner.route)}
-            className="bg-white/20 backdrop-blur-sm text-white text-sm font-bold px-5 py-2 rounded-full border border-white/30 hover:bg-white/30 transition-colors"
+            className="bg-white/25 backdrop-blur-sm text-white text-sm font-bold px-5 py-2.5 rounded-full border border-white/40 hover:bg-white/35 transition-colors shadow-lg"
           >
             {banner.cta} ←
           </button>
         </div>
-
-        {/* Nav arrows */}
-        <button
-          onClick={() => go("prev")}
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4 text-white" />
-        </button>
-        <button
-          onClick={() => go("next")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors"
-        >
-          <ChevronRight className="w-4 h-4 text-white" />
-        </button>
       </div>
 
+      {/* Nav arrows */}
+      <button
+        onClick={() => go("prev")}
+        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-black/50 transition-colors"
+      >
+        <ChevronLeft className="w-5 h-5 text-white" />
+      </button>
+      <button
+        onClick={() => go("next")}
+        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-black/50 transition-colors"
+      >
+        <ChevronRight className="w-5 h-5 text-white" />
+      </button>
+
       {/* Dots */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
         {BANNERS.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className={`rounded-full transition-all duration-300 ${i === current ? "w-5 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/40"}`}
+            className={`rounded-full transition-all duration-300 ${i === current ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/50"}`}
           />
         ))}
       </div>
