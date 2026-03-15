@@ -62,6 +62,26 @@ const AdminPaymentReview = () => {
         .update({ payment_status: "paid", paid_at: new Date().toISOString() } as any)
         .eq("reference_id", tx.related_entity_id);
 
+      // Update the related order/booking status immediately upon approval
+      if (tx.related_entity_id) {
+        if (tx.entity_type === "booking") {
+          await supabase
+            .from("bookings")
+            .update({ status: "confirmed" } as any)
+            .eq("id", tx.related_entity_id);
+        } else if (tx.entity_type === "shipment") {
+          await supabase
+            .from("shipment_requests")
+            .update({ status: "approved" } as any)
+            .eq("id", tx.related_entity_id);
+        } else if (tx.entity_type === "delivery") {
+          await supabase
+            .from("delivery_orders")
+            .update({ status: "confirmed" } as any)
+            .eq("id", tx.related_entity_id);
+        }
+      }
+
       // Notify customer
       try {
         await sendPushNotification({

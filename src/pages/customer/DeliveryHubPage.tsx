@@ -17,6 +17,19 @@ import { supabase } from "@/integrations/supabase/client";
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tab = "restaurants" | "grocery" | "pharmacy";
 
+// ─── Cuisine Fallback Images (Unsplash) ──────────────────────────────────────
+const CUISINE_IMAGES: Record<string, string> = {
+  "يمني":           "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=600&q=80&fit=crop",
+  "برجر":           "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&fit=crop",
+  "بيتزا":          "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80&fit=crop",
+  "مأكولات بحرية":  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80&fit=crop",
+  "حلويات":         "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=600&q=80&fit=crop",
+  "مشروبات":        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80&fit=crop",
+  "شاورما":         "https://images.unsplash.com/photo-1561651823-34feb02250e4?w=600&q=80&fit=crop",
+  "مرق":            "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&q=80&fit=crop",
+  "default":        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80&fit=crop",
+};
+
 // ─── Config ──────────────────────────────────────────────────────────────────
 const TABS = [
   {
@@ -117,46 +130,68 @@ const RestaurantCard = ({
 }) => {
   const imgH = size === "featured" ? "h-52" : "h-44";
   const minW = size === "featured" ? "min-w-[280px]" : "";
+
+  // Pick the best available image
+  const primaryCuisine = r.cuisine_type?.[0] || "";
+  const fallbackImg = CUISINE_IMAGES[primaryCuisine] || CUISINE_IMAGES["default"];
+  const heroSrc = r.cover_image || r.cover_image_url || fallbackImg;
+
+  const isOpen = r.is_active !== false;
+
   return (
     <Card
       data-testid={`card-restaurant-${r.id}`}
       onClick={onClick}
-      className={`cursor-pointer overflow-hidden rounded-2xl border-border/30 bg-card shadow-md hover:shadow-xl hover:-translate-y-1.5 hover:border-border/60 transition-all duration-300 group ${minW}`}
+      className={`cursor-pointer overflow-hidden rounded-2xl border border-border/20 bg-card shadow-md hover:shadow-2xl hover:-translate-y-2 hover:border-amber-400/40 transition-all duration-300 group ${minW}`}
     >
       <div className={`${imgH} relative overflow-hidden`}>
-        {r.cover_image ? (
-          <img
-            src={r.cover_image}
-            alt={r.name_ar}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-orange-100 via-amber-50 to-orange-50 dark:from-orange-950/40 dark:to-amber-950/20 flex items-center justify-center">
-            <UtensilsCrossed className="w-16 h-16 text-orange-200 dark:text-orange-800" />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+        <img
+          src={heroSrc}
+          alt={r.name_ar}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+          loading="lazy"
+          onError={(e) => { (e.target as HTMLImageElement).src = CUISINE_IMAGES["default"]; }}
+        />
+        {/* Dark gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+        {/* Gold shimmer on hover */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-amber-400/0 via-amber-300/0 to-amber-400/0 group-hover:from-amber-400/10 group-hover:via-amber-300/5 group-hover:to-amber-400/10 transition-all duration-500" />
+
+        {/* Featured badge */}
         {r.is_featured && (
-          <Badge className="absolute top-3 right-3 bg-amber-500 text-white border-0 shadow-lg text-xs font-bold gap-1">
+          <Badge className="absolute top-3 right-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white border-0 shadow-lg text-xs font-bold gap-1 px-2.5">
             <Sparkles className="w-3 h-3" />مميز
           </Badge>
         )}
+
+        {/* Closed overlay */}
+        {!isOpen && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="bg-black/70 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm">مغلق الآن</span>
+          </div>
+        )}
+
+        {/* Logo thumbnail */}
         {r.logo_url && (
-          <div className="absolute bottom-3 left-3 w-12 h-12 rounded-xl bg-card shadow-lg overflow-hidden border-2 border-white/20 group-hover:scale-105 transition-transform">
+          <div className="absolute bottom-12 left-3 w-11 h-11 rounded-xl bg-white shadow-xl overflow-hidden border-2 border-white/30 group-hover:scale-110 transition-transform duration-300">
             <img src={r.logo_url} alt="" className="w-full h-full object-cover" />
           </div>
         )}
-        <div className="absolute bottom-3 right-3 text-white">
-          <h3 className="font-bold text-base drop-shadow-lg leading-tight">{r.name_ar}</h3>
+
+        {/* Name & cuisine at bottom */}
+        <div className="absolute bottom-3 right-3 left-3 text-white">
+          <h3 className="font-black text-base drop-shadow-lg leading-tight">{r.name_ar}</h3>
           {r.cuisine_type?.length > 0 && (
-            <p className="text-xs text-white/80 mt-0.5 drop-shadow">{r.cuisine_type.slice(0, 2).join(" • ")}</p>
+            <p className="text-xs text-white/75 mt-0.5 drop-shadow">{r.cuisine_type.slice(0, 2).join(" • ")}</p>
           )}
         </div>
       </div>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full font-bold ${accentText} bg-orange-50 dark:bg-orange-950/30`}>
-            <Star className="w-3.5 h-3.5 fill-current" />{r.rating || "0"}
+
+      <CardContent className="p-3.5">
+        <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400">
+            <Star className="w-3.5 h-3.5 fill-current" />{Number(r.rating || 0).toFixed(1)}
           </span>
           {r.estimated_delivery_time && (
             <span className="flex items-center gap-1">
@@ -165,7 +200,9 @@ const RestaurantCard = ({
           )}
           <span className="flex items-center gap-1 mr-auto">
             <Truck className="w-3.5 h-3.5" />
-            {r.delivery_fee === 0 ? <span className="text-emerald-600 font-semibold">مجاني</span> : `${r.delivery_fee} ر.ي`}
+            {r.delivery_fee === 0
+              ? <span className="text-emerald-600 dark:text-emerald-400 font-semibold">مجاني</span>
+              : `${r.delivery_fee} ر.ي`}
           </span>
         </div>
         {r.min_order_amount > 0 && (

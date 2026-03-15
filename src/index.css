@@ -277,6 +277,52 @@
     background-size: 200% 100%;
     animation: shimmer 2s linear infinite;
   }
+
+  /* Gold shimmer — used on premium cards & CTA buttons */
+  .gold-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .gold-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 30%,
+      hsl(var(--gold) / 0.18) 50%,
+      transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: gold-sweep 2.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Royal hover lift with gold shadow */
+  .royal-card {
+    @apply transition-all duration-300;
+  }
+  .royal-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow:
+      0 20px 40px -12px hsl(var(--primary) / 0.18),
+      0 0 0 1px hsl(var(--gold) / 0.25),
+      0 8px 20px -8px hsl(var(--gold) / 0.2);
+  }
+
+  /* Scrollbar hide utility */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes gold-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 @layer base {
