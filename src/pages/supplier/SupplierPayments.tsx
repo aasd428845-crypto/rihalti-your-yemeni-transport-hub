@@ -164,40 +164,70 @@ const SupplierPayments = () => {
               ) : invoices.length === 0 ? (
                 <p className="text-center py-12 text-muted-foreground">لا توجد فواتير</p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>رقم الفاتورة</TableHead>
-                      <TableHead>الفترة</TableHead>
-                      <TableHead>العمولة المستحقة</TableHead>
-                      <TableHead>الاستحقاق</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>إجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {invoices.map((inv) => (
-                      <TableRow key={inv.id}>
-                        <TableCell className="font-mono text-sm">{inv.invoice_number}</TableCell>
-                        <TableCell className="text-sm">{inv.period_start} → {inv.period_end}</TableCell>
-                        <TableCell className="font-bold">{Number(inv.total_commission).toLocaleString()} ر.ي</TableCell>
-                        <TableCell className="text-sm">{inv.due_date}</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${invStatusColors[inv.status]}`}>
+                <>
+                  {/* Mobile Cards */}
+                  <div className="md:hidden divide-y divide-border">
+                    {invoices.map(inv => (
+                      <div key={inv.id} className="p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-mono text-sm font-bold">{inv.invoice_number}</p>
+                            <p className="text-xs text-muted-foreground">{inv.period_start} → {inv.period_end}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${invStatusColors[inv.status]}`}>
                             {invStatusLabels[inv.status] || inv.status}
                           </span>
-                        </TableCell>
-                        <TableCell>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-bold">{Number(inv.total_commission).toLocaleString()} ر.ي</p>
+                            <p className="text-xs text-muted-foreground">استحقاق: {inv.due_date}</p>
+                          </div>
                           {(inv.status === "pending" || inv.status === "overdue") && (
                             <Button size="sm" onClick={() => { setPayInvoice(inv); setTransferRef(""); setReceiptFile(null); }} className="gap-1">
                               <Upload className="w-3 h-3" /> دفع
                             </Button>
                           )}
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                  {/* Desktop Table */}
+                  <Table className="hidden md:table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>رقم الفاتورة</TableHead>
+                        <TableHead>الفترة</TableHead>
+                        <TableHead>العمولة المستحقة</TableHead>
+                        <TableHead>الاستحقاق</TableHead>
+                        <TableHead>الحالة</TableHead>
+                        <TableHead>إجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invoices.map((inv) => (
+                        <TableRow key={inv.id}>
+                          <TableCell className="font-mono text-sm">{inv.invoice_number}</TableCell>
+                          <TableCell className="text-sm">{inv.period_start} → {inv.period_end}</TableCell>
+                          <TableCell className="font-bold">{Number(inv.total_commission).toLocaleString()} ر.ي</TableCell>
+                          <TableCell className="text-sm">{inv.due_date}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${invStatusColors[inv.status]}`}>
+                              {invStatusLabels[inv.status] || inv.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {(inv.status === "pending" || inv.status === "overdue") && (
+                              <Button size="sm" onClick={() => { setPayInvoice(inv); setTransferRef(""); setReceiptFile(null); }} className="gap-1">
+                                <Upload className="w-3 h-3" /> دفع
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </>
               )}
             </CardContent>
           </Card>
@@ -212,48 +242,82 @@ const SupplierPayments = () => {
               ) : transactions.length === 0 ? (
                 <p className="text-center py-12 text-muted-foreground">لا توجد مدفوعات</p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>المبلغ</TableHead>
-                      <TableHead>رقم الحوالة</TableHead>
-                      <TableHead>الصورة</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>التاريخ</TableHead>
-                      <TableHead>إجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((tx) => (
-                      <TableRow key={tx.id}>
-                        <TableCell className="font-bold">{Number(tx.amount).toLocaleString()} ر.ي</TableCell>
-                        <TableCell className="font-mono text-sm">{tx.transfer_reference || "-"}</TableCell>
-                        <TableCell>
-                          {tx.transfer_receipt_url ? (
-                            <Button variant="ghost" size="sm" onClick={() => { setImageUrl(tx.transfer_receipt_url); setShowImageDialog(true); }}>
-                              <Image className="w-4 h-4" />
-                            </Button>
-                          ) : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${payStatusColors[tx.status] || ""}`}>
+                <>
+                  {/* Mobile Cards */}
+                  <div className="md:hidden divide-y divide-border">
+                    {transactions.map(tx => (
+                      <div key={tx.id} className="p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-bold text-base">{Number(tx.amount).toLocaleString()} ر.ي</p>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${payStatusColors[tx.status] || ""}`}>
                             {payStatusLabels[tx.status] || tx.status}
                           </span>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {format(new Date(tx.created_at), "yyyy/MM/dd", { locale: ar })}
-                        </TableCell>
-                        <TableCell>
-                          {tx.status === "verified" && (
-                            <Button size="sm" variant="outline" className="text-green-600" onClick={() => handleComplete(tx)} disabled={processing}>
-                              <CheckCircle className="w-4 h-4 ml-1" /> تأكيد الاستلام
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                        {tx.transfer_reference && (
+                          <p className="text-xs font-mono text-muted-foreground">رقم الحوالة: {tx.transfer_reference}</p>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">{format(new Date(tx.created_at), "yyyy/MM/dd", { locale: ar })}</p>
+                          <div className="flex gap-2">
+                            {tx.transfer_receipt_url && (
+                              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => { setImageUrl(tx.transfer_receipt_url); setShowImageDialog(true); }}>
+                                <Image className="w-3.5 h-3.5" /> الصورة
+                              </Button>
+                            )}
+                            {tx.status === "verified" && (
+                              <Button size="sm" variant="outline" className="h-7 text-xs text-green-600" onClick={() => handleComplete(tx)} disabled={processing}>
+                                <CheckCircle className="w-3.5 h-3.5 ml-1" /> تأكيد
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                  {/* Desktop Table */}
+                  <Table className="hidden md:table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>المبلغ</TableHead>
+                        <TableHead>رقم الحوالة</TableHead>
+                        <TableHead>الصورة</TableHead>
+                        <TableHead>الحالة</TableHead>
+                        <TableHead>التاريخ</TableHead>
+                        <TableHead>إجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transactions.map((tx) => (
+                        <TableRow key={tx.id}>
+                          <TableCell className="font-bold">{Number(tx.amount).toLocaleString()} ر.ي</TableCell>
+                          <TableCell className="font-mono text-sm">{tx.transfer_reference || "-"}</TableCell>
+                          <TableCell>
+                            {tx.transfer_receipt_url ? (
+                              <Button variant="ghost" size="sm" onClick={() => { setImageUrl(tx.transfer_receipt_url); setShowImageDialog(true); }}>
+                                <Image className="w-4 h-4" />
+                              </Button>
+                            ) : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${payStatusColors[tx.status] || ""}`}>
+                              {payStatusLabels[tx.status] || tx.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {format(new Date(tx.created_at), "yyyy/MM/dd", { locale: ar })}
+                          </TableCell>
+                          <TableCell>
+                            {tx.status === "verified" && (
+                              <Button size="sm" variant="outline" className="text-green-600" onClick={() => handleComplete(tx)} disabled={processing}>
+                                <CheckCircle className="w-4 h-4 ml-1" /> تأكيد الاستلام
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </>
               )}
             </CardContent>
           </Card>

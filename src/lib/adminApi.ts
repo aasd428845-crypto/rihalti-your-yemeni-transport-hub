@@ -86,7 +86,14 @@ export const getInvitations = async () => {
 };
 
 export const createInvitation = async (email: string, role: string, createdBy: string) => {
-  return supabase.from("invitation_tokens").insert({ email, role, created_by: createdBy });
+  const token = crypto.randomUUID();
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+  return supabase
+    .from("invitation_tokens")
+    .insert({ email, role, token, created_by: createdBy, expires_at: expiresAt.toISOString() })
+    .select("token, role, email")
+    .single();
 };
 
 // ==================== Notifications ====================
