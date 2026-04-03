@@ -276,8 +276,18 @@ const RestaurantMenuPage = () => {
               {showItemDetail.description && <p className="text-muted-foreground">{showItemDetail.description}</p>}
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 {showItemDetail.preparation_time && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{showItemDetail.preparation_time} دقيقة</span>}
-                {showItemDetail.calories && <span>{showItemDetail.calories} سعرة حرارية</span>}
+                {showItemDetail.calories && <span>🔥 {showItemDetail.calories} سعرة حرارية</span>}
               </div>
+              {showItemDetail.ingredients && showItemDetail.ingredients.length > 0 && (
+                <div className="text-sm">
+                  <p className="font-medium text-foreground mb-1">المكونات:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(Array.isArray(showItemDetail.ingredients) ? showItemDetail.ingredients : [showItemDetail.ingredients]).map((ing: string, i: number) => (
+                      <span key={i} className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">{ing}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 {showItemDetail.discounted_price ? (
                   <>
