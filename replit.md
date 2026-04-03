@@ -12,12 +12,13 @@ A Tier-1 Super App experience for Yemen — HungerStation-quality delivery hub, 
 
 ## Running the Project
 ```bash
+npm install   # Install dependencies
 npm run dev   # Starts Vite dev server on port 5000
 npm run build # Build for production
 ```
 
 ## Environment Variables
-The following env vars are required (set in Replit Secrets/Env Vars):
+The following env vars are set in Replit (shared environment):
 - `VITE_SUPABASE_URL` — Supabase project URL
 - `VITE_SUPABASE_PUBLISHABLE_KEY` — Supabase anon/public key (safe to expose in browser)
 - `VITE_SUPABASE_PROJECT_ID` — Supabase project ID
@@ -28,7 +29,7 @@ The following env vars are required (set in Replit Secrets/Env Vars):
 - **Database**: PostgreSQL with Row Level Security (RLS)
 - **Storage**: Multiple buckets for images, documents, receipts
 - **Realtime**: Live updates for orders, messages, notifications
-- **Edge Functions**: Deployed separately on Supabase for background tasks
+- **Edge Functions**: Deployed separately on Supabase for background tasks (auto-healing, invoice generation, reports, anomaly detection, push notifications)
 
 ## Key User Roles
 - `customer` — Books trips, requests shipments/delivery/rides
@@ -39,7 +40,7 @@ The following env vars are required (set in Replit Secrets/Env Vars):
 - `admin` — Full platform management
 
 ## Key Pages
-- `/` — Public homepage with trip search
+- `/` — Public homepage / Super App shell
 - `/login`, `/register` — Auth pages
 - `/admin/*` — Admin dashboard (requires admin role)
 - `/supplier/*` — Supplier portal
@@ -52,3 +53,5 @@ The following env vars are required (set in Replit Secrets/Env Vars):
 - Supabase Edge Functions handle background jobs (invoices, healing, metrics) — they run on Supabase infrastructure, not here
 - All sensitive operations are protected by Supabase RLS policies
 - The anon key is intentionally public (Supabase security model uses RLS, not key secrecy)
+- PWA support enabled via vite-plugin-pwa (installable on mobile)
+- Supabase project ID: xugjqhxfdjlndljogvru
