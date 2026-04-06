@@ -34,8 +34,8 @@ const BottomNav = () => {
             onClick={() => navigate("/")}
             className={sideTabClass(location.pathname === "/")}
           >
-            <div className={`w-8 h-8 rounded-xl overflow-hidden shadow-sm transition-all ${location.pathname === "/" ? "scale-110 ring-2 ring-primary/30" : ""}`}>
-              <img src={waslLogo} alt="وصل" className="w-full h-full object-cover" />
+            <div className={`w-8 h-8 transition-all ${location.pathname === "/" ? "scale-110" : ""}`}>
+              <img src={waslLogo} alt="وصل" className="w-full h-full object-contain" />
             </div>
             <span className={`text-[10px] font-semibold leading-none ${location.pathname === "/" ? "text-primary" : ""}`}>
               الرئيسية

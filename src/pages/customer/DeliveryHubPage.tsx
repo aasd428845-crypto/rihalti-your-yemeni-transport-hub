@@ -10,7 +10,7 @@ import {
   Pill, Apple, Milk, Wheat, Baby, Heart, Leaf, Sandwich, Soup,
   Tag, Zap, TrendingUp, Sparkles, X
 } from "lucide-react";
-import { getActiveRestaurants } from "@/lib/restaurantApi";
+import { getActiveRestaurants, getServiceTypes, getRestaurantCuisines } from "@/lib/restaurantApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -29,80 +29,6 @@ const CUISINE_IMAGES: Record<string, string> = {
   "مرق":            "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&q=80&fit=crop",
   "default":        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80&fit=crop",
 };
-
-// ─── Config ──────────────────────────────────────────────────────────────────
-const TABS = [
-  {
-    id: "restaurants" as Tab,
-    label: "مطاعم",
-    emoji: "🍽️",
-    tagline: "اطلب من أشهى المطاعم",
-    accentFrom: "from-orange-500",
-    accentTo: "to-amber-400",
-    accentBg: "bg-orange-500",
-    accentLight: "bg-orange-50 dark:bg-orange-950/30",
-    accentText: "text-orange-600 dark:text-orange-400",
-    accentBorder: "border-orange-200 dark:border-orange-800",
-    accentRing: "ring-orange-400",
-    gradient: "from-orange-500/10 via-amber-400/5 to-transparent",
-  },
-  {
-    id: "grocery" as Tab,
-    label: "بقالة",
-    emoji: "🛒",
-    tagline: "احتياجاتك اليومية بنقرة واحدة",
-    accentFrom: "from-emerald-500",
-    accentTo: "to-green-400",
-    accentBg: "bg-emerald-500",
-    accentLight: "bg-emerald-50 dark:bg-emerald-950/30",
-    accentText: "text-emerald-600 dark:text-emerald-400",
-    accentBorder: "border-emerald-200 dark:border-emerald-800",
-    accentRing: "ring-emerald-400",
-    gradient: "from-emerald-500/10 via-green-400/5 to-transparent",
-  },
-  {
-    id: "pharmacy" as Tab,
-    label: "صيدلية",
-    emoji: "💊",
-    tagline: "دواؤك يصل لبابك",
-    accentFrom: "from-blue-500",
-    accentTo: "to-cyan-400",
-    accentBg: "bg-blue-500",
-    accentLight: "bg-blue-50 dark:bg-blue-950/30",
-    accentText: "text-blue-600 dark:text-blue-400",
-    accentBorder: "border-blue-200 dark:border-blue-800",
-    accentRing: "ring-blue-400",
-    gradient: "from-blue-500/10 via-cyan-400/5 to-transparent",
-  },
-];
-
-const RESTAURANT_CATEGORIES = [
-  { key: "all", label: "الكل", icon: UtensilsCrossed },
-  { key: "يمني", label: "يمني", icon: ChefHat },
-  { key: "برجر", label: "برجر", icon: Beef },
-  { key: "بيتزا", label: "بيتزا", icon: Pizza },
-  { key: "مأكولات بحرية", label: "بحرية", icon: Fish },
-  { key: "حلويات", label: "حلويات", icon: IceCream },
-  { key: "مشروبات", label: "مشروبات", icon: Coffee },
-  { key: "شاورما", label: "شاورما", icon: Sandwich },
-  { key: "مرق", label: "مرق", icon: Soup },
-];
-
-const GROCERY_CATEGORIES = [
-  { key: "all", label: "الكل", icon: ShoppingCart },
-  { key: "خضروات", label: "خضروات", icon: Leaf },
-  { key: "فواكه", label: "فواكه", icon: Apple },
-  { key: "ألبان", label: "ألبان", icon: Milk },
-  { key: "مخبوزات", label: "مخبوزات", icon: Wheat },
-  { key: "أطفال", label: "أطفال", icon: Baby },
-];
-
-const PHARMACY_CATEGORIES = [
-  { key: "all", label: "الكل", icon: Pill },
-  { key: "أدوية", label: "أدوية", icon: Heart },
-  { key: "مكملات", label: "مكملات", icon: Sparkles },
-  { key: "عناية", label: "عناية", icon: Leaf },
-];
 
 const CITIES = ["صنعاء", "عدن", "تعز", "المكلا", "إب", "الحديدة", "ذمار", "سيئون"];
 
@@ -236,295 +162,151 @@ const EmptyState = ({ emoji, title, desc }: { emoji: string; title: string; desc
   <Card className="rounded-2xl border-border/30">
     <CardContent className="py-20 text-center">
       <div className="text-6xl mb-4">{emoji}</div>
-      <p className="text-foreground font-bold text-lg mb-1">{title}</p>
+      <p className="text-foreground font-black text-lg mb-1">{title}</p>
       <p className="text-muted-foreground text-sm">{desc}</p>
     </CardContent>
   </Card>
 );
 
-// ─── Grocery / Pharmacy Coming Soon ──────────────────────────────────────────
-const ComingSoonSection = ({
-  tab,
-  accentText,
-  accentBg,
-  accentLight,
-  accentBorder,
-}: {
-  tab: (typeof TABS)[number];
-  accentText: string;
-  accentBg: string;
-  accentLight: string;
-  accentBorder: string;
-}) => {
-  const items =
-    tab.id === "grocery"
-      ? [
-          { name: "سوبرماركت الريف", desc: "منتجات طازجة يومياً", time: "25 د", fee: "500 ر.ي", rating: "4.8", emoji: "🥦" },
-          { name: "بقالة الأمين", desc: "جميع احتياجاتك المنزلية", time: "30 د", fee: "300 ر.ي", rating: "4.6", emoji: "🛒" },
-          { name: "ماركت فريش", desc: "خضروات وفواكه طازجة", time: "20 د", fee: "مجاني", rating: "4.9", emoji: "🍎" },
-          { name: "البقالة الكبرى", desc: "منتجات متنوعة وأسعار منافسة", time: "35 د", fee: "400 ر.ي", rating: "4.5", emoji: "🥛" },
-        ]
-      : [
-          { name: "صيدلية الشفاء", desc: "أدوية وفيتامينات ومستلزمات", time: "20 د", fee: "200 ر.ي", rating: "4.9", emoji: "💊" },
-          { name: "صيدلية النور", desc: "عناية بالجلد ومكملات غذائية", time: "25 د", fee: "300 ر.ي", rating: "4.7", emoji: "🏥" },
-          { name: "صيدلية الأمل", desc: "منتجات طبية ووصفات طبية", time: "30 د", fee: "مجاني", rating: "4.8", emoji: "🩺" },
-          { name: "ميديكير فارم", desc: "أدوية أصلية بضمان الجودة", time: "15 د", fee: "150 ر.ي", rating: "4.6", emoji: "💉" },
-        ];
-
-  return (
-    <div className="space-y-10">
-      {/* Exclusive Offers */}
-      <div>
-        <SectionHeader icon={Tag} title="عروض حصرية" accentText={accentText} />
-        <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
-          {items.slice(0, 3).map((item, i) => (
-            <div
-              key={i}
-              className={`min-w-[240px] rounded-2xl border ${accentBorder} ${accentLight} p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group`}
-            >
-              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">{item.emoji}</div>
-              <h3 className={`font-bold text-base ${accentText} mb-1`}>{item.name}</h3>
-              <p className="text-sm text-muted-foreground mb-3">{item.desc}</p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className={`flex items-center gap-1 font-bold ${accentText}`}>
-                  <Star className="w-3.5 h-3.5 fill-current" />{item.rating}
-                </span>
-                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{item.time}</span>
-                <span className={`mr-auto font-semibold ${item.fee === "مجاني" ? "text-emerald-600" : ""}`}>{item.fee}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Most Ordered */}
-      <div>
-        <SectionHeader icon={TrendingUp} title="الأكثر طلباً" accentText={accentText} />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {items.map((item, i) => (
-            <Card
-              key={i}
-              className="cursor-pointer rounded-2xl border-border/30 shadow-md hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group overflow-hidden"
-            >
-              <div className={`h-32 ${accentLight} flex items-center justify-center`}>
-                <span className="text-6xl group-hover:scale-110 transition-transform duration-300">{item.emoji}</span>
-              </div>
-              <CardContent className="p-4">
-                <h3 className={`font-bold text-sm ${accentText} mb-1`}>{item.name}</h3>
-                <p className="text-xs text-muted-foreground mb-3">{item.desc}</p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground border-t border-border/40 pt-2">
-                  <span className={`flex items-center gap-1 font-bold ${accentText}`}>
-                    <Star className="w-3 h-3 fill-current" />{item.rating}
-                  </span>
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{item.time}</span>
-                  <span className={`mr-auto text-xs font-semibold ${item.fee === "مجاني" ? "text-emerald-600" : ""}`}>{item.fee}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Coming Soon Notice */}
-      <div className={`rounded-2xl border ${accentBorder} ${accentLight} p-8 text-center`}>
-        <div className="text-5xl mb-3">{tab.emoji}</div>
-        <h3 className={`text-xl font-black ${accentText} mb-2`}>قريباً في وصل</h3>
-        <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-          نعمل على تجهيز أفضل {tab.label === "بقالة" ? "متاجر البقالة" : "الصيدليات"} في مدينتك.
-          كن أول من يعرف بالإطلاق الرسمي.
-        </p>
-        <Button className={`mt-5 ${accentBg} text-white hover:opacity-90 shadow-lg gap-2`}>
-          <Zap className="w-4 h-4" />أبلغني عند الإطلاق
-        </Button>
-      </div>
+// ─── Coming Soon Section ──────────────────────────────────────────────────────
+const ComingSoonSection = ({ tab, accentText, accentBg, accentLight, accentBorder }: any) => (
+  <div className="py-20 text-center space-y-6">
+    <div className={`w-24 h-24 mx-auto rounded-full ${accentLight} flex items-center justify-center text-5xl shadow-inner border ${accentBorder}`}>
+      {tab.emoji}
     </div>
-  );
-};
+    <div className="space-y-2">
+      <h2 className="text-3xl font-black text-foreground">قريباً في {tab.label}</h2>
+      <p className="text-muted-foreground max-w-md mx-auto">نحن نعمل بجد لتوفير أفضل تجربة تسوق في قسم {tab.label}. انتظرونا!</p>
+    </div>
+    <Button className={`${accentBg} text-white rounded-full px-8 py-6 h-auto text-lg font-bold shadow-lg hover:opacity-90 transition-all`}>
+      أبلغني عند التوفر
+    </Button>
+  </div>
+);
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 const DeliveryHubPage = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { user } = useAuth();
-
-  const initialTab = (searchParams.get("tab") as Tab) || "restaurants";
-  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<Tab>("restaurants");
+  const [selectedCity, setSelectedCity] = useState("صنعاء");
   const [cuisineFilter, setCuisineFilter] = useState("all");
-  const [selectedCity, setSelectedCity] = useState("all");
-  const [cityOpen, setCityOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<any[]>([]);
+  const [cuisines, setCuisines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const cityRef = useRef<HTMLDivElement>(null);
 
-  const tab = TABS.find((t) => t.id === activeTab)!;
-
-  // Sync tab with URL
-  const switchTab = (t: Tab) => {
-    setActiveTab(t);
-    setSearch("");
-    setCuisineFilter("all");
-    setSearchParams({ tab: t });
-  };
-
-  // Load user city
+  // Fetch initial data
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("profiles")
-      .select("city")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.city) setSelectedCity(data.city);
-      });
-  }, [user]);
+    const loadInitialData = async () => {
+      try {
+        const [servicesData, cuisinesData] = await Promise.all([
+          getServiceTypes(),
+          getRestaurantCuisines()
+        ]);
+        setServiceTypes(servicesData || []);
+        setCuisines([{ id: 'all', name_ar: 'الكل', image_url: null }, ...(cuisinesData || [])]);
+      } catch (err) {
+        console.error("Error loading initial data:", err);
+      }
+    };
+    loadInitialData();
+  }, []);
 
-  // Load restaurants
+  // Fetch restaurants based on city
   useEffect(() => {
-    if (activeTab !== "restaurants") return;
     setLoading(true);
     getActiveRestaurants(selectedCity === "all" ? undefined : selectedCity)
       .then((data) => setRestaurants(data || []))
       .catch(() => setRestaurants([]))
       .finally(() => setLoading(false));
-  }, [selectedCity, activeTab]);
+  }, [selectedCity]);
 
-  // Close city dropdown on outside click
+  // Handle URL params
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (cityRef.current && !cityRef.current.contains(e.target as Node)) {
-        setCityOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    const t = searchParams.get("tab") as Tab;
+    if (t && ["restaurants", "grocery", "pharmacy"].includes(t)) setActiveTab(t);
+    const q = searchParams.get("q");
+    if (q) setSearch(q);
+  }, [searchParams]);
 
-  // Derived data
-  const categories = activeTab === "restaurants"
-    ? RESTAURANT_CATEGORIES
-    : activeTab === "grocery"
-    ? GROCERY_CATEGORIES
-    : PHARMACY_CATEGORIES;
+  const tab = serviceTypes.find(s => s.id === activeTab) || {
+    name_ar: activeTab === "restaurants" ? "مطاعم" : activeTab === "grocery" ? "بقالة" : "صيدلية",
+    accentBg: activeTab === "restaurants" ? "bg-orange-500" : activeTab === "grocery" ? "bg-emerald-500" : "bg-blue-500",
+    accentText: activeTab === "restaurants" ? "text-orange-600" : activeTab === "grocery" ? "text-emerald-600" : "text-blue-600",
+  };
 
   const filtered = restaurants.filter((r) => {
-    const matchSearch =
-      !search ||
-      r.name_ar?.includes(search) ||
-      r.name_en?.toLowerCase().includes(search.toLowerCase());
-    const matchCuisine =
-      cuisineFilter === "all" ||
-      (r.cuisine_type && r.cuisine_type.includes(cuisineFilter));
-    return matchSearch && matchCuisine;
+    const matchesCuisine = cuisineFilter === "all" || r.cuisine_type?.includes(cuisineFilter);
+    const matchesSearch = !search || r.name_ar.toLowerCase().includes(search.toLowerCase());
+    const matchesTab = activeTab === "restaurants"; // Placeholder for other tabs
+    return matchesCuisine && matchesSearch && matchesTab;
   });
 
   const featured = filtered.filter((r) => r.is_featured);
-  const mostOrdered = filtered.slice(0, 8);
-  const newest = [...filtered].sort((a, b) =>
-    new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-  ).slice(0, 8);
-
+  const mostOrdered = filtered.filter((r) => r.rating >= 4.5);
+  const newest = filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   const showSections = !search && cuisineFilter === "all";
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      {/* ── Hero / Top Banner ─────────────────────────────────── */}
-      <div className={`relative overflow-hidden bg-gradient-to-bl ${tab.gradient} border-b border-border/40`}>
-        <div className="absolute inset-0 opacity-30 pointer-events-none select-none">
-          <div className={`absolute top-[-60px] right-[-60px] w-[300px] h-[300px] rounded-full bg-gradient-to-br ${tab.accentFrom} ${tab.accentTo} blur-3xl opacity-20`} />
-          <div className={`absolute bottom-[-40px] left-[-40px] w-[200px] h-[200px] rounded-full bg-gradient-to-br ${tab.accentFrom} ${tab.accentTo} blur-2xl opacity-10`} />
-        </div>
-        <div className="container mx-auto px-4 pt-24 pb-8 max-w-6xl relative">
-
-          {/* Tabs */}
-          <div className="flex gap-3 mb-8 justify-center">
-            {TABS.map((t) => {
-              const isActive = activeTab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  data-testid={`tab-${t.id}`}
-                  onClick={() => switchTab(t.id)}
-                  className={`flex flex-col items-center gap-2 px-6 py-4 rounded-2xl transition-all duration-300 font-bold text-sm group ${
-                    isActive
-                      ? `${t.accentBg} text-white shadow-xl scale-105`
-                      : "bg-card border border-border/50 text-muted-foreground hover:border-border hover:shadow-md hover:-translate-y-0.5"
-                  }`}
-                >
-                  <span className={`text-3xl transition-transform duration-300 ${isActive ? "scale-110" : "group-hover:scale-110"}`}>
-                    {t.emoji}
-                  </span>
-                  <span>{t.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Tagline */}
-          <div className="text-center mb-7">
-            <h1 className="text-3xl font-black text-foreground mb-1">{tab.tagline}</h1>
-            <p className="text-muted-foreground text-sm">توصيل سريع لباب منزلك في أي مدينة</p>
-          </div>
-
-          {/* Search + City Picker */}
-          <div className="flex gap-3 max-w-2xl mx-auto">
-            {/* City Picker */}
-            <div ref={cityRef} className="relative shrink-0">
-              <button
-                data-testid="btn-city-picker"
-                onClick={() => setCityOpen(!cityOpen)}
-                className={`flex items-center gap-2 h-14 px-4 rounded-2xl bg-card border ${tab.accentBorder} shadow-sm hover:shadow-md transition-all duration-200 font-semibold text-sm ${tab.accentText} whitespace-nowrap`}
-              >
-                <MapPin className="w-4 h-4" />
-                <span>{selectedCity === "all" ? "كل المدن" : selectedCity}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${cityOpen ? "rotate-180" : ""}`} />
-              </button>
-              {cityOpen && (
-                <div className="absolute top-full right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl z-50 py-2 min-w-[160px] animate-in slide-in-from-top-2 duration-200">
+    <div className="min-h-screen bg-background pb-24" dir="rtl">
+      {/* ── Header ────────────────────────────────────────────── */}
+      <div className="bg-card border-b border-border/30 sticky top-0 z-30 shadow-sm">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="flex flex-col md:flex-row md:items-center gap-4 py-4">
+            
+            {/* Dynamic Tabs (Service Types) */}
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+              {serviceTypes.map((type) => {
+                const isActive = activeTab === (type.name_ar === 'مطاعم' ? 'restaurants' : type.name_ar === 'بقالة' ? 'grocery' : 'pharmacy');
+                const accentBg = type.name_ar === 'مطاعم' ? 'bg-orange-500' : type.name_ar === 'بقالة' ? 'bg-emerald-500' : 'bg-blue-500';
+                
+                return (
                   <button
-                    className={`w-full text-right px-4 py-2.5 text-sm font-medium hover:bg-muted/60 transition-colors ${selectedCity === "all" ? tab.accentText + " font-bold" : ""}`}
-                    onClick={() => { setSelectedCity("all"); setCityOpen(false); }}
+                    key={type.id}
+                    onClick={() => setActiveTab(type.name_ar === 'مطاعم' ? 'restaurants' : type.name_ar === 'بقالة' ? 'grocery' : 'pharmacy')}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-2xl min-w-[100px] transition-all duration-300 ${
+                      isActive 
+                        ? `${accentBg} text-white shadow-lg scale-105` 
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                    }`}
                   >
-                    كل المدن
+                    <div className={`w-12 h-12 rounded-xl overflow-hidden shadow-inner ${isActive ? "bg-white/20" : "bg-white"}`}>
+                      {type.image_url ? (
+                        <img src={type.image_url} alt={type.name_ar} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-2xl">
+                          {type.name_ar === 'مطاعم' ? '🍽️' : type.name_ar === 'بقالة' ? '🛒' : '💊'}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs font-black">{type.name_ar}</span>
                   </button>
-                  {CITIES.map((city) => (
-                    <button
-                      key={city}
-                      className={`w-full text-right px-4 py-2.5 text-sm hover:bg-muted/60 transition-colors ${selectedCity === city ? tab.accentText + " font-bold" : "text-foreground"}`}
-                      onClick={() => { setSelectedCity(city); setCityOpen(false); }}
-                    >
-                      {city}
-                    </button>
-                  ))}
-                </div>
-              )}
+                );
+              })}
+            </div>
+
+            {/* City Picker */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-muted/40 rounded-2xl border border-border/40 shrink-0">
+              <MapPin className="w-4 h-4 text-primary" />
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="bg-transparent text-sm font-bold focus:outline-none cursor-pointer"
+              >
+                {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
 
             {/* Search */}
             <div className="relative flex-1">
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
-                data-testid="input-search"
-                placeholder={
-                  activeTab === "restaurants"
-                    ? "ابحث عن مطعم أو طبق..."
-                    : activeTab === "grocery"
-                    ? "ابحث عن منتج أو متجر..."
-                    : "ابحث عن دواء أو صيدلية..."
-                }
+                placeholder={`ابحث في ${tab.name_ar}...`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-14 pr-12 text-base rounded-2xl border-border/60 bg-card shadow-sm focus:shadow-md transition-all duration-200 focus:ring-2"
+                className="h-14 pr-12 text-base rounded-2xl border-border/60 bg-card shadow-sm focus:shadow-md transition-all duration-200"
               />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -533,194 +315,64 @@ const DeliveryHubPage = () => {
       {/* ── Content ───────────────────────────────────────────── */}
       <div className="container mx-auto px-4 py-8 max-w-6xl">
 
-        {/* Category Pills */}
-        <div className="flex gap-2.5 overflow-x-auto pb-3 mb-8 scrollbar-hide">
-          {categories.map((cat) => {
-            const isActive = cuisineFilter === cat.key;
+        {/* Dynamic Cuisine/Category Pills */}
+        <div className="flex gap-3 overflow-x-auto pb-4 mb-8 scrollbar-hide">
+          {cuisines.map((cat) => {
+            const isActive = cuisineFilter === cat.name_ar || (cat.id === 'all' && cuisineFilter === 'all');
             return (
               <button
-                key={cat.key}
-                data-testid={`btn-category-${cat.key}`}
-                onClick={() => setCuisineFilter(cat.key)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold shrink-0 transition-all duration-200 ${
-                  isActive
-                    ? `${tab.accentBg} text-white shadow-md scale-105`
-                    : `bg-card border border-border/50 text-muted-foreground hover:border-border hover:shadow-sm ${tab.accentText} hover:bg-muted/40`
-                }`}
+                key={cat.id}
+                onClick={() => setCuisineFilter(cat.id === 'all' ? 'all' : cat.name_ar)}
+                className={`flex flex-col items-center gap-2 shrink-0 transition-all duration-300 group`}
               >
-                <cat.icon className="w-4 h-4" />
-                {cat.label}
+                <div className={`w-16 h-16 rounded-2xl overflow-hidden border-2 transition-all ${
+                  isActive 
+                    ? "border-primary shadow-lg scale-110" 
+                    : "border-transparent bg-card hover:border-primary/30"
+                }`}>
+                  {cat.image_url ? (
+                    <img src={cat.image_url} alt={cat.name_ar} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary">
+                      {cat.id === 'all' ? <UtensilsCrossed className="w-6 h-6" /> : <ChefHat className="w-6 h-6" />}
+                    </div>
+                  )}
+                </div>
+                <span className={`text-[11px] font-bold ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                  {cat.name_ar}
+                </span>
               </button>
             );
           })}
         </div>
 
-        {/* ── Order Anything Card ─────────────────────────────── */}
-        <div
-          className="mb-8 rounded-2xl overflow-hidden cursor-pointer group shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-          onClick={() => navigate("/shipments")}
-          data-testid="card-order-anything"
-        >
-          <div className="bg-gradient-to-l from-violet-600 via-purple-500 to-indigo-500 p-5 flex items-center gap-4 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <div className="absolute top-[-30px] right-[-30px] w-[140px] h-[140px] rounded-full bg-white blur-2xl" />
-            </div>
-            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-              <span className="text-3xl">🛍️</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-white font-black text-base leading-tight">اطلب أي شيء من أي مكان</h3>
-                <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/30">جديد</span>
-              </div>
-              <p className="text-white/80 text-sm leading-snug">محلات غير مسجلة، منازل، أي مكان في مدينتك</p>
-            </div>
-            <div className="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-              <span className="text-white text-lg font-bold">←</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Restaurants Tab ─────────────────────────────────── */}
+        {/* ── Restaurants Content ─────────────────────────────────── */}
         {activeTab === "restaurants" && (
           <div className="space-y-12">
             {loading ? (
-              <div>
-                <div className="flex items-center gap-2 mb-5">
-                  <div className="w-32 h-6 bg-muted rounded animate-pulse" />
-                </div>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                  {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
-                </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
               </div>
             ) : filtered.length === 0 ? (
-              <EmptyState
-                emoji="🔍"
-                title="لا توجد نتائج"
-                desc="جرب البحث بكلمة مختلفة أو تغيير المدينة"
-              />
-            ) : showSections ? (
-              <>
-                {/* Exclusive Offers (Featured Horizontal Scroll) */}
-                {featured.length > 0 && (
-                  <div>
-                    <SectionHeader icon={Sparkles} title="عروض حصرية" accentText={tab.accentText} />
-                    <div className="flex gap-5 overflow-x-auto pb-3 scrollbar-hide">
-                      {featured.map((r) => (
-                        <div key={r.id} className="min-w-[280px] max-w-[280px]">
-                          <RestaurantCard
-                            r={r}
-                            onClick={() => navigate(`/restaurants/${r.id}`)}
-                            size="featured"
-                            accentText={tab.accentText}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Most Ordered */}
-                <div>
-                  <SectionHeader
-                    icon={TrendingUp}
-                    title="الأكثر طلباً"
-                    count={mostOrdered.length}
-                    accentText={tab.accentText}
-                  />
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                    {mostOrdered.map((r) => (
-                      <RestaurantCard
-                        key={r.id}
-                        r={r}
-                        onClick={() => navigate(`/restaurants/${r.id}`)}
-                        accentText={tab.accentText}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Arrived Recently */}
-                {newest.length > 0 && (
-                  <div>
-                    <SectionHeader icon={Flame} title="وصل حديثاً" accentText={tab.accentText} />
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                      {newest.slice(0, 4).map((r) => (
-                        <RestaurantCard
-                          key={r.id}
-                          r={r}
-                          onClick={() => navigate(`/restaurants/${r.id}`)}
-                          accentText={tab.accentText}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* All Restaurants */}
-                <div>
-                  <SectionHeader
-                    icon={UtensilsCrossed}
-                    title="جميع المطاعم"
-                    count={filtered.length}
-                    accentText={tab.accentText}
-                  />
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                    {filtered.map((r) => (
-                      <RestaurantCard
-                        key={r.id}
-                        r={r}
-                        onClick={() => navigate(`/restaurants/${r.id}`)}
-                        accentText={tab.accentText}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </>
+              <EmptyState emoji="🔍" title="لا توجد نتائج" desc="جرب البحث بكلمة مختلفة" />
             ) : (
-              // Filtered / search results
-              <div>
-                <SectionHeader
-                  icon={Search}
-                  title="نتائج البحث"
-                  count={filtered.length}
-                  accentText={tab.accentText}
-                />
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                  {filtered.map((r) => (
-                    <RestaurantCard
-                      key={r.id}
-                      r={r}
-                      onClick={() => navigate(`/restaurants/${r.id}`)}
-                      accentText={tab.accentText}
-                    />
-                  ))}
-                </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {filtered.map((r) => (
+                  <RestaurantCard
+                    key={r.id}
+                    r={r}
+                    onClick={() => navigate(`/restaurants/${r.id}`)}
+                    accentText={tab.accentText}
+                  />
+                ))}
               </div>
             )}
           </div>
         )}
 
-        {/* ── Grocery Tab ──────────────────────────────────────── */}
-        {activeTab === "grocery" && (
-          <ComingSoonSection
-            tab={tab}
-            accentText={tab.accentText}
-            accentBg={tab.accentBg}
-            accentLight={tab.accentLight}
-            accentBorder={tab.accentBorder}
-          />
-        )}
-
-        {/* ── Pharmacy Tab ─────────────────────────────────────── */}
-        {activeTab === "pharmacy" && (
-          <ComingSoonSection
-            tab={tab}
-            accentText={tab.accentText}
-            accentBg={tab.accentBg}
-            accentLight={tab.accentLight}
-            accentBorder={tab.accentBorder}
-          />
+        {/* Grocery & Pharmacy Fallbacks */}
+        {(activeTab === "grocery" || activeTab === "pharmacy") && (
+          <ComingSoonSection tab={{ label: tab.name_ar, emoji: activeTab === "grocery" ? "🛒" : "💊" }} accentBg={tab.accentBg} />
         )}
       </div>
     </div>

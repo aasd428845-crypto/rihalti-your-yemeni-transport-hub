@@ -63,7 +63,7 @@ const SuperAppHeader = () => {
               onClick={() => navigate("/")}
               className="flex items-center gap-2"
             >
-              <img src={waslLogo} alt="وصل" className="w-8 h-8 rounded-lg object-cover" />
+              <img src={waslLogo} alt="وصل" className="w-8 h-8 object-contain" />
               <span className="font-extrabold text-lg text-foreground">وصل</span>
             </button>
           </div>
@@ -77,7 +77,7 @@ const SuperAppHeader = () => {
                 <img
                   src={waslLogo}
                   alt="وصل"
-                  className="w-9 h-9 rounded-xl object-cover shadow-sm border border-border/20"
+                  className="w-9 h-9 object-contain shadow-sm"
                 />
               </button>
 

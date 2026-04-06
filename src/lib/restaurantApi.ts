@@ -198,3 +198,24 @@ export const createOrderFromCart = async (params: {
   await clearCart(params.customer_id, params.restaurant_id);
   return data;
 };
+
+// ===== Dynamic Categories =====
+export const getServiceTypes = async () => {
+  const { data, error } = await supabase
+    .from("service_types")
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order");
+  if (error) throw error;
+  return data;
+};
+
+export const getRestaurantCuisines = async () => {
+  const { data, error } = await supabase
+    .from("restaurant_cuisines")
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order");
+  if (error) throw error;
+  return data;
+};

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Save, Shield, Settings2, FileText, Calculator, Building2, Plus, Trash2 } from "lucide-react";
+import { Save, Shield, Settings2, FileText, Calculator, Building2, Plus, Trash2, LayoutGrid, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAdminSettings, updateAdminSetting, getPrivacyPolicies, upsertPrivacyPolicy, createAuditLog } from "@/lib/adminApi";
 import { getAccountingSettings, updateAccountingSettings } from "@/lib/accountingApi";
@@ -34,18 +34,30 @@ const AdminSettings = () => {
   const [editBank, setEditBank] = useState<Partial<BankAccount>>({});
   const [savingBank, setSavingBank] = useState(false);
 
+  // Dynamic Categories
+  const [serviceTypes, setServiceTypes] = useState<any[]>([]);
+  const [cuisines, setCuisines] = useState<any[]>([]);
+  const [catModal, setCatModal] = useState(false);
+  const [editCat, setEditCat] = useState<any>({});
+  const [catType, setCatType] = useState<"service" | "cuisine">("service");
+  const [savingCat, setSavingCat] = useState(false);
+
   useEffect(() => {
     const fetchAll = async () => {
-      const [settingsRes, policiesRes, banksRes] = await Promise.all([
+      const [settingsRes, policiesRes, banksRes, servicesRes, cuisinesRes] = await Promise.all([
         supabase.from("admin_settings").select("key, value, description").order("key"),
         getPrivacyPolicies(),
         supabase.from("platform_bank_accounts").select("*").order("is_primary", { ascending: false }),
+        supabase.from("service_types").select("*").order("sort_order"),
+        supabase.from("restaurant_cuisines").select("*").order("sort_order"),
       ]);
       setSettings(settingsRes.data || []);
       const policies = policiesRes.data || [];
       const customerPolicy = policies.find((p: any) => p.role === "customer");
       if (customerPolicy) setPolicyContent(customerPolicy.content);
       setBankAccounts((banksRes.data || []) as BankAccount[]);
+      setServiceTypes(servicesRes.data || []);
+      setCuisines(cuisinesRes.data || []);
 
       try {
         const acct = await getAccountingSettings();
@@ -163,8 +175,61 @@ const AdminSettings = () => {
     if (user) createAuditLog(user.id, "حذف حساب بنكي للمنصة", "platform_bank_account", id);
   };
 
+  // Dynamic Categories Handlers
+  const openAddCat = (type: "service" | "cuisine") => {
+    setCatType(type);
+    setEditCat({ name_ar: "", image_url: "", sort_order: 0 });
+    setCatModal(true);
+  };
+
+  const openEditCat = (cat: any, type: "service" | "cuisine") => {
+    setCatType(type);
+    setEditCat({ ...cat });
+    setCatModal(true);
+  };
+
+  const handleSaveCat = async () => {
+    if (!editCat.name_ar) { toast.error("الاسم مطلوب"); return; }
+    setSavingCat(true);
+    const table = catType === "service" ? "service_types" : "restaurant_cuisines";
+    const payload = {
+      name_ar: editCat.name_ar,
+      image_url: editCat.image_url || null,
+      sort_order: Number(editCat.sort_order || 0),
+    };
+
+    let error;
+    if (editCat.id) {
+      const res = await supabase.from(table).update(payload).eq("id", editCat.id);
+      error = res.error;
+    } else {
+      const res = await supabase.from(table).insert(payload);
+      error = res.error;
+    }
+
+    if (error) { toast.error("فشل الحفظ"); setSavingCat(false); return; }
+    toast.success("تم الحفظ بنجاح");
+    setCatModal(false);
+    setSavingCat(false);
+    // Refresh
+    const [sRes, cRes] = await Promise.all([
+      supabase.from("service_types").select("*").order("sort_order"),
+      supabase.from("restaurant_cuisines").select("*").order("sort_order"),
+    ]);
+    setServiceTypes(sRes.data || []);
+    setCuisines(cRes.data || []);
+  };
+
+  const handleDeleteCat = async (id: string, type: "service" | "cuisine") => {
+    if (!confirm("هل أنت متأكد؟")) return;
+    const table = type === "service" ? "service_types" : "restaurant_cuisines";
+    await supabase.from(table).delete().eq("id", id);
+    if (type === "service") setServiceTypes(prev => prev.filter(c => c.id !== id));
+    else setCuisines(prev => prev.filter(c => c.id !== id));
+    toast.success("تم الحذف");
+  };
+
   const commissionSettings = settings.filter((s) => s.key.includes("commission"));
-  const booleanSettings = settings.filter((s) => s.value === "true" || s.value === "false");
   const otherSettings = settings.filter((s) => !s.key.includes("commission") && s.value !== "true" && s.value !== "false");
 
   if (loading) {
@@ -178,11 +243,60 @@ const AdminSettings = () => {
       <Tabs defaultValue="general">
         <TabsList className="flex flex-wrap gap-1 h-auto">
           <TabsTrigger value="general"><Settings2 className="w-4 h-4 ml-1" />عامة</TabsTrigger>
+          <TabsTrigger value="categories"><LayoutGrid className="w-4 h-4 ml-1" />التصنيفات</TabsTrigger>
           <TabsTrigger value="accounting"><Calculator className="w-4 h-4 ml-1" />المحاسبة</TabsTrigger>
-          <TabsTrigger value="approvals"><Shield className="w-4 h-4 ml-1" />الموافقات</TabsTrigger>
           <TabsTrigger value="privacy"><FileText className="w-4 h-4 ml-1" />سياسة الخصوصية</TabsTrigger>
           <TabsTrigger value="bank_accounts"><Building2 className="w-4 h-4 ml-1" />حسابات الدفع</TabsTrigger>
         </TabsList>
+
+        {/* Categories Tab */}
+        <TabsContent value="categories" className="mt-4 space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">تصنيفات الخدمات (الأيقونات العلوية)</CardTitle>
+              <Button size="sm" onClick={() => openAddCat("service")}><Plus className="w-4 h-4 ml-1" />إضافة</Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {serviceTypes.map((cat) => (
+                  <div key={cat.id} className="relative group border rounded-xl p-3 text-center bg-muted/20">
+                    <div className="w-12 h-12 mx-auto mb-2 rounded-lg overflow-hidden bg-white">
+                      {cat.image_url ? <img src={cat.image_url} className="w-full h-full object-cover" /> : <ImageIcon className="w-full h-full p-2 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs font-bold truncate">{cat.name_ar}</p>
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
+                      <Button size="icon" variant="secondary" className="w-7 h-7" onClick={() => openEditCat(cat, "service")}><Settings2 className="w-3.5 h-3.5" /></Button>
+                      <Button size="icon" variant="destructive" className="w-7 h-7" onClick={() => handleDeleteCat(cat.id, "service")}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">تصنيفات المطاعم (يمني، برجر، إلخ)</CardTitle>
+              <Button size="sm" onClick={() => openAddCat("cuisine")}><Plus className="w-4 h-4 ml-1" />إضافة</Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {cuisines.map((cat) => (
+                  <div key={cat.id} className="relative group border rounded-xl p-3 text-center bg-muted/20">
+                    <div className="w-12 h-12 mx-auto mb-2 rounded-lg overflow-hidden bg-white">
+                      {cat.image_url ? <img src={cat.image_url} className="w-full h-full object-cover" /> : <ImageIcon className="w-full h-full p-2 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs font-bold truncate">{cat.name_ar}</p>
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
+                      <Button size="icon" variant="secondary" className="w-7 h-7" onClick={() => openEditCat(cat, "cuisine")}><Settings2 className="w-3.5 h-3.5" /></Button>
+                      <Button size="icon" variant="destructive" className="w-7 h-7" onClick={() => handleDeleteCat(cat.id, "cuisine")}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* General Tab */}
         <TabsContent value="general" className="mt-4 space-y-4">
@@ -220,166 +334,101 @@ const AdminSettings = () => {
 
         {/* Accounting Tab */}
         <TabsContent value="accounting" className="mt-4 space-y-4">
-          {acctSettings ? (
-            <>
-              <Card>
-                <CardHeader><CardTitle className="text-base">نسب العمولة لكل خدمة</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  {[
-                    { key: "global_commission_booking", label: "عمولة الحجوزات" },
-                    { key: "global_commission_delivery", label: "عمولة التوصيل" },
-                    { key: "global_commission_shipment", label: "عمولة الطرود" },
-                    { key: "global_commission_ride", label: "عمولة الأجرة" },
-                  ].map((item) => (
-                    <div key={item.key} className="flex flex-col sm:flex-row sm:items-center gap-2">
-                      <Label className="sm:w-48 text-sm">{item.label}</Label>
-                      <div className="flex items-center gap-2">
-                        <Input type="number" min="0" max="100" value={acctSettings[item.key]} onChange={(e) => setAcctSettings({ ...acctSettings, [item.key]: Number(e.target.value) })} className="w-24" />
-                        <span className="text-sm text-muted-foreground">%</span>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle className="text-base">إعدادات الاستحقاق والحظر</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <Label className="sm:w-48 text-sm">مدة استحقاق الدفع</Label>
+          {acctSettings && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">نسب العمولة لكل خدمة</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { key: "global_commission_booking", label: "عمولة الحجوزات" },
+                  { key: "global_commission_delivery", label: "عمولة التوصيل" },
+                  { key: "global_commission_shipment", label: "عمولة الطرود" },
+                  { key: "global_commission_ride", label: "عمولة الأجرة" },
+                ].map((item) => (
+                  <div key={item.key} className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <Label className="sm:w-48 text-sm">{item.label}</Label>
                     <div className="flex items-center gap-2">
-                      <Input type="number" min="1" max="90" value={acctSettings.payment_due_days} onChange={(e) => setAcctSettings({ ...acctSettings, payment_due_days: Number(e.target.value) })} className="w-24" />
-                      <span className="text-sm text-muted-foreground">يوم</span>
+                      <Input type="number" min="0" max="100" value={acctSettings[item.key]} onChange={(e) => setAcctSettings({ ...acctSettings, [item.key]: Number(e.target.value) })} className="w-24" />
+                      <span className="text-sm text-muted-foreground">%</span>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <Label className="sm:w-48 text-sm">مدة التأخير قبل الحظر</Label>
-                    <div className="flex items-center gap-2">
-                      <Input type="number" min="1" max="90" value={acctSettings.auto_suspend_days} onChange={(e) => setAcctSettings({ ...acctSettings, auto_suspend_days: Number(e.target.value) })} className="w-24" />
-                      <span className="text-sm text-muted-foreground">يوم</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <Label className="sm:w-48 text-sm">العملة الأساسية</Label>
-                    <Select value={acctSettings.currency} onValueChange={(v) => setAcctSettings({ ...acctSettings, currency: v })}>
-                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="YER">ر.ي (YER)</SelectItem>
-                        <SelectItem value="SAR">ر.س (SAR)</SelectItem>
-                        <SelectItem value="USD">$ (USD)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
-              <Button onClick={handleSaveAccounting} disabled={savingAcct}>
-                <Save className="w-4 h-4 ml-2" />{savingAcct ? "جاري الحفظ..." : "حفظ إعدادات المحاسبة"}
-              </Button>
-            </>
-          ) : (
-            <p className="text-muted-foreground">لم يتم تحميل إعدادات المحاسبة</p>
+                ))}
+                <Button onClick={handleSaveAccounting} disabled={savingAcct} className="mt-2"><Save className="w-4 h-4 ml-2" />{savingAcct ? "جاري الحفظ..." : "حفظ إعدادات المحاسبة"}</Button>
+              </CardContent>
+            </Card>
           )}
-        </TabsContent>
-
-        {/* Approvals Tab */}
-        <TabsContent value="approvals" className="mt-4 space-y-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">إعدادات الموافقة التلقائية</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {booleanSettings.map((s) => (
-                <div key={s.key} className="flex items-center justify-between">
-                  <Label className="text-sm">{s.description || s.key}</Label>
-                  <Switch checked={s.value === "true"} onCheckedChange={(checked) => updateSetting(s.key, checked ? "true" : "false")} />
-                </div>
-              ))}
-              {booleanSettings.length === 0 && <p className="text-sm text-muted-foreground">لا توجد إعدادات موافقة تلقائية حالياً</p>}
-            </CardContent>
-          </Card>
-          <Button onClick={handleSaveSettings} disabled={saving}><Save className="w-4 h-4 ml-2" />{saving ? "جاري الحفظ..." : "حفظ التغييرات"}</Button>
         </TabsContent>
 
         {/* Privacy Tab */}
         <TabsContent value="privacy" className="mt-4 space-y-4">
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">محرر سياسة الخصوصية</CardTitle>
-                <Select value={policyRole} onValueChange={handlePolicyRoleChange}>
-                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="customer">العملاء</SelectItem>
-                    <SelectItem value="supplier">أصحاب المكاتب</SelectItem>
-                    <SelectItem value="delivery_company">شركات التوصيل</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">سياسة الخصوصية والشروط</CardTitle>
+              <Select value={policyRole} onValueChange={handlePolicyRoleChange}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="customer">العميل</SelectItem>
+                  <SelectItem value="supplier">المورد</SelectItem>
+                  <SelectItem value="delivery_company">شركة التوصيل</SelectItem>
+                  <SelectItem value="driver">السائق</SelectItem>
+                </SelectContent>
+              </Select>
             </CardHeader>
-            <CardContent>
-              <Textarea className="min-h-[300px] font-mono text-sm" value={policyContent} onChange={(e) => setPolicyContent(e.target.value)} placeholder="أدخل سياسة الخصوصية هنا..." dir="rtl" />
+            <CardContent className="space-y-4">
+              <Textarea value={policyContent} onChange={(e) => setPolicyContent(e.target.value)} className="min-h-[300px] text-sm leading-relaxed" placeholder="اكتب سياسة الخصوصية هنا..." />
+              <Button onClick={handleSavePolicy} disabled={savingPolicy}><Save className="w-4 h-4 ml-2" />{savingPolicy ? "جاري الحفظ..." : "حفظ السياسة"}</Button>
             </CardContent>
           </Card>
-          <Button onClick={handleSavePolicy} disabled={savingPolicy}><Save className="w-4 h-4 ml-2" />{savingPolicy ? "جاري الحفظ..." : "حفظ السياسة"}</Button>
         </TabsContent>
 
         {/* Bank Accounts Tab */}
         <TabsContent value="bank_accounts" className="mt-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">حسابات الدفع الخاصة بالمنصة</h3>
-            <Button size="sm" onClick={openAddBank}><Plus className="w-4 h-4 ml-1" />إضافة حساب</Button>
+          <div className="flex justify-end"><Button onClick={openAddBank}><Plus className="w-4 h-4 ml-1" />إضافة حساب بنكي</Button></div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {bankAccounts.map((b) => (
+              <Card key={b.id} className={b.is_primary ? "border-primary/50 shadow-sm" : ""}>
+                <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-bold">{b.bank_name}</CardTitle>
+                  <div className="flex gap-1">
+                    <Button size="icon" variant="ghost" className="w-8 h-8" onClick={() => openEditBank(b)}><Settings2 className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" className="w-8 h-8 text-destructive" onClick={() => handleDeleteBank(b.id)}><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="text-sm space-y-1">
+                  <p><span className="text-muted-foreground">الاسم:</span> {b.account_name}</p>
+                  <p><span className="text-muted-foreground">الرقم:</span> {b.account_number}</p>
+                  {b.is_primary && <Badge className="mt-2">حساب أساسي</Badge>}
+                </CardContent>
+              </Card>
+            ))}
           </div>
-          <p className="text-sm text-muted-foreground">هذه الحسابات تظهر للعملاء عند اختيار "تحويل بنكي" كطريقة دفع.</p>
-
-          {bankAccounts.length === 0 ? (
-            <Card><CardContent className="py-12 text-center text-muted-foreground">لا توجد حسابات بنكية مضافة</CardContent></Card>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {bankAccounts.map((b) => (
-                <Card key={b.id} className={`relative ${!b.is_active ? "opacity-60" : ""}`}>
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-sm flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-primary" />{b.bank_name}
-                      </h4>
-                      <div className="flex gap-1">
-                        {b.is_primary && <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded">رئيسي</span>}
-                        {!b.is_active && <span className="bg-destructive/10 text-destructive text-xs px-2 py-0.5 rounded">معطل</span>}
-                      </div>
-                    </div>
-                    <p className="text-sm"><span className="text-muted-foreground">اسم الحساب:</span> {b.account_name}</p>
-                    <p className="text-sm"><span className="text-muted-foreground">رقم الحساب:</span> {b.account_number}</p>
-                    {b.iban && <p className="text-sm"><span className="text-muted-foreground">IBAN:</span> {b.iban}</p>}
-                    {b.swift_code && <p className="text-sm"><span className="text-muted-foreground">SWIFT:</span> {b.swift_code}</p>}
-                    {b.notes && <p className="text-xs text-muted-foreground">{b.notes}</p>}
-                    <div className="flex gap-2 pt-2">
-                      <Button size="sm" variant="outline" onClick={() => openEditBank(b)}>تعديل</Button>
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDeleteBank(b.id)}><Trash2 className="w-3 h-3" /></Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
         </TabsContent>
       </Tabs>
 
-      {/* Bank Account Modal */}
-      <Dialog open={bankModal} onOpenChange={setBankModal}>
-        <DialogContent dir="rtl" className="max-w-md">
-          <DialogHeader><DialogTitle>{editBank.id ? "تعديل حساب بنكي" : "إضافة حساب بنكي"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>اسم البنك *</Label><Input value={editBank.bank_name || ""} onChange={(e) => setEditBank({ ...editBank, bank_name: e.target.value })} placeholder="بنك الكريمي" /></div>
-            <div><Label>اسم الحساب *</Label><Input value={editBank.account_name || ""} onChange={(e) => setEditBank({ ...editBank, account_name: e.target.value })} placeholder="منصة وصل" /></div>
-            <div><Label>رقم الحساب *</Label><Input value={editBank.account_number || ""} onChange={(e) => setEditBank({ ...editBank, account_number: e.target.value })} /></div>
-            <div><Label>IBAN (اختياري)</Label><Input value={editBank.iban || ""} onChange={(e) => setEditBank({ ...editBank, iban: e.target.value })} /></div>
-            <div><Label>SWIFT (اختياري)</Label><Input value={editBank.swift_code || ""} onChange={(e) => setEditBank({ ...editBank, swift_code: e.target.value })} /></div>
-            <div><Label>ملاحظات</Label><Input value={editBank.notes || ""} onChange={(e) => setEditBank({ ...editBank, notes: e.target.value })} /></div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2"><Switch checked={editBank.is_active ?? true} onCheckedChange={(v) => setEditBank({ ...editBank, is_active: v })} /><Label>نشط</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={editBank.is_primary ?? false} onCheckedChange={(v) => setEditBank({ ...editBank, is_primary: v })} /><Label>رئيسي</Label></div>
-            </div>
+      {/* Category Modal */}
+      <Dialog open={catModal} onOpenChange={setCatModal}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editCat.id ? "تعديل تصنيف" : "إضافة تصنيف جديد"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2"><Label>الاسم (بالعربية)</Label><Input value={editCat.name_ar} onChange={(e) => setEditCat({ ...editCat, name_ar: e.target.value })} /></div>
+            <div className="space-y-2"><Label>رابط الصورة</Label><Input value={editCat.image_url} onChange={(e) => setEditCat({ ...editCat, image_url: e.target.value })} placeholder="https://..." /></div>
+            <div className="space-y-2"><Label>الترتيب</Label><Input type="number" value={editCat.sort_order} onChange={(e) => setEditCat({ ...editCat, sort_order: e.target.value })} /></div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleSaveBank} disabled={savingBank}><Save className="w-4 h-4 ml-2" />{savingBank ? "جاري الحفظ..." : "حفظ"}</Button>
-          </DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setCatModal(false)}>إلغاء</Button><Button onClick={handleSaveCat} disabled={savingCat}>{savingCat ? "جاري الحفظ..." : "حفظ"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bank Modal */}
+      <Dialog open={bankModal} onOpenChange={setBankModal}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editBank.id ? "تعديل حساب بنكي" : "إضافة حساب بنكي"}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-2 col-span-2"><Label>اسم البنك</Label><Input value={editBank.bank_name} onChange={(e) => setEditBank({ ...editBank, bank_name: e.target.value })} /></div>
+            <div className="space-y-2 col-span-2"><Label>اسم الحساب</Label><Input value={editBank.account_name} onChange={(e) => setEditBank({ ...editBank, account_name: e.target.value })} /></div>
+            <div className="space-y-2"><Label>رقم الحساب</Label><Input value={editBank.account_number} onChange={(e) => setEditBank({ ...editBank, account_number: e.target.value })} /></div>
+            <div className="space-y-2"><Label>IBAN</Label><Input value={editBank.iban} onChange={(e) => setEditBank({ ...editBank, iban: e.target.value })} /></div>
+            <div className="flex items-center gap-2 mt-4"><Switch checked={editBank.is_primary} onCheckedChange={(val) => setEditBank({ ...editBank, is_primary: val })} /><Label>حساب أساسي</Label></div>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setBankModal(false)}>إلغاء</Button><Button onClick={handleSaveBank} disabled={savingBank}>{savingBank ? "جاري الحفظ..." : "حفظ"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

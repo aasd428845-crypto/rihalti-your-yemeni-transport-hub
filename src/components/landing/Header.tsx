@@ -88,7 +88,7 @@ const Header = () => {
         {/* Logo */}
         <a href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }} className="flex items-center gap-2.5">
           <div className="w-[42px] h-[42px] rounded-[10px] bg-primary-gradient flex items-center justify-center shadow-primary">
-            <img src={waslLogo} alt="وصل" className="w-8 h-8 rounded-lg object-cover" />
+            <img src={waslLogo} alt="وصل" className="w-8 h-8 object-contain" />
           </div>
           <div className="flex flex-col">
             <span className="text-lg font-extrabold text-foreground leading-none">وصل</span>
