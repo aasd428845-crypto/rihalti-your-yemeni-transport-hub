@@ -56,7 +56,7 @@ const AdminSettings = () => {
       const policies = policiesRes.data || [];
       const customerPolicy = policies.find((p: any) => p.role === "customer");
       if (customerPolicy) setPolicyContent(customerPolicy.content);
-      setBankAccounts((banksRes.data || []) as BankAccount[]);
+      setBankAccounts((banksRes.data || []) as unknown as BankAccount[]);
       setServiceTypes(servicesRes.data || []);
       setCuisines(cuisinesRes.data || []);
 
