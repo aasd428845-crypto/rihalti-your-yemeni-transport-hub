@@ -170,7 +170,7 @@ serve(async (req) => {
       JSON.stringify({ success: true, total_fixed: totalFixed, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
+  } catch (error: any) {
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

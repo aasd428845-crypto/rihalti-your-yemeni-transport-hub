@@ -74,8 +74,8 @@ export const getActiveRestaurants = async (
     let coverage_status: CoverageStatus;
     let computed_delivery_fee = r.delivery_fee ?? 0;
 
-    if (coverageAreas.length === 0) {
-      // No restriction — restaurant covers the whole city
+    if (coverageAreas.length === 0 || coverageAreas.includes("الكل")) {
+      // No restriction or wildcard — restaurant covers the whole city
       coverage_status = "full";
       if (matchingZone) {
         computed_delivery_fee = (r.delivery_fee ?? 0) + matchingZone.delivery_fee;
@@ -274,21 +274,21 @@ export const createOrderFromCart = async (params: {
 
 // ===== Dynamic Categories =====
 export const getServiceTypes = async () => {
-  const { data, error } = await supabase
-    .from("service_types")
+  const { data, error } = await (supabase
+    .from("service_types" as any)
     .select("*")
     .eq("is_active", true)
-    .order("sort_order");
+    .order("sort_order") as any);
   if (error) throw error;
   return data;
 };
 
 export const getRestaurantCuisines = async () => {
-  const { data, error } = await supabase
-    .from("restaurant_cuisines")
+  const { data, error } = await (supabase
+    .from("restaurant_cuisines" as any)
     .select("*")
     .eq("is_active", true)
-    .order("sort_order");
+    .order("sort_order") as any);
   if (error) throw error;
   return data;
 };
