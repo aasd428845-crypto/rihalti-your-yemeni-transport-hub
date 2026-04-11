@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield,
   Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert,
-  MessageCircle, QrCode, CreditCard, Headphones, Bell, BarChart3, Wallet, Activity
+  MessageCircle, QrCode, CreditCard, Headphones, Bell, BarChart3, Wallet, Activity, Store
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,6 +61,7 @@ const menuGroups = [
     items: [
       { title: "التقارير", url: "/admin/reports", icon: BarChart3 },
       { title: "المراقبة والتحليلات", url: "/admin/monitoring", icon: Activity },
+      { title: "إدارة صور المطاعم", url: "/admin/restaurants", icon: Store },
       { title: "الإعدادات", url: "/admin/settings", icon: Settings },
     ],
   },
