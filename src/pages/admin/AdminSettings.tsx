@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,15 +48,15 @@ const AdminSettings = () => {
       const [settingsRes, policiesRes, banksRes, servicesRes, cuisinesRes] = await Promise.all([
         supabase.from("admin_settings").select("key, value, description").order("key"),
         getPrivacyPolicies(),
-        supabase.from("platform_bank_accounts").select("*").order("is_primary", { ascending: false }),
-        supabase.from("service_types").select("*").order("sort_order"),
-        supabase.from("restaurant_cuisines").select("*").order("sort_order"),
+        supabase.from("platform_bank_accounts" as any).select("*").order("is_primary", { ascending: false }),
+        supabase.from("service_types" as any).select("*").order("sort_order"),
+        supabase.from("restaurant_cuisines" as any).select("*").order("sort_order"),
       ]);
       setSettings(settingsRes.data || []);
       const policies = policiesRes.data || [];
       const customerPolicy = policies.find((p: any) => p.role === "customer");
       if (customerPolicy) setPolicyContent(customerPolicy.content);
-      setBankAccounts((banksRes.data || []) as BankAccount[]);
+      setBankAccounts((banksRes.data || []) as unknown as BankAccount[]);
       setServiceTypes(servicesRes.data || []);
       setCuisines(cuisinesRes.data || []);
 
@@ -200,10 +201,10 @@ const AdminSettings = () => {
 
     let error;
     if (editCat.id) {
-      const res = await supabase.from(table).update(payload).eq("id", editCat.id);
+      const res = await (supabase.from(table as any).update(payload).eq("id", editCat.id) as any);
       error = res.error;
     } else {
-      const res = await supabase.from(table).insert(payload);
+      const res = await (supabase.from(table as any).insert(payload) as any);
       error = res.error;
     }
 
@@ -213,9 +214,9 @@ const AdminSettings = () => {
     setSavingCat(false);
     // Refresh
     const [sRes, cRes] = await Promise.all([
-      supabase.from("service_types").select("*").order("sort_order"),
-      supabase.from("restaurant_cuisines").select("*").order("sort_order"),
-    ]);
+      supabase.from("service_types" as any).select("*").order("sort_order"),
+      supabase.from("restaurant_cuisines" as any).select("*").order("sort_order"),
+    ]) as any;
     setServiceTypes(sRes.data || []);
     setCuisines(cRes.data || []);
   };
@@ -223,7 +224,7 @@ const AdminSettings = () => {
   const handleDeleteCat = async (id: string, type: "service" | "cuisine") => {
     if (!confirm("هل أنت متأكد؟")) return;
     const table = type === "service" ? "service_types" : "restaurant_cuisines";
-    await supabase.from(table).delete().eq("id", id);
+    await (supabase.from(table as any).delete().eq("id", id) as any);
     if (type === "service") setServiceTypes(prev => prev.filter(c => c.id !== id));
     else setCuisines(prev => prev.filter(c => c.id !== id));
     toast.success("تم الحذف");
