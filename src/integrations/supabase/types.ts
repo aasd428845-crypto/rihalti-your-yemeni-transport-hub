@@ -2582,6 +2582,7 @@ export type Database = {
           city: string | null
           commission_rate: number | null
           cover_image: string | null
+          coverage_areas: string[] | null
           created_at: string | null
           cuisine_type: string[] | null
           delivery_company_id: string
@@ -2608,6 +2609,7 @@ export type Database = {
           city?: string | null
           commission_rate?: number | null
           cover_image?: string | null
+          coverage_areas?: string[] | null
           created_at?: string | null
           cuisine_type?: string[] | null
           delivery_company_id: string
@@ -2634,6 +2636,7 @@ export type Database = {
           city?: string | null
           commission_rate?: number | null
           cover_image?: string | null
+          coverage_areas?: string[] | null
           created_at?: string | null
           cuisine_type?: string[] | null
           delivery_company_id?: string

@@ -5,12 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Star, Clock, Truck, MapPin, UtensilsCrossed, ChefHat, Pizza, Beef, Fish, IceCream, Coffee, Flame } from "lucide-react";
+import { Search, Star, Clock, Truck, MapPin, UtensilsCrossed, ChefHat, Pizza, Beef, Fish, IceCream, Coffee, Flame, AlertTriangle, Info, X } from "lucide-react";
 import BackButton from "@/components/common/BackButton";
 import { getActiveRestaurants } from "@/lib/restaurantApi";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+
+const AREA_STORAGE_KEY = "wasal_customer_area";
 
 const cuisineFilters = [
   { key: "all", label: "الكل", icon: UtensilsCrossed },
@@ -22,6 +24,8 @@ const cuisineFilters = [
   { key: "مشروبات", label: "مشروبات", icon: Coffee },
 ];
 
+const CITIES = ["صنعاء", "عدن", "تعز", "المكلا", "إب", "الحديدة", "ذمار", "سيئون"];
+
 const RestaurantsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -31,15 +35,17 @@ const RestaurantsPage = () => {
   const [search, setSearch] = useState("");
   const [cuisineFilter, setCuisineFilter] = useState("all");
   const [selectedCity, setSelectedCity] = useState<string>("");
-  const [userCity, setUserCity] = useState<string>("");
+  const [customerArea, setCustomerArea] = useState<string>(() => localStorage.getItem(AREA_STORAGE_KEY) || "");
+  const [areaInputValue, setAreaInputValue] = useState<string>(() => localStorage.getItem(AREA_STORAGE_KEY) || "");
+  const [showAreaInput, setShowAreaInput] = useState(false);
 
   useEffect(() => {
     const loadUserCity = async () => {
       if (!user) return;
       const { data } = await supabase.from("profiles").select("city").eq("user_id", user.id).maybeSingle();
       if (data?.city) {
-        setUserCity(data.city);
-        setSelectedCity(data.city);
+        if (CITIES.includes(data.city)) setSelectedCity(data.city);
+        else setSelectedCity("");
       }
     };
     loadUserCity();
@@ -48,21 +54,39 @@ const RestaurantsPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await getActiveRestaurants(selectedCity || undefined);
+        const data = await getActiveRestaurants(selectedCity || undefined, customerArea || undefined);
         setRestaurants(data || []);
       } catch (err: any) {
         toast({ title: "خطأ", description: err.message, variant: "destructive" });
       } finally { setLoading(false); }
     };
     load();
-  }, [selectedCity]);
+  }, [selectedCity, customerArea]);
 
-  const featured = restaurants.filter(r => r.is_featured);
-  const filtered = restaurants.filter(r => {
-    const matchSearch = r.name_ar?.includes(search) || r.name_en?.toLowerCase().includes(search.toLowerCase());
-    const matchCuisine = cuisineFilter === "all" || (r.cuisine_type && r.cuisine_type.includes(cuisineFilter));
-    return matchSearch && matchCuisine;
-  });
+  const applyArea = () => {
+    const trimmed = areaInputValue.trim();
+    setCustomerArea(trimmed);
+    localStorage.setItem(AREA_STORAGE_KEY, trimmed);
+    setShowAreaInput(false);
+  };
+
+  const clearArea = () => {
+    setCustomerArea("");
+    setAreaInputValue("");
+    localStorage.removeItem(AREA_STORAGE_KEY);
+  };
+
+  const featured = restaurants.filter(r => r.is_featured && r.coverage_status !== "out_of_range");
+  const filtered = restaurants
+    .filter(r => {
+      const matchSearch = r.name_ar?.includes(search) || r.name_en?.toLowerCase().includes(search.toLowerCase());
+      const matchCuisine = cuisineFilter === "all" || (r.cuisine_type && r.cuisine_type.includes(cuisineFilter));
+      return matchSearch && matchCuisine;
+    })
+    .sort((a, b) => {
+      const order: Record<string, number> = { full: 0, covered: 0, extra_fee: 1, out_of_range: 2 };
+      return (order[a.coverage_status ?? "full"] ?? 0) - (order[b.coverage_status ?? "full"] ?? 0);
+    });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30" dir="rtl">
@@ -81,34 +105,62 @@ const RestaurantsPage = () => {
           <p className="text-muted-foreground text-lg">اطلب من أفضل المطاعم وتوصيل سريع لباب بيتك</p>
         </div>
 
-        {/* City filter + Search */}
-        <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute right-3 top-3 w-5 h-5 text-muted-foreground" />
-            <Input
-              placeholder="ابحث عن مطعم أو طبق..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pr-10 h-12 text-base rounded-xl border-border/60 bg-card shadow-sm focus:shadow-md transition-shadow"
-            />
+        {/* City filter + Area selector + Search */}
+        <div className="flex flex-col gap-3 max-w-2xl mx-auto mb-8">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute right-3 top-3 w-5 h-5 text-muted-foreground" />
+              <Input
+                placeholder="ابحث عن مطعم أو طبق..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pr-10 h-12 text-base rounded-xl border-border/60 bg-card shadow-sm focus:shadow-md transition-shadow"
+              />
+            </div>
+            <Select value={selectedCity || "all"} onValueChange={v => setSelectedCity(v === "all" ? "" : v)}>
+              <SelectTrigger className="h-12 w-full sm:w-44 rounded-xl border-border/60 bg-card shadow-sm">
+                <MapPin className="w-4 h-4 ml-1 text-muted-foreground" />
+                <SelectValue placeholder="كل المدن" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل المدن</SelectItem>
+                {CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={selectedCity} onValueChange={setSelectedCity}>
-            <SelectTrigger className="h-12 w-full sm:w-44 rounded-xl border-border/60 bg-card shadow-sm">
-              <MapPin className="w-4 h-4 ml-1 text-muted-foreground" />
-              <SelectValue placeholder="كل المدن" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">كل المدن</SelectItem>
-              <SelectItem value="صنعاء">صنعاء</SelectItem>
-              <SelectItem value="عدن">عدن</SelectItem>
-              <SelectItem value="تعز">تعز</SelectItem>
-              <SelectItem value="المكلا">المكلا</SelectItem>
-              <SelectItem value="إب">إب</SelectItem>
-              <SelectItem value="الحديدة">الحديدة</SelectItem>
-              <SelectItem value="ذمار">ذمار</SelectItem>
-              <SelectItem value="سيئون">سيئون</SelectItem>
-            </SelectContent>
-          </Select>
+
+          {/* Neighborhood/Area selector */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm text-muted-foreground">منطقتك:</span>
+            {!showAreaInput ? (
+              <>
+                {customerArea ? (
+                  <Badge variant="secondary" className="gap-1.5 cursor-pointer" onClick={() => setShowAreaInput(true)}>
+                    {customerArea}
+                    <X className="w-3 h-3 hover:text-destructive" onClick={e => { e.stopPropagation(); clearArea(); }} />
+                  </Badge>
+                ) : (
+                  <button onClick={() => setShowAreaInput(true)} className="text-sm text-primary hover:underline font-medium">
+                    حدد حيّك لمعرفة رسوم التوصيل الدقيقة
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center gap-2 flex-1">
+                <Input
+                  autoFocus
+                  value={areaInputValue}
+                  onChange={e => setAreaInputValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") applyArea(); if (e.key === "Escape") setShowAreaInput(false); }}
+                  placeholder="اسم حيّك أو منطقتك..."
+                  className="h-9 flex-1 text-sm rounded-xl"
+                />
+                <Button size="sm" onClick={applyArea} className="h-9 text-xs px-3">تأكيد</Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowAreaInput(false)} className="h-9 px-2"><X className="w-3.5 h-3.5" /></Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Cuisine Filters */}
@@ -156,6 +208,11 @@ const RestaurantsPage = () => {
                     <Badge className="absolute top-3 left-3 bg-accent text-accent-foreground border-0 shadow-lg font-bold">
                       ⭐ مميز
                     </Badge>
+                    {r.coverage_status === "extra_fee" && (
+                      <Badge className="absolute top-3 right-3 bg-amber-500/90 text-white border-0 shadow text-[10px] font-bold gap-1 px-2 py-0.5">
+                        <Info className="w-2.5 h-2.5" />رسوم إضافية
+                      </Badge>
+                    )}
                     {r.logo_url && (
                       <div className="absolute bottom-3 right-3 w-12 h-12 rounded-xl bg-card shadow-lg overflow-hidden border-2 border-card">
                         <img src={r.logo_url} alt="" className="w-full h-full object-cover" />
@@ -173,7 +230,9 @@ const RestaurantsPage = () => {
                       {r.estimated_delivery_time && (
                         <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{r.estimated_delivery_time} د</span>
                       )}
-                      <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5" />{r.delivery_fee || 0} ر.ي</span>
+                      <span className={`flex items-center gap-1 ${r.coverage_status === "extra_fee" ? "text-amber-600 font-bold" : ""}`}>
+                        <Truck className="w-3.5 h-3.5" />{r.computed_delivery_fee ?? r.delivery_fee ?? 0} ر.ي
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -203,10 +262,14 @@ const RestaurantsPage = () => {
           </Card>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map(r => (
+            {filtered.map(r => {
+              const isOutOfRange = r.coverage_status === "out_of_range";
+              const isExtraFee = r.coverage_status === "extra_fee";
+              const displayFee = r.computed_delivery_fee ?? r.delivery_fee ?? 0;
+              return (
               <Card
                 key={r.id}
-                className="cursor-pointer overflow-hidden rounded-2xl border-border/40 bg-card shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-primary/20 transition-all duration-300 group"
+                className={`cursor-pointer overflow-hidden rounded-2xl border-border/40 bg-card shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-primary/20 transition-all duration-300 group ${isOutOfRange ? "opacity-60" : ""}`}
                 onClick={() => navigate(`/restaurants/${r.id}`)}
               >
                 <div className="h-44 relative overflow-hidden">
@@ -232,9 +295,30 @@ const RestaurantsPage = () => {
                       ⭐ مميز
                     </Badge>
                   )}
+                  {isOutOfRange && (
+                    <Badge className="absolute top-3 right-3 bg-red-600/90 text-white border-0 shadow text-[10px] font-bold gap-1 px-2">
+                      <AlertTriangle className="w-2.5 h-2.5" />خارج التغطية
+                    </Badge>
+                  )}
+                  {isExtraFee && (
+                    <Badge className="absolute top-3 right-3 bg-amber-500/90 text-white border-0 shadow text-[10px] font-bold gap-1 px-2">
+                      <Info className="w-2.5 h-2.5" />رسوم إضافية
+                    </Badge>
+                  )}
                 </div>
                 <CardContent className="p-4 space-y-3">
                   <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{r.name_ar}</h3>
+
+                  {isOutOfRange && (
+                    <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3 h-3 shrink-0" />هذا المطعم لا يوصل لمنطقتك
+                    </p>
+                  )}
+                  {isExtraFee && (
+                    <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                      <Info className="w-3 h-3 shrink-0" />يشمل رسوم إضافية لمنطقتك
+                    </p>
+                  )}
 
                   {r.cuisine_type && r.cuisine_type.length > 0 && (
                     <div className="flex gap-1.5 flex-wrap">
@@ -259,8 +343,8 @@ const RestaurantsPage = () => {
                         <Clock className="w-3.5 h-3.5" />{r.estimated_delivery_time} د
                       </span>
                     )}
-                    <span className="flex items-center gap-1 text-xs mr-auto">
-                      <Truck className="w-3.5 h-3.5" />{r.delivery_fee || 0} ر.ي
+                    <span className={`flex items-center gap-1 text-xs mr-auto ${isExtraFee ? "text-amber-600 font-bold" : ""}`}>
+                      <Truck className="w-3.5 h-3.5" />{displayFee} ر.ي
                     </span>
                   </div>
 
@@ -271,7 +355,8 @@ const RestaurantsPage = () => {
                   )}
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

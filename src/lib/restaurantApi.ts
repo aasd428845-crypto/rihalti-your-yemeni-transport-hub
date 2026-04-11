@@ -1,26 +1,99 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// Coverage status for a restaurant relative to the customer's area
+export type CoverageStatus = "full" | "covered" | "extra_fee" | "out_of_range";
+
+export interface RestaurantWithCoverage {
+  [key: string]: any;
+  coverage_status: CoverageStatus;
+  computed_delivery_fee: number;
+}
+
 // ===== Public Restaurant Queries =====
-export const getActiveRestaurants = async (city?: string) => {
-  if (city && city !== "all") {
-    const { data, error } = await (supabase
-      .from("restaurants")
-      .select("*")
-      .eq("is_active", true) as any)
-      .eq("city", city)
-      .order("is_featured", { ascending: false })
-      .order("rating", { ascending: false });
-    if (error) throw error;
-    return data;
-  }
-  const { data, error } = await supabase
+
+/**
+ * Fetches active restaurants by city (big city, not neighborhood).
+ * When customerArea is provided, enriches each result with:
+ *   - coverage_status: 'full' | 'covered' | 'extra_fee' | 'out_of_range'
+ *   - computed_delivery_fee: adjusted delivery fee for the customer's area
+ *
+ * Coverage rules:
+ *   - coverage_areas empty   → 'full'       (serves entire city)
+ *   - area in coverage_areas → 'covered'    (explicitly included)
+ *   - area not covered but delivery zone exists → 'extra_fee' (fee = base + zone)
+ *   - area not covered and no zone → 'out_of_range'
+ */
+export const getActiveRestaurants = async (
+  city?: string,
+  customerArea?: string
+): Promise<RestaurantWithCoverage[]> => {
+  let query = supabase
     .from("restaurants")
     .select("*")
     .eq("is_active", true)
     .order("is_featured", { ascending: false })
     .order("rating", { ascending: false });
+
+  if (city && city !== "all") {
+    query = query.eq("city", city) as any;
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
-  return data;
+  if (!data || data.length === 0) return [];
+
+  // If no customer area provided, return with 'full' coverage status
+  if (!customerArea || customerArea.trim() === "") {
+    return data.map((r) => ({
+      ...r,
+      coverage_status: "full" as CoverageStatus,
+      computed_delivery_fee: r.delivery_fee ?? 0,
+    }));
+  }
+
+  // Batch-load all delivery zones for all delivery companies in the result set
+  const companyIds = [...new Set(data.map((r) => r.delivery_company_id))];
+  const { data: allZones } = await (supabase
+    .from("delivery_zones" as any)
+    .select("*")
+    .in("delivery_company_id", companyIds)
+    .eq("is_active", true) as any);
+
+  // Group zones by company for O(1) lookup
+  const zonesByCompany: Record<string, any[]> = {};
+  for (const z of allZones || []) {
+    if (!zonesByCompany[z.delivery_company_id]) zonesByCompany[z.delivery_company_id] = [];
+    zonesByCompany[z.delivery_company_id].push(z);
+  }
+
+  return data.map((r) => {
+    const coverageAreas: string[] = r.coverage_areas || [];
+    const companyZones: any[] = zonesByCompany[r.delivery_company_id] || [];
+    const matchingZone = companyZones.find((z) => z.zone_name === customerArea);
+
+    let coverage_status: CoverageStatus;
+    let computed_delivery_fee = r.delivery_fee ?? 0;
+
+    if (coverageAreas.length === 0) {
+      // No restriction — restaurant covers the whole city
+      coverage_status = "full";
+      if (matchingZone) {
+        computed_delivery_fee = (r.delivery_fee ?? 0) + matchingZone.delivery_fee;
+      }
+    } else if (coverageAreas.includes(customerArea)) {
+      // Explicitly covered area
+      coverage_status = "covered";
+    } else if (matchingZone) {
+      // Same city but out-of-primary-zone — extra delivery fee applies
+      coverage_status = "extra_fee";
+      computed_delivery_fee = (r.delivery_fee ?? 0) + matchingZone.delivery_fee;
+    } else {
+      // Same city but no zone configured for this area
+      coverage_status = "out_of_range";
+    }
+
+    return { ...r, coverage_status, computed_delivery_fee };
+  });
 };
 
 export const getRestaurantById = async (id: string) => {

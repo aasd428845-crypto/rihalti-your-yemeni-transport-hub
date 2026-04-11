@@ -34,6 +34,7 @@ const emptyForm = () => ({
   commission_rate: 0, delivery_fee: 0, min_order_amount: 0,
   estimated_delivery_time: 30, is_featured: false, cuisine_type: [] as string[],
   cover_image: "", logo_url: "",
+  coverage_areas: [] as string[],
   opening_hours: defaultHours() as Record<string, { open: boolean; from: string; to: string }>,
 });
 
@@ -47,6 +48,7 @@ const DeliveryRestaurants = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [form, setForm] = useState(emptyForm());
+  const [coverageInput, setCoverageInput] = useState("");
 
   const load = async () => {
     if (!user) return;
@@ -68,6 +70,7 @@ const DeliveryRestaurants = () => {
       const payload = {
         ...form,
         cuisine_type: form.cuisine_type.length > 0 ? form.cuisine_type : null,
+        coverage_areas: form.coverage_areas.length > 0 ? form.coverage_areas : [],
         opening_hours: form.opening_hours,
         cover_image: form.cover_image || null,
         logo_url: form.logo_url || null,
@@ -105,9 +108,22 @@ const DeliveryRestaurants = () => {
       min_order_amount: r.min_order_amount || 0, estimated_delivery_time: r.estimated_delivery_time || 30,
       is_featured: r.is_featured || false, cuisine_type: r.cuisine_type || [],
       cover_image: r.cover_image || "", logo_url: r.logo_url || "",
+      coverage_areas: r.coverage_areas || [],
       opening_hours: hours,
     });
     setShowAdd(true);
+  };
+
+  const addCoverageArea = (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed && !form.coverage_areas.includes(trimmed)) {
+      setForm(f => ({ ...f, coverage_areas: [...f.coverage_areas, trimmed] }));
+    }
+    setCoverageInput("");
+  };
+
+  const removeCoverageArea = (area: string) => {
+    setForm(f => ({ ...f, coverage_areas: f.coverage_areas.filter(a => a !== area) }));
   };
 
   const toggleCuisine = (c: string) => {
@@ -267,6 +283,36 @@ const DeliveryRestaurants = () => {
               <div>
                 <Label>رسوم التوصيل (ر.ي)</Label>
                 <Input type="number" value={form.delivery_fee} onChange={e => setForm({...form, delivery_fee: Number(e.target.value)})} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>مناطق التغطية المحددة</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  اتركها فارغة لتشمل كامل المدينة. أضف أسماء الأحياء/المناطق التي يوصل إليها المطعم فقط.
+                </p>
+                <div className="flex gap-2 mb-2">
+                  <Input
+                    value={coverageInput}
+                    onChange={e => setCoverageInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCoverageArea(coverageInput); } }}
+                    placeholder="اسم الحي أو المنطقة..."
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={() => addCoverageArea(coverageInput)}>إضافة</Button>
+                </div>
+                {form.coverage_areas.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {form.coverage_areas.map(area => (
+                      <Badge key={area} variant="secondary" className="gap-1.5 pl-2">
+                        {area}
+                        <button
+                          type="button"
+                          onClick={() => removeCoverageArea(area)}
+                          className="hover:text-destructive transition-colors"
+                        >×</button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <Label>الحد الأدنى للطلب (ر.ي)</Label>

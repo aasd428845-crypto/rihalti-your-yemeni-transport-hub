@@ -8,9 +8,9 @@ import {
   Search, MapPin, Star, Clock, Truck, ChevronDown, UtensilsCrossed,
   ChefHat, Pizza, Beef, Fish, IceCream, Coffee, Flame, ShoppingCart,
   Pill, Apple, Milk, Wheat, Baby, Heart, Leaf, Sandwich, Soup,
-  Tag, Zap, TrendingUp, Sparkles, X
+  Tag, Zap, TrendingUp, Sparkles, X, AlertTriangle, CheckCircle2, Info
 } from "lucide-react";
-import { getActiveRestaurants, getServiceTypes, getRestaurantCuisines } from "@/lib/restaurantApi";
+import { getActiveRestaurants, getServiceTypes, getRestaurantCuisines, CoverageStatus } from "@/lib/restaurantApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -48,6 +48,21 @@ const SkeletonCard = () => (
   </div>
 );
 
+// ─── Coverage Badge ───────────────────────────────────────────────────────────
+const CoverageBadge = ({ status }: { status: CoverageStatus }) => {
+  if (status === "full" || status === "covered") return null;
+  if (status === "extra_fee") return (
+    <Badge className="absolute top-3 left-3 bg-amber-500/90 text-white border-0 shadow text-[10px] font-bold gap-1 px-2 py-0.5 backdrop-blur-sm">
+      <Info className="w-2.5 h-2.5" />رسوم إضافية
+    </Badge>
+  );
+  return (
+    <Badge className="absolute top-3 left-3 bg-red-600/90 text-white border-0 shadow text-[10px] font-bold gap-1 px-2 py-0.5 backdrop-blur-sm">
+      <AlertTriangle className="w-2.5 h-2.5" />خارج التغطية
+    </Badge>
+  );
+};
+
 // ─── Restaurant Card ──────────────────────────────────────────────────────────
 const RestaurantCard = ({
   r, onClick, size = "normal", accentText
@@ -57,18 +72,19 @@ const RestaurantCard = ({
   const imgH = size === "featured" ? "h-52" : "h-44";
   const minW = size === "featured" ? "min-w-[280px]" : "";
 
-  // Pick the best available image
   const primaryCuisine = r.cuisine_type?.[0] || "";
   const fallbackImg = CUISINE_IMAGES[primaryCuisine] || CUISINE_IMAGES["default"];
   const heroSrc = r.cover_image || r.cover_image_url || fallbackImg;
 
   const isOpen = r.is_active !== false;
+  const isOutOfRange = r.coverage_status === "out_of_range";
+  const displayFee = r.computed_delivery_fee ?? r.delivery_fee ?? 0;
 
   return (
     <Card
       data-testid={`card-restaurant-${r.id}`}
       onClick={onClick}
-      className={`cursor-pointer overflow-hidden rounded-2xl border border-border/20 bg-card shadow-md hover:shadow-2xl hover:-translate-y-2 hover:border-amber-400/40 transition-all duration-300 group ${minW}`}
+      className={`cursor-pointer overflow-hidden rounded-2xl border border-border/20 bg-card shadow-md hover:shadow-2xl hover:-translate-y-2 hover:border-amber-400/40 transition-all duration-300 group ${minW} ${isOutOfRange ? "opacity-60" : ""}`}
     >
       <div className={`${imgH} relative overflow-hidden`}>
         <img
@@ -78,10 +94,7 @@ const RestaurantCard = ({
           loading="lazy"
           onError={(e) => { (e.target as HTMLImageElement).src = CUISINE_IMAGES["default"]; }}
         />
-        {/* Dark gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-        {/* Gold shimmer on hover */}
         <div className="absolute inset-0 bg-gradient-to-tr from-amber-400/0 via-amber-300/0 to-amber-400/0 group-hover:from-amber-400/10 group-hover:via-amber-300/5 group-hover:to-amber-400/10 transition-all duration-500" />
 
         {/* Featured badge */}
@@ -90,6 +103,9 @@ const RestaurantCard = ({
             <Sparkles className="w-3 h-3" />مميز
           </Badge>
         )}
+
+        {/* Coverage badge */}
+        <CoverageBadge status={r.coverage_status ?? "full"} />
 
         {/* Closed overlay */}
         {!isOpen && (
@@ -115,6 +131,22 @@ const RestaurantCard = ({
       </div>
 
       <CardContent className="p-3.5">
+        {/* Out-of-range warning banner */}
+        {isOutOfRange && (
+          <div className="mb-2.5 flex items-center gap-1.5 text-[11px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-2.5 py-1.5 font-medium">
+            <AlertTriangle className="w-3 h-3 shrink-0" />
+            هذا المطعم لا يوصل لمنطقتك حالياً
+          </div>
+        )}
+
+        {/* Extra fee notice */}
+        {r.coverage_status === "extra_fee" && (
+          <div className="mb-2.5 flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-2.5 py-1.5 font-medium">
+            <Info className="w-3 h-3 shrink-0" />
+            يشمل رسوم توصيل إضافية لمنطقتك
+          </div>
+        )}
+
         <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
           <span className="flex items-center gap-1 px-2.5 py-1 rounded-full font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400">
             <Star className="w-3.5 h-3.5 fill-current" />{Number(r.rating || 0).toFixed(1)}
@@ -126,9 +158,9 @@ const RestaurantCard = ({
           )}
           <span className="flex items-center gap-1 mr-auto">
             <Truck className="w-3.5 h-3.5" />
-            {r.delivery_fee === 0
+            {displayFee === 0
               ? <span className="text-emerald-600 dark:text-emerald-400 font-semibold">مجاني</span>
-              : `${r.delivery_fee} ر.ي`}
+              : <span className={r.coverage_status === "extra_fee" ? "text-amber-600 font-bold" : ""}>{displayFee} ر.ي</span>}
           </span>
         </div>
         {r.min_order_amount > 0 && (
@@ -184,11 +216,17 @@ const ComingSoonSection = ({ tab, accentText, accentBg, accentLight, accentBorde
   </div>
 );
 
+const AREA_STORAGE_KEY = "wasal_customer_area";
+
 const DeliveryHubPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("restaurants");
   const [selectedCity, setSelectedCity] = useState("صنعاء");
+  const [customerArea, setCustomerArea] = useState<string>(() => localStorage.getItem(AREA_STORAGE_KEY) || "");
+  const [areaInputValue, setAreaInputValue] = useState<string>(() => localStorage.getItem(AREA_STORAGE_KEY) || "");
+  const [showAreaInput, setShowAreaInput] = useState(false);
   const [cuisineFilter, setCuisineFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [restaurants, setRestaurants] = useState<any[]>([]);
@@ -213,14 +251,29 @@ const DeliveryHubPage = () => {
     loadInitialData();
   }, []);
 
-  // Fetch restaurants based on city
+  // Load user's city from profile on first login
+  useEffect(() => {
+    if (!user) return;
+    const loadProfile = async () => {
+      const { data } = await supabase.from("profiles").select("city").eq("user_id", user.id).maybeSingle();
+      if (data?.city && CITIES.includes(data.city)) {
+        setSelectedCity(data.city);
+      }
+    };
+    loadProfile();
+  }, [user]);
+
+  // Fetch restaurants based on city + customer area
   useEffect(() => {
     setLoading(true);
-    getActiveRestaurants(selectedCity === "all" ? undefined : selectedCity)
+    getActiveRestaurants(
+      selectedCity === "all" ? undefined : selectedCity,
+      customerArea || undefined
+    )
       .then((data) => setRestaurants(data || []))
       .catch(() => setRestaurants([]))
       .finally(() => setLoading(false));
-  }, [selectedCity]);
+  }, [selectedCity, customerArea]);
 
   // Handle URL params
   useEffect(() => {
@@ -229,6 +282,19 @@ const DeliveryHubPage = () => {
     const q = searchParams.get("q");
     if (q) setSearch(q);
   }, [searchParams]);
+
+  const applyArea = () => {
+    const trimmed = areaInputValue.trim();
+    setCustomerArea(trimmed);
+    localStorage.setItem(AREA_STORAGE_KEY, trimmed);
+    setShowAreaInput(false);
+  };
+
+  const clearArea = () => {
+    setCustomerArea("");
+    setAreaInputValue("");
+    localStorage.removeItem(AREA_STORAGE_KEY);
+  };
 
   const tab = serviceTypes.find(s => s.id === activeTab) || {
     name_ar: activeTab === "restaurants" ? "مطاعم" : activeTab === "grocery" ? "بقالة" : "صيدلية",
@@ -287,15 +353,47 @@ const DeliveryHubPage = () => {
             </div>
 
             {/* City Picker */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-muted/40 rounded-2xl border border-border/40 shrink-0">
-              <MapPin className="w-4 h-4 text-primary" />
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="bg-transparent text-sm font-bold focus:outline-none cursor-pointer"
-              >
-                {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 px-4 py-2 bg-muted/40 rounded-2xl border border-border/40">
+                <MapPin className="w-4 h-4 text-primary" />
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="bg-transparent text-sm font-bold focus:outline-none cursor-pointer"
+                >
+                  {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {/* Area / Neighborhood selector */}
+              {!showAreaInput ? (
+                <button
+                  onClick={() => setShowAreaInput(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl border border-border/40 bg-muted/40 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+                  title="حدد منطقتك لمعرفة تغطية التوصيل"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  {customerArea ? (
+                    <span className="flex items-center gap-1 text-foreground font-bold">
+                      {customerArea}
+                      <X className="w-3 h-3 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); clearArea(); }} />
+                    </span>
+                  ) : "منطقتك"}
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    autoFocus
+                    value={areaInputValue}
+                    onChange={(e) => setAreaInputValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") applyArea(); if (e.key === "Escape") setShowAreaInput(false); }}
+                    placeholder="اسم حيّك أو منطقتك..."
+                    className="h-9 w-44 text-sm rounded-xl"
+                  />
+                  <Button size="sm" onClick={applyArea} className="h-9 rounded-xl text-xs px-3">تأكيد</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowAreaInput(false)} className="h-9 rounded-xl text-xs px-2"><X className="w-3.5 h-3.5" /></Button>
+                </div>
+              )}
             </div>
 
             {/* Search */}
@@ -348,7 +446,21 @@ const DeliveryHubPage = () => {
 
         {/* ── Restaurants Content ─────────────────────────────────── */}
         {activeTab === "restaurants" && (
-          <div className="space-y-12">
+          <div className="space-y-6">
+            {/* Coverage area info banner */}
+            {customerArea && !loading && (
+              <div className="flex flex-wrap items-center gap-3 p-3.5 rounded-2xl bg-primary/5 border border-primary/20 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                <span className="font-medium text-foreground">
+                  عرض مطاعم <span className="font-black text-primary">{selectedCity}</span> مع تحقق التغطية لمنطقة <span className="font-black text-primary">{customerArea}</span>
+                </span>
+                <div className="flex items-center gap-3 mr-auto text-xs text-muted-foreground flex-wrap">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />رسوم إضافية</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" />خارج التغطية</span>
+                </div>
+              </div>
+            )}
+
             {loading ? (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
@@ -357,14 +469,20 @@ const DeliveryHubPage = () => {
               <EmptyState emoji="🔍" title="لا توجد نتائج" desc="جرب البحث بكلمة مختلفة" />
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {filtered.map((r) => (
-                  <RestaurantCard
-                    key={r.id}
-                    r={r}
-                    onClick={() => navigate(`/restaurants/${r.id}`)}
-                    accentText={tab.accentText}
-                  />
-                ))}
+                {/* Sort: full/covered first, extra_fee second, out_of_range last */}
+                {[...filtered]
+                  .sort((a, b) => {
+                    const order: Record<string, number> = { full: 0, covered: 0, extra_fee: 1, out_of_range: 2 };
+                    return (order[a.coverage_status ?? "full"] ?? 0) - (order[b.coverage_status ?? "full"] ?? 0);
+                  })
+                  .map((r) => (
+                    <RestaurantCard
+                      key={r.id}
+                      r={r}
+                      onClick={() => navigate(`/restaurants/${r.id}`)}
+                      accentText={tab.accentText}
+                    />
+                  ))}
               </div>
             )}
           </div>

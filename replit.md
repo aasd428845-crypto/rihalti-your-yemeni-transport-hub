@@ -49,6 +49,18 @@ The following env vars are set in Replit (shared environment):
 - `/delivery-driver/*` — Delivery driver portal
 - `/customer/*` — Customer portal
 
+## Restaurant Coverage Logic (recently added)
+- `restaurants.coverage_areas TEXT[]` — list of neighborhoods a restaurant covers. Empty = covers full city.
+- Filter is city-level (restaurant.city = selectedCity), NOT neighborhood-level.
+- Customer can enter their neighborhood in the UI (stored in localStorage as "wasal_customer_area").
+- `getActiveRestaurants(city?, customerArea?)` in `restaurantApi.ts` handles the coverage enrichment:
+  - `full` — restaurant has no coverage restriction (shows normally)
+  - `covered` — customer's area is in restaurant's `coverage_areas` (shows normally)
+  - `extra_fee` — area not in `coverage_areas` but delivery company has a zone → shows with extra fee badge
+  - `out_of_range` — area not covered and no zone → card shown dimmed with warning
+- Migration file: `supabase/migrations/20260411000000_add_coverage_areas.sql`
+  - **Must be applied in Supabase SQL Editor**: `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS coverage_areas TEXT[] DEFAULT '{}';`
+
 ## Notes
 - Supabase Edge Functions handle background jobs (invoices, healing, metrics) — they run on Supabase infrastructure, not here
 - All sensitive operations are protected by Supabase RLS policies
