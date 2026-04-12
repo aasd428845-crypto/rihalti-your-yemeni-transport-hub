@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Search, UserCheck, Eye, XCircle } from "lucide-react";
+import { Search, UserCheck, Eye, XCircle, ImageIcon, CreditCard, Banknote } from "lucide-react";
 import { getDeliveryOrders, updateOrderStatus, assignRiderToOrder, getRiders, getOrderTracking } from "@/lib/deliveryApi";
 import { ORDER_STATUS_MAP } from "@/types/delivery.types";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,8 @@ const DeliveryOrders = () => {
   const [assignOrderId, setAssignOrderId] = useState("");
   const [selectedRider, setSelectedRider] = useState("");
   const [tracking, setTracking] = useState<any[]>([]);
+  const [paymentTx, setPaymentTx] = useState<any>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -76,9 +78,18 @@ const DeliveryOrders = () => {
 
   const viewDetails = async (order: any) => {
     setSelectedOrder(order);
+    setPaymentTx(null);
     try {
-      const t = await getOrderTracking(order.id);
-      setTracking(t || []);
+      const [trackingData, txData] = await Promise.all([
+        getOrderTracking(order.id),
+        supabase.from("payment_transactions")
+          .select("*")
+          .eq("related_entity_id", order.id)
+          .maybeSingle()
+          .then(({ data }) => data),
+      ]);
+      setTracking(trackingData || []);
+      setPaymentTx(txData || null);
     } catch {}
   };
 
@@ -220,6 +231,84 @@ const DeliveryOrders = () => {
                 )}
               </div>
 
+              {/* ── Payment Proof Section ── */}
+              {(paymentTx || selectedOrder.payment_method === "bank_transfer") && (
+                <div className="border rounded-xl p-3 space-y-2 bg-muted/30">
+                  <h4 className="font-bold flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-primary" />
+                    تفاصيل الدفع
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">طريقة الدفع: </span>
+                      <span className="font-semibold">
+                        {selectedOrder.payment_method === "cash" ? "💵 نقداً" : selectedOrder.payment_method === "bank_transfer" ? "🏦 تحويل بنكي" : selectedOrder.payment_method}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">حالة الدفع: </span>
+                      <Badge variant="outline" className={
+                        paymentTx?.status === "verified" ? "border-green-500 text-green-600" :
+                        paymentTx?.status === "pending" ? "border-amber-500 text-amber-600" :
+                        selectedOrder.payment_status === "paid" ? "border-green-500 text-green-600" : ""
+                      }>
+                        {paymentTx?.status === "verified" ? "✅ موثّق" :
+                         paymentTx?.status === "pending" ? "⏳ قيد المراجعة" :
+                         selectedOrder.payment_status === "paid" ? "✅ مدفوع" : "⏳ معلق"}
+                      </Badge>
+                    </div>
+                    {paymentTx?.amount && (
+                      <div>
+                        <span className="text-muted-foreground">المبلغ المحوّل: </span>
+                        <span className="font-bold text-primary">{Number(paymentTx.amount).toLocaleString()} ر.ي</span>
+                      </div>
+                    )}
+                    {paymentTx?.transfer_reference && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">رقم المرجع / اسم المرسل: </span>
+                        <span className="font-semibold">{paymentTx.transfer_reference}</span>
+                      </div>
+                    )}
+                    {paymentTx?.notes && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">ملاحظات: </span>
+                        <span>{paymentTx.notes}</span>
+                      </div>
+                    )}
+                    {paymentTx?.created_at && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">وقت الإيداع: </span>
+                        <span>{new Date(paymentTx.created_at).toLocaleString("ar")}</span>
+                      </div>
+                    )}
+                  </div>
+                  {paymentTx?.transfer_receipt_url && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">📎 صورة إيصال التحويل:</p>
+                      <div
+                        className="relative rounded-lg overflow-hidden border cursor-pointer group"
+                        onClick={() => setReceiptOpen(true)}
+                      >
+                        <img
+                          src={paymentTx.transfer_receipt_url}
+                          alt="إيصال التحويل"
+                          className="w-full max-h-48 object-contain bg-white group-hover:opacity-90 transition-opacity"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-opacity">
+                          <span className="text-white text-xs font-bold bg-black/60 px-3 py-1 rounded-full">عرض بالحجم الكامل</span>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" className="w-full gap-2" onClick={() => setReceiptOpen(true)}>
+                        <ImageIcon className="w-3.5 h-3.5" /> عرض صورة الإيصال بالكامل
+                      </Button>
+                    </div>
+                  )}
+                  {!paymentTx?.transfer_receipt_url && selectedOrder.payment_method === "bank_transfer" && (
+                    <p className="text-xs text-amber-600 bg-amber-50 rounded-lg p-2">⚠️ لم يتم رفع صورة الإيصال بعد</p>
+                  )}
+                </div>
+              )}
+
               {/* Google Maps link */}
               {selectedOrder.delivery_lat && selectedOrder.delivery_lng && (
                 <a
@@ -255,6 +344,32 @@ const DeliveryOrders = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Full-screen Dialog */}
+      <Dialog open={receiptOpen} onOpenChange={setReceiptOpen}>
+        <DialogContent dir="rtl" className="max-w-2xl p-2">
+          <DialogHeader className="p-3"><DialogTitle>صورة إيصال التحويل</DialogTitle></DialogHeader>
+          {paymentTx?.transfer_receipt_url && (
+            <div className="rounded-lg overflow-hidden">
+              <img
+                src={paymentTx.transfer_receipt_url}
+                alt="إيصال التحويل"
+                className="w-full object-contain max-h-[70vh]"
+              />
+            </div>
+          )}
+          <div className="p-2 flex justify-end">
+            <a
+              href={paymentTx?.transfer_receipt_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary text-sm hover:underline"
+            >
+              فتح في نافذة جديدة ↗
+            </a>
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -248,3 +248,36 @@ export const getDeliveryStats = async (companyId: string) => {
     todayOrders: todayOrders.length,
   };
 };
+
+// ===== Delivery Banners =====
+export const getDeliveryBanners = async (companyId?: string, city?: string) => {
+  let q = supabase.from("delivery_banners").select("*").eq("is_active", true).order("sort_order");
+  if (companyId) q = q.eq("delivery_company_id", companyId);
+  if (city) q = q.or(`city.eq.${city},city.is.null`);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data || [];
+};
+
+export const getBannersForPortal = async (companyId: string) => {
+  const { data, error } = await supabase.from("delivery_banners").select("*").eq("delivery_company_id", companyId).order("sort_order");
+  if (error) throw error;
+  return data || [];
+};
+
+export const createBanner = async (banner: any) => {
+  const { data, error } = await supabase.from("delivery_banners").insert(banner).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const updateBanner = async (id: string, updates: any) => {
+  const { data, error } = await supabase.from("delivery_banners").update(updates).eq("id", id).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const deleteBanner = async (id: string) => {
+  const { error } = await supabase.from("delivery_banners").delete().eq("id", id);
+  if (error) throw error;
+};

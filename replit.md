@@ -61,6 +61,24 @@ The following env vars are set in Replit (shared environment):
 - Migration file: `supabase/migrations/20260411000000_add_coverage_areas.sql`
   - **Must be applied in Supabase SQL Editor**: `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS coverage_areas TEXT[] DEFAULT '{}';`
 
+## Delivery Company Dashboard Features (recently added/fixed)
+- **Notification Bell**: Real-time bell icon in the dashboard header. Queries `notifications` table for unread count; subscribes to realtime `INSERT` on notifications and new delivery_orders. Redirects to `/notifications` page.
+- **Payment Proof in Orders**: Order details dialog now fetches the linked `payment_transactions` row (by `related_entity_id = order.id`) and shows: payment method, status badge, transfer amount, transfer reference/sender name, notes, timestamp, and the receipt image with a full-screen viewer.
+- **Banner Management** (`/delivery/banners`): Delivery companies can add/edit/delete promotional banners that appear in the customer hub carousel. Migration: `supabase/migrations/20260412000000_add_delivery_banners.sql` must be applied in Supabase SQL Editor. Falls back to default banners until applied.
+- **Restaurant City Fix**: Restaurant form now requires a `city` field. Pre-fills from company profile. Existing restaurants with `city = null` show a red warning card prompting the company to fix.
+
+## Customer Delivery Hub (recently revamped)
+- **Hero Banner Carousel**: Auto-plays with nav arrows and dot indicators. Fetches from `delivery_banners` DB table (city-filtered); falls back to curated default banners.
+- **Service Category Tiles**: 2x2 grid of image-backed colored tiles (Restaurants, Grocery, Pharmacy, More). Visual, Mrsool-inspired design.
+- **Featured Horizontal Scroll**: Featured restaurants in a horizontal scroll carousel.
+- **Highly Rated Section**: Separate horizontal scroll for restaurants with rating ≥ 4.5.
+- **Cuisine Filter Pills**: 64×64 rounded tiles with images from `restaurant_cuisines` table.
+- **Coverage/Area**: Area selector persisted in localStorage, shows coverage badges on cards.
+
+## Pending DB Migrations (must be applied in Supabase SQL Editor)
+1. `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS coverage_areas TEXT[] DEFAULT '{}';`
+2. Full contents of `supabase/migrations/20260412000000_add_delivery_banners.sql` (delivery_banners table)
+
 ## Notes
 - Supabase Edge Functions handle background jobs (invoices, healing, metrics) — they run on Supabase infrastructure, not here
 - All sensitive operations are protected by Supabase RLS policies
