@@ -179,10 +179,15 @@ const RestaurantMenuPage = () => {
 
           {/* Mobile category tabs */}
           {!search && categories.length > 0 && (
-            <div className="md:hidden flex gap-2 overflow-x-auto pb-3 mb-4 w-full scrollbar-hide absolute left-0 px-4" style={{ position: 'relative' }}>
+            <div className="md:hidden flex gap-2 overflow-x-auto pb-2 mb-3 w-full scrollbar-hide">
               {categories.map(c => (
-                <Button key={c.id} size="sm" variant={selectedCat === c.id ? "default" : "outline"} className="shrink-0"
-                  onClick={() => setSelectedCat(c.id)}>{c.name_ar}</Button>
+                <button
+                  key={c.id}
+                  className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${selectedCat === c.id ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border text-foreground hover:bg-muted'}`}
+                  onClick={() => setSelectedCat(c.id)}
+                >
+                  {c.name_ar}
+                </button>
               ))}
             </div>
           )}
@@ -192,46 +197,79 @@ const RestaurantMenuPage = () => {
             {displayItems.length === 0 ? (
               <Card><CardContent className="py-12 text-center text-muted-foreground">لا توجد أصناف</CardContent></Card>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {displayItems.map(item => {
                   const cartItem = cart.find(c => c.id === item.id);
-                  const price = item.discounted_price || item.price;
                   return (
-                    <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => openItemDetail(item)}>
-                      <CardContent className="p-0 flex">
-                        <div className="flex-1 p-4 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold">{item.name_ar}</h3>
-                            {item.is_popular && <Badge variant="secondary" className="text-xs"><Flame className="w-3 h-3 ml-0.5" />شائع</Badge>}
+                    <Card
+                      key={item.id}
+                      className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer active:scale-[0.98] border border-border rounded-2xl"
+                      onClick={() => openItemDetail(item)}
+                    >
+                      {/* Food Image */}
+                      <div className="relative w-full aspect-square bg-muted overflow-hidden">
+                        {item.image_url
+                          ? <img src={item.image_url} alt={item.name_ar} loading="lazy" className="w-full h-full object-cover" />
+                          : <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-muted to-muted/50">🍽️</div>
+                        }
+                        {item.is_popular && (
+                          <div className="absolute top-2 right-2">
+                            <Badge className="text-[10px] px-1.5 py-0.5 bg-amber-500 text-white border-0 shadow-sm gap-0.5">
+                              <Flame className="w-2.5 h-2.5" />شائع
+                            </Badge>
                           </div>
-                          {item.description && <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>}
-                          <div className="flex items-center gap-2 pt-1">
-                            {item.discounted_price ? (
-                              <>
-                                <span className="font-bold text-primary">{item.discounted_price} ر.ي</span>
-                                <span className="text-xs text-muted-foreground line-through">{item.price} ر.ي</span>
-                              </>
-                            ) : (
-                              <span className="font-bold text-primary">{item.price} ر.ي</span>
-                            )}
+                        )}
+                        {item.discounted_price && (
+                          <div className="absolute top-2 left-2">
+                            <Badge className="text-[10px] px-1.5 py-0.5 bg-red-500 text-white border-0 shadow-sm">
+                              خصم
+                            </Badge>
                           </div>
-                          {cartItem && (
-                            <div className="flex items-center gap-2 pt-1" onClick={e => e.stopPropagation()}>
-                              <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateCartQty(item.id, -1)}><Minus className="w-3 h-3" /></Button>
-                              <span className="text-sm font-medium w-6 text-center">{cartItem.quantity}</span>
-                              <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateCartQty(item.id, 1)}><Plus className="w-3 h-3" /></Button>
-                            </div>
-                          )}
-                        </div>
-                        <div className="w-28 h-28 shrink-0 bg-muted relative">
-                          {item.image_url ? <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover" /> :
-                            <div className="w-full h-full flex items-center justify-center text-3xl">🍽️</div>}
-                          {!cartItem && (
-                            <button className="absolute bottom-1 left-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md"
-                              onClick={(e) => { e.stopPropagation(); addToCart(item); }}>
-                              <Plus className="w-4 h-4" />
+                        )}
+                        {/* Cart qty overlay or add button */}
+                        {cartItem ? (
+                          <div
+                            className="absolute bottom-2 left-2 right-2 flex items-center justify-between bg-white/95 dark:bg-black/80 backdrop-blur-sm rounded-full px-2 py-1 shadow-md"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <button
+                              className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                              onClick={() => updateCartQty(item.id, -1)}
+                            >
+                              <Minus className="w-3 h-3" />
                             </button>
+                            <span className="text-sm font-bold text-foreground">{cartItem.quantity}</span>
+                            <button
+                              className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                              onClick={() => updateCartQty(item.id, 1)}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                            onClick={(e) => { e.stopPropagation(); addToCart(item); }}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Item Info */}
+                      <CardContent className="p-3 space-y-1">
+                        <h3 className="font-bold text-sm leading-snug line-clamp-2">{item.name_ar}</h3>
+                        {item.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                        )}
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          {item.discounted_price ? (
+                            <>
+                              <span className="font-bold text-primary text-sm">{item.discounted_price} ر.ي</span>
+                              <span className="text-xs text-muted-foreground line-through">{item.price}</span>
+                            </>
+                          ) : (
+                            <span className="font-bold text-primary text-sm">{item.price} ر.ي</span>
                           )}
                         </div>
                       </CardContent>
