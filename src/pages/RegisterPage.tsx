@@ -54,10 +54,10 @@ const RegisterPage = () => {
       });
     } else {
       toast({
-        title: "تم إنشاء الحساب بنجاح!",
-        description: "يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب",
+        title: "تم إنشاء الحساب بنجاح! 🎉",
+        description: "أضف عنوانك الأول لبدء استخدام التطبيق",
       });
-      navigate("/login");
+      navigate("/addresses?welcome=1");
     }
     setLoading(false);
   };

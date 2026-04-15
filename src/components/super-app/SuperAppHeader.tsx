@@ -23,19 +23,36 @@ const SuperAppHeader = () => {
 
   useEffect(() => {
     if (!user) return;
+
+    // Load city from profile
     supabase
       .from("profiles")
       .select("city")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => { if (data?.city) setCity(data.city); });
+
+    // Load initial unread count
     supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .is("read_at", null)
       .then(({ count }) => setUnreadCount(count || 0));
-  }, [user]);
+
+    // Realtime subscription for new notifications
+    const channel = supabase
+      .channel(`header-bell-${user.id}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, () => setUnreadCount(c => c + 1))
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,12 +127,12 @@ const SuperAppHeader = () => {
                     </button>
                     <button
                       data-testid="btn-notifications-header"
-                      onClick={() => navigate("/notifications")}
+                      onClick={() => { setUnreadCount(0); navigate("/notifications"); }}
                       className="relative p-2 rounded-xl hover:bg-muted/60 transition-colors"
                     >
                       <Bell className="w-5 h-5 text-foreground" />
                       {unreadCount > 0 && (
-                        <span className="absolute top-1 right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[9px] rounded-full flex items-center justify-center font-bold">
+                        <span className="absolute top-1 right-1 min-w-[16px] h-4 px-0.5 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold animate-pulse">
                           {unreadCount > 9 ? "9+" : unreadCount}
                         </span>
                       )}
