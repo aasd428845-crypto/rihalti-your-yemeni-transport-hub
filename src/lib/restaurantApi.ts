@@ -108,8 +108,8 @@ export const getRestaurantById = async (id: string) => {
 
 export const getRestaurantMenu = async (restaurantId: string) => {
   const [catRes, itemRes] = await Promise.all([
-    supabase.from("menu_categories").select("*").eq("restaurant_id", restaurantId).eq("is_active", true).order("sort_order"),
-    supabase.from("menu_items").select("*").eq("restaurant_id", restaurantId).eq("is_available", true).order("sort_order"),
+    supabase.from("menu_categories").select("*").eq("restaurant_id", restaurantId).neq("is_active", false).order("sort_order"),
+    supabase.from("menu_items").select("*").eq("restaurant_id", restaurantId).neq("is_available", false).order("sort_order"),
   ]);
   if (catRes.error) throw catRes.error;
   if (itemRes.error) throw itemRes.error;
