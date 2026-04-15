@@ -150,6 +150,7 @@ export type OrderStatus = 'pending' | 'accepted' | 'preparing' | 'ready' | 'assi
 
 export const ORDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
   pending: { label: 'في الانتظار', color: 'bg-yellow-100 text-yellow-800' },
+  confirmed: { label: 'مؤكد ✅', color: 'bg-green-100 text-green-800' },
   accepted: { label: 'مقبول', color: 'bg-blue-100 text-blue-800' },
   preparing: { label: 'قيد التحضير', color: 'bg-orange-100 text-orange-800' },
   ready: { label: 'جاهز', color: 'bg-indigo-100 text-indigo-800' },

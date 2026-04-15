@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Search, UserCheck, Eye, XCircle, ImageIcon, CreditCard, Banknote } from "lucide-react";
+import { Search, UserCheck, Eye, XCircle, CreditCard, CheckCircle2, ExternalLink } from "lucide-react";
 import { getDeliveryOrders, updateOrderStatus, assignRiderToOrder, getRiders, getOrderTracking } from "@/lib/deliveryApi";
 import { ORDER_STATUS_MAP } from "@/types/delivery.types";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +27,6 @@ const DeliveryOrders = () => {
   const [selectedRider, setSelectedRider] = useState("");
   const [tracking, setTracking] = useState<any[]>([]);
   const [paymentTx, setPaymentTx] = useState<any>(null);
-  const [receiptOpen, setReceiptOpen] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -75,6 +74,99 @@ const DeliveryOrders = () => {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     }
   };
+
+  // ── Confirm Order ──────────────────────────────────────────
+  const handleConfirmOrder = async (order: any) => {
+    if (!user) return;
+    try {
+      // 1. Update order status → confirmed
+      await updateOrderStatus(order.id, "confirmed");
+
+      // 2. If payment transaction is pending → mark verified
+      if (paymentTx?.id && paymentTx.status === "pending") {
+        await supabase
+          .from("payment_transactions")
+          .update({ status: "verified", verified_by: user.id, verified_at: new Date().toISOString() })
+          .eq("id", paymentTx.id);
+      }
+
+      // 3. Push notification to customer with sound
+      try {
+        await supabase.functions.invoke("send-push-notification", {
+          body: {
+            userId: order.customer_id,
+            title: "✅ تم تأكيد طلبك!",
+            body: `تم قبول طلبك من ${order.restaurant?.name_ar || "المطعم"}. جاري التحضير 🍳`,
+            sound: "order_confirmed",
+            data: { type: "order_confirmed", orderId: order.id },
+          },
+        });
+      } catch {}
+
+      // 4. In-app notification record
+      try {
+        await supabase.from("notifications").insert({
+          user_id: order.customer_id,
+          title: "✅ تم تأكيد طلبك!",
+          body: `تم قبول طلبك. جاري التحضير...`,
+          data: { type: "order_confirmed", orderId: order.id } as any,
+        });
+      } catch {}
+
+      toast({ title: "✅ تم تأكيد الطلب", description: "تم إشعار العميل بصوت وإشعار فوري" });
+      setSelectedOrder(null);
+      load();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+  };
+
+  // ── Realtime: new order alert with sound ───────────────────
+  const prevOrderIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!user) return;
+    // Track current order IDs to detect new ones
+    prevOrderIdsRef.current = new Set(orders.map(o => o.id));
+  }, [orders]);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("delivery-new-orders")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "delivery_orders", filter: `delivery_company_id=eq.${user.id}` },
+        (payload) => {
+          const newOrder = payload.new as any;
+          if (prevOrderIdsRef.current.has(newOrder.id)) return;
+          prevOrderIdsRef.current.add(newOrder.id);
+          // Play alert sound
+          try {
+            const ctx = new AudioContext();
+            const oscillator = ctx.createOscillator();
+            const gain = ctx.createGain();
+            oscillator.connect(gain);
+            gain.connect(ctx.destination);
+            oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+            oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.15);
+            oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.4, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.6);
+          } catch {}
+          // Show urgent in-app toast
+          toast({
+            title: "🍽️ طلب جديد!",
+            description: `طلب جديد من ${newOrder.customer_name || "عميل"} — ${Number(newOrder.total || 0).toLocaleString()} ر.ي`,
+            duration: 10000,
+          });
+          load();
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   const viewDetails = async (order: any) => {
     setSelectedOrder(order);
@@ -267,9 +359,9 @@ const DeliveryOrders = () => {
                       </div>
                     )}
                     {paymentTx?.transfer_reference && (
-                      <div className="col-span-2">
-                        <span className="text-muted-foreground">رقم المرجع / اسم المرسل: </span>
-                        <span className="font-semibold">{paymentTx.transfer_reference}</span>
+                      <div className="col-span-2 flex items-center gap-2">
+                        <span className="text-muted-foreground">رقم المرجع: </span>
+                        <span className="font-bold font-mono tracking-wider bg-muted px-2 py-0.5 rounded">{paymentTx.transfer_reference}</span>
                       </div>
                     )}
                     {paymentTx?.notes && (
@@ -289,26 +381,60 @@ const DeliveryOrders = () => {
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground font-medium">📎 صورة إيصال التحويل:</p>
                       <div
-                        className="relative rounded-lg overflow-hidden border cursor-pointer group"
-                        onClick={() => setReceiptOpen(true)}
+                        className="relative rounded-lg overflow-hidden border cursor-pointer group bg-white"
+                        onClick={() => window.open(paymentTx.transfer_receipt_url, "_blank")}
                       >
                         <img
                           src={paymentTx.transfer_receipt_url}
                           alt="إيصال التحويل"
-                          className="w-full max-h-48 object-contain bg-white group-hover:opacity-90 transition-opacity"
+                          className="w-full max-h-48 object-contain bg-white group-hover:opacity-80 transition-opacity"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                            (e.target as HTMLImageElement).parentElement!.innerHTML =
+                              '<div class="p-4 text-center text-xs text-red-500">⚠️ تعذّر تحميل الصورة — انقر لفتح الرابط</div>';
+                          }}
                         />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-opacity">
-                          <span className="text-white text-xs font-bold bg-black/60 px-3 py-1 rounded-full">عرض بالحجم الكامل</span>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-opacity rounded-lg">
+                          <span className="text-white text-xs font-bold bg-black/60 px-3 py-1 rounded-full flex items-center gap-1">
+                            <ExternalLink className="w-3 h-3" /> فتح الصورة
+                          </span>
                         </div>
                       </div>
-                      <Button size="sm" variant="outline" className="w-full gap-2" onClick={() => setReceiptOpen(true)}>
-                        <ImageIcon className="w-3.5 h-3.5" /> عرض صورة الإيصال بالكامل
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={() => window.open(paymentTx.transfer_receipt_url, "_blank")}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> عرض صورة الإيصال بالكامل ↗
                       </Button>
                     </div>
                   )}
                   {!paymentTx?.transfer_receipt_url && selectedOrder.payment_method === "bank_transfer" && (
                     <p className="text-xs text-amber-600 bg-amber-50 rounded-lg p-2">⚠️ لم يتم رفع صورة الإيصال بعد</p>
                   )}
+                </div>
+              )}
+
+              {/* ── Confirm Button ── */}
+              {!["delivered", "cancelled", "confirmed", "assigned", "picked_up", "on_the_way"].includes(selectedOrder.status) && (
+                <div className="border-2 border-primary/30 rounded-xl p-3 bg-primary/5 space-y-2">
+                  <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    الطلب يحتاج تأكيداً
+                  </p>
+                  {paymentTx?.status === "pending" && (
+                    <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-2 py-1">
+                      ⏳ الدفع قيد المراجعة — سيتم توثيقه تلقائياً عند التأكيد
+                    </p>
+                  )}
+                  <Button
+                    className="w-full gap-2 min-h-[48px] text-base font-bold"
+                    onClick={() => handleConfirmOrder(selectedOrder)}
+                  >
+                    <CheckCircle2 className="w-5 h-5" />
+                    تأكيد الطلب وإشعار العميل
+                  </Button>
                 </div>
               )}
 
@@ -347,32 +473,6 @@ const DeliveryOrders = () => {
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Receipt Full-screen Dialog */}
-      <Dialog open={receiptOpen} onOpenChange={setReceiptOpen}>
-        <DialogContent dir="rtl" className="max-w-2xl p-2">
-          <DialogHeader className="p-3"><DialogTitle>صورة إيصال التحويل</DialogTitle></DialogHeader>
-          {paymentTx?.transfer_receipt_url && (
-            <div className="rounded-lg overflow-hidden">
-              <img
-                src={paymentTx.transfer_receipt_url}
-                alt="إيصال التحويل"
-                className="w-full object-contain max-h-[70vh]"
-              />
-            </div>
-          )}
-          <div className="p-2 flex justify-end">
-            <a
-              href={paymentTx?.transfer_receipt_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary text-sm hover:underline"
-            >
-              فتح في نافذة جديدة ↗
-            </a>
-          </div>
         </DialogContent>
       </Dialog>
 
