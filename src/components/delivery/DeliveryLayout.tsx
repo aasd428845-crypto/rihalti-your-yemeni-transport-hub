@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -17,59 +17,49 @@ const DeliveryLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Fetch unread notifications count
   useEffect(() => {
     if (!user) return;
-    const fetchCount = async () => {
-      const { count } = await supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .is("read_at", null);
-      setUnreadCount(count || 0);
-    };
-    fetchCount();
 
-    // Realtime subscription for new notifications
+    // Fetch initial unread count
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .is("read_at", null)
+      .then(({ count }) => setUnreadCount(count || 0));
+
+    // Single realtime channel for delivery dashboard bell
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
     const channel = supabase
-      .channel(`delivery-notifs-${user.id}`)
+      .channel(`delivery-bell-${user.id}`)
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",
         table: "notifications",
         filter: `user_id=eq.${user.id}`,
-      }, () => {
-        setUnreadCount(c => c + 1);
-      })
-      .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "delivery_orders",
-      }, () => {
-        // Refresh unread on any new order activity
-        fetchCount();
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
-
-  // Also watch for new pending delivery orders to show in badge
-  useEffect(() => {
-    if (!user) return;
-    const orderChannel = supabase
-      .channel(`delivery-orders-bell-${user.id}`)
+      }, () => setUnreadCount(c => c + 1))
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",
         table: "delivery_orders",
-      }, () => {
-        setUnreadCount(c => c + 1);
-      })
+        filter: `delivery_company_id=eq.${user.id}`,
+      }, () => setUnreadCount(c => c + 1))
       .subscribe();
-    return () => { supabase.removeChannel(orderChannel); };
-  }, [user]);
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [user?.id]);
 
   if (loading || checking) {
     return (
@@ -111,7 +101,7 @@ const DeliveryLayout = () => {
             >
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <Badge className="absolute -top-1 -left-1 h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold border-2 border-card flex items-center justify-center animate-pulse">
+                <Badge className="absolute -top-1 -left-1 h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold border-2 border-card flex items-center justify-center">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </Badge>
               )}

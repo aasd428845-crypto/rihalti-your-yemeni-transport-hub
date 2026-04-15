@@ -220,8 +220,9 @@ const DeliveryBanners = () => {
               ) : (
                 <ImageUpload
                   bucket="restaurants"
-                  onUploaded={(url) => setForm({...form, image_url: url})}
-                  label="رفع صورة البنر"
+                  aspectRatio="cover"
+                  onChange={(url) => setForm({...form, image_url: url})}
+                  placeholder="اضغط لرفع صورة البنر (1200×400 مثالي)"
                 />
               )}
             </div>

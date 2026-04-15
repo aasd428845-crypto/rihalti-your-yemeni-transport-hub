@@ -302,7 +302,7 @@ const DeliveryHubPage = () => {
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<Tab>("restaurants");
-  const [selectedCity, setSelectedCity] = useState("صنعاء");
+  const [selectedCity, setSelectedCity] = useState<string>(() => localStorage.getItem("wasal_selected_city") || "صنعاء");
   const [customerArea, setCustomerArea] = useState<string>(() => localStorage.getItem(AREA_STORAGE_KEY) || "");
   const [areaInputValue, setAreaInputValue] = useState<string>(() => localStorage.getItem(AREA_STORAGE_KEY) || "");
   const [showAreaInput, setShowAreaInput] = useState(false);
@@ -329,12 +329,23 @@ const DeliveryHubPage = () => {
     });
   }, []);
 
-  // Load user city from profile
+  // Persist city selection
+  const handleCityChange = (city: string) => {
+    setSelectedCity(city);
+    localStorage.setItem("wasal_selected_city", city);
+  };
+
+  // Load user city from profile only if not already saved
   useEffect(() => {
     if (!user) return;
+    const savedCity = localStorage.getItem("wasal_selected_city");
+    if (savedCity && CITIES.includes(savedCity)) return; // already set by user, don't override
     supabase.from("profiles").select("city").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
-        if (data?.city && CITIES.includes(data.city)) setSelectedCity(data.city);
+        if (data?.city && CITIES.includes(data.city)) {
+          setSelectedCity(data.city);
+          localStorage.setItem("wasal_selected_city", data.city);
+        }
       });
   }, [user]);
 
@@ -390,7 +401,7 @@ const DeliveryHubPage = () => {
                 <MapPin className="w-4 h-4 text-primary" />
                 <select
                   value={selectedCity}
-                  onChange={e => setSelectedCity(e.target.value)}
+                  onChange={e => handleCityChange(e.target.value)}
                   className="bg-transparent text-sm font-bold focus:outline-none cursor-pointer"
                 >
                   {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -535,7 +546,7 @@ const DeliveryHubPage = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {filtered.map(r => (
-                      <RestaurantCard key={r.id} r={r} onClick={() => navigate(`/restaurant/${r.id}`)} />
+                      <RestaurantCard key={r.id} r={r} onClick={() => navigate(`/restaurants/${r.id}`)} />
                     ))}
                   </div>
                 )}
@@ -557,7 +568,7 @@ const DeliveryHubPage = () => {
                     </div>
                     <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4">
                       {featured.map(r => (
-                        <RestaurantCard key={r.id} r={r} size="featured" onClick={() => navigate(`/restaurant/${r.id}`)} />
+                        <RestaurantCard key={r.id} r={r} size="featured" onClick={() => navigate(`/restaurants/${r.id}`)} />
                       ))}
                     </div>
                   </section>
@@ -575,7 +586,7 @@ const DeliveryHubPage = () => {
                     </div>
                     <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4">
                       {highlyRated.slice(0, 8).map(r => (
-                        <RestaurantCard key={r.id} r={r} size="featured" onClick={() => navigate(`/restaurant/${r.id}`)} />
+                        <RestaurantCard key={r.id} r={r} size="featured" onClick={() => navigate(`/restaurants/${r.id}`)} />
                       ))}
                     </div>
                   </section>
@@ -593,7 +604,7 @@ const DeliveryHubPage = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                       {rest.map(r => (
-                        <RestaurantCard key={r.id} r={r} onClick={() => navigate(`/restaurant/${r.id}`)} />
+                        <RestaurantCard key={r.id} r={r} onClick={() => navigate(`/restaurants/${r.id}`)} />
                       ))}
                     </div>
                   </section>
@@ -622,7 +633,7 @@ const DeliveryHubPage = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {filtered.map(r => (
-                      <RestaurantCard key={r.id} r={r} onClick={() => navigate(`/restaurant/${r.id}`)} />
+                      <RestaurantCard key={r.id} r={r} onClick={() => navigate(`/restaurants/${r.id}`)} />
                     ))}
                   </div>
                 )}

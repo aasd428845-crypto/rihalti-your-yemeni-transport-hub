@@ -85,8 +85,11 @@ const DeliveryOrders = () => {
         supabase.from("payment_transactions")
           .select("*")
           .eq("related_entity_id", order.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
           .maybeSingle()
-          .then(({ data }) => data),
+          .then(({ data }) => data)
+          .catch(() => null),
       ]);
       setTracking(trackingData || []);
       setPaymentTx(txData || null);
