@@ -6,7 +6,7 @@ const SuperAppLayout = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden" dir="rtl">
       <SuperAppHeader />
-      <main className="pt-[116px] pb-24 min-h-screen">
+      <main className="pt-[68px] pb-24 min-h-screen">
         <Outlet />
       </main>
       <BottomNav />

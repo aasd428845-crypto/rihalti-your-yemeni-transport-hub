@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, GripVertical, ImageIcon, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, ImageIcon, Tag, MonitorPlay } from "lucide-react";
 import { getBannersForPortal, createBanner, updateBanner, deleteBanner } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/common/ImageUpload";
@@ -21,6 +21,11 @@ const TAB_OPTIONS = [
   { value: "more", label: "📦 توصيل أي شيء" },
 ];
 
+const BANNER_TYPES = [
+  { value: "carousel", label: "بنر متحرك (الكاروسيل)" },
+  { value: "offer", label: "عرض أو خصم (بطاقة عرض)" },
+];
+
 const emptyForm = () => ({
   title: "",
   subtitle: "",
@@ -31,6 +36,7 @@ const emptyForm = () => ({
   city: "",
   is_active: true,
   sort_order: 0,
+  banner_type: "carousel",
 });
 
 const DeliveryBanners = () => {
@@ -41,6 +47,7 @@ const DeliveryBanners = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [form, setForm] = useState(emptyForm());
+  const [activeFilter, setActiveFilter] = useState<"all" | "carousel" | "offer">("all");
 
   const load = async () => {
     if (!user) return;
@@ -72,6 +79,7 @@ const DeliveryBanners = () => {
       city: b.city || "",
       is_active: b.is_active !== false,
       sort_order: b.sort_order || 0,
+      banner_type: b.banner_type || "carousel",
     });
     setShowDialog(true);
   };
@@ -117,32 +125,56 @@ const DeliveryBanners = () => {
     } catch {}
   };
 
+  const filteredBanners = banners.filter(b => {
+    if (activeFilter === "all") return true;
+    if (activeFilter === "carousel") return !b.banner_type || b.banner_type === "carousel";
+    if (activeFilter === "offer") return b.banner_type === "offer";
+    return true;
+  });
+
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold">إدارة البنرات الإعلانية</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">تظهر هذه البنرات في صفحة التوصيل للزبائن</p>
+          <h2 className="text-2xl font-bold">إدارة البنرات والعروض</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">تحكم في البنرات المتحركة وبطاقات العروض التي تظهر للزبائن</p>
         </div>
         <Button onClick={openNew}>
-          <Plus className="w-4 h-4 ml-1" /> إضافة بنر
+          <Plus className="w-4 h-4 ml-1" /> إضافة بنر / عرض
         </Button>
       </div>
 
-      {banners.length === 0 ? (
+      {/* Filter tabs */}
+      <div className="flex gap-2">
+        {[
+          { key: "all", label: "الكل", icon: null },
+          { key: "carousel", label: "بنرات متحركة", icon: <MonitorPlay className="w-3.5 h-3.5" /> },
+          { key: "offer", label: "عروض وخصومات", icon: <Tag className="w-3.5 h-3.5" /> },
+        ].map(f => (
+          <button
+            key={f.key}
+            onClick={() => setActiveFilter(f.key as any)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border transition-all ${activeFilter === f.key ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-border hover:border-primary/50"}`}
+          >
+            {f.icon}{f.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredBanners.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
             <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
             <p className="font-bold text-lg mb-1">لا توجد بنرات بعد</p>
-            <p className="text-muted-foreground text-sm mb-4">أضف بنرات إعلانية لتظهر في صفحة التوصيل وتجذب الزبائن</p>
+            <p className="text-muted-foreground text-sm mb-4">أضف بنرات إعلانية أو عروض لتظهر للزبائن</p>
             <Button onClick={openNew}><Plus className="w-4 h-4 ml-1" /> إضافة أول بنر</Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {banners.map((b) => (
+          {filteredBanners.map((b) => (
             <Card key={b.id} className={`overflow-hidden transition-all ${!b.is_active ? "opacity-60" : ""}`}>
               <div className="relative h-36">
                 {b.image_url ? (
@@ -153,6 +185,10 @@ const DeliveryBanners = () => {
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                {/* Type badge */}
+                <Badge className={`absolute top-2 left-2 border-0 text-white text-[10px] ${b.banner_type === "offer" ? "bg-red-500" : "bg-blue-600"}`}>
+                  {b.banner_type === "offer" ? <><Tag className="w-2.5 h-2.5 ml-0.5" />عرض</> : <><MonitorPlay className="w-2.5 h-2.5 ml-0.5" />بنر</>}
+                </Badge>
                 {b.badge_text && (
                   <Badge className="absolute top-2 right-2 bg-amber-500 text-white border-0">{b.badge_text}</Badge>
                 )}
@@ -174,7 +210,6 @@ const DeliveryBanners = () => {
                     {b.link_url ? `🔗 ${b.link_url}` : (TAB_OPTIONS.find(t => t.value === b.link_tab)?.label || "مطاعم")}
                   </span>
                   {b.city && <Badge variant="outline" className="text-xs">{b.city}</Badge>}
-                  <span className="font-mono">ترتيب #{b.sort_order}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
@@ -202,14 +237,40 @@ const DeliveryBanners = () => {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent dir="rtl" className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editItem ? "تعديل البنر" : "إضافة بنر جديد"}</DialogTitle>
+            <DialogTitle>{editItem ? "تعديل البنر / العرض" : "إضافة بنر / عرض جديد"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+
+            {/* Banner type selector */}
+            <div>
+              <Label className="font-semibold">نوع المحتوى</Label>
+              <div className="flex gap-2 mt-2">
+                {BANNER_TYPES.map(t => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setForm({...form, banner_type: t.value})}
+                    className={`flex-1 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all ${form.banner_type === t.value ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-border hover:border-primary/50"}`}
+                  >
+                    {t.value === "carousel" ? <MonitorPlay className="w-4 h-4 mx-auto mb-1" /> : <Tag className="w-4 h-4 mx-auto mb-1" />}
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {form.banner_type === "carousel"
+                  ? "يظهر في الكاروسيل المتحرك في أعلى الصفحة"
+                  : "يظهر في قسم العروض والخصومات أسفل الكاروسيل"}
+              </p>
+            </div>
+
             <div>
               <Label className="font-semibold flex items-center gap-1">
-                صورة البنر <span className="text-destructive">*</span>
+                الصورة <span className="text-destructive">*</span>
               </Label>
-              <p className="text-xs text-muted-foreground mb-2">يُفضّل أبعاد 1200×400 للجودة المثالية</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                {form.banner_type === "carousel" ? "يُفضّل أبعاد 1200×400 للبنرات المتحركة" : "يُفضّل أبعاد 600×400 لبطاقات العروض"}
+              </p>
               {form.image_url ? (
                 <div className="relative rounded-lg overflow-hidden border">
                   <img src={form.image_url} alt="preview" className="w-full h-36 object-cover" />
@@ -227,7 +288,7 @@ const DeliveryBanners = () => {
                   bucket="restaurants"
                   aspectRatio="cover"
                   onChange={(url) => setForm({...form, image_url: url})}
-                  placeholder="اضغط لرفع صورة البنر (1200×400 مثالي)"
+                  placeholder="اضغط لرفع الصورة"
                 />
               )}
             </div>
@@ -299,13 +360,13 @@ const DeliveryBanners = () => {
                 checked={form.is_active}
                 onCheckedChange={v => setForm({...form, is_active: v})}
               />
-              <Label>إظهار البنر للزبائن</Label>
+              <Label>إظهار للزبائن</Label>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
             <Button onClick={handleSave} disabled={!form.image_url}>
-              {editItem ? "حفظ التعديلات" : "إضافة البنر"}
+              {editItem ? "حفظ التعديلات" : "إضافة"}
             </Button>
           </DialogFooter>
         </DialogContent>

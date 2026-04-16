@@ -67,17 +67,25 @@ The following env vars are set in Replit (shared environment):
 - **Banner Management** (`/delivery/banners`): Delivery companies can add/edit/delete promotional banners that appear in the customer hub carousel. Migration: `supabase/migrations/20260412000000_add_delivery_banners.sql` must be applied in Supabase SQL Editor. Falls back to default banners until applied.
 - **Restaurant City Fix**: Restaurant form now requires a `city` field. Pre-fills from company profile. Existing restaurants with `city = null` show a red warning card prompting the company to fix.
 
-## Customer Delivery Hub (recently revamped)
-- **Hero Banner Carousel**: Auto-plays with nav arrows and dot indicators. Fetches from `delivery_banners` DB table (city-filtered); falls back to curated default banners.
-- **Service Category Tiles**: 2x2 grid of image-backed colored tiles (Restaurants, Grocery, Pharmacy, More). Visual, Mrsool-inspired design.
+## UI Layout (latest changes — April 2026)
+- **Header**: Simplified to search bar only (no logo, no location/city selector, no bell/cart icons)
+- **Bottom Nav** (RTL right→left): السلة (cart /cart) | طلباتي (orders /history) | الرئيسية (home / — center raised) | الإشعارات (bell /notifications with badge) | المزيد (account/more)
+- **Location chip removed**: "سيئون — الغرفة" chip no longer appears in the delivery hub page
+
+## Customer Delivery Hub (latest revamp)
+- **Hero Banner Carousel**: Auto-plays with nav arrows and dot indicators. Fetches carousel banners (`banner_type='carousel'`) from `delivery_banners` DB; falls back to 3 curated defaults.
+- **Offers/Deals Section**: Horizontal scroll row showing offer tiles (`banner_type='offer'`) from `delivery_banners` DB. Falls back to 3 curated defaults. Managed from delivery company dashboard.
+- **Service Category Tiles**: 2×2 grid with text labels at the BOTTOM. Navigations: مطاعم→restaurant tab, بقالة→grocery tab, صيدليات→pharmacy tab, المزيد→`/shipment-request` (delivery form).
 - **Featured Horizontal Scroll**: Featured restaurants in a horizontal scroll carousel.
 - **Highly Rated Section**: Separate horizontal scroll for restaurants with rating ≥ 4.5.
 - **Cuisine Filter Pills**: 64×64 rounded tiles with images from `restaurant_cuisines` table.
-- **Coverage/Area**: Area selector persisted in localStorage, shows coverage badges on cards.
+- **Coverage/Area**: Area persisted in localStorage, shows coverage badges on cards. No location chip shown.
+- **Banner Management** (delivery dashboard `/delivery/banners`): supports `banner_type` = `carousel` (sliding) or `offer` (deals tiles). Both types fully manageable (image, title, subtitle, badge, link, city).
 
 ## Pending DB Migrations (must be applied in Supabase SQL Editor)
 1. `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS coverage_areas TEXT[] DEFAULT '{}';`
 2. Full contents of `supabase/migrations/20260412000000_add_delivery_banners.sql` (delivery_banners table)
+3. Full contents of `supabase/migrations/20260416000000_add_banner_type.sql` — adds `banner_type TEXT DEFAULT 'carousel'` to `delivery_banners` table (values: 'carousel' | 'offer')
 
 ## Notes
 - Supabase Edge Functions handle background jobs (invoices, healing, metrics) — they run on Supabase infrastructure, not here

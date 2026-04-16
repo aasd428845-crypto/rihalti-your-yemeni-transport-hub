@@ -3,9 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Star, Clock, Truck, MapPin, ChevronDown,
-  UtensilsCrossed, ChefHat, Sparkles, X,
-  AlertTriangle, Info, ChevronLeft, ChevronRight
+  Star, Clock, Truck,
+  UtensilsCrossed, ChefHat, Sparkles,
+  AlertTriangle, Info, ChevronLeft, ChevronRight, Tag
 } from "lucide-react";
 import { getActiveRestaurants, getServiceTypes, getRestaurantCuisines, CoverageStatus } from "@/lib/restaurantApi";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,7 +30,7 @@ const CUISINE_IMAGES: Record<string, string> = {
   "default":       "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80&fit=crop",
 };
 
-// Default banners if DB has none
+// Default carousel banners if DB has none
 const DEFAULT_BANNERS = [
   {
     id: "d1",
@@ -39,6 +39,7 @@ const DEFAULT_BANNERS = [
     image_url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=80&fit=crop",
     badge_text: "جديد",
     link_tab: "restaurants",
+    banner_type: "carousel",
   },
   {
     id: "d2",
@@ -47,6 +48,7 @@ const DEFAULT_BANNERS = [
     image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200&q=80&fit=crop",
     badge_text: "عرض محدود",
     link_tab: "restaurants",
+    banner_type: "carousel",
   },
   {
     id: "d3",
@@ -55,6 +57,38 @@ const DEFAULT_BANNERS = [
     image_url: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1200&q=80&fit=crop",
     badge_text: null,
     link_tab: "restaurants",
+    banner_type: "carousel",
+  },
+];
+
+// Default offer tiles if DB has none
+const DEFAULT_OFFERS = [
+  {
+    id: "o1",
+    title: "خصم 20% على أول طلب",
+    subtitle: "لعملاء وصل الجدد",
+    image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80&fit=crop",
+    badge_text: "عرض خاص",
+    link_tab: "restaurants",
+    banner_type: "offer",
+  },
+  {
+    id: "o2",
+    title: "توصيل مجاني",
+    subtitle: "عند الطلب فوق 2000 ر.ي",
+    image_url: "https://images.unsplash.com/photo-1519984388953-d2406bc725e1?w=600&q=80&fit=crop",
+    badge_text: "مجاني",
+    link_tab: "restaurants",
+    banner_type: "offer",
+  },
+  {
+    id: "o3",
+    title: "وجبات البرجر المميزة",
+    subtitle: "أقل سعر في المدينة",
+    image_url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&fit=crop",
+    badge_text: "تخفيض",
+    link_tab: "restaurants",
+    banner_type: "offer",
   },
 ];
 
@@ -87,7 +121,7 @@ const BannerCarousel = ({
     } else if (banner.link_tab && ["restaurants", "grocery", "pharmacy"].includes(banner.link_tab)) {
       onTabChange(banner.link_tab as Tab);
     } else if (banner.link_tab === "more") {
-      onNavigate("/shipments");
+      onNavigate("/shipment-request");
     }
   };
 
@@ -107,7 +141,6 @@ const BannerCarousel = ({
             className="w-full h-full object-cover"
             loading={i === 0 ? "eager" : "lazy"}
           />
-          {/* Dark gradient at bottom for text readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           {banner.badge_text && (
             <Badge className="absolute top-3 right-3 bg-amber-500 text-white border-0 shadow-lg font-bold text-xs">
@@ -131,7 +164,6 @@ const BannerCarousel = ({
         </div>
       ))}
 
-      {/* Controls */}
       {banners.length > 1 && (
         <>
           <button
@@ -161,12 +193,76 @@ const BannerCarousel = ({
   );
 };
 
+// ─── Offers / Deals Horizontal Scroll ─────────────────────────────────────────
+const OffersSection = ({
+  offers,
+  onTabChange,
+  onNavigate,
+}: {
+  offers: any[];
+  onTabChange: (tab: Tab) => void;
+  onNavigate: (url: string) => void;
+}) => {
+  if (!offers.length) return null;
+
+  const handleClick = (offer: any) => {
+    if (offer.link_url) {
+      onNavigate(offer.link_url);
+    } else if (offer.link_tab && ["restaurants", "grocery", "pharmacy"].includes(offer.link_tab)) {
+      onTabChange(offer.link_tab as Tab);
+    } else if (offer.link_tab === "more") {
+      onNavigate("/shipment-request");
+    }
+  };
+
+  return (
+    <section>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="p-1.5 rounded-lg bg-red-500/10">
+          <Tag className="w-4 h-4 text-red-500" />
+        </div>
+        <h2 className="text-lg font-black text-foreground">عروض وخصومات</h2>
+      </div>
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+        {offers.map((offer) => (
+          <button
+            key={offer.id}
+            onClick={() => handleClick(offer)}
+            className="relative shrink-0 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
+            style={{ width: 180, height: 110 }}
+          >
+            <img
+              src={offer.image_url}
+              alt={offer.title || ""}
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+            {offer.badge_text && (
+              <Badge className="absolute top-2 right-2 bg-red-500 text-white border-0 shadow text-[10px] font-bold px-1.5 py-0.5">
+                {offer.badge_text}
+              </Badge>
+            )}
+            <div className="absolute bottom-0 right-0 left-0 p-2 text-white text-right">
+              {offer.title && (
+                <p className="font-black text-xs leading-tight drop-shadow">{offer.title}</p>
+              )}
+              {offer.subtitle && (
+                <p className="text-[10px] text-white/80 mt-0.5 drop-shadow leading-tight">{offer.subtitle}</p>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+};
+
 // ─── Service Category Tiles ───────────────────────────────────────────────────
 const SERVICE_TILES = [
   {
     key: "restaurants",
     label: "مطاعم وتوصيل",
-    subLabel: "أطعمة • مشروبات • حلويات",
     emoji: "🍔",
     gradient: "from-orange-500 to-amber-500",
     img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80&fit=crop",
@@ -174,7 +270,6 @@ const SERVICE_TILES = [
   {
     key: "grocery",
     label: "بقالة وتسوق",
-    subLabel: "سوبرماركت • فواكه • خضروات",
     emoji: "🛒",
     gradient: "from-emerald-500 to-green-500",
     img: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80&fit=crop",
@@ -182,7 +277,6 @@ const SERVICE_TILES = [
   {
     key: "pharmacy",
     label: "صيدليات",
-    subLabel: "أدوية • مستحضرات • رعاية",
     emoji: "💊",
     gradient: "from-blue-500 to-sky-500",
     img: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80&fit=crop",
@@ -190,7 +284,6 @@ const SERVICE_TILES = [
   {
     key: "more",
     label: "المزيد",
-    subLabel: "ورد • هدايا • طلب خاص",
     emoji: "🎁",
     gradient: "from-purple-500 to-pink-500",
     img: "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600&q=80&fit=crop",
@@ -330,25 +423,37 @@ const DeliveryHubPage = () => {
   const [search, setSearch] = useState("");
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [cuisines, setCuisines] = useState<any[]>([]);
-  const [banners, setBanners] = useState<any[]>([]);
+  const [carouselBanners, setCarouselBanners] = useState<any[]>([]);
+  const [offerBanners, setOfferBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load initial static data
+  // Load banners and cuisines
   useEffect(() => {
     Promise.all([
       getRestaurantCuisines(),
-      supabase.from("delivery_banners" as any).select("*").eq("is_active", true).order("sort_order")
+      supabase
+        .from("delivery_banners" as any)
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order")
         .then(({ data }) => data || [])
         .catch(() => []),
     ]).then(([cuisinesData, bannersData]) => {
       setCuisines([{ id: "all", name_ar: "الكل", image_url: null }, ...(cuisinesData || [])]);
-      setBanners(bannersData.length > 0 ? bannersData : DEFAULT_BANNERS);
+
+      // Split banners by type
+      const carousel = bannersData.filter((b: any) => !b.banner_type || b.banner_type === "carousel");
+      const offers = bannersData.filter((b: any) => b.banner_type === "offer");
+
+      setCarouselBanners(carousel.length > 0 ? carousel : DEFAULT_BANNERS);
+      setOfferBanners(offers.length > 0 ? offers : DEFAULT_OFFERS);
     }).catch(() => {
-      setBanners(DEFAULT_BANNERS);
+      setCarouselBanners(DEFAULT_BANNERS);
+      setOfferBanners(DEFAULT_OFFERS);
     });
   }, []);
 
-  // Sync city + area from user's DEFAULT address (this is the source of truth)
+  // Sync city + area from user's DEFAULT address
   useEffect(() => {
     if (!user) return;
     supabase
@@ -367,7 +472,6 @@ const DeliveryHubPage = () => {
         localStorage.setItem("wasal_selected_area", area);
       })
       .catch(() => {
-        // Fallback: try profile city
         supabase.from("profiles").select("city").eq("user_id", user.id).maybeSingle()
           .then(({ data }: { data: any }) => {
             if (data?.city) {
@@ -378,7 +482,6 @@ const DeliveryHubPage = () => {
       });
   }, [user?.id]);
 
-  // Also re-sync when user navigates back to this page (address may have changed)
   useEffect(() => {
     const stored_city = localStorage.getItem("wasal_selected_city");
     const stored_area = localStorage.getItem("wasal_selected_area");
@@ -386,7 +489,7 @@ const DeliveryHubPage = () => {
     if (stored_area !== null) setSelectedArea(stored_area);
   }, []);
 
-  // Fetch restaurants by city + area (empty city = all cities)
+  // Fetch restaurants
   useEffect(() => {
     setLoading(true);
     getActiveRestaurants(
@@ -419,50 +522,51 @@ const DeliveryHubPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24" dir="rtl">
-
-      {/* ── Content ── (pt-20 to clear the fixed SuperAppHeader) */}
-      <div className="container mx-auto px-4 max-w-5xl space-y-7 pt-6">
+      <div className="container mx-auto px-4 max-w-5xl space-y-5 pt-4">
 
         {/* Hero Banner Carousel */}
         {activeTab === "restaurants" && !search && (
-          <BannerCarousel banners={banners} onTabChange={setActiveTab} onNavigate={navigate} />
+          <BannerCarousel
+            banners={carouselBanners}
+            onTabChange={setActiveTab}
+            onNavigate={navigate}
+          />
         )}
 
-        {/* Delivery Location chip — shows city/area from default address, links to /addresses */}
-        {!search && (
-          <button
-            onClick={() => navigate("/addresses")}
-            className="flex items-center gap-2 text-sm px-4 py-2 rounded-full bg-primary/8 border border-primary/20 hover:bg-primary/15 transition-colors w-fit"
-          >
-            <MapPin className="w-4 h-4 text-primary shrink-0" />
-            <span className="text-foreground font-medium">
-              {selectedCity
-                ? `${selectedCity}${selectedArea ? ` — ${selectedArea}` : ""}`
-                : "حدد موقع التوصيل"}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-          </button>
+        {/* Offers / Deals Section */}
+        {activeTab === "restaurants" && !search && (
+          <OffersSection
+            offers={offerBanners}
+            onTabChange={setActiveTab}
+            onNavigate={navigate}
+          />
         )}
 
         {/* Service Category Grid */}
         {!search && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {SERVICE_TILES.map(tile => (
               <button
                 key={tile.key}
                 onClick={() => {
-                  if (tile.key === "more") navigate("/shipments");
+                  if (tile.key === "more") navigate("/shipment-request");
                   else if (tile.key === "grocery") setActiveTab("grocery");
                   else if (tile.key === "pharmacy") setActiveTab("pharmacy");
                   else setActiveTab(tile.key as Tab);
                 }}
                 className={`relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group h-28 ${activeTab === tile.key ? "ring-2 ring-offset-2 ring-primary" : ""}`}
               >
-                <img src={tile.img} alt={tile.label} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <img
+                  src={tile.img}
+                  alt={tile.label}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
                 <div className={`absolute inset-0 bg-gradient-to-br ${tile.gradient} opacity-75 group-hover:opacity-85 transition-opacity`} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-2">
-                  <span className="text-3xl mb-1">{tile.emoji}</span>
-                  <span className="font-black text-sm leading-tight text-center">{tile.label}</span>
+                {/* Label at bottom */}
+                <div className="absolute bottom-0 right-0 left-0 px-3 py-2.5 flex items-center justify-center">
+                  <span className="font-black text-sm text-white leading-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+                    {tile.label}
+                  </span>
                 </div>
                 {activeTab === tile.key && (
                   <div className="absolute inset-0 ring-2 ring-white/60 rounded-2xl" />
@@ -500,7 +604,6 @@ const DeliveryHubPage = () => {
                 );
               })}
             </div>
-
 
             {/* Loading skeletons */}
             {loading && (
@@ -598,7 +701,7 @@ const DeliveryHubPage = () => {
               </>
             )}
 
-            {/* Cuisine filter results (shown when a specific cuisine is selected) */}
+            {/* Cuisine filter results */}
             {!loading && !search && cuisineFilter !== "all" && (
               <>
                 {filtered.length === 0 ? (
