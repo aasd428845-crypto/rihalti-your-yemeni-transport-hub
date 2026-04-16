@@ -15,9 +15,10 @@ import ImageUpload from "@/components/common/ImageUpload";
 
 const CITIES = ["الكل", "صنعاء", "عدن", "تعز", "المكلا", "إب", "الحديدة", "ذمار", "سيئون"];
 const TAB_OPTIONS = [
-  { value: "restaurants", label: "مطاعم" },
-  { value: "grocery", label: "بقالة" },
-  { value: "pharmacy", label: "صيدلية" },
+  { value: "restaurants", label: "🍔 مطاعم وتوصيل" },
+  { value: "grocery", label: "🛒 بقالة وتسوق" },
+  { value: "pharmacy", label: "💊 صيدليات" },
+  { value: "more", label: "📦 توصيل أي شيء" },
 ];
 
 const emptyForm = () => ({
@@ -25,6 +26,7 @@ const emptyForm = () => ({
   subtitle: "",
   image_url: "",
   link_tab: "restaurants",
+  link_url: "",
   badge_text: "",
   city: "",
   is_active: true,
@@ -65,6 +67,7 @@ const DeliveryBanners = () => {
       subtitle: b.subtitle || "",
       image_url: b.image_url || "",
       link_tab: b.link_tab || "restaurants",
+      link_url: b.link_url || "",
       badge_text: b.badge_text || "",
       city: b.city || "",
       is_active: b.is_active !== false,
@@ -167,7 +170,9 @@ const DeliveryBanners = () => {
               </div>
               <CardContent className="p-3 space-y-2">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>الصفحة: {TAB_OPTIONS.find(t => t.value === b.link_tab)?.label || "مطاعم"}</span>
+                  <span className="truncate max-w-[140px]">
+                    {b.link_url ? `🔗 ${b.link_url}` : (TAB_OPTIONS.find(t => t.value === b.link_tab)?.label || "مطاعم")}
+                  </span>
                   {b.city && <Badge variant="outline" className="text-xs">{b.city}</Badge>}
                   <span className="font-mono">ترتيب #{b.sort_order}</span>
                 </div>
@@ -261,13 +266,22 @@ const DeliveryBanners = () => {
                 />
               </div>
               <div>
-                <Label>يوجه إلى</Label>
+                <Label>يوجه إلى (قسم)</Label>
                 <Select value={form.link_tab} onValueChange={v => setForm({...form, link_tab: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TAB_OPTIONS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="sm:col-span-2">
+                <Label>رابط مخصص (اختياري — يأخذ الأولوية على القسم)</Label>
+                <Input
+                  value={form.link_url}
+                  onChange={e => setForm({...form, link_url: e.target.value})}
+                  placeholder="مثال: /restaurants أو https://..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">اتركه فارغاً لاستخدام القسم المحدد أعلاه</p>
               </div>
               <div>
                 <Label>المدينة (اختياري)</Label>

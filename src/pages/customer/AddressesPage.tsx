@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAddresses, createAddress, deleteAddress } from "@/lib/customerApi";
 
@@ -21,6 +21,8 @@ const YEMEN_CITIES = ["صنعاء", "عدن", "تعز", "الحديدة", "إب"
 const AddressesPage = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isWelcome = searchParams.get("welcome") === "1";
   const { toast } = useToast();
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,14 @@ const AddressesPage = () => {
   };
 
   useEffect(() => { load(); }, [user?.id]);
+
+  // Auto-open the add-address form for new users
+  useEffect(() => {
+    if (isWelcome && !loading) {
+      resetForm();
+      setShowForm(true);
+    }
+  }, [isWelcome, loading]);
 
   const handlePhoneSourceChange = (val: string) => {
     setPhoneSource(val);
@@ -102,6 +112,11 @@ const AddressesPage = () => {
       toast({ title: "✅ تم إضافة العنوان بنجاح" });
       setShowForm(false);
       resetForm();
+      if (isWelcome) {
+        toast({ title: "مرحباً بك في وصل! 🎉", description: "يمكنك الآن البدء بالطلب" });
+        navigate("/");
+        return;
+      }
       load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -124,14 +139,30 @@ const AddressesPage = () => {
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <BackButton />
+        {!isWelcome && <BackButton />}
+
+        {/* Welcome Banner for new users */}
+        {isWelcome && (
+          <div className="mb-6 rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-white shadow-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl">👋</span>
+              <div>
+                <h2 className="text-xl font-black">مرحباً بك في وصل!</h2>
+                <p className="text-white/85 text-sm">لبدء الاستخدام، أضف عنوانك الأول حتى نتمكن من التوصيل إليك</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <MapPin className="w-6 h-6 text-primary" /> عناويني
+            <MapPin className="w-6 h-6 text-primary" /> {isWelcome ? "أضف عنوانك" : "عناويني"}
           </h1>
-          <Button onClick={() => { resetForm(); setShowForm(true); }} size="sm" className="gap-1">
-            <Plus className="w-4 h-4" /> إضافة عنوان
-          </Button>
+          {!isWelcome && (
+            <Button onClick={() => { resetForm(); setShowForm(true); }} size="sm" className="gap-1">
+              <Plus className="w-4 h-4" /> إضافة عنوان
+            </Button>
+          )}
         </div>
 
         {loading ? (

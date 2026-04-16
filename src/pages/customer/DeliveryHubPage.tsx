@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
-  Search, MapPin, Star, Clock, Truck, ChevronDown,
+  Star, Clock, Truck,
   UtensilsCrossed, ChefHat, Sparkles, X,
-  AlertTriangle, Info, CheckCircle2, ChevronLeft, ChevronRight
+  AlertTriangle, Info, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { getActiveRestaurants, getServiceTypes, getRestaurantCuisines, CoverageStatus } from "@/lib/restaurantApi";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,9 +57,6 @@ const DEFAULT_BANNERS = [
     link_tab: "restaurants",
   },
 ];
-
-const CITIES = ["صنعاء", "عدن", "تعز", "المكلا", "إب", "الحديدة", "ذمار", "سيئون"];
-const AREA_STORAGE_KEY = "wasal_customer_area";
 
 // ─── Hero Banner Carousel ─────────────────────────────────────────────────────
 const BannerCarousel = ({
