@@ -694,6 +694,60 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_banners: {
+        Row: {
+          badge_text: string | null
+          banner_type: string | null
+          city: string | null
+          created_at: string | null
+          delivery_company_id: string | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          link_tab: string | null
+          sort_order: number | null
+          subtitle: string | null
+          tile_action: string | null
+          tile_gradient: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          badge_text?: string | null
+          banner_type?: string | null
+          city?: string | null
+          created_at?: string | null
+          delivery_company_id?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          link_tab?: string | null
+          sort_order?: number | null
+          subtitle?: string | null
+          tile_action?: string | null
+          tile_gradient?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          badge_text?: string | null
+          banner_type?: string | null
+          city?: string | null
+          created_at?: string | null
+          delivery_company_id?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          link_tab?: string | null
+          sort_order?: number | null
+          subtitle?: string | null
+          tile_action?: string | null
+          tile_gradient?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       delivery_drivers: {
         Row: {
           created_at: string | null
