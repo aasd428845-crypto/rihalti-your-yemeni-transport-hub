@@ -213,9 +213,22 @@ const AddressesPage = () => {
         )}
 
         {/* Add Address Dialog */}
-        <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-            <DialogHeader><DialogTitle className="flex items-center gap-2"><Plus className="w-5 h-5 text-primary" /> إضافة عنوان جديد</DialogTitle></DialogHeader>
+        <Dialog open={showForm} onOpenChange={isWelcome ? undefined : setShowForm}>
+          <DialogContent
+            dir="rtl"
+            className="max-h-[90vh] overflow-y-auto sm:max-w-lg"
+            onInteractOutside={isWelcome ? (e) => e.preventDefault() : undefined}
+            onEscapeKeyDown={isWelcome ? (e) => e.preventDefault() : undefined}
+          >
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Plus className="w-5 h-5 text-primary" />
+                {isWelcome ? "أضف عنوانك الأول للمتابعة" : "إضافة عنوان جديد"}
+              </DialogTitle>
+              {isWelcome && (
+                <p className="text-sm text-muted-foreground mt-1">هذه الخطوة مطلوبة لتتمكن من استخدام التطبيق</p>
+              )}
+            </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>اسم العنوان <span className="text-destructive">*</span></Label>
@@ -297,9 +310,11 @@ const AddressesPage = () => {
               </label>
             </div>
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
-              <Button onClick={handleAdd} disabled={saving} className="gap-1">
-                <MapPin className="w-4 h-4" /> {saving ? "جاري الحفظ..." : "حفظ العنوان"}
+              {!isWelcome && (
+                <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
+              )}
+              <Button onClick={handleAdd} disabled={saving} className={`gap-1 ${isWelcome ? "w-full" : ""}`}>
+                <MapPin className="w-4 h-4" /> {saving ? "جاري الحفظ..." : isWelcome ? "حفظ والمتابعة →" : "حفظ العنوان"}
               </Button>
             </DialogFooter>
           </DialogContent>
