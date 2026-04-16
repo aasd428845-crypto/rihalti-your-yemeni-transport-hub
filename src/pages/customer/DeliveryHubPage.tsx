@@ -425,9 +425,10 @@ const DeliveryHubPage = () => {
   const [cuisines, setCuisines] = useState<any[]>([]);
   const [carouselBanners, setCarouselBanners] = useState<any[]>([]);
   const [offerBanners, setOfferBanners] = useState<any[]>([]);
+  const [serviceTiles, setServiceTiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load banners and cuisines
+  // Load banners, offer tiles, service tiles, and cuisines
   useEffect(() => {
     Promise.all([
       getRestaurantCuisines(),
@@ -444,12 +445,16 @@ const DeliveryHubPage = () => {
       // Split banners by type
       const carousel = bannersData.filter((b: any) => !b.banner_type || b.banner_type === "carousel");
       const offers = bannersData.filter((b: any) => b.banner_type === "offer");
+      const tiles = bannersData.filter((b: any) => b.banner_type === "service_tile");
 
       setCarouselBanners(carousel.length > 0 ? carousel : DEFAULT_BANNERS);
       setOfferBanners(offers.length > 0 ? offers : DEFAULT_OFFERS);
+      // Only use DB tiles if there are any; otherwise fall back to hardcoded defaults
+      setServiceTiles(tiles);
     }).catch(() => {
       setCarouselBanners(DEFAULT_BANNERS);
       setOfferBanners(DEFAULT_OFFERS);
+      setServiceTiles([]);
     });
   }, []);
 
@@ -542,37 +547,49 @@ const DeliveryHubPage = () => {
           />
         )}
 
-        {/* Service Category Grid */}
+        {/* Service Category Grid — DB tiles if available, else defaults */}
         {!search && (
           <div className="grid grid-cols-2 gap-3">
-            {SERVICE_TILES.map(tile => (
-              <button
-                key={tile.key}
-                onClick={() => {
-                  if (tile.key === "more") navigate("/shipment-request");
-                  else if (tile.key === "grocery") setActiveTab("grocery");
-                  else if (tile.key === "pharmacy") setActiveTab("pharmacy");
-                  else setActiveTab(tile.key as Tab);
-                }}
-                className={`relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group h-28 ${activeTab === tile.key ? "ring-2 ring-offset-2 ring-primary" : ""}`}
-              >
-                <img
-                  src={tile.img}
-                  alt={tile.label}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className={`absolute inset-0 bg-gradient-to-br ${tile.gradient} opacity-75 group-hover:opacity-85 transition-opacity`} />
-                {/* Label at bottom */}
-                <div className="absolute bottom-0 right-0 left-0 px-3 py-2.5 flex items-center justify-center">
-                  <span className="font-black text-sm text-white leading-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
-                    {tile.label}
-                  </span>
-                </div>
-                {activeTab === tile.key && (
-                  <div className="absolute inset-0 ring-2 ring-white/60 rounded-2xl" />
-                )}
-              </button>
-            ))}
+            {(serviceTiles.length > 0 ? serviceTiles : SERVICE_TILES).map((tile: any, idx: number) => {
+              // Determine navigation action
+              const action = tile.tile_action || tile.key || "restaurants";
+              const handleTileClick = () => {
+                if (action === "more") navigate("/shipment-request");
+                else if (action === "grocery") setActiveTab("grocery");
+                else if (action === "pharmacy") setActiveTab("pharmacy");
+                else if (tile.link_url) navigate(tile.link_url);
+                else setActiveTab((action as Tab) || "restaurants");
+              };
+              // Image src: DB uses image_url, defaults use img
+              const imgSrc = tile.image_url || tile.img || "";
+              // Gradient: DB uses tile_gradient, defaults use gradient
+              const gradient = tile.tile_gradient || tile.gradient || "from-orange-500 to-amber-500";
+              // Label: DB uses title, defaults use label
+              const label = tile.title || tile.label || "";
+
+              return (
+                <button
+                  key={tile.id || tile.key || idx}
+                  onClick={handleTileClick}
+                  className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group h-28"
+                >
+                  {imgSrc && (
+                    <img
+                      src={imgSrc}
+                      alt={label}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  )}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-75 group-hover:opacity-85 transition-opacity`} />
+                  {/* Label at bottom */}
+                  <div className="absolute bottom-0 right-0 left-0 px-3 py-2.5 flex items-center justify-center">
+                    <span className="font-black text-sm text-white leading-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+                      {label}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
 

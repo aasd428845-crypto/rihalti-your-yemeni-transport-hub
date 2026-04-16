@@ -85,7 +85,10 @@ The following env vars are set in Replit (shared environment):
 ## Pending DB Migrations (must be applied in Supabase SQL Editor)
 1. `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS coverage_areas TEXT[] DEFAULT '{}';`
 2. Full contents of `supabase/migrations/20260412000000_add_delivery_banners.sql` (delivery_banners table)
-3. Full contents of `supabase/migrations/20260416000000_add_banner_type.sql` — adds `banner_type TEXT DEFAULT 'carousel'` to `delivery_banners` table (values: 'carousel' | 'offer')
+3. Full contents of `supabase/migrations/20260416000000_add_banner_type.sql` — adds:
+   - `banner_type TEXT DEFAULT 'carousel'` (values: 'carousel' | 'offer' | 'service_tile')
+   - `tile_action TEXT DEFAULT 'restaurants'` — where pressing a service tile navigates to
+   - `tile_gradient TEXT DEFAULT 'from-orange-500 to-amber-500'` — color gradient for service tiles
 
 ## Notes
 - Supabase Edge Functions handle background jobs (invoices, healing, metrics) — they run on Supabase infrastructure, not here
