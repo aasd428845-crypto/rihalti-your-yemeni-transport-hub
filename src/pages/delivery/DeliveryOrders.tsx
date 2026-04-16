@@ -180,8 +180,7 @@ const DeliveryOrders = () => {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle()
-          .then(({ data }) => data)
-          .catch(() => null),
+          .then(({ data }) => data, () => null),
       ]);
       setTracking(trackingData || []);
       setPaymentTx(txData || null);

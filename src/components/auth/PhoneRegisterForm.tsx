@@ -13,7 +13,6 @@ const PhoneRegisterForm = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [devCode, setDevCode] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -51,8 +50,7 @@ const PhoneRegisterForm = () => {
       } else {
         setOtpSent(true);
         startCountdown();
-        if (data?.dev_code) setDevCode(data.dev_code);
-        toast({ title: "تم الإرسال", description: "تم إرسال رمز التحقق إلى هاتفك" });
+        toast({ title: "تم الإرسال", description: "تم إرسال رمز التحقق إلى واتساب الخاص بك" });
       }
     } catch (err: any) {
       toast({ title: "خطأ", description: err?.message || "فشل في إرسال الرمز", variant: "destructive" });
@@ -145,7 +143,7 @@ const PhoneRegisterForm = () => {
       ) : (
         <>
           <button
-            onClick={() => { setOtpSent(false); setOtpCode(""); setDevCode(null); }}
+            onClick={() => { setOtpSent(false); setOtpCode(""); }}
             className="text-sm text-primary hover:underline inline-flex items-center gap-1"
           >
             <ArrowLeft className="w-3 h-3" />
@@ -153,15 +151,8 @@ const PhoneRegisterForm = () => {
           </button>
 
           <p className="text-sm text-muted-foreground text-center">
-            تم إرسال رمز التحقق إلى <span className="font-bold text-foreground" dir="ltr">{fullPhone}</span>
+            تم إرسال رمز التحقق عبر واتساب إلى <span className="font-bold text-foreground" dir="ltr">{fullPhone}</span>
           </p>
-
-          {devCode && (
-            <div className="bg-accent/50 border border-border rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground">رمز التطوير (للاختبار فقط)</p>
-              <p className="text-2xl font-bold text-foreground tracking-widest" dir="ltr">{devCode}</p>
-            </div>
-          )}
 
           <div className="flex justify-center" dir="ltr">
             <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
