@@ -155,6 +155,7 @@ const App = () => (
                 <Route path="/deliveries" element={<DeliveriesPage />} />
                 <Route path="/restaurants" element={<DeliveryHubPage />} />
                 <Route path="/delivery-hub" element={<DeliveryHubPage />} />
+                <Route path="/food" element={<RestaurantsPage />} />
                 <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
                 <Route path="/restaurants/:id/checkout" element={<RestaurantCheckoutPage />} />
                 <Route path="/history" element={<HistoryPage />} />
