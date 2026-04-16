@@ -9,7 +9,7 @@ const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
 
 async function sendWhatsAppCode(toPhone: string, code: string): Promise<{ ok: boolean; error?: string }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
+  const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY_1") || Deno.env.get("TWILIO_API_KEY");
   const TWILIO_WHATSAPP_FROM = Deno.env.get("TWILIO_WHATSAPP_FROM");
 
   if (!LOVABLE_API_KEY) return { ok: false, error: "LOVABLE_API_KEY not configured" };
