@@ -209,8 +209,7 @@ const DeliveryHubPage = () => {
         setCarouselBanners(carousel.length > 0 ? carousel : DEFAULT_BANNERS);
         setOfferBanners(offers.length > 0 ? offers : DEFAULT_OFFERS);
         setServiceTiles(tiles);
-      })
-      .catch(() => {
+      }, () => {
         setCarouselBanners(DEFAULT_BANNERS);
         setOfferBanners(DEFAULT_OFFERS);
         setServiceTiles([]);

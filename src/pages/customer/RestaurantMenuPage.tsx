@@ -75,7 +75,7 @@ const RestaurantMenuPage = () => {
         if (menu.categories.length > 0) setActiveCat(menu.categories[0].id);
         if (user) {
           const existingCart = await getCart(user.id, id);
-          if (existingCart?.items) setCart(existingCart.items as CartItem[]);
+          if (existingCart?.items) setCart(existingCart.items as unknown as CartItem[]);
         }
       } catch (err: any) {
         toast({ title: "خطأ", description: err.message, variant: "destructive" });

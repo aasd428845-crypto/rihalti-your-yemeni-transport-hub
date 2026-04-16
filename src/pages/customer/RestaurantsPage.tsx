@@ -174,8 +174,7 @@ const RestaurantsPage = () => {
       .then(({ data }) => {
         const offers = (data || []).filter((b: any) => b.banner_type === "offer");
         setOfferBanners(offers.length > 0 ? offers : DEFAULT_OFFERS);
-      })
-      .catch(() => setOfferBanners(DEFAULT_OFFERS));
+      }, () => setOfferBanners(DEFAULT_OFFERS));
   }, []);
 
   // Sync city from user address
@@ -187,7 +186,7 @@ const RestaurantsPage = () => {
         if (data?.city) { setSelectedCity(data.city); localStorage.setItem("wasal_selected_city", data.city); }
         const area = data?.district || "";
         setSelectedArea(area); localStorage.setItem("wasal_selected_area", area);
-      }).catch(() => {});
+      }, () => {});
   }, [user?.id]);
 
   // Fetch restaurants
