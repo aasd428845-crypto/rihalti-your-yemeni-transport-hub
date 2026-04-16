@@ -112,6 +112,9 @@ const AddressesPage = () => {
       toast({ title: "✅ تم إضافة العنوان بنجاح" });
       setShowForm(false);
       resetForm();
+      // Always sync location to localStorage so restaurant filter updates immediately
+      if (formCity) localStorage.setItem("wasal_selected_city", formCity);
+      localStorage.setItem("wasal_selected_area", formDistrict || "");
       if (isWelcome) {
         toast({ title: "مرحباً بك في وصل! 🎉", description: "يمكنك الآن البدء بالطلب" });
         navigate("/");

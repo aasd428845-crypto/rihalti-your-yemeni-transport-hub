@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Star, Clock, Truck,
+  Star, Clock, Truck, MapPin, ChevronDown,
   UtensilsCrossed, ChefHat, Sparkles, X,
   AlertTriangle, Info, ChevronLeft, ChevronRight
 } from "lucide-react";
@@ -324,7 +324,8 @@ const DeliveryHubPage = () => {
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<Tab>("restaurants");
-  const [selectedCity, setSelectedCity] = useState<string>(() => localStorage.getItem("wasal_selected_city") || "صنعاء");
+  const [selectedCity, setSelectedCity] = useState<string>(() => localStorage.getItem("wasal_selected_city") || "");
+  const [selectedArea, setSelectedArea] = useState<string>(() => localStorage.getItem("wasal_selected_area") || "");
   const [cuisineFilter, setCuisineFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [restaurants, setRestaurants] = useState<any[]>([]);
@@ -336,7 +337,6 @@ const DeliveryHubPage = () => {
   useEffect(() => {
     Promise.all([
       getRestaurantCuisines(),
-      // Try to load banners from DB (table may not exist yet)
       supabase.from("delivery_banners" as any).select("*").eq("is_active", true).order("sort_order")
         .then(({ data }) => data || [])
         .catch(() => []),
@@ -348,26 +348,55 @@ const DeliveryHubPage = () => {
     });
   }, []);
 
-  // Sync city from user profile
+  // Sync city + area from user's DEFAULT address (this is the source of truth)
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("city").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => {
+    supabase
+      .from("customer_addresses" as any)
+      .select("city, district")
+      .eq("customer_id", user.id)
+      .eq("is_default", true)
+      .maybeSingle()
+      .then(({ data }: { data: any }) => {
         if (data?.city) {
           setSelectedCity(data.city);
           localStorage.setItem("wasal_selected_city", data.city);
         }
+        const area = data?.district || "";
+        setSelectedArea(area);
+        localStorage.setItem("wasal_selected_area", area);
+      })
+      .catch(() => {
+        // Fallback: try profile city
+        supabase.from("profiles").select("city").eq("user_id", user.id).maybeSingle()
+          .then(({ data }: { data: any }) => {
+            if (data?.city) {
+              setSelectedCity(data.city);
+              localStorage.setItem("wasal_selected_city", data.city);
+            }
+          });
       });
   }, [user?.id]);
 
-  // Fetch restaurants by city
+  // Also re-sync when user navigates back to this page (address may have changed)
+  useEffect(() => {
+    const stored_city = localStorage.getItem("wasal_selected_city");
+    const stored_area = localStorage.getItem("wasal_selected_area");
+    if (stored_city) setSelectedCity(stored_city);
+    if (stored_area !== null) setSelectedArea(stored_area);
+  }, []);
+
+  // Fetch restaurants by city + area (empty city = all cities)
   useEffect(() => {
     setLoading(true);
-    getActiveRestaurants(selectedCity === "all" ? undefined : selectedCity)
+    getActiveRestaurants(
+      selectedCity && selectedCity !== "all" ? selectedCity : undefined,
+      selectedArea || undefined
+    )
       .then(data => setRestaurants(data || []))
       .catch(() => setRestaurants([]))
       .finally(() => setLoading(false));
-  }, [selectedCity]);
+  }, [selectedCity, selectedArea]);
 
   // Handle URL params
   useEffect(() => {
@@ -397,6 +426,22 @@ const DeliveryHubPage = () => {
         {/* Hero Banner Carousel */}
         {activeTab === "restaurants" && !search && (
           <BannerCarousel banners={banners} onTabChange={setActiveTab} onNavigate={navigate} />
+        )}
+
+        {/* Delivery Location chip — shows city/area from default address, links to /addresses */}
+        {!search && (
+          <button
+            onClick={() => navigate("/addresses")}
+            className="flex items-center gap-2 text-sm px-4 py-2 rounded-full bg-primary/8 border border-primary/20 hover:bg-primary/15 transition-colors w-fit"
+          >
+            <MapPin className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-foreground font-medium">
+              {selectedCity
+                ? `${selectedCity}${selectedArea ? ` — ${selectedArea}` : ""}`
+                : "حدد موقع التوصيل"}
+            </span>
+            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
         )}
 
         {/* Service Category Grid */}
@@ -545,8 +590,9 @@ const DeliveryHubPage = () => {
                 {filtered.length === 0 && (
                   <div className="text-center py-16 space-y-3">
                     <div className="text-6xl">🍽️</div>
-                    <p className="font-black text-xl">لا توجد مطاعم في {selectedCity} حالياً</p>
-                    <p className="text-muted-foreground text-sm">جرّب اختيار مدينة أخرى</p>
+                    <p className="font-black text-xl">لا توجد مطاعم {selectedCity ? `في ${selectedCity}` : ""} حالياً</p>
+                    <p className="text-muted-foreground text-sm">جرّب تغيير موقع التوصيل</p>
+                    <button onClick={() => navigate("/addresses")} className="text-primary text-sm hover:underline">تعديل العنوان</button>
                   </div>
                 )}
               </>
@@ -558,7 +604,7 @@ const DeliveryHubPage = () => {
                 {filtered.length === 0 ? (
                   <div className="text-center py-16 space-y-3">
                     <div className="text-5xl">🍽️</div>
-                    <p className="font-bold text-lg">لا توجد مطاعم بهذا النوع في {selectedCity}</p>
+                    <p className="font-bold text-lg">لا توجد مطاعم بهذا النوع {selectedCity ? `في ${selectedCity}` : ""}</p>
                     <button onClick={() => setCuisineFilter("all")} className="text-primary text-sm hover:underline">عرض جميع المطاعم</button>
                   </div>
                 ) : (
