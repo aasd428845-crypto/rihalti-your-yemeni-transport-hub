@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, ImageIcon, Tag, MonitorPlay, LayoutGrid } from "lucide-react";
+import { Plus, Pencil, Trash2, ImageIcon, Tag, MonitorPlay, LayoutGrid, X } from "lucide-react";
 import { getBannersForPortal, createBanner, updateBanner, deleteBanner } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/common/ImageUpload";
@@ -22,21 +22,10 @@ const TAB_OPTIONS = [
   { value: "more", label: "📦 توصيل أي شيء" },
 ];
 
-const GRADIENT_OPTIONS = [
-  { value: "from-orange-500 to-amber-500", label: "برتقالي ذهبي", preview: "bg-gradient-to-br from-orange-500 to-amber-500" },
-  { value: "from-emerald-500 to-green-500", label: "أخضر", preview: "bg-gradient-to-br from-emerald-500 to-green-500" },
-  { value: "from-blue-500 to-sky-500", label: "أزرق سماوي", preview: "bg-gradient-to-br from-blue-500 to-sky-500" },
-  { value: "from-purple-500 to-pink-500", label: "بنفسجي وردي", preview: "bg-gradient-to-br from-purple-500 to-pink-500" },
-  { value: "from-red-500 to-rose-500", label: "أحمر", preview: "bg-gradient-to-br from-red-500 to-rose-500" },
-  { value: "from-teal-500 to-cyan-500", label: "تيل فيروزي", preview: "bg-gradient-to-br from-teal-500 to-cyan-500" },
-  { value: "from-yellow-500 to-orange-400", label: "أصفر برتقالي", preview: "bg-gradient-to-br from-yellow-500 to-orange-400" },
-  { value: "from-indigo-500 to-purple-600", label: "نيلي بنفسجي", preview: "bg-gradient-to-br from-indigo-500 to-purple-600" },
-];
-
 const BANNER_TYPES = [
-  { value: "carousel", label: "بنر متحرك", icon: MonitorPlay, desc: "يظهر في الكاروسيل المتحرك أعلى الصفحة" },
+  { value: "carousel", label: "بنر متحرك", icon: MonitorPlay, desc: "يظهر في البنر المتحرك أعلى صفحة الخدمات" },
   { value: "offer", label: "بطاقة عرض", icon: Tag, desc: "يظهر في قسم العروض والخصومات" },
-  { value: "service_tile", label: "أيقونة خدمة", icon: LayoutGrid, desc: "يظهر في شبكة الأيقونات الأربع (المطاعم، البقالة...)" },
+  { value: "service_tile", label: "أيقونة خدمة", icon: LayoutGrid, desc: "يظهر في شبكة الأيقونات الأربع" },
 ];
 
 const emptyForm = () => ({
@@ -51,7 +40,6 @@ const emptyForm = () => ({
   sort_order: 0,
   banner_type: "carousel",
   tile_action: "restaurants",
-  tile_gradient: "from-orange-500 to-amber-500",
 });
 
 const DeliveryBanners = () => {
@@ -70,7 +58,7 @@ const DeliveryBanners = () => {
       const data = await getBannersForPortal(user.id);
       setBanners(data);
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      toast({ title: "خطأ في التحميل", description: err.message, variant: "destructive" });
     } finally { setLoading(false); }
   };
 
@@ -96,7 +84,6 @@ const DeliveryBanners = () => {
       sort_order: b.sort_order || 0,
       banner_type: b.banner_type || "carousel",
       tile_action: b.tile_action || "restaurants",
-      tile_gradient: b.tile_gradient || "from-orange-500 to-amber-500",
     });
     setShowDialog(true);
   };
@@ -109,21 +96,30 @@ const DeliveryBanners = () => {
       toast({ title: "يرجى إدخال اسم الأيقونة", variant: "destructive" }); return;
     }
     try {
-      const payload = {
-        ...form,
+      const payload: any = {
+        title: form.title || null,
+        subtitle: form.subtitle || null,
+        image_url: form.image_url,
+        badge_text: form.badge_text || null,
         city: form.city && form.city !== "الكل" ? form.city : null,
+        is_active: form.is_active,
+        sort_order: form.sort_order,
+        banner_type: form.banner_type,
+        tile_action: form.tile_action,
+        link_tab: form.link_tab,
+        link_url: form.link_url || null,
         delivery_company_id: user.id,
       };
       if (editItem) {
         await updateBanner(editItem.id, payload);
-        toast({ title: "تم التحديث بنجاح" });
+        toast({ title: "تم التحديث بنجاح ✓" });
       } else {
         await createBanner(payload);
-        toast({ title: "تمت الإضافة بنجاح" });
+        toast({ title: "تمت الإضافة بنجاح ✓" });
       }
       setShowDialog(false); setEditItem(null); load();
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
     }
   };
 
@@ -147,7 +143,7 @@ const DeliveryBanners = () => {
 
   const filteredBanners = banners.filter(b => {
     if (activeFilter === "all") return true;
-    return b.banner_type === activeFilter;
+    return (b.banner_type || "carousel") === activeFilter;
   });
 
   const getBannerTypeInfo = (type: string) => BANNER_TYPES.find(t => t.value === type) || BANNER_TYPES[0];
@@ -189,11 +185,11 @@ const DeliveryBanners = () => {
         ))}
       </div>
 
-      {/* Info banner for service tiles */}
+      {/* Info for service tiles */}
       {activeFilter === "service_tile" && (
         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-sm text-blue-800 dark:text-blue-200">
           <p className="font-bold mb-1">💡 كيف تعمل أيقونات الخدمات؟</p>
-          <p>هذه هي الأيقونات الأربع التي تظهر في منتصف صفحة التوصيل. إذا أضفت أيقونات هنا، ستحل محل الأيقونات الافتراضية. يمكنك إضافة أكثر من 4 أيقونات.</p>
+          <p>هذه هي الأيقونات الأربع التي تظهر في صفحة الخدمات. إذا أضفت أيقونات هنا، ستحل محل الأيقونات الافتراضية. الصورة تظهر بدون أي تأثير لوني — بشكل طبيعي.</p>
         </div>
       )}
 
@@ -215,24 +211,21 @@ const DeliveryBanners = () => {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredBanners.map((b) => {
-            const typeInfo = getBannerTypeInfo(b.banner_type);
-            const isServiceTile = b.banner_type === "service_tile";
+            const typeInfo = getBannerTypeInfo(b.banner_type || "carousel");
+            const isServiceTile = (b.banner_type || "carousel") === "service_tile";
             return (
               <Card key={b.id} className={`overflow-hidden transition-all ${!b.is_active ? "opacity-60" : ""}`}>
                 <div className={`relative ${isServiceTile ? "h-28" : "h-36"}`}>
                   {b.image_url ? (
-                    <img src={b.image_url} alt={b.title} className="w-full h-full object-cover" />
+                    <>
+                      <img src={b.image_url} alt={b.title || ""} className="w-full h-full object-cover" />
+                      {/* Dark gradient for text readability only — no color overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                    </>
                   ) : (
                     <div className="w-full h-full bg-muted flex items-center justify-center">
                       <ImageIcon className="w-8 h-8 text-muted-foreground" />
                     </div>
-                  )}
-                  {/* Gradient overlay for service tiles */}
-                  {isServiceTile && b.tile_gradient && (
-                    <div className={`absolute inset-0 bg-gradient-to-br ${b.tile_gradient} opacity-75`} />
-                  )}
-                  {!isServiceTile && (
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   )}
                   {/* Type badge */}
                   <Badge className={`absolute top-2 left-2 border-0 text-white text-[10px] ${b.banner_type === "offer" ? "bg-red-500" : b.banner_type === "service_tile" ? "bg-primary" : "bg-blue-600"}`}>
@@ -257,7 +250,7 @@ const DeliveryBanners = () => {
                 <CardContent className="p-3 space-y-2">
                   <div className="text-xs text-muted-foreground">
                     {isServiceTile
-                      ? <span>يوجه إلى: {TAB_OPTIONS.find(t => t.value === b.tile_action)?.label || b.tile_action}</span>
+                      ? <span>يوجه إلى: {TAB_OPTIONS.find(t => t.value === b.tile_action)?.label || b.tile_action || "—"}</span>
                       : <span className="truncate block max-w-full">{b.link_url ? `🔗 ${b.link_url}` : (TAB_OPTIONS.find(t => t.value === b.link_tab)?.label || "مطاعم")}</span>
                     }
                   </div>
@@ -309,24 +302,33 @@ const DeliveryBanners = () => {
               </p>
             </div>
 
-            {/* Image upload */}
+            {/* Image upload / preview */}
             <div>
               <Label className="font-semibold flex items-center gap-1">
                 الصورة <span className="text-destructive">*</span>
               </Label>
               <p className="text-xs text-muted-foreground mb-2">
-                {form.banner_type === "carousel" ? "يُفضّل أبعاد 1200×400" :
-                 form.banner_type === "service_tile" ? "يُفضّل صورة مربعة أو 600×400" :
-                 "يُفضّل أبعاد 600×400"}
+                {form.banner_type === "carousel" ? "يُفضّل أبعاد 1200×400 بكسل" :
+                 form.banner_type === "service_tile" ? "يُفضّل صورة مربعة أو 600×400 — تظهر بدون تأثير لوني" :
+                 "يُفضّل أبعاد 600×300 بكسل"}
               </p>
               {form.image_url ? (
-                <div className="relative rounded-lg overflow-hidden border">
-                  <img src={form.image_url} alt="preview" className="w-full h-32 object-cover" />
-                  {form.banner_type === "service_tile" && form.tile_gradient && (
-                    <div className={`absolute inset-0 bg-gradient-to-br ${form.tile_gradient} opacity-60`} />
+                <div className="relative rounded-xl overflow-hidden border-2 border-border">
+                  <img src={form.image_url} alt="معاينة" className="w-full h-36 object-cover" />
+                  {/* Show clean dark overlay — no color overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
+                  {form.title && (
+                    <div className="absolute bottom-2 right-2 left-2">
+                      <p className="text-white font-black text-sm drop-shadow">{form.title}</p>
+                    </div>
                   )}
-                  <Button size="sm" variant="destructive" className="absolute top-2 left-2" onClick={() => setForm({...form, image_url: ""})}>
-                    تغيير
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="absolute top-2 left-2 h-7 px-2 text-xs gap-1"
+                    onClick={() => setForm({...form, image_url: ""})}
+                  >
+                    <X className="w-3 h-3" /> تغيير الصورة
                   </Button>
                 </div>
               ) : (
@@ -339,7 +341,7 @@ const DeliveryBanners = () => {
               )}
             </div>
 
-            {/* Service tile specific: gradient + action */}
+            {/* Service tile specific: name + navigation */}
             {form.banner_type === "service_tile" && (
               <>
                 <div>
@@ -361,27 +363,13 @@ const DeliveryBanners = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label className="font-semibold">لون التأثير (Gradient)</Label>
-                  <div className="grid grid-cols-4 gap-2 mt-2">
-                    {GRADIENT_OPTIONS.map(g => (
-                      <button
-                        key={g.value}
-                        type="button"
-                        onClick={() => setForm({...form, tile_gradient: g.value})}
-                        title={g.label}
-                        className={`h-10 rounded-lg ${g.preview} transition-all ${form.tile_gradient === g.value ? "ring-2 ring-offset-2 ring-foreground scale-105" : "hover:scale-105"}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div>
                   <Label>الترتيب</Label>
-                  <Input type="number" value={form.sort_order} onChange={e => setForm({...form, sort_order: Number(e.target.value)})} />
+                  <Input type="number" min={0} value={form.sort_order} onChange={e => setForm({...form, sort_order: Number(e.target.value)})} />
                 </div>
               </>
             )}
 
-            {/* Carousel/Offer specific fields */}
+            {/* Carousel / Offer specific fields */}
             {form.banner_type !== "service_tile" && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -398,7 +386,7 @@ const DeliveryBanners = () => {
                 </div>
                 <div>
                   <Label>الترتيب</Label>
-                  <Input type="number" value={form.sort_order} onChange={e => setForm({...form, sort_order: Number(e.target.value)})} />
+                  <Input type="number" min={0} value={form.sort_order} onChange={e => setForm({...form, sort_order: Number(e.target.value)})} />
                 </div>
                 <div>
                   <Label>يوجه إلى (قسم)</Label>
@@ -420,7 +408,7 @@ const DeliveryBanners = () => {
                 </div>
                 <div className="sm:col-span-2">
                   <Label>رابط مخصص (اختياري)</Label>
-                  <Input value={form.link_url} onChange={e => setForm({...form, link_url: e.target.value})} placeholder="مثال: /restaurants أو https://..." />
+                  <Input value={form.link_url} onChange={e => setForm({...form, link_url: e.target.value})} placeholder="مثال: /food أو /restaurants" />
                   <p className="text-xs text-muted-foreground mt-1">اتركه فارغاً لاستخدام القسم المحدد أعلاه</p>
                 </div>
               </div>

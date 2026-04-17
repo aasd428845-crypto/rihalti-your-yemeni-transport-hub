@@ -170,7 +170,7 @@ const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url
             key={offer.id}
             onClick={() => { const dest = offer.link_url || "/food"; onNavigate(dest); }}
             className="relative shrink-0 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
-            style={{ width: 180, height: 110 }}
+            style={{ width: 145, height: 88 }}
           >
             <img src={offer.image_url} alt={offer.title || ""} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
