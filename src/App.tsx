@@ -81,6 +81,7 @@ const DeliveryReports = lazy(() => import("./pages/delivery/DeliveryReports"));
 const DeliveryZones = lazy(() => import("./pages/delivery/DeliveryZones"));
 const DeliveryPayments = lazy(() => import("./pages/delivery/DeliveryPayments"));
 const DeliveryBanners = lazy(() => import("./pages/delivery/DeliveryBanners"));
+const DeliveryPromotions = lazy(() => import("./pages/delivery/DeliveryPromotions"));
 // Customer Pages (lazy loaded)
 const TripsPage = lazy(() => import("./pages/customer/TripsPage"));
 const TripDetailsPage = lazy(() => import("./pages/customer/TripDetailsPage"));
@@ -243,6 +244,7 @@ const App = () => (
                 <Route path="zones" element={<DeliveryZones />} />
                 <Route path="payments" element={<DeliveryPayments />} />
                 <Route path="banners" element={<DeliveryBanners />} />
+                <Route path="promotions" element={<DeliveryPromotions />} />
                 <Route path="integrations" element={<DeliveryIntegrations />} />
                 <Route path="profile" element={<PartnerProfilePage />} />
                 <Route path="payment-settings" element={<PartnerPaymentSettings />} />

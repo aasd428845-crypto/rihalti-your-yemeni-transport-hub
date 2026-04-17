@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, UtensilsCrossed, Star, Clock, Flame, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Edit, Trash2, UtensilsCrossed, Star, Clock, Flame, Eye, Tag, Percent, BadgeDollarSign } from "lucide-react";
 import { getMenuCategories, createMenuCategory, updateMenuCategory, deleteMenuCategory, getMenuItems, createMenuItem, updateMenuItem, deleteMenuItem } from "@/lib/deliveryApi";
 import { getRestaurantById } from "@/lib/restaurantApi";
 import { useToast } from "@/hooks/use-toast";
@@ -18,12 +19,26 @@ import BackButton from "@/components/common/BackButton";
 import MenuExcelImport from "@/components/delivery/MenuExcelImport";
 import MenuItemOptionsManager from "@/components/delivery/MenuItemOptionsManager";
 import ImageUpload from "@/components/common/ImageUpload";
+import { computeItemPromo } from "@/lib/promotionsApi";
+
+const MENU_ITEM_PROMO_TYPES = [
+  { value: "none", label: "لا يوجد عرض", icon: UtensilsCrossed },
+  { value: "discount_percent", label: "خصم نسبي (%)", icon: Percent },
+  { value: "fixed_price", label: "سعر مخفّض ثابت", icon: BadgeDollarSign },
+  { value: "custom_text", label: "نص عرض مخصص", icon: Tag },
+];
 
 const emptyItemForm = () => ({
-  name_ar: "", name_en: "", description: "", price: 0, discounted_price: 0,
+  name_ar: "", name_en: "", description: "", price: 0,
+  discounted_price: 0,
   image_url: "", preparation_time: 0, calories: 0,
-  ingredients: "", // comma-separated, will split to array on save
+  ingredients: "",
   is_available: true, is_featured: false, is_popular: false, sort_order: 0,
+  // Promo fields
+  promo_type: "none",
+  promo_value: 0,
+  promo_text: "",
+  promo_active: false,
 });
 
 const DeliveryMenuManagement = () => {
@@ -100,24 +115,35 @@ const DeliveryMenuManagement = () => {
       const ingredientsArray = itemForm.ingredients
         ? itemForm.ingredients.split(",").map(s => s.trim()).filter(Boolean)
         : null;
-      const payload = {
-        ...itemForm,
+
+      const promoType = itemForm.promo_type === "none" ? null : itemForm.promo_type;
+      const payload: any = {
+        name_ar: itemForm.name_ar,
+        name_en: itemForm.name_en || null,
+        description: itemForm.description || null,
+        price: itemForm.price,
+        discounted_price: itemForm.discounted_price || null,
+        image_url: itemForm.image_url || null,
+        preparation_time: itemForm.preparation_time || null,
+        calories: itemForm.calories || null,
+        ingredients: ingredientsArray,
+        is_available: itemForm.is_available,
+        is_featured: itemForm.is_featured,
+        is_popular: itemForm.is_popular,
+        sort_order: itemForm.sort_order,
         restaurant_id: restaurantId,
         category_id: selectedCat,
-        discounted_price: itemForm.discounted_price || null,
-        calories: itemForm.calories || null,
-        preparation_time: itemForm.preparation_time || null,
-        image_url: itemForm.image_url || null,
-        ingredients: ingredientsArray,
+        promo_type: promoType,
+        promo_value: promoType && itemForm.promo_value ? itemForm.promo_value : null,
+        promo_text: promoType === "custom_text" ? itemForm.promo_text : null,
+        promo_active: promoType ? itemForm.promo_active : false,
       };
-      // Remove the ingredients string from payload (replace with array)
-      delete (payload as any).ingredients;
-      const finalPayload = { ...payload, ingredients: ingredientsArray };
+
       if (editItem) {
-        await updateMenuItem(editItem.id, finalPayload);
+        await updateMenuItem(editItem.id, payload);
         toast({ title: "تم تحديث الصنف" });
       } else {
-        await createMenuItem(finalPayload);
+        await createMenuItem(payload);
         toast({ title: "تمت إضافة الصنف" });
       }
       setShowItemDialog(false); setEditItem(null);
@@ -154,15 +180,24 @@ const DeliveryMenuManagement = () => {
       ingredients: Array.isArray(i.ingredients) ? i.ingredients.join(", ") : (i.ingredients || ""),
       is_available: i.is_available ?? true, is_featured: i.is_featured || false,
       is_popular: i.is_popular || false, sort_order: i.sort_order || 0,
+      promo_type: i.promo_type || "none",
+      promo_value: i.promo_value || 0,
+      promo_text: i.promo_text || "",
+      promo_active: i.promo_active || false,
     });
     setShowItemDialog(true);
   };
 
   const openPreview = () => {
-    if (restaurantId) window.open(`/restaurant/${restaurantId}`, "_blank");
+    if (restaurantId) window.open(`/restaurants/${restaurantId}`, "_blank");
   };
 
   const filteredItems = items.filter(i => i.category_id === selectedCat);
+
+  // Compute promo label for display
+  const getItemPromoDisplay = (item: any) => {
+    return computeItemPromo(item);
+  };
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
@@ -174,11 +209,14 @@ const DeliveryMenuManagement = () => {
           <BackButton fallback="/delivery/restaurants" />
           <div>
             <h2 className="text-2xl font-bold">إدارة منيو {restaurant?.name_ar}</h2>
-            <p className="text-sm text-muted-foreground">إدارة الفئات والأصناف</p>
+            <p className="text-sm text-muted-foreground">إدارة الفئات والأصناف وعروضها</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {restaurantId && <MenuExcelImport restaurantId={restaurantId} onComplete={load} />}
+          <Button variant="outline" size="sm" onClick={() => navigate(`/delivery/promotions`)}>
+            <Tag className="w-4 h-4 ml-1" /> عروض المطعم
+          </Button>
           <Button variant="outline" onClick={openPreview}>
             <Eye className="w-4 h-4 ml-1" /> معاينة المطعم
           </Button>
@@ -248,46 +286,62 @@ const DeliveryMenuManagement = () => {
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filteredItems.map(item => (
-                <Card key={item.id} className="overflow-hidden group hover:shadow-md transition-shadow">
-                  <div className="h-36 bg-muted/50 relative overflow-hidden">
-                    {item.image_url
-                      ? <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-                      : <div className="w-full h-full flex items-center justify-center text-muted-foreground/30"><UtensilsCrossed className="w-12 h-12" /></div>}
-                    <Badge
-                      variant={item.is_available ? "default" : "secondary"}
-                      className="absolute top-2 right-2"
-                    >
-                      {item.is_available ? "متاح" : "غير متاح"}
-                    </Badge>
-                    {item.is_featured && <Badge className="absolute top-2 left-2 bg-amber-500 hover:bg-amber-500"><Star className="w-3 h-3" /></Badge>}
-                  </div>
-                  <CardContent className="p-3 space-y-2">
-                    <h4 className="font-bold text-sm leading-tight">{item.name_ar}</h4>
-                    {item.description && <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {item.discounted_price ? (
-                        <>
-                          <span className="font-bold text-primary text-sm">{item.discounted_price} ر.ي</span>
-                          <span className="text-xs text-muted-foreground line-through">{item.price} ر.ي</span>
-                        </>
-                      ) : (
-                        <span className="font-bold text-primary text-sm">{item.price} ر.ي</span>
+              {filteredItems.map(item => {
+                const promo = getItemPromoDisplay(item);
+                return (
+                  <Card key={item.id} className="overflow-hidden group hover:shadow-md transition-shadow">
+                    <div className="h-36 bg-muted/50 relative overflow-hidden">
+                      {item.image_url
+                        ? <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                        : <div className="w-full h-full flex items-center justify-center text-muted-foreground/30"><UtensilsCrossed className="w-12 h-12" /></div>}
+                      <Badge
+                        variant={item.is_available ? "default" : "secondary"}
+                        className="absolute top-2 right-2"
+                      >
+                        {item.is_available ? "متاح" : "غير متاح"}
+                      </Badge>
+                      {item.is_featured && <Badge className="absolute top-2 left-2 bg-amber-500 hover:bg-amber-500"><Star className="w-3 h-3" /></Badge>}
+                      {/* Promo badge on image */}
+                      {promo.hasPromo && promo.promoLabel && (
+                        <Badge className="absolute bottom-2 right-2 bg-red-500 text-white border-0 text-[10px] font-bold">
+                          <Tag className="w-2.5 h-2.5 ml-0.5" />{promo.promoLabel}
+                        </Badge>
                       )}
-                      {item.is_popular && <Badge variant="outline" className="text-xs"><Flame className="w-3 h-3 ml-0.5" />شائع</Badge>}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      {item.preparation_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{item.preparation_time} د</span>}
-                      {item.calories && <span>🔥 {item.calories} سعرة</span>}
-                    </div>
-                    <div className="flex gap-1.5 pt-1">
-                      <Button size="sm" variant="outline" className="flex-1 text-xs h-7" onClick={() => openEditItem(item)}><Edit className="w-3 h-3 ml-1" /> تعديل</Button>
-                      <MenuItemOptionsManager menuItemId={item.id} menuItemName={item.name_ar} />
-                      <Button size="sm" variant="destructive" className="h-7 w-7 p-0" onClick={() => handleDeleteItem(item.id)}><Trash2 className="w-3 h-3" /></Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardContent className="p-3 space-y-2">
+                      <h4 className="font-bold text-sm leading-tight">{item.name_ar}</h4>
+                      {item.description && <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {promo.hasPromo && promo.finalPrice !== promo.originalPrice ? (
+                          <>
+                            <span className="font-bold text-primary text-sm">{promo.finalPrice} ر.ي</span>
+                            <span className="text-xs text-muted-foreground line-through">{promo.originalPrice} ر.ي</span>
+                            {promo.promoLabel && <Badge variant="outline" className="text-[10px] text-red-500 border-red-200 bg-red-50">{promo.promoLabel}</Badge>}
+                          </>
+                        ) : (
+                          <span className="font-bold text-primary text-sm">{item.price} ر.ي</span>
+                        )}
+                        {/* Custom text promo — shows only text */}
+                        {promo.hasPromo && promo.finalPrice === promo.originalPrice && promo.promoLabel && (
+                          <Badge variant="outline" className="text-[10px] text-red-500 border-red-200 bg-red-50 max-w-full truncate">
+                            <Tag className="w-2.5 h-2.5 ml-0.5 shrink-0" />{promo.promoLabel}
+                          </Badge>
+                        )}
+                        {item.is_popular && <Badge variant="outline" className="text-xs mr-auto"><Flame className="w-3 h-3 ml-0.5" />شائع</Badge>}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {item.preparation_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{item.preparation_time} د</span>}
+                        {item.calories && <span>🔥 {item.calories} سعرة</span>}
+                      </div>
+                      <div className="flex gap-1.5 pt-1">
+                        <Button size="sm" variant="outline" className="flex-1 text-xs h-7" onClick={() => openEditItem(item)}><Edit className="w-3 h-3 ml-1" /> تعديل</Button>
+                        <MenuItemOptionsManager menuItemId={item.id} menuItemName={item.name_ar} />
+                        <Button size="sm" variant="destructive" className="h-7 w-7 p-0" onClick={() => handleDeleteItem(item.id)}><Trash2 className="w-3 h-3" /></Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
@@ -349,14 +403,110 @@ const DeliveryMenuManagement = () => {
             {/* Price */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label>السعر (ر.ي) *</Label>
-                <Input type="number" value={itemForm.price} onChange={e => setItemForm({...itemForm, price: Number(e.target.value)})} />
+                <Label>السعر الأصلي (ر.ي) *</Label>
+                <Input type="number" min={0} value={itemForm.price} onChange={e => setItemForm({...itemForm, price: Number(e.target.value)})} />
               </div>
               <div>
-                <Label>سعر بعد الخصم (ر.ي)</Label>
-                <Input type="number" value={itemForm.discounted_price} onChange={e => setItemForm({...itemForm, discounted_price: Number(e.target.value)})} />
+                <Label>سعر مخفّض قديم (اختياري)</Label>
+                <Input type="number" min={0} value={itemForm.discounted_price} onChange={e => setItemForm({...itemForm, discounted_price: Number(e.target.value)})} />
+                <p className="text-xs text-muted-foreground mt-1">للعرض التقليدي فقط — استخدم قسم العروض أدناه للخيارات المتقدمة</p>
               </div>
             </div>
+
+            <Separator />
+
+            {/* ── Promotions Section ── */}
+            <div className="rounded-xl border-2 border-dashed border-primary/30 p-4 bg-primary/5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Tag className="w-5 h-5 text-primary" />
+                <h3 className="font-black text-base">عروض وخصومات الصنف</h3>
+              </div>
+
+              {/* Promo type selector */}
+              <div>
+                <Label className="font-semibold">نوع العرض</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {MENU_ITEM_PROMO_TYPES.map(t => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setItemForm({...itemForm, promo_type: t.value, promo_active: t.value !== "none"})}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-right text-sm transition-all ${itemForm.promo_type === t.value ? "bg-primary text-white border-primary font-semibold" : "bg-background border-border hover:border-primary/40"}`}
+                    >
+                      <t.icon className="w-4 h-4 shrink-0" />
+                      <span>{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Promo value: discount percent */}
+              {itemForm.promo_type === "discount_percent" && (
+                <div>
+                  <Label className="font-semibold">نسبة الخصم (%)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number" min={1} max={99}
+                      value={itemForm.promo_value}
+                      onChange={e => setItemForm({...itemForm, promo_value: Number(e.target.value)})}
+                      className="w-32"
+                      placeholder="20"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                    {itemForm.price > 0 && itemForm.promo_value > 0 && (
+                      <span className="text-sm font-semibold text-primary mr-auto">
+                        السعر بعد الخصم: {Math.round(itemForm.price * (1 - itemForm.promo_value / 100))} ر.ي
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Promo value: fixed price */}
+              {itemForm.promo_type === "fixed_price" && (
+                <div>
+                  <Label className="font-semibold">السعر الجديد المخفّض (ر.ي)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number" min={0}
+                      value={itemForm.promo_value}
+                      onChange={e => setItemForm({...itemForm, promo_value: Number(e.target.value)})}
+                      className="w-40"
+                      placeholder="700"
+                    />
+                    {itemForm.price > 0 && itemForm.promo_value > 0 && itemForm.promo_value < itemForm.price && (
+                      <span className="text-sm text-muted-foreground">
+                        (كانت <span className="line-through">{itemForm.price}</span> أصبحت <span className="font-bold text-primary">{itemForm.promo_value}</span> ر.ي)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Promo text: custom */}
+              {itemForm.promo_type === "custom_text" && (
+                <div>
+                  <Label className="font-semibold">نص العرض الذي يظهر للزبون</Label>
+                  <Textarea
+                    value={itemForm.promo_text}
+                    onChange={e => setItemForm({...itemForm, promo_text: e.target.value})}
+                    placeholder="مثال: اطلب 3 وادفع ثمن 2 | اشترِ وجبتين واحصل على مشروب مجاني"
+                    rows={2}
+                  />
+                </div>
+              )}
+
+              {/* Promo active toggle */}
+              {itemForm.promo_type !== "none" && (
+                <div className="flex items-center gap-3 pt-1">
+                  <Switch checked={itemForm.promo_active} onCheckedChange={v => setItemForm({...itemForm, promo_active: v})} />
+                  <Label className="font-semibold">تفعيل العرض الآن</Label>
+                  <span className="text-xs text-muted-foreground">{itemForm.promo_active ? "✅ العرض مفعّل وسيظهر للزبائن" : "⏸️ العرض معطّل حالياً"}</span>
+                </div>
+              )}
+            </div>
+
+            <Separator />
 
             {/* Details */}
             <div className="grid gap-4 sm:grid-cols-2">
