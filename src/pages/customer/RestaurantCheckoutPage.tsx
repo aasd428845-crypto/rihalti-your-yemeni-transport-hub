@@ -15,6 +15,7 @@ import { getRestaurantById, getCart, createOrderFromCart } from "@/lib/restauran
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { calcDistanceDeliveryFee } from "@/lib/distanceUtils";
+import { getActiveOffersForCompany } from "@/lib/deliveryOffersApi";
 
 interface CartItem {
   id: string;
@@ -49,6 +50,9 @@ const RestaurantCheckoutPage = () => {
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [distanceFee, setDistanceFee] = useState<number | null>(null);
 
+  // Active delivery offer (company-level promotion)
+  const [activeOffer, setActiveOffer] = useState<{ title: string; appliedFeeDiscount: (fee: number) => number } | null>(null);
+
   useEffect(() => {
     if (!user || !restaurantId) { navigate("/login"); return; }
     const load = async () => {
@@ -71,6 +75,11 @@ const RestaurantCheckoutPage = () => {
           if (settingsRes.data) {
             setPricePerKm(Number((settingsRes.data as any).price_per_km ?? 0));
             setMinDeliveryFee(Number((settingsRes.data as any).min_delivery_fee ?? 0));
+          }
+          // Check for active delivery offers (e.g. Thursday free delivery)
+          const offerResult = await getActiveOffersForCompany(r.delivery_company_id);
+          if (offerResult) {
+            setActiveOffer({ title: offerResult.offer.title, appliedFeeDiscount: offerResult.appliedFeeDiscount });
           }
         }
       } catch (err: any) {
@@ -159,11 +168,14 @@ const RestaurantCheckoutPage = () => {
   };
 
   // Priority: distance-based > zone-matched > quoted > restaurant default
-  const computedDeliveryFee = distanceFee !== null
+  const baseFee = distanceFee !== null
     ? distanceFee
     : matchedZone
       ? Number(matchedZone.delivery_fee)
       : quotedFee ?? (restaurant?.delivery_fee || 0);
+  // Apply company-level offer on top (e.g. Thursday free delivery)
+  const computedDeliveryFee = activeOffer ? activeOffer.appliedFeeDiscount(baseFee) : baseFee;
+  const deliveryDiscount = baseFee - computedDeliveryFee;
   const subtotal = useMemo(() => cart.reduce((s, c) => s + c.price * c.quantity, 0), [cart]);
   const tax = 0;
   const total = subtotal + computedDeliveryFee + tax;
@@ -260,6 +272,16 @@ const RestaurantCheckoutPage = () => {
                 </div>
               ))}
               <Separator />
+              {/* Active delivery offer banner */}
+              {activeOffer && (
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-300 rounded-lg p-2.5 flex items-center gap-2 text-sm text-green-800 dark:text-green-300">
+                  <span className="text-lg">🎉</span>
+                  <div>
+                    <span className="font-bold">{activeOffer.title}</span>
+                    {deliveryDiscount > 0 && <span className="text-green-600 text-xs mr-1">— وفّر {deliveryDiscount.toLocaleString()} ر.ي</span>}
+                  </div>
+                </div>
+              )}
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between"><span>المجموع الفرعي</span><span>{subtotal} ر.ي</span></div>
                 <div className="flex justify-between">
@@ -272,8 +294,16 @@ const RestaurantCheckoutPage = () => {
                       </Badge>
                     )}
                     {matchedZone && !usingDistancePricing && <Badge variant="outline" className="text-[10px]">{matchedZone.zone_name}</Badge>}
+                    {activeOffer && baseFee > computedDeliveryFee && (
+                      <Badge className="text-[10px] bg-green-500 text-white border-0">
+                        <span className="line-through ml-1 opacity-70">{baseFee}</span>
+                      </Badge>
+                    )}
                   </span>
-                  <span>{computedDeliveryFee} ر.ي</span>
+                  <span className={activeOffer && deliveryDiscount > 0 ? "text-green-600 font-bold" : ""}>
+                    {computedDeliveryFee} ر.ي
+                    {computedDeliveryFee === 0 && <span className="text-xs mr-1 text-green-600">(مجاني!)</span>}
+                  </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-base"><span>الإجمالي</span><span className="text-primary">{total} ر.ي</span></div>

@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Store, Edit, Trash2, Search, Star, Clock, Truck, Menu } from "lucide-react";
+import { Plus, Store, Edit, Trash2, Search, Star, Clock, Truck, Menu, MapPin } from "lucide-react";
+import MapPicker from "@/components/maps/MapPicker";
 import { getRestaurants, createRestaurant, updateRestaurant, deleteRestaurant } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/common/ImageUpload";
@@ -364,31 +365,17 @@ const DeliveryRestaurants = () => {
                 <Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="موقع المطعم" />
               </div>
               <div className="sm:col-span-2">
-                <Label className="flex items-center gap-1.5">
-                  📍 إحداثيات GPS للمطعم
-                  <span className="text-xs text-muted-foreground font-normal">(مطلوبة للتسعير بالمسافة)</span>
+                <Label className="flex items-center gap-1.5 mb-2">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  موقع المطعم على الخريطة
+                  <span className="text-xs text-muted-foreground font-normal">(مطلوب للتسعير بالمسافة)</span>
                 </Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    type="number"
-                    step="0.000001"
-                    value={form.latitude}
-                    onChange={e => setForm({...form, latitude: e.target.value})}
-                    placeholder="خط العرض Latitude (مثال: 15.3694)"
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    step="0.000001"
-                    value={form.longitude}
-                    onChange={e => setForm({...form, longitude: e.target.value})}
-                    placeholder="خط الطول Longitude (مثال: 44.1910)"
-                    className="flex-1"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  ابحث عن المطعم في خرائط جوجل → اضغط على الموقع → انسخ الأرقام من الشريط العلوي
-                </p>
+                <MapPicker
+                  lat={form.latitude !== "" ? Number(form.latitude) : undefined}
+                  lng={form.longitude !== "" ? Number(form.longitude) : undefined}
+                  onLocationSelect={(lat, lng) => setForm({...form, latitude: lat, longitude: lng})}
+                  height="260px"
+                />
               </div>
               <div>
                 <Label>نسبة العمولة %</Label>
