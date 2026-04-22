@@ -50,13 +50,41 @@ const DeliveryRiders = () => {
       if (editItem) {
         await updateRider(editItem.id, form);
         toast({ title: "تم التحديث" });
+        setShowAdd(false); setEditItem(null);
+        setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 });
+        load();
       } else {
-        await createRider({ ...form, delivery_company_id: user.id });
-        toast({ title: "تمت إضافة المندوب" });
+        if (!form.email.trim()) {
+          toast({ title: "البريد الإلكتروني مطلوب", description: "نحتاج البريد لإنشاء رابط دعوة يربط المندوب بشركتك عند تسجيل الدخول.", variant: "destructive" });
+          return;
+        }
+        // 1. Create the rider placeholder row
+        await createRider({ ...form, delivery_company_id: user.id, is_approved: false } as any);
+
+        // 2. Create an invitation token tied to that email so when the
+        //    driver signs up via the link, InvitePage links them back to
+        //    this rider row (matched on company_id + email).
+        const token = crypto.randomUUID();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+        const { error: tokErr } = await supabase.from("invitation_tokens").insert({
+          email: form.email.trim(),
+          role: "delivery_driver",
+          token,
+          created_by: user.id,
+          expires_at: expiresAt.toISOString(),
+        });
+        if (tokErr) throw tokErr;
+
+        const link = `${window.location.origin}/invite/${token}`;
+        setShowAdd(false); setEditItem(null);
+        setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 });
+        setInviteLink(link);
+        setCopied(false);
+        try { await navigator.clipboard?.writeText(link); setCopied(true); } catch { /* ignore */ }
+        toast({ title: "تمت إضافة المندوب", description: "أرسل رابط الدعوة للمندوب لإكمال تسجيله." });
+        load();
       }
-      setShowAdd(false); setEditItem(null);
-      setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 });
-      load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     }

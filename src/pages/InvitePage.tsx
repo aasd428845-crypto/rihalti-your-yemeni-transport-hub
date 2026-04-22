@@ -210,7 +210,9 @@ const InvitePage = () => {
 
       await supabase.from("profiles").update(profileUpdate).eq("user_id", userId);
 
-      // 4. If delivery_driver, link to delivery company via riders table
+      // 4. If delivery_driver, link to delivery company via riders table.
+      //    If the delivery company pre-created a rider row (via "إضافة مندوب"),
+      //    update that row with the new auth user_id; otherwise insert a new row.
       if (inviteData.role === "delivery_driver") {
         const { data: tokenData } = await supabase
           .from("invitation_tokens")
@@ -218,16 +220,35 @@ const InvitePage = () => {
           .eq("token", inviteData.token)
           .single();
         if (tokenData?.created_by) {
-          await supabase.from("riders").insert({
+          const companyId = tokenData.created_by;
+          const { data: existingRider } = await supabase
+            .from("riders")
+            .select("id")
+            .eq("delivery_company_id", companyId)
+            .eq("email", inviteData.email)
+            .is("user_id" as any, null)
+            .maybeSingle();
+
+          const riderPayload: Record<string, any> = {
             user_id: userId,
-            delivery_company_id: tokenData.created_by,
             full_name: fullName,
             phone,
             vehicle_type: vehicleType,
             vehicle_plate: vehiclePlate,
+            id_number: idNumber,
             is_active: false,
             is_approved: false,
-          } as any);
+          };
+
+          if (existingRider?.id) {
+            await supabase.from("riders").update(riderPayload).eq("id", existingRider.id);
+          } else {
+            await supabase.from("riders").insert({
+              ...riderPayload,
+              email: inviteData.email,
+              delivery_company_id: companyId,
+            } as any);
+          }
         }
       }
 
