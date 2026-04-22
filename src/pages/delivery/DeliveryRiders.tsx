@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Edit, Trash2, Award, Link2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Award, Link2, Copy, ExternalLink, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getRiders, createRider, updateRider, deleteRider, createRiderReward } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,9 @@ const DeliveryRiders = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [editItem, setEditItem] = useState<Rider | null>(null);
   const [showReward, setShowReward] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [rewardRider, setRewardRider] = useState("");
   const [rewardForm, setRewardForm] = useState({ amount: 0, description: "", type: "bonus" });
   const [form, setForm] = useState({
@@ -82,23 +85,48 @@ const DeliveryRiders = () => {
   };
 
   const handleGenerateInvite = async () => {
-    if (!user) return;
+    if (!user || generating) return;
+    setGenerating(true);
+    setCopied(false);
     try {
       const token = crypto.randomUUID();
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
-      await supabase.from("invitation_tokens").insert({
+      const { error } = await supabase.from("invitation_tokens").insert({
         email: `rider-${Date.now()}@invite.local`,
         role: "delivery_driver",
         token,
         created_by: user.id,
         expires_at: expiresAt.toISOString(),
       });
+      if (error) throw error;
       const link = `${window.location.origin}/invite/${token}`;
-      await navigator.clipboard.writeText(link);
-      toast({ title: "تم إنشاء رابط الدعوة ✅", description: "تم نسخ الرابط. أرسله للمندوب ليقوم بالتسجيل وسيتم ربطه بشركتك تلقائياً." });
+      setInviteLink(link);
+      // Try to copy automatically (best-effort; may fail on non-https/iframe)
+      try {
+        await navigator.clipboard?.writeText(link);
+        setCopied(true);
+      } catch { /* ignore – user can copy manually from the dialog */ }
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const copyInviteLink = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      toast({ title: "تم نسخ الرابط ✅" });
+    } catch {
+      // Fallback: select the text inside the input so user can copy manually
+      const el = document.getElementById("invite-link-input") as HTMLInputElement | null;
+      el?.select();
+      document.execCommand?.("copy");
+      setCopied(true);
+      toast({ title: "تم نسخ الرابط ✅" });
     }
   };
 
@@ -113,8 +141,8 @@ const DeliveryRiders = () => {
         <h2 className="text-xl md:text-2xl font-bold">إدارة المندوبين</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowReward(true)} className="min-h-[44px]"><Award className="w-4 h-4 ml-1" /> مكافأة</Button>
-          <Button size="sm" variant="outline" onClick={handleGenerateInvite} className="min-h-[44px]">
-            <Link2 className="w-4 h-4 ml-1" /> رابط دعوة مندوب
+          <Button size="sm" variant="outline" onClick={handleGenerateInvite} disabled={generating} className="min-h-[44px]">
+            <Link2 className="w-4 h-4 ml-1" /> {generating ? "جاري الإنشاء..." : "رابط دعوة مندوب"}
           </Button>
           <Button size="sm" onClick={() => { setEditItem(null); setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 }); setShowAdd(true); }} className="min-h-[44px]">
             <Plus className="w-4 h-4 ml-1" /> إضافة مندوب
@@ -254,6 +282,48 @@ const DeliveryRiders = () => {
             <div><Label>الوصف</Label><Input value={rewardForm.description} onChange={e => setRewardForm({...rewardForm, description: e.target.value})} /></div>
           </div>
           <DialogFooter><Button onClick={handleReward} className="min-h-[44px]">إضافة المكافأة</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite link dialog */}
+      <Dialog open={!!inviteLink} onOpenChange={(open) => { if (!open) { setInviteLink(null); setCopied(false); } }}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="w-5 h-5 text-primary" /> رابط دعوة المندوب
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              أرسل هذا الرابط للمندوب. عند فتحه سيتم نقله إلى صفحة التسجيل وسيُربط بشركتك تلقائياً. الرابط صالح لمدة 7 أيام.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                id="invite-link-input"
+                value={inviteLink || ""}
+                readOnly
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+                className="text-xs ltr:text-left rtl:text-left font-mono"
+                dir="ltr"
+              />
+              <Button type="button" variant="outline" size="icon" onClick={copyInviteLink} className="shrink-0" aria-label="نسخ">
+                {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                className="flex-1 gap-2"
+                onClick={() => inviteLink && window.open(inviteLink, "_blank", "noopener,noreferrer")}
+              >
+                <ExternalLink className="w-4 h-4" />
+                فتح الرابط في تبويب جديد
+              </Button>
+              <Button type="button" variant="outline" className="flex-1 gap-2" onClick={copyInviteLink}>
+                {copied ? <><Check className="w-4 h-4 text-green-600" /> تم النسخ</> : <><Copy className="w-4 h-4" /> نسخ الرابط</>}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
