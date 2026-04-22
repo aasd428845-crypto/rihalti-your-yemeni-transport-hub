@@ -193,7 +193,7 @@ const RestaurantMenuPage = () => {
     if (!id || cart.length === 0) return;
     try {
       await upsertCart({ customer_id: user.id, restaurant_id: id, items: cart, total_amount: cartTotal });
-      navigate(`/restaurants/${id}/checkout`);
+      navigate(`/cart`);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     }
@@ -303,11 +303,11 @@ const RestaurantMenuPage = () => {
           </div>
         </div>
 
-        {/* ── Category Chips (sticky anchor bar) ── */}
+        {/* ── Category Chips (horizontal pill bar) ── */}
         {!search && categories.length > 0 && (
           <div
             ref={chipScrollRef}
-            className="flex gap-4 overflow-x-auto scrollbar-hide px-4 pb-3 border-t border-border/50 pt-2"
+            className="flex gap-2 overflow-x-auto scrollbar-hide px-4 pb-3 border-t border-border/50 pt-3"
           >
             {categories.map(cat => {
               const emoji = cat.image_url ? null : getCategoryEmoji(cat.name_ar || "");
@@ -317,18 +317,18 @@ const RestaurantMenuPage = () => {
                   key={cat.id}
                   data-chip={cat.id}
                   onClick={() => scrollToCategory(cat.id)}
-                  className="flex flex-col items-center gap-1 shrink-0 group"
+                  className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-xs font-semibold transition-all border ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                      : 'bg-background text-foreground border-border hover:border-primary/50'
+                  }`}
                 >
-                  {/* Icon circle */}
-                  <div className={`w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-2xl transition-all border-2 ${isActive ? 'border-primary bg-primary/10 shadow-md' : 'border-border bg-background'}`}>
-                    {cat.image_url
-                      ? <img src={cat.image_url} alt={cat.name_ar} className="w-full h-full object-cover" />
-                      : <span>{emoji}</span>}
-                  </div>
-                  {/* Category name */}
-                  <span className={`text-xs font-medium text-center leading-tight max-w-[60px] line-clamp-2 ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}>
-                    {cat.name_ar}
-                  </span>
+                  {cat.image_url ? (
+                    <img src={cat.image_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  ) : (
+                    <span className="text-sm leading-none">{emoji}</span>
+                  )}
+                  <span>{cat.name_ar}</span>
                 </button>
               );
             })}
@@ -558,7 +558,11 @@ const MenuItemCard = ({
   item: any; cartItem?: CartItem; onOpen: () => void; onAdd: () => void;
   onUpdateQty: (id: string, delta: number) => void;
 }) => {
-  const price = item.discounted_price || item.price;
+  const hasDiscount = !!item.discounted_price && Number(item.discounted_price) < Number(item.price);
+  const price = hasDiscount ? item.discounted_price : item.price;
+  const discountPct = hasDiscount
+    ? Math.round((1 - Number(item.discounted_price) / Number(item.price)) * 100)
+    : 0;
   return (
     <div
       className="bg-background rounded-2xl overflow-hidden shadow-sm border border-border/60 hover:shadow-md transition-all active:scale-[0.99] cursor-pointer flex flex-col"
@@ -576,9 +580,6 @@ const MenuItemCard = ({
             </Badge>
           </div>
         )}
-        {item.discounted_price && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">خصم</div>
-        )}
       </div>
 
       {/* Bottom: details */}
@@ -587,10 +588,16 @@ const MenuItemCard = ({
         {item.description && (
           <p className="text-[10px] text-muted-foreground line-clamp-1 leading-relaxed">{item.description}</p>
         )}
+        {hasDiscount && (
+          <div className="inline-flex items-center gap-1 self-start bg-red-50 text-red-600 text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-red-200">
+            <Flame className="w-2.5 h-2.5" />
+            <span>خصم {discountPct}%</span>
+          </div>
+        )}
         <div className="mt-auto pt-1.5 flex items-center justify-between gap-1">
           <div className="flex flex-col">
             <span className="font-bold text-primary text-xs">{price} ر.ي</span>
-            {item.discounted_price && (
+            {hasDiscount && (
               <span className="text-[9px] text-muted-foreground line-through">{item.price} ر.ي</span>
             )}
           </div>
