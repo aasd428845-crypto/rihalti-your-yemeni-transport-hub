@@ -28,6 +28,51 @@ interface OptionChoice {
   price: number;
 }
 
+// ── Compute open/closed status from opening_hours JSONB ──
+const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const formatTime12 = (t: string) => {
+  if (!t) return "";
+  const [hStr, m] = t.split(":");
+  const h = parseInt(hStr, 10);
+  if (isNaN(h)) return t;
+  const period = h >= 12 ? "م" : "ص";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${m || "00"} ${period}`;
+};
+const getOpenStatus = (hours: any): { isOpen: boolean; subtext: string } => {
+  if (!hours || typeof hours !== "object") return { isOpen: true, subtext: "" };
+  const now = new Date();
+  const todayKey = DAY_KEYS[now.getDay()];
+  const today = hours[todayKey];
+  if (!today || today.open === false) {
+    // Find next open day
+    for (let i = 1; i <= 7; i++) {
+      const next = hours[DAY_KEYS[(now.getDay() + i) % 7]];
+      if (next && next.open !== false && next.from) {
+        const dayLabels: Record<string, string> = {
+          sunday: "الأحد", monday: "الاثنين", tuesday: "الثلاثاء", wednesday: "الأربعاء",
+          thursday: "الخميس", friday: "الجمعة", saturday: "السبت",
+        };
+        const dayName = dayLabels[DAY_KEYS[(now.getDay() + i) % 7]];
+        return { isOpen: false, subtext: `يفتح ${i === 1 ? "غداً" : dayName} ${formatTime12(next.from)}` };
+      }
+    }
+    return { isOpen: false, subtext: "" };
+  }
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const [fH, fM] = (today.from || "00:00").split(":").map(Number);
+  const [tH, tM] = (today.to || "23:59").split(":").map(Number);
+  const fromMin = fH * 60 + (fM || 0);
+  const toMin = tH * 60 + (tM || 0);
+  if (nowMin >= fromMin && nowMin < toMin) {
+    return { isOpen: true, subtext: `مفتوح حتى ${formatTime12(today.to)}` };
+  }
+  if (nowMin < fromMin) {
+    return { isOpen: false, subtext: `يفتح اليوم ${formatTime12(today.from)}` };
+  }
+  return { isOpen: false, subtext: "مغلق الآن" };
+};
+
 // Category icon emojis fallback map
 const CATEGORY_EMOJI: Record<string, string> = {
   برجر: "🍔", بيتزا: "🍕", شاورما: "🌯", مشاوي: "🍖", مشروبات: "🥤", حلويات: "🧁",
@@ -211,6 +256,22 @@ const RestaurantMenuPage = () => {
             </div>
           </div>
 
+          {/* Open/Closed status */}
+          {(() => {
+            const status = getOpenStatus(restaurant.opening_hours);
+            return (
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`inline-flex items-center gap-1.5 text-sm font-bold ${status.isOpen ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`w-2 h-2 rounded-full ${status.isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                  {status.isOpen ? 'مفتوح' : 'مغلق'}
+                </span>
+                {status.subtext && (
+                  <span className="text-xs text-muted-foreground">· {status.subtext}</span>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Stats row */}
           <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1 font-medium">
@@ -218,7 +279,7 @@ const RestaurantMenuPage = () => {
               {restaurant.rating || '0'} ({restaurant.total_ratings || 0})
             </span>
             {restaurant.estimated_delivery_time && (
-              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{restaurant.estimated_delivery_time} دقيقة</span>
+              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{restaurant.estimated_delivery_time} د</span>
             )}
             <span className="flex items-center gap-1">
               <Truck className="w-3.5 h-3.5" />توصيل: {restaurant.delivery_fee || 0} ر.ي
