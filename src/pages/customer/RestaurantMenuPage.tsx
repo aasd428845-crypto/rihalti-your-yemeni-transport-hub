@@ -344,7 +344,7 @@ const RestaurantMenuPage = () => {
             {(itemsByCategory["__search__"] || []).length === 0 ? (
               <p className="text-center py-10 text-muted-foreground">لا توجد نتائج</p>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {(itemsByCategory["__search__"] || []).map(item => (
                   <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
                     onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
@@ -374,7 +374,7 @@ const RestaurantMenuPage = () => {
                   </div>
                   {/* Items */}
                   <div className="px-4">
-                    <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       {catItems.map(item => (
                         <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
                           onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
@@ -394,7 +394,7 @@ const RestaurantMenuPage = () => {
                   <h2 className="text-base font-bold">أصناف أخرى</h2>
                 </div>
                 <div className="px-4">
-                  <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {(itemsByCategory["__other__"] || []).map(item => (
                       <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
                         onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
@@ -565,59 +565,66 @@ const MenuItemCard = ({
     : 0;
   return (
     <div
-      className="bg-background rounded-2xl overflow-hidden shadow-sm border border-border/60 hover:shadow-md transition-all active:scale-[0.99] cursor-pointer flex flex-col"
+      className="flex flex-col bg-background rounded-xl overflow-hidden shadow-sm border border-border/60 hover:shadow-md transition-all active:scale-[0.99] cursor-pointer"
       onClick={onOpen}
     >
-      {/* Top: food image (full-width banner) */}
-      <div className="w-full h-44 sm:h-52 bg-muted relative overflow-hidden">
+      {/* Image (top) */}
+      <div className="relative w-full h-48 bg-muted overflow-hidden">
         {item.image_url
           ? <img src={item.image_url} alt={item.name_ar} loading="lazy" className="w-full h-full object-cover" />
           : <div className="w-full h-full flex items-center justify-center text-5xl">🍽️</div>}
         {item.is_popular && (
           <div className="absolute top-2 right-2">
-            <Badge className="text-[10px] px-1.5 py-0 bg-amber-500 text-white border-0 gap-0.5 h-4 shadow">
+            <Badge className="text-[10px] px-1.5 py-0 bg-amber-500 text-white border-0 gap-0.5 h-5 shadow">
               <Flame className="w-2.5 h-2.5" />شائع
             </Badge>
           </div>
         )}
       </div>
 
-      {/* Bottom: details */}
-      <div className="p-3.5 flex flex-col flex-1 gap-1.5">
-        <h3 className="font-bold text-base leading-snug line-clamp-2">{item.name_ar}</h3>
+      {/* Content (bottom) */}
+      <div className="p-3 flex flex-col flex-1 gap-1">
+        <h3 className="font-bold text-sm leading-snug line-clamp-2">{item.name_ar}</h3>
         {item.description && (
-          <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">{item.description}</p>
+          <p className="text-[11px] text-muted-foreground line-clamp-1 leading-relaxed">{item.description}</p>
         )}
         {hasDiscount && (
-          <div className="inline-flex items-center gap-1 self-start bg-red-50 text-red-600 text-[11px] font-bold px-2 py-0.5 rounded-md border border-red-200">
-            <Flame className="w-3 h-3" />
+          <div className="inline-flex items-center gap-1 self-start bg-red-50 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-red-200">
+            <Flame className="w-2.5 h-2.5" />
             <span>خصم {discountPct}%</span>
           </div>
         )}
+
+        {/* Price + Add button row */}
         <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-          <div className="flex flex-col">
-            <span className="font-bold text-primary text-base">{price} ر.ي</span>
+          <div className="flex flex-col leading-tight">
+            <span className="font-bold text-primary text-sm">{price} ر.ي</span>
             {hasDiscount && (
-              <span className="text-[11px] text-muted-foreground line-through">{item.price} ر.ي</span>
+              <span className="text-[10px] text-muted-foreground line-through">{item.price} ر.ي</span>
             )}
           </div>
-          {/* Cart controls */}
+
           {cartItem ? (
-            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-              <button className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
-                onClick={() => onUpdateQty(item.id, -1)}>
-                <Minus className="w-3.5 h-3.5 text-primary" />
+            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+              <button
+                className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
+                onClick={() => onUpdateQty(item.id, -1)}
+              >
+                <Minus className="w-3 h-3 text-primary" />
               </button>
-              <span className="text-sm font-bold min-w-[20px] text-center">{cartItem.quantity}</span>
-              <button className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
-                onClick={() => onUpdateQty(item.id, 1)}>
-                <Plus className="w-3.5 h-3.5" />
+              <span className="text-xs font-bold min-w-[18px] text-center">{cartItem.quantity}</span>
+              <button
+                className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                onClick={() => onUpdateQty(item.id, 1)}
+              >
+                <Plus className="w-3 h-3" />
               </button>
             </div>
           ) : (
             <button
-              className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow hover:bg-primary/90 active:scale-95 transition-all shrink-0"
+              className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow hover:bg-primary/90 active:scale-95 transition-all shrink-0"
               onClick={e => { e.stopPropagation(); onAdd(); }}
+              aria-label="أضف للسلة"
             >
               <Plus className="w-4 h-4" />
             </button>
