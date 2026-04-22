@@ -99,11 +99,14 @@ const DeliveryLayout = () => {
               }}
               title="الإشعارات"
             >
-              <Bell className="w-5 h-5" />
+              <Bell className={`w-5 h-5 ${unreadCount > 0 ? "animate-bounce text-primary" : ""}`} />
               {unreadCount > 0 && (
-                <Badge className="absolute -top-1 -left-1 h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold border-2 border-card flex items-center justify-center">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </Badge>
+                <>
+                  <Badge className="absolute -top-1 -left-1 h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold border-2 border-card flex items-center justify-center z-10">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </Badge>
+                  <span className="absolute -top-1 -left-1 h-5 w-5 rounded-full bg-red-500 opacity-75 animate-ping" />
+                </>
               )}
             </Button>
 

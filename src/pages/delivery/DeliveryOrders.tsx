@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -121,48 +121,15 @@ const DeliveryOrders = () => {
     }
   };
 
-  // ── Realtime: new order alert with sound ───────────────────
-  const prevOrderIdsRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!user) return;
-    // Track current order IDs to detect new ones
-    prevOrderIdsRef.current = new Set(orders.map(o => o.id));
-  }, [orders]);
-
+  // ── Realtime: reload orders list when a new order arrives ──
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel("delivery-new-orders")
+      .channel("delivery-orders-refresh")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "delivery_orders", filter: `delivery_company_id=eq.${user.id}` },
-        (payload) => {
-          const newOrder = payload.new as any;
-          if (prevOrderIdsRef.current.has(newOrder.id)) return;
-          prevOrderIdsRef.current.add(newOrder.id);
-          // Play alert sound
-          try {
-            const ctx = new AudioContext();
-            const oscillator = ctx.createOscillator();
-            const gain = ctx.createGain();
-            oscillator.connect(gain);
-            gain.connect(ctx.destination);
-            oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-            oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.15);
-            oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.4, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-            oscillator.start(ctx.currentTime);
-            oscillator.stop(ctx.currentTime + 0.6);
-          } catch {}
-          // Show urgent in-app toast
-          toast({
-            title: "🍽️ طلب جديد!",
-            description: `طلب جديد من ${newOrder.customer_name || "عميل"} — ${Number(newOrder.total || 0).toLocaleString()} ر.ي`,
-            duration: 10000,
-          });
-          load();
-        }
+        () => load()
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };

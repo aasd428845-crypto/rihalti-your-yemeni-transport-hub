@@ -29,75 +29,99 @@ serve(async (req) => {
   try {
     const payload: NotificationPayload = await req.json()
 
-    if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) {
-      throw new Error('OneSignal credentials not configured')
+    let onesignalResult: any = { skipped: 'OneSignal not configured' }
+
+    // ── OneSignal push (optional — works even without credentials) ──
+    if (ONESIGNAL_APP_ID && ONESIGNAL_API_KEY) {
+      const notificationBody: Record<string, unknown> = {
+        app_id: ONESIGNAL_APP_ID,
+        headings: { ar: payload.title, en: payload.title },
+        contents: { ar: payload.body, en: payload.body },
+        data: payload.data || {},
+        url: payload.url,
+        ios_sound: payload.sound || 'default',
+        android_sound: payload.sound || 'default',
+        big_picture: payload.image,
+        priority: 10,
+        ttl: 86400,
+      }
+
+      if (payload.userId) {
+        notificationBody.include_external_user_ids = [payload.userId]
+      } else if (payload.userIds && payload.userIds.length > 0) {
+        notificationBody.include_external_user_ids = payload.userIds
+      } else if (payload.targetRole) {
+        notificationBody.filters = [
+          { field: 'tag', key: 'role', relation: '=', value: payload.targetRole }
+        ]
+      } else {
+        notificationBody.included_segments = ['Subscribed Users']
+      }
+
+      try {
+        const response = await fetch('https://onesignal.com/api/v1/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${ONESIGNAL_API_KEY}`,
+          },
+          body: JSON.stringify(notificationBody),
+        })
+        onesignalResult = await response.json()
+        await response.body?.cancel()
+      } catch (e: any) {
+        onesignalResult = { error: e.message }
+      }
     }
 
-    // Build targeting
-    const notificationBody: Record<string, unknown> = {
-      app_id: ONESIGNAL_APP_ID,
-      headings: { ar: payload.title, en: payload.title },
-      contents: { ar: payload.body, en: payload.body },
-      data: payload.data || {},
-      url: payload.url,
-      ios_sound: payload.sound || 'default',
-      android_sound: payload.sound || 'default',
-      big_picture: payload.image,
-      priority: 10,
-      ttl: 86400,
-    }
+    // ── Always persist to DB regardless of OneSignal status ──
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseKey)
 
-    if (payload.userId) {
-      notificationBody.include_external_user_ids = [payload.userId]
-    } else if (payload.userIds && payload.userIds.length > 0) {
-      notificationBody.include_external_user_ids = payload.userIds
-    } else if (payload.targetRole) {
-      notificationBody.filters = [
-        { field: 'tag', key: 'role', relation: '=', value: payload.targetRole }
-      ]
-    } else {
-      // Send to all subscribed users
-      notificationBody.included_segments = ['Subscribed Users']
-    }
+    const targetIds: string[] = payload.userId
+      ? [payload.userId]
+      : payload.userIds || []
 
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${ONESIGNAL_API_KEY}`,
-      },
-      body: JSON.stringify(notificationBody),
-    })
-
-    const result = await response.json()
-    await response.body?.cancel()
-
-    // Log notification in DB
-    if (payload.userId) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-      const supabase = createClient(supabaseUrl, supabaseKey)
-
+    for (const uid of targetIds) {
+      // Log entry
       await supabase.from('notification_logs').insert({
-        user_id: payload.userId,
+        user_id: uid,
         title: payload.title,
         body: payload.body,
         type: (payload.data as any)?.type || 'system',
         sound: payload.sound,
         data: payload.data,
-      })
+      }).then(() => {}, () => {})
 
-      // Also insert into notifications table for in-app display
+      // In-app notification (triggers realtime for the user)
       await supabase.from('notifications').insert({
-        user_id: payload.userId,
+        user_id: uid,
         title: payload.title,
         body: payload.body,
         data: payload.data,
-      })
+      }).then(() => {}, () => {})
+    }
+
+    // If targetRole, fetch all users with that role and notify them
+    if (payload.targetRole && targetIds.length === 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', payload.targetRole)
+
+      for (const p of (profiles || [])) {
+        await supabase.from('notifications').insert({
+          user_id: p.id,
+          title: payload.title,
+          body: payload.body,
+          data: payload.data,
+        }).then(() => {}, () => {})
+      }
     }
 
     return new Response(
-      JSON.stringify({ success: true, result }),
+      JSON.stringify({ success: true, onesignal: onesignalResult }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error: any) {
