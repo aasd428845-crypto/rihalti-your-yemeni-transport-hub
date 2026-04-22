@@ -41,6 +41,8 @@ const emptyForm = () => ({
   cover_image: "", logo_url: "",
   coverage_areas: [] as string[],
   opening_hours: defaultHours() as Record<string, { open: boolean; from: string; to: string }>,
+  latitude: "" as string | number,
+  longitude: "" as string | number,
 });
 
 const DeliveryRestaurants = () => {
@@ -97,6 +99,14 @@ const DeliveryRestaurants = () => {
         cover_image: form.cover_image || null, logo_url: form.logo_url || null,
         opening_hours: form.opening_hours,
       };
+
+      // Include lat/lng if provided
+      if (form.latitude !== "" && form.latitude !== null) {
+        (basePayload as any).latitude = Number(form.latitude);
+      }
+      if (form.longitude !== "" && form.longitude !== null) {
+        (basePayload as any).longitude = Number(form.longitude);
+      }
 
       // Try to include coverage_areas (requires migration); fall back to base payload if column missing
       const payloadWithCoverage = { ...basePayload, coverage_areas: form.coverage_areas };
@@ -164,6 +174,8 @@ const DeliveryRestaurants = () => {
       cover_image: r.cover_image || "", logo_url: r.logo_url || "",
       coverage_areas: r.coverage_areas || [],
       opening_hours: hours,
+      latitude: r.latitude ?? "",
+      longitude: r.longitude ?? "",
     });
     setShowAdd(true);
   };
@@ -350,6 +362,33 @@ const DeliveryRestaurants = () => {
               <div>
                 <Label>العنوان</Label>
                 <Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="موقع المطعم" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="flex items-center gap-1.5">
+                  📍 إحداثيات GPS للمطعم
+                  <span className="text-xs text-muted-foreground font-normal">(مطلوبة للتسعير بالمسافة)</span>
+                </Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    type="number"
+                    step="0.000001"
+                    value={form.latitude}
+                    onChange={e => setForm({...form, latitude: e.target.value})}
+                    placeholder="خط العرض Latitude (مثال: 15.3694)"
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    step="0.000001"
+                    value={form.longitude}
+                    onChange={e => setForm({...form, longitude: e.target.value})}
+                    placeholder="خط الطول Longitude (مثال: 44.1910)"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ابحث عن المطعم في خرائط جوجل → اضغط على الموقع → انسخ الأرقام من الشريط العلوي
+                </p>
               </div>
               <div>
                 <Label>نسبة العمولة %</Label>

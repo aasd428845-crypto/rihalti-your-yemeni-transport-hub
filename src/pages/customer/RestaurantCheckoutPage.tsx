@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Phone, CreditCard, Minus, Plus, ArrowRight, AlertTriangle, MapPin, Loader2 } from "lucide-react";
+import { ShoppingCart, Phone, CreditCard, Minus, Plus, ArrowRight, AlertTriangle, MapPin, Loader2, Navigation } from "lucide-react";
 import BackButton from "@/components/common/BackButton";
 import AddressSelector, { SelectedAddress } from "@/components/addresses/AddressSelector";
 import { getRestaurantById, getCart, createOrderFromCart } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { calcDistanceDeliveryFee } from "@/lib/distanceUtils";
 
 interface CartItem {
   id: string;
@@ -42,6 +43,12 @@ const RestaurantCheckoutPage = () => {
   const [quoteStatus, setQuoteStatus] = useState<string | null>(null);
   const [quotedFee, setQuotedFee] = useState<number | null>(null);
 
+  // Distance-based pricing
+  const [pricePerKm, setPricePerKm] = useState<number>(0);
+  const [minDeliveryFee, setMinDeliveryFee] = useState<number>(0);
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  const [distanceFee, setDistanceFee] = useState<number | null>(null);
+
   useEffect(() => {
     if (!user || !restaurantId) { navigate("/login"); return; }
     const load = async () => {
@@ -54,14 +61,17 @@ const RestaurantCheckoutPage = () => {
         if (cartData?.items) setCart(cartData.items as any as CartItem[]);
         setForm(f => ({ ...f, phone: profile?.phone || "" }));
 
-        // Fetch delivery zones for this company
+        // Fetch delivery zones and pricing settings for this company
         if (r?.delivery_company_id) {
-          const { data: zones } = await supabase
-            .from("delivery_zones" as any)
-            .select("*")
-            .eq("delivery_company_id", r.delivery_company_id)
-            .eq("is_active", true);
-          setDeliveryZones(zones || []);
+          const [zonesRes, settingsRes] = await Promise.all([
+            supabase.from("delivery_zones" as any).select("*").eq("delivery_company_id", r.delivery_company_id).eq("is_active", true),
+            supabase.from("partner_settings" as any).select("price_per_km, min_delivery_fee").eq("partner_id", r.delivery_company_id).maybeSingle(),
+          ]);
+          setDeliveryZones(zonesRes.data || []);
+          if (settingsRes.data) {
+            setPricePerKm(Number((settingsRes.data as any).price_per_km ?? 0));
+            setMinDeliveryFee(Number((settingsRes.data as any).min_delivery_fee ?? 0));
+          }
         }
       } catch (err: any) {
         toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -70,20 +80,45 @@ const RestaurantCheckoutPage = () => {
     load();
   }, [user, restaurantId]);
 
-  // Match zone when address changes
+  // Match zone and calculate distance when address changes
   useEffect(() => {
-    if (!selectedAddress || deliveryZones.length === 0) {
+    if (!selectedAddress) {
+      setMatchedZone(null);
+      setDistanceKm(null);
+      setDistanceFee(null);
+      return;
+    }
+
+    // Distance-based fee (takes priority if price_per_km is set and both coordinates exist)
+    if (
+      pricePerKm > 0 &&
+      restaurant?.latitude != null && restaurant?.longitude != null &&
+      selectedAddress.latitude != null && selectedAddress.longitude != null
+    ) {
+      const { fee, distanceKm: km } = calcDistanceDeliveryFee(
+        Number(restaurant.latitude), Number(restaurant.longitude),
+        Number(selectedAddress.latitude), Number(selectedAddress.longitude),
+        pricePerKm,
+        minDeliveryFee
+      );
+      setDistanceKm(km);
+      setDistanceFee(fee);
       setMatchedZone(null);
       return;
     }
-    // Try to match by district/city/address_name
+
+    setDistanceKm(null);
+    setDistanceFee(null);
+
+    // Fallback: zone-based matching
+    if (deliveryZones.length === 0) { setMatchedZone(null); return; }
     const addressParts = [selectedAddress.district, selectedAddress.city, selectedAddress.address_name, selectedAddress.full_address].filter(Boolean).map(s => s!.toLowerCase());
     const found = deliveryZones.find((z: any) => {
       const zoneName = z.zone_name.toLowerCase();
       return addressParts.some(part => part.includes(zoneName) || zoneName.includes(part));
     });
     setMatchedZone(found || null);
-  }, [selectedAddress, deliveryZones]);
+  }, [selectedAddress, deliveryZones, pricePerKm, minDeliveryFee, restaurant]);
 
   // Realtime for quote response
   useEffect(() => {
@@ -123,11 +158,18 @@ const RestaurantCheckoutPage = () => {
     setCart(prev => prev.map(c => c.id === itemId ? { ...c, quantity: Math.max(0, c.quantity + delta) } : c).filter(c => c.quantity > 0));
   };
 
-  const computedDeliveryFee = matchedZone ? Number(matchedZone.delivery_fee) : quotedFee ?? (restaurant?.delivery_fee || 0);
+  // Priority: distance-based > zone-matched > quoted > restaurant default
+  const computedDeliveryFee = distanceFee !== null
+    ? distanceFee
+    : matchedZone
+      ? Number(matchedZone.delivery_fee)
+      : quotedFee ?? (restaurant?.delivery_fee || 0);
   const subtotal = useMemo(() => cart.reduce((s, c) => s + c.price * c.quantity, 0), [cart]);
   const tax = 0;
   const total = subtotal + computedDeliveryFee + tax;
-  const canOrder = selectedAddress && (matchedZone || quotedFee !== null || deliveryZones.length === 0);
+  // Can order: distance-mode (always ok if address selected) | zone/quote mode (need match or quote)
+  const usingDistancePricing = distanceFee !== null;
+  const canOrder = selectedAddress && (usingDistancePricing || matchedZone || quotedFee !== null || deliveryZones.length === 0);
 
   const handleSubmit = async () => {
     if (!user || !restaurantId || !restaurant) return;
@@ -223,7 +265,13 @@ const RestaurantCheckoutPage = () => {
                 <div className="flex justify-between">
                   <span className="flex items-center gap-1">
                     رسوم التوصيل
-                    {matchedZone && <Badge variant="outline" className="text-[10px]">{matchedZone.zone_name}</Badge>}
+                    {usingDistancePricing && distanceKm !== null && (
+                      <Badge variant="outline" className="text-[10px] gap-0.5">
+                        <Navigation className="w-2.5 h-2.5" />
+                        {distanceKm.toFixed(1)} كم
+                      </Badge>
+                    )}
+                    {matchedZone && !usingDistancePricing && <Badge variant="outline" className="text-[10px]">{matchedZone.zone_name}</Badge>}
                   </span>
                   <span>{computedDeliveryFee} ر.ي</span>
                 </div>
@@ -252,8 +300,19 @@ const RestaurantCheckoutPage = () => {
                   {selectedAddress.phone && <p className="text-muted-foreground">📞 {selectedAddress.phone}</p>}
                 </div>
               )}
+              {/* Distance-based fee badge */}
+              {usingDistancePricing && distanceKm !== null && (
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 rounded-lg p-2 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                  <Navigation className="w-4 h-4 shrink-0" />
+                  <span>
+                    المسافة: {distanceKm.toFixed(2)} كم — رسوم التوصيل: {computedDeliveryFee.toLocaleString()} ر.ي
+                    <span className="text-green-600 text-xs mr-1">({pricePerKm} ر.ي/كم)</span>
+                  </span>
+                </div>
+              )}
+
               {/* Zone pricing or quote request */}
-              {selectedAddress && deliveryZones.length > 0 && !matchedZone && quotedFee === null && (
+              {selectedAddress && !usingDistancePricing && deliveryZones.length > 0 && !matchedZone && quotedFee === null && (
                 <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg p-3 space-y-2">
                   <p className="text-sm text-amber-700 dark:text-amber-300">⚠️ منطقتك غير مسجلة في مناطق التغطية</p>
                   {quoteStatus === "pending" ? (
@@ -268,7 +327,7 @@ const RestaurantCheckoutPage = () => {
                   )}
                 </div>
               )}
-              {matchedZone && (
+              {matchedZone && !usingDistancePricing && (
                 <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 rounded-lg p-2 text-sm text-green-700 dark:text-green-300">
                   ✅ منطقة التوصيل: {matchedZone.zone_name} — {Number(matchedZone.delivery_fee).toLocaleString()} ر.ي
                   {matchedZone.estimated_time && <span className="text-muted-foreground"> • {matchedZone.estimated_time}</span>}

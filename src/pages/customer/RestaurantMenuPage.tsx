@@ -279,15 +279,17 @@ const RestaurantMenuPage = () => {
       <div className="pb-32">
         {search ? (
           /* Search results */
-          <div className="px-4 pt-4 space-y-3">
+          <div className="px-4 pt-4">
             {(itemsByCategory["__search__"] || []).length === 0 ? (
               <p className="text-center py-10 text-muted-foreground">لا توجد نتائج</p>
             ) : (
-              (itemsByCategory["__search__"] || []).map(item => (
-                <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
-                  onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
-                  onUpdateQty={updateCartQty} />
-              ))
+              <div className="grid grid-cols-2 gap-3">
+                {(itemsByCategory["__search__"] || []).map(item => (
+                  <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
+                    onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
+                    onUpdateQty={updateCartQty} />
+                ))}
+              </div>
             )}
           </div>
         ) : (
@@ -310,12 +312,14 @@ const RestaurantMenuPage = () => {
                     <span className="text-xs text-muted-foreground">({catItems.length})</span>
                   </div>
                   {/* Items */}
-                  <div className="px-4 space-y-3">
-                    {catItems.map(item => (
-                      <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
-                        onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
-                        onUpdateQty={updateCartQty} />
-                    ))}
+                  <div className="px-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      {catItems.map(item => (
+                        <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
+                          onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
+                          onUpdateQty={updateCartQty} />
+                      ))}
+                    </div>
                   </div>
                 </div>
               );
@@ -328,12 +332,14 @@ const RestaurantMenuPage = () => {
                   <span className="text-xl">🍽️</span>
                   <h2 className="text-base font-bold">أصناف أخرى</h2>
                 </div>
-                <div className="px-4 space-y-3">
-                  {(itemsByCategory["__other__"] || []).map(item => (
-                    <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
-                      onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
-                      onUpdateQty={updateCartQty} />
-                  ))}
+                <div className="px-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    {(itemsByCategory["__other__"] || []).map(item => (
+                      <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
+                        onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
+                        onUpdateQty={updateCartQty} />
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -494,64 +500,59 @@ const MenuItemCard = ({
   const price = item.discounted_price || item.price;
   return (
     <div
-      className="bg-background rounded-2xl overflow-hidden shadow-sm border border-border/60 hover:shadow-md transition-all active:scale-[0.99] cursor-pointer"
+      className="bg-background rounded-2xl overflow-hidden shadow-sm border border-border/60 hover:shadow-md transition-all active:scale-[0.99] cursor-pointer flex flex-col"
       onClick={onOpen}
     >
-      <div className="flex items-stretch">
-        {/* Left: details */}
-        <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className="font-bold text-sm leading-snug">{item.name_ar}</h3>
-              {item.is_popular && (
-                <Badge className="text-[10px] px-1.5 py-0 bg-amber-500 text-white border-0 gap-0.5 h-4">
-                  <Flame className="w-2.5 h-2.5" />شائع
-                </Badge>
-              )}
-            </div>
-            {item.description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{item.description}</p>
-            )}
+      {/* Top: food image */}
+      <div className="w-full h-36 bg-muted relative overflow-hidden">
+        {item.image_url
+          ? <img src={item.image_url} alt={item.name_ar} loading="lazy" className="w-full h-full object-cover" />
+          : <div className="w-full h-full flex items-center justify-center text-5xl">🍽️</div>}
+        {item.is_popular && (
+          <div className="absolute top-2 right-2">
+            <Badge className="text-[10px] px-1.5 py-0 bg-amber-500 text-white border-0 gap-0.5 h-4 shadow">
+              <Flame className="w-2.5 h-2.5" />شائع
+            </Badge>
           </div>
-          <div className="mt-3 flex items-center justify-between gap-2">
-            {/* Price */}
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-primary text-sm">{price} ر.ي</span>
-              {item.discounted_price && (
-                <span className="text-xs text-muted-foreground line-through">{item.price} ر.ي</span>
-              )}
-            </div>
-            {/* Cart controls */}
-            {cartItem ? (
-              <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                <button className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
-                  onClick={() => onUpdateQty(item.id, -1)}>
-                  <Minus className="w-3 h-3 text-primary" />
-                </button>
-                <span className="text-sm font-bold min-w-[20px] text-center">{cartItem.quantity}</span>
-                <button className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
-                  onClick={() => onUpdateQty(item.id, 1)}>
-                  <Plus className="w-3 h-3" />
-                </button>
-              </div>
-            ) : (
-              <button
-                className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow hover:bg-primary/90 active:scale-95 transition-all"
-                onClick={e => { e.stopPropagation(); onAdd(); }}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
+        )}
+        {item.discounted_price && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">خصم</div>
+        )}
+      </div>
 
-        {/* Right: food image */}
-        <div className="w-28 h-28 md:w-32 md:h-32 shrink-0 bg-muted relative self-center m-2 rounded-xl overflow-hidden">
-          {item.image_url
-            ? <img src={item.image_url} alt={item.name_ar} loading="lazy" className="w-full h-full object-cover" />
-            : <div className="w-full h-full flex items-center justify-center text-4xl">🍽️</div>}
-          {item.discounted_price && (
-            <div className="absolute top-1 left-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">خصم</div>
+      {/* Bottom: details */}
+      <div className="p-2.5 flex flex-col flex-1 gap-1">
+        <h3 className="font-bold text-xs leading-snug line-clamp-2">{item.name_ar}</h3>
+        {item.description && (
+          <p className="text-[10px] text-muted-foreground line-clamp-1 leading-relaxed">{item.description}</p>
+        )}
+        <div className="mt-auto pt-1.5 flex items-center justify-between gap-1">
+          <div className="flex flex-col">
+            <span className="font-bold text-primary text-xs">{price} ر.ي</span>
+            {item.discounted_price && (
+              <span className="text-[9px] text-muted-foreground line-through">{item.price} ر.ي</span>
+            )}
+          </div>
+          {/* Cart controls */}
+          {cartItem ? (
+            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+              <button className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
+                onClick={() => onUpdateQty(item.id, -1)}>
+                <Minus className="w-2.5 h-2.5 text-primary" />
+              </button>
+              <span className="text-xs font-bold min-w-[16px] text-center">{cartItem.quantity}</span>
+              <button className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                onClick={() => onUpdateQty(item.id, 1)}>
+                <Plus className="w-2.5 h-2.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow hover:bg-primary/90 active:scale-95 transition-all shrink-0"
+              onClick={e => { e.stopPropagation(); onAdd(); }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
           )}
         </div>
       </div>
