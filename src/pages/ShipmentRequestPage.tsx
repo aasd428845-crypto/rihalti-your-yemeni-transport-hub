@@ -4,7 +4,7 @@ import {
   Package, MapPin, ShoppingCart, Utensils, ArrowLeft, ArrowRight,
   CheckCircle, Loader2, Navigation, Link2, User, Phone,
   FileText, Image as ImageIcon, Clock, DollarSign, CreditCard, Banknote,
-  ChevronLeft, Info,
+  ChevronLeft, Info, Tag, Truck, Percent, Gift, AlarmClock, Calendar, BadgeDollarSign, X,
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -15,6 +15,7 @@ import { YEMENI_CITIES } from '@/lib/contactFilter';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import type { RestaurantPromotion, PromoType } from '@/lib/promotionsApi';
 
 // Fix Leaflet default icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -160,6 +161,10 @@ export default function ShipmentRequestPage() {
   const [receiverPhone, setReceiverPhone] = useState('');
   const [iAmSender, setIAmSender] = useState(true);
 
+  // Promotions
+  const [promotions, setPromotions] = useState<RestaurantPromotion[]>([]);
+  const [selectedPromo, setSelectedPromo] = useState<RestaurantPromotion | null>(null);
+
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
 
@@ -167,6 +172,17 @@ export default function ShipmentRequestPage() {
   const distance = pickupLatLng && dropoffLatLng ? calcDistance(pickupLatLng, dropoffLatLng) : null;
   const estimatedPrice = distance != null ? Math.round(BASE_PRICE + distance * PRICE_PER_KM) : null;
   const estimatedTime = distance != null ? Math.round(15 + distance * 2) : null;
+
+  // Fetch all active promotions
+  useEffect(() => {
+    supabase
+      .from('restaurant_promotions' as any)
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => setPromotions((data as RestaurantPromotion[]) || []))
+      .catch(() => {});
+  }, []);
 
   // Pre-fill from profile
   useEffect(() => {
@@ -288,6 +304,7 @@ export default function ShipmentRequestPage() {
           senderName ? `المُرسِل: ${senderName} - ${senderPhone}` : '',
           receiverName ? `المستلم: ${receiverName} - ${receiverPhone}` : '',
           estimatedPrice ? `السعر التقديري: ${estimatedPrice.toLocaleString('ar-YE')} ريال` : '',
+          selectedPromo ? `العرض المطبّق: ${selectedPromo.title}` : '',
           `طريقة الدفع المفضّلة: ${paymentMethod === 'cash' ? 'عند الاستلام' : 'تحويل مصرفي'}`,
         ].filter(Boolean).join('\n'),
         receiver_name: receiverName,
@@ -305,7 +322,11 @@ export default function ShipmentRequestPage() {
         await sendPushNotification({
           targetRole: 'admin',
           title: `🔔 طلب ${SERVICE_TYPES.find(s => s.id === service)?.label} جديد`,
-          body: `من ${pickupCity} إلى ${dropoffCity}${estimatedPrice ? ` • السعر التقديري: ${estimatedPrice.toLocaleString('ar-YE')} ريال` : ''}`,
+          body: [
+            `من ${pickupCity} إلى ${dropoffCity}`,
+            estimatedPrice ? `السعر التقديري: ${estimatedPrice.toLocaleString('ar-YE')} ريال` : null,
+            selectedPromo ? `العرض: ${selectedPromo.title}` : null,
+          ].filter(Boolean).join(' • '),
           data: { type: 'service_request', requestId: (req as any)?.id },
           url: `/admin/join-requests`,
         });
@@ -420,6 +441,41 @@ export default function ShipmentRequestPage() {
           ))}
         </div>
       </div>
+
+      {/* Promotions strip */}
+      {promotions.length > 0 && (
+        <div className="max-w-lg mx-auto px-4 pt-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Tag className="w-4 h-4 text-red-500" />
+            <span className="text-sm font-black text-gray-800">عروض وخصومات</span>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-0">
+            {promotions.map(promo => (
+              <PromoCard
+                key={promo.id}
+                promo={promo}
+                selected={selectedPromo?.id === promo.id}
+                onSelect={() => setSelectedPromo(prev => prev?.id === promo.id ? null : promo)}
+              />
+            ))}
+          </div>
+          {selectedPromo && (
+            <div
+              className="mt-2 rounded-xl px-4 py-3 flex items-start gap-2 border"
+              style={{ background: cfg.color + '10', borderColor: cfg.color + '30' }}
+            >
+              <Tag className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: cfg.color }} />
+              <div className="flex-1">
+                <p className="font-bold text-sm" style={{ color: cfg.color }}>{selectedPromo.title}</p>
+                {selectedPromo.description && <p className="text-xs text-gray-500 mt-0.5">{selectedPromo.description}</p>}
+              </div>
+              <button onClick={() => setSelectedPromo(null)}>
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Body */}
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
@@ -828,6 +884,58 @@ export default function ShipmentRequestPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// ── Promo type metadata ──────────────────────────────────────────────────────
+const PROMO_META: Record<PromoType, { label: string; icon: React.ComponentType<any>; color: string; bg: string }> = {
+  free_delivery_min_order: { label: 'توصيل مجاني', icon: Truck, color: '#2563EB', bg: '#EFF6FF' },
+  free_delivery_schedule: { label: 'توصيل مجاني', icon: Calendar, color: '#2563EB', bg: '#EFF6FF' },
+  free_delivery_limited: { label: 'عرض محدود', icon: AlarmClock, color: '#7C3AED', bg: '#F5F3FF' },
+  discount_percent: { label: 'خصم', icon: Percent, color: '#DC2626', bg: '#FEF2F2' },
+  fixed_discount: { label: 'خصم ثابت', icon: BadgeDollarSign, color: '#DC2626', bg: '#FEF2F2' },
+  buy_x_get_y: { label: 'كومبو', icon: Gift, color: '#7C3AED', bg: '#F5F3FF' },
+  custom_text: { label: 'عرض خاص', icon: Tag, color: '#0A7C4E', bg: '#F0FDF4' },
+};
+
+function PromoCard({ promo, selected, onSelect }: { promo: RestaurantPromotion; selected: boolean; onSelect: () => void }) {
+  const meta = PROMO_META[promo.promo_type] || PROMO_META.custom_text;
+  const Icon = meta.icon;
+  return (
+    <button
+      onClick={onSelect}
+      className="flex-shrink-0 rounded-2xl border-2 overflow-hidden transition-all duration-200 text-right"
+      style={{
+        width: 150,
+        borderColor: selected ? meta.color : '#E5E7EB',
+        background: selected ? meta.bg : '#fff',
+        boxShadow: selected ? `0 4px 16px ${meta.color}30` : undefined,
+      }}
+    >
+      <div className="p-3">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: meta.color + '20' }}>
+            <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
+          </div>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: meta.color, color: '#fff' }}>
+            {meta.label}
+          </span>
+        </div>
+        <p className="font-black text-xs text-gray-800 leading-tight line-clamp-2">{promo.title}</p>
+        {promo.description && (
+          <p className="text-[10px] text-gray-400 mt-1 leading-tight line-clamp-2">{promo.description}</p>
+        )}
+        {promo.discount_percent && (
+          <p className="text-sm font-black mt-1" style={{ color: meta.color }}>خصم {promo.discount_percent}%</p>
+        )}
+        {promo.discount_amount && (
+          <p className="text-sm font-black mt-1" style={{ color: meta.color }}>{promo.discount_amount.toLocaleString('ar-YE')} ر.ي</p>
+        )}
+        {promo.min_order_amount && (
+          <p className="text-[10px] text-gray-400 mt-0.5">عند الطلب فوق {promo.min_order_amount.toLocaleString('ar-YE')}</p>
+        )}
+      </div>
+    </button>
   );
 }
 
