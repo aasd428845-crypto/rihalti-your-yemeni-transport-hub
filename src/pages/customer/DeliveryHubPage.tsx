@@ -111,7 +111,9 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
   };
 
   const handleClick = (banner: any) => {
-    const dest = banner.link_url || (banner.link_tab === "more" ? "/shipment-request" : banner.link_tab ? `/food?tab=${banner.link_tab}` : null);
+    let dest = banner.link_url || (banner.link_tab === "more" ? "/shipments" : banner.link_tab ? `/food?tab=${banner.link_tab}` : null);
+    // Redirect old route to the new shipments page
+    if (dest === "/shipment-request" || dest === "/delivery-request") dest = "/shipments";
     if (dest) onNavigate(dest);
   };
 
