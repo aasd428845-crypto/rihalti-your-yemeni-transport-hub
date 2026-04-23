@@ -48,6 +48,16 @@ export function useServiceRequests() {
     receiver_name?: string;
     receiver_phone?: string;
     partner_id?: string;
+    from_lat?: number;
+    from_lng?: number;
+    to_lat?: number;
+    to_lng?: number;
+    distance_km?: number;
+    estimated_price?: number;
+    service_subtype?: string;
+    package_size?: string;
+    sender_name?: string;
+    sender_phone?: string;
   }) => {
     if (!user) throw new Error('يجب تسجيل الدخول');
 

@@ -95,7 +95,10 @@ export default function ShipmentRequestPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {(Object.entries(typeConfig) as [RequestType, typeof typeConfig.shipment][]).map(([type, cfg]) => (
               <div key={type}
-                onClick={() => { setSelectedType(type); setStep('form'); }}
+                onClick={() => {
+                  if (type === 'delivery') { navigate('/delivery-request'); return; }
+                  setSelectedType(type); setStep('form');
+                }}
                 style={{
                   background: 'rgba(22,34,52,0.8)', borderRadius: '16px',
                   border: '1px solid rgba(255,255,255,0.08)',

@@ -21,6 +21,7 @@ const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
 // Static pages (lazy loaded)
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ShipmentRequestPage = lazy(() => import("./pages/ShipmentRequestPage"));
+const DeliveryRequestPage = lazy(() => import("./pages/customer/DeliveryRequestPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
@@ -174,6 +175,7 @@ const App = () => (
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/notification-settings" element={<NotificationSettingsPage />} />
                 <Route path="/shipment-request" element={<ShipmentRequestPage />} />
+                <Route path="/delivery-request" element={<DeliveryRequestPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/more" element={<MorePage />} />
                 <Route path="/partner/public/:id" element={<PublicPartnerProfilePage />} />
