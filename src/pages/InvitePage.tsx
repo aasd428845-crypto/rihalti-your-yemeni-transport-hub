@@ -119,14 +119,22 @@ const InvitePage = () => {
       return;
     }
 
-    // Driver & delivery_driver specific validation
-    if (inviteData.role === "driver" || inviteData.role === "delivery_driver") {
+    // Taxi driver: still require full identity documents
+    if (inviteData.role === "driver") {
       if (!idFrontFile || !idBackFile || !selfieFile || !licenseFile || !vehicleImageFile) {
         toast.error("جميع الصور مطلوبة للسائقين");
         return;
       }
       if (!idNumber || !vehicleType || !vehicleModel || !vehicleColor || !vehiclePlate) {
         toast.error("يرجى ملء جميع حقول السائق");
+        return;
+      }
+    }
+
+    // Delivery rider: lightweight registration — only vehicle basics
+    if (inviteData.role === "delivery_driver") {
+      if (!vehicleType || !vehicleColor || !vehiclePlate) {
+        toast.error("يرجى ملء بيانات المركبة");
         return;
       }
     }
@@ -163,17 +171,12 @@ const InvitePage = () => {
       if (logoFile) {
         logoUrl = await uploadFile("company-logos", userId, "logo.png", logoFile);
       }
-      if (idFrontFile) {
-        idFrontUrl = await uploadFile("id-images", userId, "front.jpg", idFrontFile);
-      }
-      if (idBackFile) {
-        idBackUrl = await uploadFile("id-images", userId, "back.jpg", idBackFile);
-      }
-      if (selfieFile) {
-        selfieUrl = await uploadFile("selfie-images", userId, "selfie.jpg", selfieFile);
-      }
-      if (licenseFile) {
-        licenseUrl = await uploadFile("license-images", userId, "license.jpg", licenseFile);
+      // Identity & license documents are only collected for taxi drivers.
+      if (inviteData.role === "driver") {
+        if (idFrontFile) idFrontUrl = await uploadFile("id-images", userId, "front.jpg", idFrontFile);
+        if (idBackFile) idBackUrl = await uploadFile("id-images", userId, "back.jpg", idBackFile);
+        if (selfieFile) selfieUrl = await uploadFile("selfie-images", userId, "selfie.jpg", selfieFile);
+        if (licenseFile) licenseUrl = await uploadFile("license-images", userId, "license.jpg", licenseFile);
       }
       if (vehicleImageFile) {
         vehicleImageUrl = await uploadFile("vehicle-images", userId, "vehicle.jpg", vehicleImageFile);
@@ -182,12 +185,14 @@ const InvitePage = () => {
       // 3. Wait a moment for the trigger to create profile, then update
       await new Promise((r) => setTimeout(r, 1500));
 
+      // Delivery riders are auto-approved; other roles still wait on admin review.
+      const autoApprove = inviteData.role === "delivery_driver";
       const profileUpdate: Record<string, any> = {
         full_name: fullName,
         phone,
         phone_secondary: phoneSecondary || null,
-        account_status: "pending",
-        is_verified: false,
+        account_status: autoApprove ? "active" : "pending",
+        is_verified: autoApprove,
       };
 
       if (inviteData.role === "supplier" || inviteData.role === "delivery_company") {
@@ -195,7 +200,7 @@ const InvitePage = () => {
         if (logoUrl) profileUpdate.logo_url = logoUrl;
       }
 
-      if (inviteData.role === "driver" || inviteData.role === "delivery_driver") {
+      if (inviteData.role === "driver") {
         profileUpdate.id_number = idNumber;
         profileUpdate.id_image_front = idFrontUrl;
         profileUpdate.id_image_back = idBackUrl;
@@ -206,6 +211,13 @@ const InvitePage = () => {
         profileUpdate.vehicle_color = vehicleColor;
         profileUpdate.vehicle_plate = vehiclePlate;
         profileUpdate.vehicle_image = vehicleImageUrl;
+      }
+
+      if (inviteData.role === "delivery_driver") {
+        profileUpdate.vehicle_type = vehicleType;
+        profileUpdate.vehicle_color = vehicleColor;
+        profileUpdate.vehicle_plate = vehiclePlate;
+        if (vehicleImageUrl) profileUpdate.vehicle_image = vehicleImageUrl;
       }
 
       await supabase.from("profiles").update(profileUpdate).eq("user_id", userId);
@@ -235,9 +247,8 @@ const InvitePage = () => {
             phone,
             vehicle_type: vehicleType,
             vehicle_plate: vehiclePlate,
-            id_number: idNumber,
-            is_active: false,
-            is_approved: false,
+            is_active: true,
+            is_approved: true,
           };
 
           if (existingRider?.id) {
@@ -258,15 +269,36 @@ const InvitePage = () => {
         .update({ used_at: new Date().toISOString() })
         .eq("token", inviteData.token);
 
-      // 5. Create notification for admin
+      // 5. Create notification for admin (informational only for auto-approved roles)
       const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (admins && admins.length > 0) {
+        const body = autoApprove
+          ? `انضم ${fullName} كـ ${roleLabels[inviteData.role] || inviteData.role}.`
+          : `قام ${fullName} بالتسجيل كـ ${roleLabels[inviteData.role] || inviteData.role}. يرجى مراجعة الطلب.`;
         const notifications = admins.map((a) => ({
           user_id: a.user_id,
-          title: "طلب انضمام جديد",
-          body: `قام ${fullName} بالتسجيل كـ ${roleLabels[inviteData.role] || inviteData.role}. يرجى مراجعة الطلب.`,
+          title: autoApprove ? "مندوب جديد" : "طلب انضمام جديد",
+          body,
         }));
         await supabase.from("notifications").insert(notifications);
+      }
+
+      // 6. For auto-approved delivery riders: sign them in and send them
+      //    straight to their dashboard. For other roles: keep the manual
+      //    review flow and bounce them to the login page.
+      if (autoApprove) {
+        try {
+          await supabase.auth.signInWithPassword({ email: inviteData.email, password });
+          toast.success("تم إنشاء حسابك وتسجيل الدخول بنجاح");
+          navigate("/delivery-driver");
+          return;
+        } catch {
+          // If auto sign-in is blocked (e.g. email confirmation required),
+          // fall through to the login page so the user can sign in manually.
+          toast.success("تم إنشاء حسابك بنجاح! يمكنك الآن تسجيل الدخول.");
+          navigate("/login");
+          return;
+        }
       }
 
       toast.success("تم إنشاء حسابك بنجاح! سيتم مراجعة طلبك من قبل الإدارة.");
@@ -498,8 +530,9 @@ const InvitePage = () => {
                 />
               )}
 
-              {/* Driver-specific fields */}
-              {(inviteData.role === "driver" || inviteData.role === "delivery_driver") && (
+              {/* Identity documents — only collected for taxi drivers (`driver`).
+                  Delivery riders go through a lightweight registration. */}
+              {inviteData.role === "driver" && (
                 <>
                   <div className="border-t border-border pt-4">
                     <h3 className="font-bold text-foreground mb-3 flex items-center gap-2">
@@ -525,7 +558,12 @@ const InvitePage = () => {
                     <FileUploadField label="صورة شخصية (سيلفي)" required file={selfieFile} previewKey="selfie" onFileChange={(f) => handleFileChange(f, setSelfieFile, "selfie")} icon={Camera} />
                     <FileUploadField label="صورة رخصة القيادة" required file={licenseFile} previewKey="license" onFileChange={(f) => handleFileChange(f, setLicenseFile, "license")} icon={CreditCard} />
                   </div>
+                </>
+              )}
 
+              {/* Vehicle data — shown for both drivers and delivery riders */}
+              {(inviteData.role === "driver" || inviteData.role === "delivery_driver") && (
+                <>
                   <div className="border-t border-border pt-4">
                     <h3 className="font-bold text-foreground mb-3 flex items-center gap-2">
                       <Car className="w-5 h-5 text-primary" />
@@ -543,10 +581,12 @@ const InvitePage = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div>
-                      <Label>موديل المركبة <span className="text-destructive">*</span></Label>
-                      <Input value={vehicleModel} onChange={(e) => setVehicleModel(e.target.value)} placeholder="مثال: تويوتا كامري 2020" className="mt-1 h-11" required />
-                    </div>
+                    {inviteData.role === "driver" && (
+                      <div>
+                        <Label>موديل المركبة <span className="text-destructive">*</span></Label>
+                        <Input value={vehicleModel} onChange={(e) => setVehicleModel(e.target.value)} placeholder="مثال: تويوتا كامري 2020" className="mt-1 h-11" required />
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -560,7 +600,9 @@ const InvitePage = () => {
                     </div>
                   </div>
 
-                  <FileUploadField label="صورة المركبة" required file={vehicleImageFile} previewKey="vehicle" onFileChange={(f) => handleFileChange(f, setVehicleImageFile, "vehicle")} icon={Car} />
+                  {inviteData.role === "driver" && (
+                    <FileUploadField label="صورة المركبة" required file={vehicleImageFile} previewKey="vehicle" onFileChange={(f) => handleFileChange(f, setVehicleImageFile, "vehicle")} icon={Car} />
+                  )}
                 </>
               )}
 
