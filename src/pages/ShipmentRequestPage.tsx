@@ -1,36 +1,176 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, MapPin, User, FileText, ArrowLeft, Send, MessageCircle, CheckCircle, Truck, Car, Loader2 } from 'lucide-react';
+import {
+  Package, MapPin, ShoppingCart, Utensils, ArrowLeft, ArrowRight,
+  CheckCircle, Loader2, Navigation, Link2, User, Phone,
+  FileText, Image as ImageIcon, Clock, DollarSign, CreditCard, Banknote,
+  ChevronLeft, Info,
+} from 'lucide-react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { useServiceRequests } from '@/hooks/useServiceRequests';
+import { useNotifications } from '@/hooks/useNotifications';
 import { YEMENI_CITIES } from '@/lib/contactFilter';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
-type RequestType = 'shipment' | 'delivery' | 'taxi';
+// Fix Leaflet default icon paths
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
-const typeConfig = {
-  shipment: { label: 'إرسال طرد', icon: Package, color: '#0A7C4E', desc: 'أرسل بضاعتك بين المدن' },
-  delivery: { label: 'طلب توصيل', icon: Truck, color: '#2563EB', desc: 'توصيل محلي سريع' },
-  taxi: { label: 'سيارة أجرة', icon: Car, color: '#D97706', desc: 'انتقل بين المدن والمناطق' },
+// ── Types ───────────────────────────────────────────────────────────────────
+type ServiceType = 'parcel' | 'shopping' | 'food';
+type Step = 'pickup' | 'dropoff' | 'details' | 'review';
+type PaymentMethod = 'cash' | 'transfer';
+type PackageSize = 'small' | 'medium' | 'large';
+
+interface LatLng { lat: number; lng: number }
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const PRICE_PER_KM = 500;
+const BASE_PRICE = 1000;
+const STEPS: Step[] = ['pickup', 'dropoff', 'details', 'review'];
+const STEP_LABELS: Record<Step, string> = {
+  pickup: 'الاستلام',
+  dropoff: 'التسليم',
+  details: 'التفاصيل',
+  review: 'المراجعة',
 };
 
+const SERVICE_TYPES: { id: ServiceType; label: string; icon: React.ComponentType<any>; color: string; desc: string }[] = [
+  { id: 'parcel', label: 'نقل طرد', icon: Package, color: '#0A7C4E', desc: 'أرسل بضاعتك أو طرودك' },
+  { id: 'shopping', label: 'تسوق من متجر', icon: ShoppingCart, color: '#7C3AED', desc: 'نتسوق عنك من أي متجر' },
+  { id: 'food', label: 'توصيل وجبة', icon: Utensils, color: '#EA580C', desc: 'طلب طعام من مطعم' },
+];
+
+const SIZE_OPTIONS: { id: PackageSize; label: string; desc: string }[] = [
+  { id: 'small', label: 'صغير', desc: 'رسالة / وثائق / هاتف' },
+  { id: 'medium', label: 'متوسط', desc: 'حقيبة / صندوق متوسط' },
+  { id: 'large', label: 'كبير', desc: 'حمولة كبيرة / عدة صناديق' },
+];
+
+// ── Haversine Distance ───────────────────────────────────────────────────────
+function calcDistance(a: LatLng, b: LatLng): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const sin2 =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((a.lat * Math.PI) / 180) *
+      Math.cos((b.lat * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(sin2), Math.sqrt(1 - sin2));
+}
+
+// ── Parse map link ───────────────────────────────────────────────────────────
+function parseMapLink(link: string): LatLng | null {
+  // Google Maps: @lat,lng or q=lat,lng or ll=lat,lng
+  const patterns = [
+    /@(-?\d+\.\d+),(-?\d+\.\d+)/,
+    /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/,
+    /[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/,
+    /maps\.app\.goo\.gl/, // shortened – can't parse without fetch
+    /(-?\d+\.\d{4,}),(-?\d+\.\d{4,})/,
+  ];
+  for (const p of patterns) {
+    const m = link.match(p);
+    if (m && m[1] && m[2]) {
+      const lat = parseFloat(m[1]);
+      const lng = parseFloat(m[2]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat, lng };
+    }
+  }
+  return null;
+}
+
+// ── Map click handler ────────────────────────────────────────────────────────
+function MapClickHandler({ onSelect }: { onSelect: (ll: LatLng) => void }) {
+  useMapEvents({ click: (e) => onSelect({ lat: e.latlng.lat, lng: e.latlng.lng }) });
+  return null;
+}
+
+// ── Mini Map Component ───────────────────────────────────────────────────────
+function LocationMap({
+  center, marker, onSelect,
+}: {
+  center: LatLng; marker: LatLng | null; onSelect: (ll: LatLng) => void;
+}) {
+  return (
+    <MapContainer
+      center={[center.lat, center.lng]}
+      zoom={14}
+      style={{ height: 200, borderRadius: 12, zIndex: 0 }}
+      key={`${center.lat}-${center.lng}`}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <MapClickHandler onSelect={onSelect} />
+      {marker && <Marker position={[marker.lat, marker.lng]} />}
+    </MapContainer>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
 export default function ShipmentRequestPage() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { createRequest } = useServiceRequests();
-  const [step, setStep] = useState<'type' | 'form' | 'sent'>('type');
-  const [selectedType, setSelectedType] = useState<RequestType>('shipment');
-  const [loading, setLoading] = useState(false);
-  const [prefilling, setPrefilling] = useState(true);
+  const { sendPushNotification } = useNotifications();
 
-  const [form, setForm] = useState({
-    from_city: '', to_city: '', from_address: '', to_address: '',
-    description: '', quantity: '1', notes: '', receiver_name: '', receiver_phone: '',
-  });
+  // Service & Step
+  const [service, setService] = useState<ServiceType>('parcel');
+  const [step, setStep] = useState<Step>('pickup');
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
-  // Auto-fill from profile + default address
+  // Pickup
+  const [pickupCity, setPickupCity] = useState('');
+  const [pickupAddress, setPickupAddress] = useState('');
+  const [pickupLatLng, setPickupLatLng] = useState<LatLng | null>(null);
+  const [pickupLink, setPickupLink] = useState('');
+  const [pickupMapCenter, setPickupMapCenter] = useState<LatLng>({ lat: 15.3694, lng: 44.1910 }); // Sanaa
+
+  // Dropoff
+  const [dropoffCity, setDropoffCity] = useState('');
+  const [dropoffAddress, setDropoffAddress] = useState('');
+  const [dropoffLatLng, setDropoffLatLng] = useState<LatLng | null>(null);
+  const [dropoffLink, setDropoffLink] = useState('');
+  const [dropoffMapCenter, setDropoffMapCenter] = useState<LatLng>({ lat: 15.3694, lng: 44.1910 });
+
+  // Details
+  const [description, setDescription] = useState('');
+  const [packageSize, setPackageSize] = useState<PackageSize>('medium');
+  const [notes, setNotes] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Sender / Receiver
+  const [senderName, setSenderName] = useState('');
+  const [senderPhone, setSenderPhone] = useState('');
+  const [receiverName, setReceiverName] = useState('');
+  const [receiverPhone, setReceiverPhone] = useState('');
+  const [iAmSender, setIAmSender] = useState(true);
+
+  // Payment
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+
+  // Price
+  const distance = pickupLatLng && dropoffLatLng ? calcDistance(pickupLatLng, dropoffLatLng) : null;
+  const estimatedPrice = distance != null ? Math.round(BASE_PRICE + distance * PRICE_PER_KM) : null;
+  const estimatedTime = distance != null ? Math.round(15 + distance * 2) : null;
+
+  // Pre-fill from profile
   useEffect(() => {
-    if (!user) { setPrefilling(false); return; }
+    if (!user) return;
     const load = async () => {
       try {
         const { data: addr } = await supabase
@@ -39,244 +179,179 @@ export default function ShipmentRequestPage() {
           .eq('customer_id', user.id)
           .eq('is_default', true)
           .maybeSingle();
-
-        setForm(f => ({
-          ...f,
-          from_city: addr?.city || profile?.city || f.from_city,
-          from_address: addr
-            ? [addr.district, addr.street, addr.building_number, addr.landmark].filter(Boolean).join('، ')
-            : f.from_address,
-          receiver_name: f.receiver_name || '',
-          receiver_phone: f.receiver_phone || '',
-        }));
-      } catch (e) {
-        console.error('Error prefilling form:', e);
-      }
-      setPrefilling(false);
+        if (addr?.city) setPickupCity(addr.city);
+        if (addr) {
+          const parts = [addr.district, addr.street, addr.building_number, addr.landmark].filter(Boolean);
+          if (parts.length) setPickupAddress(parts.join('، '));
+        } else if (profile?.city) setPickupCity(profile.city);
+        if (profile?.full_name) setSenderName(profile.full_name);
+        if (profile?.phone) setSenderPhone(profile.phone);
+      } catch {}
     };
     load();
   }, [user?.id]);
 
-  const config = typeConfig[selectedType];
+  // Sync iAmSender
+  useEffect(() => {
+    if (iAmSender) {
+      setSenderName(profile?.full_name || '');
+      setSenderPhone(profile?.phone || '');
+    }
+  }, [iAmSender, profile]);
 
-  const handleSubmit = async () => {
-    if (!form.from_city || !form.to_city) {
-      alert('يرجى تحديد مدينة الإرسال والاستلام');
-      return;
-    }
-    if (selectedType === 'shipment' && !form.description) {
-      alert('يرجى وصف محتوى الطرد');
-      return;
-    }
-    setLoading(true);
-    try {
-      await createRequest({
-        type: selectedType,
-        from_city: form.from_city, to_city: form.to_city,
-        from_address: form.from_address, to_address: form.to_address,
-        description: form.description, quantity: parseInt(form.quantity) || 1,
-        notes: form.notes, receiver_name: form.receiver_name, receiver_phone: form.receiver_phone,
-      });
-      setStep('sent');
-    } finally {
-      setLoading(false);
+  // Parse pickup link
+  const applyPickupLink = () => {
+    const ll = parseMapLink(pickupLink);
+    if (ll) {
+      setPickupLatLng(ll);
+      setPickupMapCenter(ll);
+      toast({ title: 'تم تحديد موقع الاستلام ✅' });
+    } else {
+      toast({ title: 'تعذّر قراءة الرابط', description: 'تأكد من نسخ رابط الموقع من خرائط جوجل', variant: 'destructive' });
     }
   };
 
-  if (step === 'type') {
-    return (
-      <div style={{ minHeight: '100vh', background: '#0D1B2A', padding: '80px 24px', fontFamily: "'Cairo', sans-serif", direction: 'rtl' }}>
-        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: '#8BA8A0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '32px', fontSize: '14px' }}>
-            <ArrowLeft size={16} /> رجوع
-          </button>
-          <h1 style={{ color: '#fff', fontSize: '32px', fontWeight: '800', marginBottom: '8px' }}>ماذا تريد؟</h1>
-          <p style={{ color: '#8BA8A0', marginBottom: '40px', fontSize: '15px' }}>اختر نوع الخدمة المطلوبة</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {(Object.entries(typeConfig) as [RequestType, typeof typeConfig.shipment][]).map(([type, cfg]) => (
-              <div key={type}
-                onClick={() => { setSelectedType(type); setStep('form'); }}
-                style={{
-                  background: 'rgba(22,34,52,0.8)', borderRadius: '16px',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  padding: '24px 28px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '20px',
-                  transition: 'all 0.2s',
-                }}>
-                <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: cfg.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <cfg.icon size={26} color={cfg.color} />
-                </div>
-                <div>
-                  <div style={{ color: '#fff', fontWeight: '700', fontSize: '18px' }}>{cfg.label}</div>
-                  <div style={{ color: '#8BA8A0', fontSize: '13px', marginTop: '4px' }}>{cfg.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: '32px', background: 'rgba(245,158,11,0.08)', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.2)', padding: '16px 20px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-            <MessageCircle size={18} color="#F59E0B" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div>
-              <div style={{ color: '#F59E0B', fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>كيف يعمل النظام؟</div>
-              <div style={{ color: '#8BA8A0', fontSize: '13px', lineHeight: '1.7' }}>
-                ١. تملأ بطاقة الطلب وترسله<br />٢. يصلك سعر من الشريك<br />٣. توافق وتختار طريقة الدفع<br />٤. يُكشف رقم التواصل بعد الموافقة فقط 🔒
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 'form') {
-    if (prefilling) {
-      return (
-        <div style={{ minHeight: '100vh', background: '#0D1B2A', display: 'flex', alignItems: 'center', justifyContent: 'center', direction: 'rtl' }}>
-          <Loader2 size={32} color="#8BA8A0" className="animate-spin" />
-          <span style={{ color: '#8BA8A0', marginRight: '12px' }}>جاري تحميل بياناتك...</span>
-        </div>
-      );
+  // Parse dropoff link
+  const applyDropoffLink = () => {
+    const ll = parseMapLink(dropoffLink);
+    if (ll) {
+      setDropoffLatLng(ll);
+      setDropoffMapCenter(ll);
+      toast({ title: 'تم تحديد موقع التسليم ✅' });
+    } else {
+      toast({ title: 'تعذّر قراءة الرابط', description: 'تأكد من نسخ رابط الموقع من خرائط جوجل', variant: 'destructive' });
     }
+  };
+
+  // Get current location
+  const getMyLocation = (which: 'pickup' | 'dropoff') => {
+    if (!navigator.geolocation) {
+      toast({ title: 'المتصفح لا يدعم تحديد الموقع', variant: 'destructive' });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const ll = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        if (which === 'pickup') { setPickupLatLng(ll); setPickupMapCenter(ll); }
+        else { setDropoffLatLng(ll); setDropoffMapCenter(ll); }
+        toast({ title: 'تم تحديد موقعك الحالي ✅' });
+      },
+      () => toast({ title: 'تعذّر تحديد موقعك', variant: 'destructive' }),
+    );
+  };
+
+  // Handle image
+  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  // Step validation
+  const canGoNext = (): boolean => {
+    if (step === 'pickup') return !!pickupCity;
+    if (step === 'dropoff') return !!dropoffCity;
+    if (step === 'details') return !!description;
+    return true;
+  };
+
+  const nextStep = () => {
+    const idx = STEPS.indexOf(step);
+    if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]);
+  };
+  const prevStep = () => {
+    const idx = STEPS.indexOf(step);
+    if (idx > 0) setStep(STEPS[idx - 1]);
+  };
+
+  // Submit
+  const handleSubmit = async () => {
+    if (!user) { navigate('/login'); return; }
+    setSubmitting(true);
+    try {
+      const typeMap: Record<ServiceType, 'shipment' | 'delivery' | 'taxi'> = {
+        parcel: 'shipment',
+        shopping: 'delivery',
+        food: 'delivery',
+      };
+      const req = await createRequest({
+        type: typeMap[service],
+        from_city: pickupCity,
+        to_city: dropoffCity,
+        from_address: pickupAddress || (pickupLatLng ? `${pickupLatLng.lat.toFixed(5)}, ${pickupLatLng.lng.toFixed(5)}` : ''),
+        to_address: dropoffAddress || (dropoffLatLng ? `${dropoffLatLng.lat.toFixed(5)}, ${dropoffLatLng.lng.toFixed(5)}` : ''),
+        description: `[${SERVICE_TYPES.find(s => s.id === service)?.label}] ${description}`,
+        notes: [
+          notes,
+          `الحجم: ${SIZE_OPTIONS.find(s => s.id === packageSize)?.label}`,
+          senderName ? `المُرسِل: ${senderName} - ${senderPhone}` : '',
+          receiverName ? `المستلم: ${receiverName} - ${receiverPhone}` : '',
+          estimatedPrice ? `السعر التقديري: ${estimatedPrice.toLocaleString('ar-YE')} ريال` : '',
+          `طريقة الدفع المفضّلة: ${paymentMethod === 'cash' ? 'عند الاستلام' : 'تحويل مصرفي'}`,
+        ].filter(Boolean).join('\n'),
+        receiver_name: receiverName,
+        receiver_phone: receiverPhone,
+      } as any);
+
+      // Send admin notification
+      try {
+        await supabase.from('notifications').insert({
+          user_id: user.id,
+          title: '✅ تم استقبال طلبك',
+          body: `طلب ${SERVICE_TYPES.find(s => s.id === service)?.label} من ${pickupCity} إلى ${dropoffCity}`,
+        } as any);
+
+        await sendPushNotification({
+          targetRole: 'admin',
+          title: `🔔 طلب ${SERVICE_TYPES.find(s => s.id === service)?.label} جديد`,
+          body: `من ${pickupCity} إلى ${dropoffCity}${estimatedPrice ? ` • السعر التقديري: ${estimatedPrice.toLocaleString('ar-YE')} ريال` : ''}`,
+          data: { type: 'service_request', requestId: (req as any)?.id },
+          url: `/admin/join-requests`,
+        });
+      } catch (e) { console.error('Notification error:', e); }
+
+      const requestId = (req as any)?.id;
+      setCreatedId(requestId);
+
+      // Redirect to payment if transfer selected
+      if (paymentMethod === 'transfer' && requestId) {
+        navigate(`/payment/delivery/${requestId}`);
+      } else {
+        setDone(true);
+      }
+    } catch (err: any) {
+      toast({ title: 'حدث خطأ', description: err?.message || 'يرجى المحاولة مرة أخرى', variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ── Done Screen ──────────────────────────────────────────────────────────
+  if (done) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0D1B2A', padding: '80px 24px', fontFamily: "'Cairo', sans-serif", direction: 'rtl' }}>
-        <div style={{ maxWidth: '680px', margin: '0 auto' }}>
-          <button onClick={() => setStep('type')} style={{ background: 'none', border: 'none', color: '#8BA8A0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '24px', fontSize: '14px' }}>
-            <ArrowLeft size={16} /> رجوع
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '32px' }}>
-            <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: config.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <config.icon size={24} color={config.color} />
-            </div>
-            <div>
-              <h1 style={{ color: '#fff', fontSize: '24px', fontWeight: '800', margin: 0 }}>{config.label}</h1>
-              <p style={{ color: '#8BA8A0', fontSize: '13px', margin: '2px 0 0' }}>🔒 رقمك محجوب حتى إتمام الصفقة</p>
-            </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+        <div className="bg-white rounded-3xl shadow-lg p-8 max-w-sm w-full text-center">
+          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
+            <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* المدن */}
-            <div style={{ background: 'rgba(22,34,52,0.8)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', padding: '24px' }}>
-              <h3 style={{ color: '#fff', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin size={18} color={config.color} /> من أين إلى أين؟
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>مدينة الإرسال *</label>
-                  <select value={form.from_city} onChange={e => setForm(f => ({ ...f, from_city: e.target.value }))}
-                    style={{ width: '100%', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none' }}>
-                    <option value="">اختر المدينة</option>
-                    {YEMENI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>مدينة الاستلام *</label>
-                  <select value={form.to_city} onChange={e => setForm(f => ({ ...f, to_city: e.target.value }))}
-                    style={{ width: '100%', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none' }}>
-                    <option value="">اختر المدينة</option>
-                    {YEMENI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              {(selectedType === 'delivery' || selectedType === 'taxi') && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>
-                  <div>
-                    <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>العنوان التفصيلي (اختياري)</label>
-                    <input value={form.from_address} onChange={e => setForm(f => ({ ...f, from_address: e.target.value }))} placeholder="الحي / المنطقة / المعلم"
-                      style={{ width: '100%', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>عنوان التسليم (اختياري)</label>
-                    <input value={form.to_address} onChange={e => setForm(f => ({ ...f, to_address: e.target.value }))} placeholder="الحي / المنطقة / المعلم"
-                      style={{ width: '100%', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* تفاصيل */}
-            <div style={{ background: 'rgba(22,34,52,0.8)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', padding: '24px' }}>
-              <h3 style={{ color: '#fff', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileText size={18} color={config.color} /> تفاصيل {config.label}
-              </h3>
-              {selectedType === 'shipment' && (
-                <>
-                  <div style={{ marginBottom: '14px' }}>
-                    <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>محتوى الطرد *</label>
-                    <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="مثال: شاشة كمبيوتر، ملابس..."
-                      style={{ width: '100%', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                  </div>
-                  <div style={{ marginBottom: '14px' }}>
-                    <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>العدد / الكمية</label>
-                    <input type="number" min="1" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
-                      style={{ width: '120px', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none' }} />
-                  </div>
-                </>
-              )}
-              {selectedType === 'delivery' && (
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>تفاصيل الطلب *</label>
-                  <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="مثال: وجبة عشاء من مطعم الشاطئ" rows={3}
-                    style={{ width: '100%', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
-                </div>
-              )}
-              {selectedType === 'taxi' && (
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>تفاصيل الرحلة</label>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    {['ذهاب فقط', 'ذهاب وإياب', 'ذهاب وإياب مع انتظار'].map(opt => (
-                      <button key={opt} onClick={() => setForm(f => ({ ...f, description: opt }))}
-                        style={{
-                          padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
-                          background: form.description === opt ? config.color : 'rgba(255,255,255,0.06)',
-                          color: form.description === opt ? '#fff' : '#8BA8A0',
-                        }}>{opt}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div>
-                <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>ملاحظات إضافية (اختياري)</label>
-                <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="أي تعليمات إضافية..." rows={2}
-                  style={{ width: '100%', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-
-            {/* بيانات المستلم */}
-            {selectedType === 'shipment' && (
-              <div style={{ background: 'rgba(22,34,52,0.8)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', padding: '24px' }}>
-                <h3 style={{ color: '#fff', fontWeight: '700', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <User size={18} color={config.color} /> بيانات المستلم
-                </h3>
-                <p style={{ color: '#8BA8A0', fontSize: '12px', marginBottom: '16px' }}>🔒 رقم المستلم مخفي عن الشريك حتى إتمام الصفقة</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                  <div>
-                    <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>اسم المستلم</label>
-                    <input value={form.receiver_name} onChange={e => setForm(f => ({ ...f, receiver_name: e.target.value }))} placeholder="اسم الشخص المستلم"
-                      style={{ width: '100%', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ color: '#8BA8A0', fontSize: '13px', display: 'block', marginBottom: '6px' }}>رقم هاتف المستلم</label>
-                    <input type="tel" value={form.receiver_phone} onChange={e => setForm(f => ({ ...f, receiver_phone: e.target.value }))} placeholder="07X XXXX XXX"
-                      style={{ width: '100%', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '12px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* إشعار الخصوصية */}
-            <div style={{ background: 'rgba(30,201,125,0.06)', borderRadius: '12px', border: '1px solid rgba(30,201,125,0.15)', padding: '14px 18px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '18px', flexShrink: 0 }}>🔒</span>
-              <div style={{ color: '#8BA8A0', fontSize: '13px', lineHeight: '1.7' }}>
-                <strong style={{ color: '#1EC97D' }}>حماية بياناتك:</strong> رقمك محجوب تماماً عن الشريك. سيتم كشف معلومات التواصل فقط بعد موافقتك على السعر واختيار طريقة الدفع.
-              </div>
-            </div>
-
-            <button onClick={handleSubmit} disabled={loading}
-              style={{
-                background: loading ? '#666' : `linear-gradient(135deg, ${config.color}, ${config.color}dd)`,
-                color: '#fff', border: 'none', borderRadius: '14px', padding: '18px',
-                fontSize: '16px', fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer',
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                boxShadow: loading ? 'none' : `0 6px 24px ${config.color}40`,
-              }}>
-              {loading ? '⏳ جاري الإرسال...' : <><Send size={18} /> أرسل الطلب</>}
+          <h2 className="text-2xl font-black text-gray-900 mb-2">تم إرسال طلبك! 🎉</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-6">
+            طلبك قيد المراجعة. سيصلك إشعار فور تحديد السعر من الشريك.
+            <br /><span className="text-green-600 font-semibold">🔒 رقمك محجوب حتى توافق على السعر</span>
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate('/history')}
+              className="w-full bg-green-600 text-white rounded-xl py-3 font-bold text-sm hover:bg-green-700 transition-colors"
+            >
+              تتبع الطلب
+            </button>
+            <button
+              onClick={() => { setDone(false); setStep('pickup'); setDescription(''); setNotes(''); setPickupLatLng(null); setDropoffLatLng(null); }}
+              className="w-full bg-gray-100 text-gray-600 rounded-xl py-3 font-bold text-sm hover:bg-gray-200 transition-colors"
+            >
+              طلب جديد
             </button>
           </div>
         </div>
@@ -284,28 +359,497 @@ export default function ShipmentRequestPage() {
     );
   }
 
-  // شاشة التأكيد
+  const cfg = SERVICE_TYPES.find(s => s.id === service)!;
+  const stepIndex = STEPS.indexOf(step);
+
   return (
-    <div style={{ minHeight: '100vh', background: '#0D1B2A', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: "'Cairo', sans-serif", direction: 'rtl' }}>
-      <div style={{ maxWidth: '480px', width: '100%', textAlign: 'center' }}>
-        <div style={{ width: '80px', height: '80px', borderRadius: '20px', background: 'rgba(30,201,125,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-          <CheckCircle size={40} color="#1EC97D" />
+    <div className="min-h-screen bg-gray-50 pb-8" dir="rtl">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-30 px-4 py-3">
+        <div className="flex items-center gap-3 max-w-lg mx-auto">
+          <button
+            onClick={() => stepIndex > 0 ? prevStep() : navigate(-1)}
+            className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <h1 className="flex-1 text-center font-black text-gray-900 text-lg">طلب توصيل</h1>
+          <div className="w-9" />
         </div>
-        <h2 style={{ color: '#fff', fontSize: '26px', fontWeight: '800', marginBottom: '12px' }}>تم إرسال طلبك! ✅</h2>
-        <p style={{ color: '#8BA8A0', fontSize: '15px', lineHeight: '1.8', marginBottom: '32px' }}>
-          طلبك قيد المراجعة. سيصلك إشعار فور تحديد السعر من الشريك.<br /><br />🔒 رقمك محجوب حتى توافق على السعر
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button onClick={() => navigate('/history')}
-            style={{ background: 'linear-gradient(135deg, #0A7C4E, #12A868)', color: '#fff', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: 'pointer' }}>
-            تتبع طلبي
-          </button>
-          <button onClick={() => { setStep('type'); setForm({ from_city: '', to_city: '', from_address: '', to_address: '', description: '', quantity: '1', notes: '', receiver_name: '', receiver_phone: '' }); }}
-            style={{ background: 'transparent', color: '#8BA8A0', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '14px', fontSize: '15px', cursor: 'pointer' }}>
-            إرسال طلب جديد
-          </button>
+
+        {/* Service type tabs */}
+        <div className="flex gap-2 mt-3 max-w-lg mx-auto overflow-x-auto pb-1 scrollbar-hide">
+          {SERVICE_TYPES.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setService(s.id)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold whitespace-nowrap flex-shrink-0 transition-all"
+              style={{
+                background: service === s.id ? s.color : '#F3F4F6',
+                color: service === s.id ? '#fff' : '#6B7280',
+              }}
+            >
+              <s.icon className="w-4 h-4" />
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex items-center gap-1 mt-3 max-w-lg mx-auto">
+          {STEPS.map((s, i) => (
+            <div key={s} className="flex items-center flex-1">
+              <div className="flex flex-col items-center flex-1">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all"
+                  style={{
+                    background: i < stepIndex ? cfg.color : i === stepIndex ? cfg.color : '#E5E7EB',
+                    color: i <= stepIndex ? '#fff' : '#9CA3AF',
+                  }}
+                >
+                  {i < stepIndex ? <CheckCircle className="w-3.5 h-3.5" /> : i + 1}
+                </div>
+                <span className="text-[10px] font-semibold mt-0.5" style={{ color: i === stepIndex ? cfg.color : '#9CA3AF' }}>
+                  {STEP_LABELS[s]}
+                </span>
+              </div>
+              {i < STEPS.length - 1 && (
+                <div className="h-0.5 flex-1 mb-4 mx-1 rounded-full transition-all" style={{ background: i < stepIndex ? cfg.color : '#E5E7EB' }} />
+              )}
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* Body */}
+      <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
+
+        {/* ── STEP 1: PICKUP ── */}
+        {step === 'pickup' && (
+          <>
+            <SectionCard icon={<MapPin className="w-5 h-5" style={{ color: cfg.color }} />} title="📍 من أين؟">
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">مدينة الاستلام <span className="text-red-500">*</span></label>
+              <select
+                value={pickupCity}
+                onChange={e => setPickupCity(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none"
+              >
+                <option value="">اختر المدينة</option>
+                {YEMENI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+
+              {/* Map link paste */}
+              <div className="mt-3 flex gap-2">
+                <input
+                  value={pickupLink}
+                  onChange={e => setPickupLink(e.target.value)}
+                  placeholder="الصق رابط الموقع من e Maps / Google Maps"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <button
+                  onClick={applyPickupLink}
+                  className="px-3 py-2.5 rounded-xl text-white text-xs font-bold flex-shrink-0"
+                  style={{ background: cfg.color }}
+                >
+                  <Link2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* My location button */}
+              <button
+                onClick={() => getMyLocation('pickup')}
+                className="mt-2 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <Navigation className="w-4 h-4 text-blue-500" />
+                موقعي الحالي
+              </button>
+
+              {/* Map */}
+              <div className="mt-3 rounded-xl overflow-hidden border border-gray-200">
+                <LocationMap
+                  center={pickupMapCenter}
+                  marker={pickupLatLng}
+                  onSelect={(ll) => { setPickupLatLng(ll); setPickupMapCenter(ll); }}
+                />
+              </div>
+              {pickupLatLng && (
+                <p className="text-xs text-gray-500 mt-1.5 text-center">
+                  📍 {pickupLatLng.lat.toFixed(5)}, {pickupLatLng.lng.toFixed(5)}
+                </p>
+              )}
+              {!pickupLatLng && (
+                <p className="text-xs text-gray-400 mt-1.5 text-center">انقر على الخريطة لتحديد الموقع بدقة</p>
+              )}
+
+              {/* Detailed address */}
+              <div className="mt-3">
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">العنوان التفصيلي (اختياري)</label>
+                <input
+                  value={pickupAddress}
+                  onChange={e => setPickupAddress(e.target.value)}
+                  placeholder="الحي / الشارع / المبنى / المعلم"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </SectionCard>
+
+            {/* Sender info */}
+            <SectionCard icon={<User className="w-5 h-5" style={{ color: cfg.color }} />} title="معلومات المُرسِل">
+              <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={iAmSender}
+                  onChange={e => setIAmSender(e.target.checked)}
+                  className="w-4 h-4 accent-green-600"
+                />
+                <span className="text-sm font-semibold text-gray-600">أنا المُرسِل</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">اسم المُرسِل</label>
+                  <input
+                    value={senderName}
+                    onChange={e => setSenderName(e.target.value)}
+                    placeholder="الاسم الكامل"
+                    disabled={iAmSender}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-60"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">رقم الهاتف</label>
+                  <input
+                    type="tel"
+                    value={senderPhone}
+                    onChange={e => setSenderPhone(e.target.value)}
+                    placeholder="07X XXXX XXX"
+                    disabled={iAmSender}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-60"
+                  />
+                </div>
+              </div>
+            </SectionCard>
+          </>
+        )}
+
+        {/* ── STEP 2: DROPOFF ── */}
+        {step === 'dropoff' && (
+          <>
+            <SectionCard icon={<MapPin className="w-5 h-5" style={{ color: cfg.color }} />} title="📍 إلى أين؟">
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">مدينة التسليم <span className="text-red-500">*</span></label>
+              <select
+                value={dropoffCity}
+                onChange={e => setDropoffCity(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none"
+              >
+                <option value="">اختر المدينة</option>
+                {YEMENI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+
+              {/* Map link paste */}
+              <div className="mt-3 flex gap-2">
+                <input
+                  value={dropoffLink}
+                  onChange={e => setDropoffLink(e.target.value)}
+                  placeholder="الصق رابط الموقع من e Maps / Google Maps"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <button
+                  onClick={applyDropoffLink}
+                  className="px-3 py-2.5 rounded-xl text-white text-xs font-bold flex-shrink-0"
+                  style={{ background: cfg.color }}
+                >
+                  <Link2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* My location button */}
+              <button
+                onClick={() => getMyLocation('dropoff')}
+                className="mt-2 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <Navigation className="w-4 h-4 text-blue-500" />
+                موقعي الحالي
+              </button>
+
+              {/* Map */}
+              <div className="mt-3 rounded-xl overflow-hidden border border-gray-200">
+                <LocationMap
+                  center={dropoffMapCenter}
+                  marker={dropoffLatLng}
+                  onSelect={(ll) => { setDropoffLatLng(ll); setDropoffMapCenter(ll); }}
+                />
+              </div>
+              {dropoffLatLng && (
+                <p className="text-xs text-gray-500 mt-1.5 text-center">
+                  📍 {dropoffLatLng.lat.toFixed(5)}, {dropoffLatLng.lng.toFixed(5)}
+                </p>
+              )}
+              {!dropoffLatLng && (
+                <p className="text-xs text-gray-400 mt-1.5 text-center">انقر على الخريطة لتحديد الموقع بدقة</p>
+              )}
+
+              {/* Detailed address */}
+              <div className="mt-3">
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">العنوان التفصيلي (اختياري)</label>
+                <input
+                  value={dropoffAddress}
+                  onChange={e => setDropoffAddress(e.target.value)}
+                  placeholder="مثال: سيئون، شارع المطار"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              {/* Distance badge */}
+              {distance != null && (
+                <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <span className="text-sm text-blue-700 font-semibold">المسافة التقديرية: {distance.toFixed(1)} كم</span>
+                </div>
+              )}
+            </SectionCard>
+
+            {/* Receiver info */}
+            <SectionCard icon={<User className="w-5 h-5" style={{ color: cfg.color }} />} title="معلومات المستلم">
+              <p className="text-xs text-gray-400 mb-3">🔒 رقم المستلم مخفي عن المندوب حتى إتمام الصفقة</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">اسم المستلم</label>
+                  <input
+                    value={receiverName}
+                    onChange={e => setReceiverName(e.target.value)}
+                    placeholder="الاسم الكامل"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">رقم الهاتف</label>
+                  <input
+                    type="tel"
+                    value={receiverPhone}
+                    onChange={e => setReceiverPhone(e.target.value)}
+                    placeholder="07X XXXX XXX"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+              </div>
+            </SectionCard>
+          </>
+        )}
+
+        {/* ── STEP 3: DETAILS ── */}
+        {step === 'details' && (
+          <SectionCard icon={<FileText className="w-5 h-5" style={{ color: cfg.color }} />} title="📦 تفاصيل الطلب">
+            {/* Description */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">
+                {service === 'parcel' ? 'محتوى الطرد' : service === 'shopping' ? 'ما الذي تريد شراءه؟' : 'ما الذي تريد طلبه؟'}
+                <span className="text-red-500"> *</span>
+              </label>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={3}
+                placeholder={
+                  service === 'parcel'
+                    ? 'مثال: شاشة كمبيوتر، ملابس، مستندات...'
+                    : service === 'shopping'
+                    ? 'مثال: مشتريات من محل الجمعية'
+                    : 'مثال: وجبة عشاء من مطعم الشاطئ'
+                }
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+              />
+            </div>
+
+            {/* Package size (parcel only) */}
+            {service === 'parcel' && (
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">الحجم</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {SIZE_OPTIONS.map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setPackageSize(opt.id)}
+                      className="p-3 rounded-xl border-2 transition-all text-center"
+                      style={{
+                        borderColor: packageSize === opt.id ? cfg.color : '#E5E7EB',
+                        background: packageSize === opt.id ? cfg.color + '10' : '#F9FAFB',
+                      }}
+                    >
+                      <div className="font-bold text-sm" style={{ color: packageSize === opt.id ? cfg.color : '#374151' }}>{opt.label}</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5 leading-tight">{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Notes */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">ملاحظات إضافية (اختياري)</label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                rows={2}
+                placeholder="أي تعليمات إضافية للمندوب..."
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+              />
+            </div>
+
+            {/* Photo */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">📷 صورة الطرد (اختياري)</label>
+              <label className="flex items-center gap-3 border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-green-400 transition-colors">
+                <ImageIcon className="w-6 h-6 text-gray-400" />
+                <span className="text-sm text-gray-500">اضغط لرفع صورة</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
+              </label>
+              {imagePreview && (
+                <img src={imagePreview} alt="preview" className="mt-2 rounded-xl w-full h-36 object-cover border border-gray-200" />
+              )}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* ── STEP 4: REVIEW ── */}
+        {step === 'review' && (
+          <>
+            {/* Price card */}
+            {estimatedPrice != null ? (
+              <div
+                className="rounded-2xl p-5 text-white"
+                style={{ background: `linear-gradient(135deg, ${cfg.color}, ${cfg.color}dd)` }}
+              >
+                <div className="flex items-center gap-2 mb-3 opacity-90">
+                  <DollarSign className="w-5 h-5" />
+                  <span className="font-bold">السعر التقديري</span>
+                </div>
+                <div className="text-4xl font-black mb-1">{estimatedPrice.toLocaleString('ar-YE')} <span className="text-xl opacity-80">ريال</span></div>
+                <div className="flex items-center gap-4 mt-3 opacity-80 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4" />
+                    {distance!.toFixed(1)} كم
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" />
+                    {estimatedTime} - {estimatedTime! + 15} دقيقة
+                  </div>
+                </div>
+                <p className="text-xs mt-2 opacity-70">* السعر تقديري وقد يتغير حسب الشريك</p>
+              </div>
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                <Info className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-amber-700 text-sm">لم يتم تحديد الموقع على الخريطة</p>
+                  <p className="text-amber-600 text-xs mt-0.5">سيتم إرسال الطلب وسيتواصل معك الشريك لتحديد السعر</p>
+                </div>
+              </div>
+            )}
+
+            {/* Summary */}
+            <SectionCard icon={<FileText className="w-5 h-5" style={{ color: cfg.color }} />} title="ملخص الطلب">
+              <SummaryRow label="نوع الخدمة" value={cfg.label} />
+              <SummaryRow label="من" value={`${pickupCity}${pickupAddress ? ' • ' + pickupAddress : ''}`} />
+              <SummaryRow label="إلى" value={`${dropoffCity}${dropoffAddress ? ' • ' + dropoffAddress : ''}`} />
+              <SummaryRow label="التفاصيل" value={description} />
+              {service === 'parcel' && <SummaryRow label="الحجم" value={SIZE_OPTIONS.find(s => s.id === packageSize)?.label || ''} />}
+              {notes && <SummaryRow label="ملاحظات" value={notes} />}
+              {senderName && <SummaryRow label="المُرسِل" value={`${senderName} ${senderPhone ? '• ' + senderPhone : ''}`} />}
+              {receiverName && <SummaryRow label="المستلم" value={`${receiverName} ${receiverPhone ? '• ' + receiverPhone : ''}`} />}
+            </SectionCard>
+
+            {/* Payment method */}
+            <SectionCard icon={<CreditCard className="w-5 h-5" style={{ color: cfg.color }} />} title="طريقة الدفع">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setPaymentMethod('cash')}
+                  className="p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all"
+                  style={{
+                    borderColor: paymentMethod === 'cash' ? cfg.color : '#E5E7EB',
+                    background: paymentMethod === 'cash' ? cfg.color + '10' : '#F9FAFB',
+                  }}
+                >
+                  <Banknote className="w-6 h-6" style={{ color: paymentMethod === 'cash' ? cfg.color : '#9CA3AF' }} />
+                  <span className="font-bold text-sm" style={{ color: paymentMethod === 'cash' ? cfg.color : '#374151' }}>عند الاستلام</span>
+                  <span className="text-xs text-gray-400">ادفع نقداً للمندوب</span>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('transfer')}
+                  className="p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all"
+                  style={{
+                    borderColor: paymentMethod === 'transfer' ? cfg.color : '#E5E7EB',
+                    background: paymentMethod === 'transfer' ? cfg.color + '10' : '#F9FAFB',
+                  }}
+                >
+                  <CreditCard className="w-6 h-6" style={{ color: paymentMethod === 'transfer' ? cfg.color : '#9CA3AF' }} />
+                  <span className="font-bold text-sm" style={{ color: paymentMethod === 'transfer' ? cfg.color : '#374151' }}>تحويل مصرفي</span>
+                  <span className="text-xs text-gray-400">ادفع مسبقاً عبر البنك</span>
+                </button>
+              </div>
+              <div className="mt-3 bg-green-50 border border-green-100 rounded-xl px-3 py-2.5 flex items-start gap-2">
+                <span className="text-green-600 text-sm">🔒</span>
+                <p className="text-xs text-green-700">رقمك محجوب تماماً حتى توافق على السعر واختيار طريقة الدفع</p>
+              </div>
+            </SectionCard>
+
+            {/* Submit */}
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full py-4 rounded-2xl text-white font-black text-base flex items-center justify-center gap-3 transition-all shadow-lg"
+              style={{
+                background: submitting ? '#9CA3AF' : `linear-gradient(135deg, ${cfg.color}, ${cfg.color}cc)`,
+                boxShadow: submitting ? 'none' : `0 8px 32px ${cfg.color}40`,
+              }}
+            >
+              {submitting ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> جاري الإرسال...</>
+              ) : (
+                <>اطلب الآن <ArrowLeft className="w-5 h-5" /></>
+              )}
+            </button>
+          </>
+        )}
+
+        {/* Next button (steps 1-3) */}
+        {step !== 'review' && (
+          <button
+            onClick={nextStep}
+            disabled={!canGoNext()}
+            className="w-full py-4 rounded-2xl text-white font-black text-base flex items-center justify-center gap-3 transition-all"
+            style={{
+              background: canGoNext() ? `linear-gradient(135deg, ${cfg.color}, ${cfg.color}cc)` : '#E5E7EB',
+              color: canGoNext() ? '#fff' : '#9CA3AF',
+              boxShadow: canGoNext() ? `0 6px 24px ${cfg.color}30` : 'none',
+            }}
+          >
+            التالي <ArrowLeft className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Helper components ────────────────────────────────────────────────────────
+function SectionCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <div className="flex items-center gap-2 mb-4">
+        {icon}
+        <h2 className="font-black text-gray-800 text-base">{title}</h2>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between items-start py-2 border-b border-gray-50 last:border-0">
+      <span className="text-sm text-gray-400 font-medium flex-shrink-0">{label}</span>
+      <span className="text-sm text-gray-700 font-semibold text-left mr-2 leading-relaxed">{value}</span>
     </div>
   );
 }
