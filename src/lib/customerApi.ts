@@ -52,6 +52,40 @@ export const deleteAddress = async (id: string) => {
   if (error) throw error;
 };
 
+export const updateAddress = async (
+  id: string,
+  customerId: string,
+  updates: {
+    address_name?: string;
+    full_address?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    is_default?: boolean;
+    phone?: string | null;
+    landmark?: string | null;
+    city?: string;
+    district?: string | null;
+    street?: string | null;
+    building_number?: string | null;
+  }
+) => {
+  if (updates.is_default) {
+    await supabase
+      .from("customer_addresses")
+      .update({ is_default: false })
+      .eq("customer_id", customerId)
+      .neq("id", id);
+  }
+  const { data, error } = await supabase
+    .from("customer_addresses")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
 // ---- Regions ----
 export const fetchRegions = async () => {
   const { data, error } = await supabase

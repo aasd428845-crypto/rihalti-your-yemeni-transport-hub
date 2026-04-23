@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchAddresses, createAddress, deleteAddress } from "@/lib/customerApi";
+import { fetchAddresses, createAddress, deleteAddress, updateAddress } from "@/lib/customerApi";
 
 import BackButton from "@/components/common/BackButton";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Plus, Trash2, Star, Phone, Navigation, Building2, Map } from "lucide-react";
+import { MapPin, Plus, Trash2, Star, Phone, Navigation, Building2, Map, Pencil } from "lucide-react";
 import { getPhoneError, formatYemeniPhone } from "@/lib/phoneValidation";
 import MapPicker from "@/components/maps/MapPicker";
 
@@ -28,6 +28,7 @@ const AddressesPage = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -78,6 +79,23 @@ const AddressesPage = () => {
     setFormBuilding(""); setFormLandmark(""); setFormDefault(false);
     setFormPhone(""); setPhoneSource("primary");
     setFormLat(undefined); setFormLng(undefined);
+    setEditingId(null);
+  };
+
+  const openEdit = (addr: any) => {
+    setEditingId(addr.id);
+    setFormName(addr.address_name || "");
+    setFormCity(addr.city || "");
+    setFormDistrict(addr.district || "");
+    setFormStreet(addr.street || "");
+    setFormBuilding(addr.building_number || "");
+    setFormLandmark(addr.landmark || "");
+    setFormDefault(!!addr.is_default);
+    setFormPhone(addr.phone || "");
+    setPhoneSource(addr.phone ? "custom" : "primary");
+    setFormLat(addr.latitude ?? undefined);
+    setFormLng(addr.longitude ?? undefined);
+    setShowForm(true);
   };
 
   const buildFullAddress = () => {
@@ -95,21 +113,38 @@ const AddressesPage = () => {
     }
     setSaving(true);
     try {
-      await createAddress({
-        customer_id: user.id,
-        address_name: formName,
-        full_address: buildFullAddress(),
-        city: formCity,
-        district: formDistrict || undefined,
-        street: formStreet || undefined,
-        building_number: formBuilding || undefined,
-        landmark: formLandmark || undefined,
-        is_default: formDefault,
-        phone: formPhone || undefined,
-        latitude: formLat,
-        longitude: formLng,
-      });
-      toast({ title: "✅ تم إضافة العنوان بنجاح" });
+      if (editingId) {
+        await updateAddress(editingId, user.id, {
+          address_name: formName,
+          full_address: buildFullAddress(),
+          city: formCity,
+          district: formDistrict || null,
+          street: formStreet || null,
+          building_number: formBuilding || null,
+          landmark: formLandmark || null,
+          is_default: formDefault,
+          phone: formPhone || null,
+          latitude: formLat ?? null,
+          longitude: formLng ?? null,
+        });
+        toast({ title: "✅ تم تحديث العنوان بنجاح" });
+      } else {
+        await createAddress({
+          customer_id: user.id,
+          address_name: formName,
+          full_address: buildFullAddress(),
+          city: formCity,
+          district: formDistrict || undefined,
+          street: formStreet || undefined,
+          building_number: formBuilding || undefined,
+          landmark: formLandmark || undefined,
+          is_default: formDefault,
+          phone: formPhone || undefined,
+          latitude: formLat,
+          longitude: formLng,
+        });
+        toast({ title: "✅ تم إضافة العنوان بنجاح" });
+      }
       setShowForm(false);
       resetForm();
       // Always sync location to localStorage so restaurant filter updates immediately
@@ -206,9 +241,14 @@ const AddressesPage = () => {
                       )}
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(addr.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(addr)} className="text-primary hover:text-primary hover:bg-primary/10" aria-label="تعديل">
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(addr.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10" aria-label="حذف">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -216,7 +256,7 @@ const AddressesPage = () => {
         )}
 
         {/* Add Address Dialog */}
-        <Dialog open={showForm} onOpenChange={isWelcome ? undefined : setShowForm}>
+        <Dialog open={showForm} onOpenChange={isWelcome ? undefined : (v) => { setShowForm(v); if (!v) resetForm(); }}>
           <DialogContent
             dir="rtl"
             className="max-h-[90vh] overflow-y-auto sm:max-w-lg"
@@ -225,8 +265,8 @@ const AddressesPage = () => {
           >
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Plus className="w-5 h-5 text-primary" />
-                {isWelcome ? "أضف عنوانك الأول للمتابعة" : "إضافة عنوان جديد"}
+                {editingId ? <Pencil className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-primary" />}
+                {isWelcome ? "أضف عنوانك الأول للمتابعة" : editingId ? "تعديل العنوان" : "إضافة عنوان جديد"}
               </DialogTitle>
               {isWelcome && (
                 <p className="text-sm text-muted-foreground mt-1">هذه الخطوة مطلوبة لتتمكن من استخدام التطبيق</p>
@@ -314,10 +354,10 @@ const AddressesPage = () => {
             </div>
             <DialogFooter className="gap-2">
               {!isWelcome && (
-                <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
+                <Button variant="outline" onClick={() => { setShowForm(false); resetForm(); }}>إلغاء</Button>
               )}
               <Button onClick={handleAdd} disabled={saving} className={`gap-1 ${isWelcome ? "w-full" : ""}`}>
-                <MapPin className="w-4 h-4" /> {saving ? "جاري الحفظ..." : isWelcome ? "حفظ والمتابعة →" : "حفظ العنوان"}
+                <MapPin className="w-4 h-4" /> {saving ? "جاري الحفظ..." : isWelcome ? "حفظ والمتابعة →" : editingId ? "تحديث العنوان" : "حفظ العنوان"}
               </Button>
             </DialogFooter>
           </DialogContent>

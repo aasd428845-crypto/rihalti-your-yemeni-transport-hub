@@ -12,8 +12,9 @@ type AccountType = "customer" | "supplier" | "delivery_company";
 type AuthMethod = "email" | "phone";
 
 const RegisterPage = () => {
-  const [step, setStep] = useState<1 | 2>(1);
-  const [accountType, setAccountType] = useState<AccountType>("customer");
+  // Customer is the only public registration path; suppliers and delivery
+  // companies are onboarded via invitation links sent by an admin.
+  const [accountType] = useState<AccountType>("customer");
   const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,10 +24,6 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const accountTypes: { value: AccountType; label: string; desc: string; icon: string }[] = [
-    { value: "customer", label: "عميل", desc: "احجز رحلات وأرسل طرود واطلب توصيل", icon: "🧳" },
-  ];
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,55 +91,9 @@ const RegisterPage = () => {
 
         <div className="bg-card rounded-2xl border border-border p-8 shadow-lg">
           <h1 className="text-2xl font-black text-foreground text-center mb-2">إنشاء حساب جديد</h1>
-          <p className="text-sm text-muted-foreground text-center mb-6">
-            {step === 1 ? "اختر نوع الحساب" : "أكمل بياناتك"}
-          </p>
+          <p className="text-sm text-muted-foreground text-center mb-6">أكمل بياناتك</p>
 
-          {/* Step indicators */}
-          <div className="flex gap-2 mb-6">
-            <div className={`flex-1 h-1 rounded-full ${step >= 1 ? "bg-primary" : "bg-muted"}`} />
-            <div className={`flex-1 h-1 rounded-full ${step >= 2 ? "bg-primary" : "bg-muted"}`} />
-          </div>
-
-          {step === 1 && (
-            <div className="space-y-3">
-              {accountTypes.map((type) => (
-                <button
-                  key={type.value}
-                  onClick={() => setAccountType(type.value)}
-                  className={`w-full p-4 rounded-xl border-2 text-right transition-all ${
-                    accountType === type.value
-                      ? "border-primary bg-accent"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{type.icon}</span>
-                    <div>
-                      <div className="font-bold text-foreground">{type.label}</div>
-                      <div className="text-xs text-muted-foreground">{type.desc}</div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-
-              <div className="bg-muted/50 rounded-xl p-4 text-sm text-muted-foreground">
-                <p className="font-semibold text-foreground mb-1">🏢 هل أنت صاحب مكتب أو شركة توصيل؟</p>
-                <p>تواصل مع فريق الدعم لإنشاء حساب صاحب مكتب أو شركة توصيل.</p>
-                <a href="#contact" className="text-primary font-semibold hover:underline mt-1 inline-block">تواصل معنا →</a>
-              </div>
-
-              <Button
-                className="w-full h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90 mt-4"
-                onClick={() => setStep(2)}
-              >
-                التالي
-              </Button>
-            </div>
-          )}
-
-          {step === 2 && (
-            <>
+          <>
               {/* Google Signup */}
               <Button variant="outline" className="w-full mb-4 h-11" onClick={handleGoogleSignup} type="button">
                 <svg className="w-5 h-5 ml-2" viewBox="0 0 24 24">
@@ -234,22 +185,12 @@ const RegisterPage = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" className="flex-1 h-11" onClick={() => setStep(1)}>رجوع</Button>
-                    <Button type="submit" className="flex-1 h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90" disabled={loading} loading={loading}>
-                      {loading ? "جاري الإنشاء..." : "إنشاء الحساب"}
-                    </Button>
-                  </div>
+                  <Button type="submit" className="w-full h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90" disabled={loading} loading={loading}>
+                    {loading ? "جاري الإنشاء..." : "إنشاء الحساب"}
+                  </Button>
                 </form>
               )}
-
-              {authMethod === "phone" && (
-                <div className="mt-3">
-                  <Button type="button" variant="outline" className="w-full h-11" onClick={() => setStep(1)}>رجوع</Button>
-                </div>
-              )}
             </>
-          )}
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             لديك حساب بالفعل؟{" "}
