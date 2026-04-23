@@ -264,6 +264,30 @@ const DeliveryHubPage = () => {
           })}
         </div>
 
+        {/* ── 1.5 Delivery Request Big Banner ── */}
+        <button
+          onClick={() => navigate("/shipment-request")}
+          className="w-full relative rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 group"
+          style={{ minHeight: 110 }}
+        >
+          <img
+            src="https://images.unsplash.com/photo-1605745341112-85968b19335b?w=700&q=80"
+            alt="خدمات التوصيل"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-l from-emerald-900/90 via-emerald-800/70 to-emerald-700/50" />
+          <div className="relative z-10 p-5 flex items-center justify-between">
+            <div className="text-right">
+              <h2 className="text-white font-black text-xl leading-tight drop-shadow-lg">خدمات توصيل</h2>
+              <p className="text-white font-black text-base leading-tight drop-shadow-lg">تسوق • انقل من أي مكان</p>
+            </div>
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/30 flex-shrink-0">
+              <span className="text-white font-black text-sm">اطلب الآن ←</span>
+            </div>
+          </div>
+        </button>
+
         {/* ── 2. Hero Banner Carousel ── */}
         <BannerCarousel banners={carouselBanners} onNavigate={navigate} />
 
