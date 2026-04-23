@@ -18,19 +18,19 @@ const DEFAULT_BANNERS = [
   },
   {
     id: "d2",
-    title: "عروض حصرية كل يوم",
-    subtitle: "لا تفوّت أفضل الأسعار",
-    image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200&q=80&fit=crop",
-    badge_text: "عرض محدود",
-    link_url: "/food",
+    title: "خدمات توصيل، تسوق، انقل من أي مكان",
+    subtitle: "مناديب لتوصيل طرودك وطلباتك في أسرع وقت",
+    image_url: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&q=80&fit=crop",
+    badge_text: "متاح الآن",
+    link_url: "/shipments",
     banner_type: "carousel",
   },
   {
     id: "d3",
-    title: "مطاعم يمنية أصيلة",
-    subtitle: "أطباق شعبية بلمسة عصرية",
-    image_url: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1200&q=80&fit=crop",
-    badge_text: null,
+    title: "عروض حصرية كل يوم",
+    subtitle: "لا تفوّت أفضل الأسعار",
+    image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200&q=80&fit=crop",
+    badge_text: "عرض محدود",
     link_url: "/food",
     banner_type: "carousel",
   },
@@ -222,7 +222,7 @@ const DeliveryHubPage = () => {
     if (action === "food" || action === "restaurants") navigate("/food");
     else if (action === "grocery") navigate("/food?tab=grocery");
     else if (action === "pharmacy") navigate("/food?tab=pharmacy");
-    else if (action === "more") navigate("/shipment-request");
+    else if (action === "more") navigate("/shipments");
     else if (tile.link_url) navigate(tile.link_url);
     else navigate("/food");
   };

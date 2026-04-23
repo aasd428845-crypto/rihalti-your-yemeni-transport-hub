@@ -151,6 +151,24 @@ const RealtimeToastListener = () => {
       );
     }
 
+    // ── 5. New shipment request (supplier only) ─────────────────
+    if (role === "supplier") {
+      channel.on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "shipment_requests", filter: `supplier_id=eq.${user.id}` },
+        (payload) => {
+          const req = payload.new as any;
+          playNewOrderSound();
+          toast("📦 طلب شحن جديد!", {
+            description: `${req.recipient_name || "عميل"} — يحتاج تأكيداً وتسعيراً`,
+            icon: <Package className="w-4 h-4 text-primary" />,
+            action: { label: "عرض الطلبات", onClick: () => navigate("/supplier/shipments") },
+            duration: 15000,
+          });
+        }
+      );
+    }
+
     channel.subscribe();
     channelRef.current = channel;
 
