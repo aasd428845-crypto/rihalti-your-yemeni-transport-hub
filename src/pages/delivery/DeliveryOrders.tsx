@@ -7,11 +7,86 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Search, UserCheck, Eye, XCircle, CreditCard, CheckCircle2, ExternalLink } from "lucide-react";
+import { Search, UserCheck, Eye, XCircle, CreditCard, CheckCircle2, ExternalLink, MessageCircle, MapPin, Package, Truck } from "lucide-react";
 import { getDeliveryOrders, updateOrderStatus, assignRiderToOrder, getRiders, getOrderTracking } from "@/lib/deliveryApi";
 import { ORDER_STATUS_MAP } from "@/types/delivery.types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+// ─── Helper: detect if order is a custom delivery request ────────────────────
+const isDeliveryRequest = (order: any): boolean => {
+  const firstItem = order?.items?.[0];
+  return firstItem?.order_type === "delivery_request";
+};
+
+// ─── Helper: extract delivery request metadata from items ────────────────────
+const getDeliveryRequestInfo = (order: any) => {
+  const meta = order?.items?.[0] || {};
+  return {
+    serviceType: meta.service_type || "parcel",
+    pickupAddress: meta.pickup_address || "",
+    pickupLat: meta.pickup_lat || null,
+    pickupLng: meta.pickup_lng || null,
+    pickupLandmark: meta.pickup_landmark || "",
+    deliveryLandmark: meta.delivery_landmark || "",
+    recipientName: meta.recipient_name || "",
+    recipientPhone: meta.recipient_phone || "",
+    senderName: meta.sender_name || "",
+    senderPhone: meta.sender_phone || "",
+    itemDescription: meta.item_description || "",
+    itemSize: meta.item_size || "",
+    notes: meta.notes || "",
+    distanceKm: meta.distance_km || null,
+    pricePerKm: meta.price_per_km || null,
+    offerApplied: meta.offer_applied || null,
+    imageUrl: meta.image_url || "",
+  };
+};
+
+// ─── Build WhatsApp message for rider ────────────────────────────────────────
+const buildRiderWhatsApp = (order: any, riderPhone: string): string => {
+  const isReq = isDeliveryRequest(order);
+  const info = isReq ? getDeliveryRequestInfo(order) : null;
+
+  const pickupMapLink = info?.pickupLat ? `https://maps.google.com/?q=${info.pickupLat},${info.pickupLng}` : null;
+  const dropoffMapLink = order.delivery_lat ? `https://maps.google.com/?q=${order.delivery_lat},${order.delivery_lng}` : null;
+
+  const svcLabel = info?.serviceType === "shopping" ? "تسوق" : info?.serviceType === "meal" ? "توصيل وجبة" : "نقل طرد";
+  const paymentLine =
+    order.payment_method === "cash"
+      ? `💵 *الدفع: نقداً عند الاستلام — يرجى تحصيل ${Number(order.total).toLocaleString()} ر.ي*`
+      : order.payment_method === "bank_transfer"
+      ? `✅ *الدفع: تم الدفع مسبقاً عبر تحويل بنكي — لا يلزم تحصيل أي مبلغ*`
+      : `💳 *الدفع: ${order.payment_method}*`;
+
+  const lines = [
+    `🚚 *مهمة توصيل جديدة — وصل*`,
+    ``,
+    isReq ? `📦 *نوع الخدمة:* ${svcLabel}` : null,
+    ``,
+    `📍 *من (نقطة الاستلام):*`,
+    `   ${info?.pickupAddress || order.customer_address || "—"}`,
+    info?.pickupLandmark ? `   المعلم: ${info.pickupLandmark}` : null,
+    pickupMapLink ? `   🗺️ ${pickupMapLink}` : null,
+    ``,
+    `📍 *إلى (نقطة التسليم):*`,
+    `   ${order.customer_address || "—"}`,
+    info?.deliveryLandmark ? `   المعلم: ${info.deliveryLandmark}` : null,
+    dropoffMapLink ? `   🗺️ ${dropoffMapLink}` : null,
+    ``,
+    info?.senderName ? `👤 *المرسِل:* ${info.senderName} — ${info.senderPhone}` : `👤 *العميل:* ${order.customer_name} — ${order.customer_phone}`,
+    info?.recipientName ? `👤 *المستلِم:* ${info.recipientName} — ${info.recipientPhone}` : null,
+    ``,
+    info?.itemDescription ? `📝 *وصف الطرد:* ${info.itemDescription}` : null,
+    info?.notes ? `📌 *ملاحظات:* ${info.notes}` : null,
+    ``,
+    paymentLine,
+  ].filter((l): l is string => l !== null);
+
+  const text = lines.join("\n");
+  const phone = riderPhone.replace(/\D/g, "");
+  return phone ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+};
 
 const DeliveryOrders = () => {
   const { user } = useAuth();
@@ -67,7 +142,58 @@ const DeliveryOrders = () => {
     if (!selectedRider) return;
     try {
       await assignRiderToOrder(assignOrderId, selectedRider);
-      toast({ title: "تم تعيين المندوب بنجاح" });
+
+      // Find order and rider details for financial notification
+      const order = orders.find(o => o.id === assignOrderId);
+      const rider = riders.find(r => r.id === selectedRider);
+
+      if (order && rider) {
+        // Build financial notification message for rider
+        const isReq = isDeliveryRequest(order);
+        const info = isReq ? getDeliveryRequestInfo(order) : null;
+        const amount = Number(order.total || 0);
+
+        let paymentMsg = "";
+        if (order.payment_method === "cash" && amount > 0) {
+          paymentMsg = `💵 يرجى تحصيل ${amount.toLocaleString()} ر.ي نقداً عند الاستلام`;
+        } else if (order.payment_method === "bank_transfer") {
+          paymentMsg = "✅ تم الدفع مسبقاً عبر تحويل بنكي — لا يلزم تحصيل أي مبلغ";
+        }
+
+        const pickupAddr = info?.pickupAddress || order.customer_address || "";
+        const dropoffAddr = order.customer_address || "";
+        const notifBody = [
+          `📍 من: ${pickupAddr}`,
+          `📍 إلى: ${dropoffAddr}`,
+          paymentMsg,
+        ].filter(Boolean).join(" | ");
+
+        // Push notification to rider
+        try {
+          await supabase.functions.invoke("send-push-notification", {
+            body: {
+              userId: rider.user_id || rider.id,
+              title: "🚚 تم تعيينك في طلب جديد!",
+              body: notifBody,
+              sound: "delivery",
+              data: { type: "rider_assigned", orderId: assignOrderId },
+            },
+          });
+        } catch (_) {}
+
+        // In-app notification for rider
+        try {
+          await (supabase.from as any)("notifications").insert({
+            user_id: rider.user_id || rider.id,
+            title: "🚚 تم تعيينك في طلب جديد!",
+            body: notifBody,
+            data: { type: "rider_assigned", order_id: assignOrderId },
+            is_read: false,
+          });
+        } catch (_) {}
+      }
+
+      toast({ title: "تم تعيين المندوب بنجاح", description: "تم إرسال إشعار للمندوب بتفاصيل الدفع" });
       setShowAssign(false);
       load();
     } catch (err: any) {
@@ -216,8 +342,24 @@ const DeliveryOrders = () => {
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-bold text-foreground">{order.customer_name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-foreground">{order.customer_name}</p>
+                        {isDeliveryRequest(order) && (
+                          <span className="text-[9px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                            <Truck className="w-2.5 h-2.5" /> توصيل
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
+                      {isDeliveryRequest(order) && (() => {
+                        const info = getDeliveryRequestInfo(order);
+                        return info.pickupAddress ? (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                            {info.pickupAddress.slice(0, 30)}{info.pickupAddress.length > 30 ? "..." : ""}
+                          </p>
+                        ) : null;
+                      })()}
                     </div>
                     <Badge variant="outline" className={ORDER_STATUS_MAP[order.status]?.color || ""}>
                       {ORDER_STATUS_MAP[order.status]?.label || order.status}
@@ -404,8 +546,74 @@ const DeliveryOrders = () => {
                 </div>
               )}
 
-              {/* Google Maps link */}
-              {selectedOrder.delivery_lat && selectedOrder.delivery_lng && (
+                      {/* ── Delivery Request Info ── */}
+              {isDeliveryRequest(selectedOrder) && (() => {
+                const info = getDeliveryRequestInfo(selectedOrder);
+                const svcMap: Record<string, string> = { parcel: "نقل طرد 📦", shopping: "تسوق 🛍️", meal: "توصيل وجبة 🍔" };
+                const sizeMap: Record<string, string> = { small: "صغير", medium: "متوسط", large: "كبير" };
+                return (
+                  <div className="border rounded-xl p-3 space-y-2 bg-muted/30">
+                    <h4 className="font-bold flex items-center gap-2 text-sm">
+                      <Package className="w-4 h-4 text-primary" /> تفاصيل طلب التوصيل
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div><span className="text-muted-foreground">نوع الخدمة: </span><span className="font-semibold">{svcMap[info.serviceType] || info.serviceType}</span></div>
+                      {info.itemSize && <div><span className="text-muted-foreground">الحجم: </span><span>{sizeMap[info.itemSize] || info.itemSize}</span></div>}
+                      {info.itemDescription && <div className="col-span-2"><span className="text-muted-foreground">وصف الطرد: </span><span>{info.itemDescription}</span></div>}
+                      {info.notes && <div className="col-span-2"><span className="text-muted-foreground">ملاحظات: </span><span>{info.notes}</span></div>}
+                    </div>
+                    <div className="border-t pt-2 space-y-1.5 text-xs">
+                      <div className="flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500 mt-1 shrink-0" />
+                        <div>
+                          <span className="text-muted-foreground">من: </span><span className="font-medium">{info.pickupAddress}</span>
+                          {info.pickupLandmark && <span className="text-muted-foreground"> ({info.pickupLandmark})</span>}
+                          {info.pickupLat && (
+                            <a href={`https://maps.google.com/?q=${info.pickupLat},${info.pickupLng}`} target="_blank" rel="noreferrer"
+                              className="mr-2 text-primary hover:underline inline-flex items-center gap-0.5">
+                              <MapPin className="w-3 h-3" /> خريطة
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-red-500 mt-1 shrink-0" />
+                        <div>
+                          <span className="text-muted-foreground">إلى: </span><span className="font-medium">{selectedOrder.customer_address}</span>
+                          {info.deliveryLandmark && <span className="text-muted-foreground"> ({info.deliveryLandmark})</span>}
+                          {selectedOrder.delivery_lat && (
+                            <a href={`https://maps.google.com/?q=${selectedOrder.delivery_lat},${selectedOrder.delivery_lng}`} target="_blank" rel="noreferrer"
+                              className="mr-2 text-primary hover:underline inline-flex items-center gap-0.5">
+                              <MapPin className="w-3 h-3" /> خريطة
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="border-t pt-2 grid grid-cols-2 gap-2 text-xs">
+                      <div><span className="text-muted-foreground">المرسِل: </span><span className="font-medium">{info.senderName}</span></div>
+                      <div><span className="text-muted-foreground">هاتف المرسِل: </span><span>{info.senderPhone}</span></div>
+                      <div><span className="text-muted-foreground">المستلِم: </span><span className="font-medium">{info.recipientName}</span></div>
+                      <div><span className="text-muted-foreground">هاتف المستلِم: </span><span>{info.recipientPhone}</span></div>
+                    </div>
+                    {info.distanceKm && (
+                      <div className="text-xs text-muted-foreground pt-1">
+                        📏 المسافة: <strong>{info.distanceKm} كم</strong>
+                        {info.pricePerKm ? ` · سعر الكم: ${info.pricePerKm} ر.ي` : ""}
+                      </div>
+                    )}
+                    {info.imageUrl && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">📷 صورة الطرد:</p>
+                        <img src={info.imageUrl} alt="الطرد" className="rounded-lg max-h-32 object-contain border" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Google Maps link (non-delivery-request) */}
+              {!isDeliveryRequest(selectedOrder) && selectedOrder.delivery_lat && selectedOrder.delivery_lng && (
                 <a
                   href={`https://www.google.com/maps?q=${selectedOrder.delivery_lat},${selectedOrder.delivery_lng}`}
                   target="_blank"
@@ -417,8 +625,8 @@ const DeliveryOrders = () => {
               )}
 
               <div>
-                <h4 className="font-bold mb-2">العناصر:</h4>
-                {(selectedOrder.items || []).map((item: any, i: number) => (
+                {!isDeliveryRequest(selectedOrder) && <h4 className="font-bold mb-2">العناصر:</h4>}
+                {!isDeliveryRequest(selectedOrder) && (selectedOrder.items || []).map((item: any, i: number) => (
                   <div key={i} className="flex justify-between border-b py-1">
                     <span>{item.name_ar || item.name} × {item.quantity}</span>
                     <span>{Number(item.price * item.quantity).toLocaleString()} ر.ي</span>
@@ -458,8 +666,44 @@ const DeliveryOrders = () => {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Financial info preview */}
+            {selectedRider && (() => {
+              const order = orders.find(o => o.id === assignOrderId);
+              const rider = riders.find(r => r.id === selectedRider);
+              if (!order) return null;
+              const amount = Number(order.total || 0);
+              return (
+                <div className={`text-xs rounded-lg px-3 py-2 ${
+                  order.payment_method === "cash" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400" :
+                  "bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400"
+                }`}>
+                  {order.payment_method === "cash" && amount > 0
+                    ? `💵 سيتلقى المندوب إشعاراً بتحصيل ${amount.toLocaleString()} ر.ي نقداً`
+                    : order.payment_method === "bank_transfer"
+                    ? "✅ سيتلقى المندوب إشعاراً بأن الدفع تم مسبقاً"
+                    : ""}
+                  {rider?.phone && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => {
+                          if (order) window.open(buildRiderWhatsApp(order, rider.phone), "_blank");
+                        }}
+                        className="flex items-center gap-1.5 text-green-600 hover:underline font-medium"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" /> إرسال تفاصيل الطلب للمندوب عبر واتساب
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
-          <DialogFooter><Button onClick={handleAssign} disabled={!selectedRider} className="min-h-[44px]">تعيين</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={handleAssign} disabled={!selectedRider} className="min-h-[44px]">
+              <Truck className="w-4 h-4 ml-1" /> تعيين وإرسال إشعار
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
