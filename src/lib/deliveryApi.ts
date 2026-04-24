@@ -138,6 +138,15 @@ export const updateDeliveryOrder = async (id: string, updates: any) => {
 };
 
 export const assignRiderToOrder = async (orderId: string, riderId: string) => {
+  // 1. Cancel any previously active cash collection for this order (re-assignment safety)
+  try {
+    await (supabase.from as any)("rider_cash_collections")
+      .update({ status: "cancelled", notes: "تم إعادة تعيين مندوب آخر" })
+      .eq("order_id", orderId)
+      .in("status", ["pending_pickup", "collected"]);
+  } catch (_) {}
+
+  // 2. Assign rider on the order
   const { data, error } = await supabase
     .from("delivery_orders")
     .update({ rider_id: riderId, status: "assigned", assigned_at: new Date().toISOString() })
@@ -145,8 +154,23 @@ export const assignRiderToOrder = async (orderId: string, riderId: string) => {
     .select()
     .single();
   if (error) throw error;
-  // Add tracking entry
+
+  // 3. Add tracking entry
   await supabase.from("order_tracking").insert({ order_id: orderId, status: "assigned", note: "تم تعيين مندوب" });
+
+  // 4. If payment is cash → record outstanding cash on rider
+  try {
+    if (data && data.payment_method === "cash" && Number(data.total) > 0) {
+      await (supabase.from as any)("rider_cash_collections").insert({
+        rider_id: riderId,
+        delivery_company_id: data.delivery_company_id,
+        order_id: orderId,
+        amount: Number(data.total),
+        status: "pending_pickup",
+      });
+    }
+  } catch (_) {}
+
   return data;
 };
 
@@ -157,6 +181,58 @@ export const updateOrderStatus = async (orderId: string, status: string, note?: 
   const { data, error } = await supabase.from("delivery_orders").update(updates).eq("id", orderId).select().single();
   if (error) throw error;
   await supabase.from("order_tracking").insert({ order_id: orderId, status, note });
+
+  // Sync rider cash collection status
+  try {
+    if (status === "delivered") {
+      await (supabase.from as any)("rider_cash_collections")
+        .update({ status: "collected", collected_at: new Date().toISOString() })
+        .eq("order_id", orderId)
+        .eq("status", "pending_pickup");
+    } else if (status === "cancelled") {
+      await (supabase.from as any)("rider_cash_collections")
+        .update({ status: "cancelled", notes: "تم إلغاء الطلب" })
+        .eq("order_id", orderId)
+        .in("status", ["pending_pickup", "collected"]);
+    }
+  } catch (_) {}
+
+  return data;
+};
+
+// ===== Rider Cash Collections =====
+export const getRiderOutstandingCash = async (riderId: string): Promise<number> => {
+  const { data, error } = await (supabase.from as any)("rider_cash_collections")
+    .select("amount, status")
+    .eq("rider_id", riderId)
+    .in("status", ["pending_pickup", "collected"]);
+  if (error) return 0;
+  return (data || []).reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0);
+};
+
+export const getRiderCashCollections = async (companyId: string, riderId?: string) => {
+  let q = (supabase.from as any)("rider_cash_collections")
+    .select("*, rider:riders(id, full_name, phone), order:delivery_orders(id, customer_name, customer_address, total, payment_method)")
+    .eq("delivery_company_id", companyId)
+    .order("created_at", { ascending: false });
+  if (riderId) q = q.eq("rider_id", riderId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data || [];
+};
+
+export const settleRiderCash = async (collectionId: string, settledBy: string, notes?: string) => {
+  const { data, error } = await (supabase.from as any)("rider_cash_collections")
+    .update({
+      status: "settled",
+      settled_at: new Date().toISOString(),
+      settled_by: settledBy,
+      notes: notes || null,
+    })
+    .eq("id", collectionId)
+    .select()
+    .single();
+  if (error) throw error;
   return data;
 };
 

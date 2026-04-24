@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Search, UserCheck, Eye, XCircle, CreditCard, CheckCircle2, ExternalLink, MessageCircle, MapPin, Package, Truck } from "lucide-react";
-import { getDeliveryOrders, updateOrderStatus, assignRiderToOrder, getRiders, getOrderTracking } from "@/lib/deliveryApi";
+import { getDeliveryOrders, updateOrderStatus, assignRiderToOrder, getRiders, getOrderTracking, getRiderOutstandingCash } from "@/lib/deliveryApi";
 import { ORDER_STATUS_MAP } from "@/types/delivery.types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -102,6 +102,7 @@ const DeliveryOrders = () => {
   const [selectedRider, setSelectedRider] = useState("");
   const [tracking, setTracking] = useState<any[]>([]);
   const [paymentTx, setPaymentTx] = useState<any>(null);
+  const [riderOutstanding, setRiderOutstanding] = useState<number>(0);
 
   const load = async () => {
     if (!user) return;
@@ -118,6 +119,14 @@ const DeliveryOrders = () => {
   };
 
   useEffect(() => { load(); }, [user, statusFilter]);
+
+  // Load outstanding cash for selected rider in assign dialog
+  useEffect(() => {
+    if (!selectedRider) { setRiderOutstanding(0); return; }
+    getRiderOutstandingCash(selectedRider)
+      .then(setRiderOutstanding)
+      .catch(() => setRiderOutstanding(0));
+  }, [selectedRider]);
 
   const handleStatusUpdate = async (orderId: string, status: string) => {
     try {
@@ -290,6 +299,18 @@ const DeliveryOrders = () => {
       {!order.rider_id && order.status !== "cancelled" && (
         <Button size="sm" variant="outline" onClick={() => { setAssignOrderId(order.id); setShowAssign(true); }} className="min-h-[44px] md:min-h-0">
           <UserCheck className="w-3 h-3 ml-1" /> تعيين
+        </Button>
+      )}
+      {/* Quick WhatsApp button — only when a rider is already assigned and has a phone */}
+      {order.rider_id && order.rider?.phone && !["cancelled"].includes(order.status) && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="min-h-[44px] md:min-h-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+          onClick={() => window.open(buildRiderWhatsApp(order, order.rider.phone), "_blank")}
+          title="إرسال تفاصيل الطلب للمندوب عبر واتساب"
+        >
+          <MessageCircle className="w-3 h-3" />
         </Button>
       )}
       {order.status === "assigned" && (
@@ -674,25 +695,44 @@ const DeliveryOrders = () => {
               if (!order) return null;
               const amount = Number(order.total || 0);
               return (
-                <div className={`text-xs rounded-lg px-3 py-2 ${
-                  order.payment_method === "cash" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400" :
-                  "bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400"
-                }`}>
-                  {order.payment_method === "cash" && amount > 0
-                    ? `💵 سيتلقى المندوب إشعاراً بتحصيل ${amount.toLocaleString()} ر.ي نقداً`
-                    : order.payment_method === "bank_transfer"
-                    ? "✅ سيتلقى المندوب إشعاراً بأن الدفع تم مسبقاً"
-                    : ""}
-                  {rider?.phone && (
-                    <div className="mt-2">
-                      <button
-                        onClick={() => {
-                          if (order) window.open(buildRiderWhatsApp(order, rider.phone), "_blank");
-                        }}
-                        className="flex items-center gap-1.5 text-green-600 hover:underline font-medium"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" /> إرسال تفاصيل الطلب للمندوب عبر واتساب
-                      </button>
+                <div className="space-y-2">
+                  {/* Payment info */}
+                  <div className={`text-xs rounded-lg px-3 py-2 ${
+                    order.payment_method === "cash" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400" :
+                    "bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400"
+                  }`}>
+                    {order.payment_method === "cash" && amount > 0
+                      ? `💵 سيتلقى المندوب إشعاراً بتحصيل ${amount.toLocaleString()} ر.ي نقداً وسيُسجَّل المبلغ على حسابه`
+                      : order.payment_method === "bank_transfer"
+                      ? "✅ سيتلقى المندوب إشعاراً بأن الدفع تم مسبقاً (لن يُسجَّل أي مبلغ على حسابه)"
+                      : ""}
+                    {rider?.phone && (
+                      <div className="mt-2">
+                        <button
+                          onClick={() => {
+                            if (order) window.open(buildRiderWhatsApp(order, rider.phone), "_blank");
+                          }}
+                          className="flex items-center gap-1.5 text-green-600 hover:underline font-medium"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> إرسال تفاصيل الطلب للمندوب عبر واتساب
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rider current outstanding cash balance */}
+                  {riderOutstanding > 0 && (
+                    <div className="text-xs rounded-lg px-3 py-2 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50">
+                      <div className="flex items-center gap-1.5 font-semibold">
+                        <CreditCard className="w-3.5 h-3.5" />
+                        رصيد المندوب الحالي غير المسلَّم:
+                        <span className="font-bold">{riderOutstanding.toLocaleString()} ر.ي</span>
+                      </div>
+                      {order.payment_method === "cash" && amount > 0 && (
+                        <div className="mt-1 text-[11px] opacity-80">
+                          بعد هذا الطلب: <strong>{(riderOutstanding + amount).toLocaleString()} ر.ي</strong>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
