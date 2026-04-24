@@ -111,7 +111,10 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
   };
 
   const handleClick = (banner: any) => {
-    const dest = banner.link_url || (banner.link_tab === "more" ? "/shipments" : banner.link_tab ? `/food?tab=${banner.link_tab}` : null);
+    let dest = banner.link_url || (banner.link_tab === "more" ? "/shipments" : banner.link_tab ? `/food?tab=${banner.link_tab}` : null);
+    // Defensive: legacy banners stored in DB that still point to the old "/shipment-request"
+    // should open the new customer delivery-request flow instead.
+    if (dest === "/shipment-request") dest = "/delivery-request";
     if (dest) onNavigate(dest);
   };
 
@@ -168,7 +171,11 @@ const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url
         {offers.map((offer) => (
           <button
             key={offer.id}
-            onClick={() => { const dest = offer.link_url || "/food"; onNavigate(dest); }}
+            onClick={() => {
+              let dest = offer.link_url || "/food";
+              if (dest === "/shipment-request") dest = "/delivery-request";
+              onNavigate(dest);
+            }}
             className="relative shrink-0 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
             style={{ width: 145, height: 88 }}
           >
@@ -223,7 +230,10 @@ const DeliveryHubPage = () => {
     else if (action === "grocery") navigate("/food?tab=grocery");
     else if (action === "pharmacy") navigate("/food?tab=pharmacy");
     else if (action === "more") navigate("/shipments");
-    else if (tile.link_url) navigate(tile.link_url);
+    else if (tile.link_url) {
+      const dest = tile.link_url === "/shipment-request" ? "/delivery-request" : tile.link_url;
+      navigate(dest);
+    }
     else navigate("/food");
   };
 
