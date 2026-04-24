@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import MainLayout from "@/layouts/MainLayout";
@@ -87,7 +87,9 @@ const DeliveryOffers = lazy(() => import("./pages/delivery/DeliveryOffers"));
 const TripsPage = lazy(() => import("./pages/customer/TripsPage"));
 const TripDetailsPage = lazy(() => import("./pages/customer/TripDetailsPage"));
 const CheckoutPage = lazy(() => import("./pages/customer/CheckoutPage"));
-const ShipmentsPage = lazy(() => import("./pages/customer/ShipmentsPage"));
+// ShipmentsPage was the old supplier-based parcel flow. It is intentionally
+// no longer routed; /shipments now redirects to /delivery-request which uses
+// the delivery-company flow.
 const DeliveryRequestPage = lazy(() => import("./pages/customer/DeliveryRequestPage"));
 const DeliveriesPage = lazy(() => import("./pages/customer/DeliveriesPage"));
 const HistoryPage = lazy(() => import("./pages/customer/HistoryPage"));
@@ -154,7 +156,10 @@ const App = () => (
                 <Route path="/trips" element={<TripsPage />} />
                 <Route path="/trips/:id" element={<TripDetailsPage />} />
                 <Route path="/checkout/:tripId" element={<CheckoutPage />} />
-                <Route path="/shipments" element={<ShipmentsPage />} />
+                {/* /shipments was the old supplier-based page; redirect to the
+                   delivery-company flow so all existing tiles/links land on the
+                   correct page. */}
+                <Route path="/shipments" element={<Navigate to="/delivery-request" replace />} />
                 <Route path="/delivery-request" element={<DeliveryRequestPage />} />
                 <Route path="/deliveries" element={<DeliveriesPage />} />
                 <Route path="/restaurants" element={<DeliveryHubPage />} />
