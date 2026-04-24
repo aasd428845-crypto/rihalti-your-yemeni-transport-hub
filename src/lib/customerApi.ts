@@ -291,20 +291,36 @@ export const fetchMyShipments = async (customerId: string) => {
 };
 
 // ---- Deliveries ----
+// Returns only LOCAL delivery companies (food/parcel couriers).
+// Excludes users who are also "supplier" (i.e. inter-city transport offices
+// like "مكتب الأمانة للنقل") even if they were mistakenly granted both roles.
 export const fetchDeliveryCompanies = async () => {
-  const { data, error } = await supabase
+  // 1. All users with delivery_company role
+  const { data: dcRoles, error } = await supabase
     .from("user_roles")
     .select("user_id")
     .eq("role", "delivery_company");
   if (error) throw error;
+  if (!dcRoles || dcRoles.length === 0) return [];
 
-  if (!data || data.length === 0) return [];
+  const dcIds = dcRoles.map((r) => r.user_id);
 
-  const userIds = data.map((r) => r.user_id);
+  // 2. Of those, find which ones are ALSO supplier (transport offices)
+  const { data: supplierRoles } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "supplier")
+    .in("user_id", dcIds);
+
+  const supplierSet = new Set((supplierRoles || []).map((r: any) => r.user_id));
+  const realDcIds = dcIds.filter((id) => !supplierSet.has(id));
+  if (realDcIds.length === 0) return [];
+
+  // 3. Fetch profiles only for "pure" delivery companies
   const { data: profiles, error: pErr } = await supabase
     .from("profiles")
     .select("*")
-    .in("user_id", userIds);
+    .in("user_id", realDcIds);
   if (pErr) throw pErr;
   return profiles || [];
 };
