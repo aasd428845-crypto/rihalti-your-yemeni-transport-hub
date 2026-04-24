@@ -22,7 +22,7 @@ const DEFAULT_BANNERS = [
     subtitle: "مناديب لتوصيل طرودك وطلباتك في أسرع وقت",
     image_url: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&q=80&fit=crop",
     badge_text: "متاح الآن",
-    link_url: "/shipments",
+    link_url: "/delivery-request",
     banner_type: "carousel",
   },
   {
@@ -111,9 +111,7 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
   };
 
   const handleClick = (banner: any) => {
-    let dest = banner.link_url || (banner.link_tab === "more" ? "/shipments" : banner.link_tab ? `/food?tab=${banner.link_tab}` : null);
-    // Redirect old route to the new shipments page
-    if (dest === "/shipment-request" || dest === "/delivery-request") dest = "/shipments";
+    const dest = banner.link_url || (banner.link_tab === "more" ? "/shipments" : banner.link_tab ? `/food?tab=${banner.link_tab}` : null);
     if (dest) onNavigate(dest);
   };
 

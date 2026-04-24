@@ -88,6 +88,7 @@ const TripsPage = lazy(() => import("./pages/customer/TripsPage"));
 const TripDetailsPage = lazy(() => import("./pages/customer/TripDetailsPage"));
 const CheckoutPage = lazy(() => import("./pages/customer/CheckoutPage"));
 const ShipmentsPage = lazy(() => import("./pages/customer/ShipmentsPage"));
+const DeliveryRequestPage = lazy(() => import("./pages/customer/DeliveryRequestPage"));
 const DeliveriesPage = lazy(() => import("./pages/customer/DeliveriesPage"));
 const HistoryPage = lazy(() => import("./pages/customer/HistoryPage"));
 const AccountPage = lazy(() => import("./pages/customer/AccountPage"));
@@ -154,6 +155,7 @@ const App = () => (
                 <Route path="/trips/:id" element={<TripDetailsPage />} />
                 <Route path="/checkout/:tripId" element={<CheckoutPage />} />
                 <Route path="/shipments" element={<ShipmentsPage />} />
+                <Route path="/delivery-request" element={<DeliveryRequestPage />} />
                 <Route path="/deliveries" element={<DeliveriesPage />} />
                 <Route path="/restaurants" element={<DeliveryHubPage />} />
                 <Route path="/delivery-hub" element={<DeliveryHubPage />} />
