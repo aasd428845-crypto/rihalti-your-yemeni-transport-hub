@@ -165,7 +165,7 @@ const PhoneRegisterForm = () => {
           </div>
 
           <Button
-            className="w-full h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90"
+            className="w-full h-11 bg-primary text-primary-foreground font-bold hover:bg-primary/90 disabled:opacity-60"
             onClick={handleSendOtp}
             disabled={loading || phoneNumber.length !== 9}
           >
@@ -201,7 +201,7 @@ const PhoneRegisterForm = () => {
           </div>
 
           <Button
-            className="w-full h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90"
+            className="w-full h-11 bg-primary text-primary-foreground font-bold hover:bg-primary/90 disabled:opacity-60"
             onClick={handleVerifyOtp}
             disabled={loading || otpCode.length !== 6}
           >
