@@ -198,10 +198,19 @@ const PaymentPage = () => {
 
     // Partner bank transfer (partner's own accounts)
     if (partnerBankAccounts.length > 0) {
+      const isDelivery = entityType === "delivery";
       methods.push({
         value: "partner_transfer",
-        label: isBooking ? "تحويل إلى حساب صاحب المكتب" : "تحويل بنكي إلى الشريك",
-        description: isBooking ? "حوّل المبلغ إلى الحساب البنكي لصاحب المكتب" : "حوّل المبلغ مباشرة إلى حساب مقدم الخدمة",
+        label: isBooking
+          ? "تحويل إلى حساب صاحب المكتب"
+          : isDelivery
+            ? "تحويل بنكي إلى شركة التوصيل"
+            : "تحويل بنكي إلى الشريك",
+        description: isBooking
+          ? "حوّل المبلغ إلى الحساب البنكي لصاحب المكتب"
+          : isDelivery
+            ? "حوّل المبلغ مباشرة إلى حساب شركة التوصيل"
+            : "حوّل المبلغ مباشرة إلى حساب مقدم الخدمة",
       });
     }
 
@@ -285,11 +294,16 @@ const PaymentPage = () => {
       }
 
       if (entityType === "delivery") {
-        await supabase.from("delivery_orders").update({
+        const updates: any = {
           payment_method: payMethodDb,
           payment_status: "pending",
           barcode,
-        } as any).eq("id", entityId);
+        };
+        // If the order was awaiting customer's payment choice (status="priced"), advance it
+        if ((entity as any)?.status === "priced") {
+          updates.status = "confirmed";
+        }
+        await supabase.from("delivery_orders").update(updates).eq("id", entityId);
       }
 
       // Create financial transaction
@@ -489,7 +503,9 @@ const PaymentPage = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Building2 className="w-5 h-5" />
-                {paymentMethod === "partner_transfer" ? "حساب صاحب المكتب" : "حسابات المنصة"}
+                {paymentMethod === "partner_transfer"
+                  ? (entityType === "delivery" ? "حساب شركة التوصيل" : "حساب صاحب المكتب")
+                  : "حسابات المنصة"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">

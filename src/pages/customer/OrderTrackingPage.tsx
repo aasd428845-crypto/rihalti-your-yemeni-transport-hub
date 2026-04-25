@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Package, Clock, CheckCircle, Truck, MapPin, Phone, Star, ChefHat, ArrowRight, DollarSign, Wallet, Banknote, CreditCard } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, MapPin, Phone, Star, ChefHat, ArrowRight, DollarSign, CreditCard } from "lucide-react";
 import BackButton from "@/components/common/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,10 +35,6 @@ const OrderTrackingPage = () => {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [companyBanks, setCompanyBanks] = useState<any[]>([]);
-  const [cashEnabled, setCashEnabled] = useState(true);
-  const [savingPayment, setSavingPayment] = useState(false);
-
   useEffect(() => {
     if (!id) return;
     const load = async () => {
@@ -57,20 +53,6 @@ const OrderTrackingPage = () => {
             .eq("id", data.restaurant_id)
             .single();
           setRestaurant(r);
-        }
-        // Load company payment options for payment selection card
-        if (data.delivery_company_id) {
-          const [{ data: settings }, { data: banks }] = await Promise.all([
-            supabase.from("partner_settings" as any)
-              .select("cash_on_delivery_enabled")
-              .eq("partner_id", data.delivery_company_id)
-              .maybeSingle(),
-            supabase.from("partner_bank_accounts")
-              .select("*")
-              .eq("partner_id", data.delivery_company_id),
-          ]);
-          if (settings) setCashEnabled((settings as any).cash_on_delivery_enabled ?? true);
-          setCompanyBanks(banks || []);
         }
       } catch (err: any) {
         toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -95,49 +77,6 @@ const OrderTrackingPage = () => {
   }, [id]);
 
   const currentStepIndex = statusSteps.findIndex(s => s.key === order?.status);
-
-  const choosePayment = async (method: "cash" | "bank_transfer") => {
-    if (!order?.id) return;
-    setSavingPayment(true);
-    try {
-      const { data, error } = await supabase
-        .from("delivery_orders")
-        .update({
-          payment_method: method,
-          status: "confirmed",
-          payment_status: method === "bank_transfer" ? "pending" : "pending",
-        })
-        .eq("id", order.id)
-        .select()
-        .single();
-      if (error) throw error;
-      setOrder(data);
-
-      // Notify the company that customer chose
-      if (order.delivery_company_id) {
-        try {
-          await (supabase.from as any)("notifications").insert({
-            user_id: order.delivery_company_id,
-            title: "💳 العميل اختار طريقة الدفع",
-            body: `${order.customer_name || "العميل"} اختار: ${method === "cash" ? "نقداً عند الاستلام" : "تحويل بنكي"} — المبلغ: ${Number(order.total).toLocaleString()} ر.ي`,
-            data: { type: "payment_chosen", order_id: order.id, url: "/delivery/orders" },
-            is_read: false,
-          });
-        } catch (_) {}
-      }
-
-      toast({
-        title: "تم تأكيد طريقة الدفع",
-        description: method === "cash"
-          ? "سيقوم المندوب بتحصيل المبلغ عند الاستلام"
-          : "يرجى تحويل المبلغ إلى أحد حسابات الشركة المعروضة",
-      });
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      setSavingPayment(false);
-    }
-  };
 
   const needsPaymentChoice = order?.status === "priced" && !order?.payment_method;
 
@@ -241,13 +180,13 @@ const OrderTrackingPage = () => {
           </Card>
         )}
 
-        {/* Payment Selection (after company prices the order) */}
+        {/* Payment CTA (after company prices the order) — routes to unified payment page */}
         {needsPaymentChoice && (
           <Card className="mb-6 border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-amber-600" />
-                تم تسعير طلبك — اختر طريقة الدفع
+                تم تسعير طلبك — أكمل الدفع
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -255,59 +194,15 @@ const OrderTrackingPage = () => {
                 <p className="text-xs text-muted-foreground">المبلغ المطلوب</p>
                 <p className="text-2xl font-black text-primary">{Number(order.total).toLocaleString()} ر.ي</p>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {cashEnabled && (
-                  <Button
-                    variant="outline"
-                    className="h-auto py-4 flex-col gap-2 border-2 hover:border-primary"
-                    onClick={() => choosePayment("cash")}
-                    disabled={savingPayment}
-                  >
-                    <Banknote className="w-7 h-7 text-green-600" />
-                    <span className="font-bold">نقداً عند الاستلام</span>
-                    <span className="text-[11px] text-muted-foreground">يدفع عند وصول المندوب</span>
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  className="h-auto py-4 flex-col gap-2 border-2 hover:border-primary"
-                  onClick={() => choosePayment("bank_transfer")}
-                  disabled={savingPayment}
-                >
-                  <CreditCard className="w-7 h-7 text-blue-600" />
-                  <span className="font-bold">تحويل بنكي</span>
-                  <span className="text-[11px] text-muted-foreground">دفع مسبق على حساب الشركة</span>
-                </Button>
-              </div>
-
-              {!cashEnabled && (
-                <p className="text-xs text-amber-700 bg-amber-100 dark:bg-amber-950/40 rounded-lg px-3 py-2">
-                  ⚠️ شركة التوصيل تقبل الدفع بالتحويل البنكي فقط.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Bank Accounts (after customer chose bank_transfer) */}
-        {order?.payment_method === "bank_transfer" && companyBanks.length > 0 && (
-          <Card className="mb-6 border-green-300 dark:border-green-800 bg-green-50/40 dark:bg-green-950/20">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-green-600" /> حوّل المبلغ إلى أحد هذه الحسابات
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {companyBanks.map((b: any) => (
-                <div key={b.id} className="bg-card border rounded-lg p-3 text-sm space-y-1">
-                  <p className="font-bold">{b.bank_name} — {b.account_name}</p>
-                  <p className="text-muted-foreground" dir="ltr">رقم الحساب: {b.account_number}</p>
-                  {b.iban && <p className="text-muted-foreground" dir="ltr">IBAN: {b.iban}</p>}
-                </div>
-              ))}
-              <p className="text-[11px] text-muted-foreground mt-2">
-                💡 احتفظ بإيصال التحويل وأرسله لشركة التوصيل لتأكيد الدفع.
+              <Button
+                className="w-full h-12 text-base font-bold"
+                onClick={() => navigate(`/payment/delivery/${order.id}`)}
+              >
+                <CreditCard className="w-5 h-5 ml-2" />
+                إتمام الدفع
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                ستختار طريقة الدفع وترفع إيصال التحويل في الصفحة التالية.
               </p>
             </CardContent>
           </Card>
