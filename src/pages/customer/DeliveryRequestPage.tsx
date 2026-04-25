@@ -540,6 +540,34 @@ const DeliveryRequestPage = () => {
               </CardContent>
             </Card>
 
+            {/* Role — moved up so the rest of the flow auto-fills */}
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm font-bold mb-1 flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary" /> أنت في هذا الطلب؟
+                </p>
+                <p className="text-[11px] text-muted-foreground mb-3">
+                  حدد دورك وسنملأ بياناتك تلقائياً في الخطوات التالية.
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { key: "sender",   label: "أنا المرسِل",  emoji: "📤", hint: "أنا من سيُسلِّم الطرد" },
+                    { key: "receiver", label: "أنا المستلِم", emoji: "📥", hint: "أنا من سيستلم الطرد" },
+                    { key: "third",    label: "طرف آخر",      emoji: "🔄", hint: "بين شخصين آخرين" },
+                  ] as const).map(r => (
+                    <button key={r.key} onClick={() => setUserRole(r.key)}
+                      className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 text-xs font-medium transition-all ${
+                        userRole === r.key ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/40"
+                      }`}>
+                      <span className="text-2xl">{r.emoji}</span>
+                      <span className="font-bold">{r.label}</span>
+                      <span className="text-[9px] opacity-70">{r.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Delivery companies */}
             <Card>
               <CardContent className="p-4">
@@ -751,28 +779,19 @@ const DeliveryRequestPage = () => {
         {step === 4 && (
           <div className="space-y-4">
 
-            {/* Role */}
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-sm font-bold mb-3 flex items-center gap-2">
-                  <User className="w-4 h-4 text-primary" /> أنت في هذا الطلب؟
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {([
-                    { key: "sender",   label: "أنا المرسِل",  emoji: "📤" },
-                    { key: "receiver", label: "أنا المستلِم", emoji: "📥" },
-                    { key: "third",    label: "طرف آخر",      emoji: "🔄" },
-                  ] as const).map(r => (
-                    <button key={r.key} onClick={() => setUserRole(r.key)}
-                      className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 text-xs font-medium transition-all ${
-                        userRole === r.key ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"
-                      }`}>
-                      <span className="text-2xl">{r.emoji}</span>{r.label}
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Role recap (chosen in step 1) */}
+            <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-3 text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <User className="w-4 h-4 text-primary" />
+                دورك في الطلب
+              </span>
+              <Badge variant="secondary" className="gap-1 font-bold">
+                {userRole === "sender" ? "📤 أنا المرسِل"
+                  : userRole === "receiver" ? "📥 أنا المستلِم"
+                  : "🔄 طرف آخر"}
+                <button onClick={() => setStep(1)} className="text-[10px] text-primary underline mr-1">تعديل</button>
+              </Badge>
+            </div>
 
             {/* Sender */}
             <Card>
