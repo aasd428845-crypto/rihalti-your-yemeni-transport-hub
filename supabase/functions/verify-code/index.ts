@@ -5,26 +5,32 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { phone_number, code } = await req.json();
+    const { phone_number, code } = await req.json().catch(() => ({}));
     if (!phone_number || !code) {
-      return new Response(JSON.stringify({ error: "رقم الهاتف والرمز مطلوبان" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "رقم الهاتف والرمز مطلوبان" });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceKey) {
+      return json({ error: "إعدادات الخادم غير مكتملة" });
+    }
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Get latest code for this phone
-    const { data: codeRecord, error: fetchError } = await supabase
+    const { data: codeRecord } = await supabase
       .from("verification_codes")
       .select("*")
       .eq("phone_number", phone_number)
@@ -33,24 +39,15 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!codeRecord) {
-      return new Response(JSON.stringify({ error: "لم يتم العثور على رمز تحقق" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "لم يتم العثور على رمز تحقق. يرجى إعادة إرسال الرمز" });
     }
 
     if (new Date(codeRecord.expires_at) < new Date()) {
-      return new Response(JSON.stringify({ error: "انتهت صلاحية رمز التحقق" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "انتهت صلاحية رمز التحقق. يرجى إعادة إرسال الرمز" });
     }
 
     if ((codeRecord.attempts || 0) >= 3) {
-      return new Response(JSON.stringify({ error: "تجاوزت الحد الأقصى للمحاولات. أعد إرسال الرمز" }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "تجاوزت الحد الأقصى للمحاولات. يرجى إعادة إرسال الرمز" });
     }
 
     // Increment attempts
@@ -60,10 +57,7 @@ Deno.serve(async (req) => {
       .eq("id", codeRecord.id);
 
     if (codeRecord.code !== code) {
-      return new Response(JSON.stringify({ error: "رمز التحقق غير صحيح" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "رمز التحقق غير صحيح" });
     }
 
     // Code is valid - create or get user via admin API
@@ -91,9 +85,10 @@ Deno.serve(async (req) => {
       });
 
       if (createError || !newUser.user) {
-        return new Response(JSON.stringify({ error: "فشل في إنشاء الحساب" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        console.error("createUser error:", createError);
+        return json({
+          error: "فشل في إنشاء الحساب",
+          details: createError?.message,
         });
       }
       userId = newUser.user.id;
@@ -101,30 +96,35 @@ Deno.serve(async (req) => {
     }
 
     // Generate a session token
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
-      type: "magiclink",
-      email,
-    });
+    const { data: sessionData, error: linkError } =
+      await supabase.auth.admin.generateLink({
+        type: "magiclink",
+        email,
+      });
+
+    if (linkError) {
+      console.error("generateLink error:", linkError);
+      return json({
+        error: "فشل في إنشاء جلسة الدخول",
+        details: linkError.message,
+      });
+    }
 
     // Clean up verification code
     await supabase.from("verification_codes").delete().eq("id", codeRecord.id);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        user_id: userId,
-        is_new_user: isNewUser,
-        // Return token for client-side session
-        token_hash: sessionData?.properties?.hashed_token,
-        email,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (err) {
+    return json({
+      success: true,
+      user_id: userId,
+      is_new_user: isNewUser,
+      token_hash: sessionData?.properties?.hashed_token,
+      email,
+    });
+  } catch (err: any) {
     console.error("verify-code error:", err);
-    return new Response(JSON.stringify({ error: "خطأ في الخادم" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return json({
+      error: "خطأ غير متوقع في الخادم",
+      details: String(err?.message || err),
     });
   }
 });

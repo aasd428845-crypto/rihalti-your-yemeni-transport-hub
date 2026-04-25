@@ -44,16 +44,37 @@ const PhoneRegisterForm = () => {
         body: { phone_number: fullPhone },
       });
 
-      if (error) throw error;
-      if (data?.error) {
-        toast({ title: "خطأ", description: data.error, variant: "destructive" });
+      // Even if the function returned a non-2xx, supabase-js may wrap the body
+      // inside `error.context` (a Response). Try to extract a useful message.
+      let payload: any = data;
+      if (error && (error as any).context) {
+        try {
+          payload = await (error as any).context.json();
+        } catch {
+          payload = null;
+        }
+      }
+
+      const errMsg = payload?.error || (error ? String((error as any).message || error) : null);
+
+      if (errMsg) {
+        toast({
+          title: "تعذّر إرسال الرمز",
+          description: errMsg,
+          variant: "destructive",
+          duration: 8000,
+        });
       } else {
         setOtpSent(true);
         startCountdown();
         toast({ title: "تم الإرسال", description: "تم إرسال رمز التحقق إلى واتساب الخاص بك" });
       }
     } catch (err: any) {
-      toast({ title: "خطأ", description: err?.message || "فشل في إرسال الرمز", variant: "destructive" });
+      toast({
+        title: "خطأ في الاتصال",
+        description: err?.message || "تعذّر الاتصال بخدمة التحقق. تأكد من اتصالك بالإنترنت.",
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };
@@ -70,14 +91,26 @@ const PhoneRegisterForm = () => {
         body: { phone_number: fullPhone, code: otpCode },
       });
 
-      if (error) throw error;
-      if (data?.error) {
-        toast({ title: "خطأ", description: data.error, variant: "destructive" });
+      // Read body even on non-2xx
+      let payload: any = data;
+      if (error && (error as any).context) {
+        try {
+          payload = await (error as any).context.json();
+        } catch {
+          payload = null;
+        }
+      }
+
+      const errMsg = payload?.error || (error ? String((error as any).message || error) : null);
+
+      if (errMsg) {
+        toast({ title: "خطأ في التحقق", description: errMsg, variant: "destructive", duration: 8000 });
         setLoading(false);
         return;
       }
 
-      if (data?.success && data?.email && data?.token_hash) {
+      if (payload?.success && payload?.email && payload?.token_hash) {
+        const data: any = payload;
         // Verify the magic link token to establish session
         const { error: verifyError } = await supabase.auth.verifyOtp({
           token_hash: data.token_hash,
