@@ -56,3 +56,17 @@ The following env vars are set in Replit (shared environment):
 - Replaced `@lovable.dev/cloud-auth-js` with Supabase native OAuth
 - Supabase remains the backend (deep integration — not replaced with Neon/Drizzle)
 - All env vars configured via Replit shared environment
+
+## Delivery Pricing Center (Apr 2026)
+- New page `/delivery/pricing` (`src/pages/delivery/DeliveryPricing.tsx`) added to the delivery company dashboard with three tabs:
+  1. **طلبات التسعير** — Inbox of customer delivery requests where the location wasn't pinned. Company sets a price → updates `delivery_orders` (status="priced", total/delivery_fee) and notifies the customer.
+  2. **تسعير طلبات التوصيل** — Company-wide per-km + minimum-fee for delivery requests (writes `partner_settings.price_per_km`/`min_delivery_fee`).
+  3. **تسعير المطاعم** — Inline per-restaurant `price_per_km` editor (writes `restaurants.price_per_km`).
+- Sidebar menu item "مركز التسعير" (Calculator icon) at `/delivery/pricing`.
+
+## DeliveryRequestPage Step 4 — Payment Flow
+- Loads each delivery company's `cash_on_delivery_enabled` and `partner_bank_accounts` when a company is selected.
+- Cash option hidden if the company disables cash; bank-transfer view shows the company's actual bank accounts inline.
+- When customer hasn't pinned both locations, the order is sent as `awaiting_pricing=true` with `delivery_fee=0`, `payment_method=null`. Company gets a notification routed to `/delivery/pricing`.
+- After pricing, the customer gets an in-app + toast notification; clicking opens `/order/track/delivery/:id` where a payment-selection card appears (cash + bank transfer based on company settings) and shows the company's bank accounts after bank-transfer is chosen.
+- Choosing payment writes `payment_method` + `status="confirmed"` and notifies the company.

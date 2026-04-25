@@ -212,6 +212,8 @@ const DeliveryRequestPage = () => {
   const [pricePerKm, setPricePerKm] = useState(0);
   const [minFee, setMinFee] = useState(0);
   const [companyOfferMap, setCompanyOfferMap] = useState<Record<string, DeliveryOffer[]>>({});
+  const [cashEnabled, setCashEnabled] = useState(true);
+  const [companyBanks, setCompanyBanks] = useState<any[]>([]);
 
   // Step 2: Pickup
   const [pickup, setPickup] = useState({ address: "", lat: 0, lng: 0, landmark: "" });
@@ -239,15 +241,20 @@ const DeliveryRequestPage = () => {
   useEffect(() => {
     if (!selectedCompany?.user_id) return;
     supabase.from("partner_settings" as any)
-      .select("price_per_km, min_delivery_fee")
+      .select("price_per_km, min_delivery_fee, cash_on_delivery_enabled")
       .eq("partner_id", selectedCompany.user_id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           setPricePerKm(Number((data as any).price_per_km ?? 0));
           setMinFee(Number((data as any).min_delivery_fee ?? 0));
-        } else { setPricePerKm(0); setMinFee(0); }
+          setCashEnabled((data as any).cash_on_delivery_enabled ?? true);
+        } else { setPricePerKm(0); setMinFee(0); setCashEnabled(true); }
       });
+    supabase.from("partner_bank_accounts")
+      .select("*")
+      .eq("partner_id", selectedCompany.user_id)
+      .then(({ data }) => setCompanyBanks(data || []));
     getDeliveryOffers(selectedCompany.user_id)
       .then(offers => { setCompanyOffers(offers.filter(o => o.is_active)); setSelectedOffer(null); })
       .catch(() => setCompanyOffers([]));
@@ -300,6 +307,14 @@ const DeliveryRequestPage = () => {
   }, [estimatedFee, selectedOffer]);
 
   const bothLocationsSet = pickup.lat !== 0 && dropoff.lat !== 0;
+  const awaitingPricing = estimatedFee === null;
+
+  // If cash gets disabled by company and was selected, default to bank_transfer
+  useEffect(() => {
+    if (!cashEnabled && item.payment_method === "cash") {
+      setItem(i => ({ ...i, payment_method: "bank_transfer" }));
+    }
+  }, [cashEnabled]);
 
   const validateStep = (): string | null => {
     if (step === 1 && !selectedCompany) return "اختر شركة التوصيل أولاً";
@@ -360,13 +375,10 @@ const DeliveryRequestPage = () => {
         offer_applied: selectedOffer?.title || null,
         price_per_km: pricePerKm,
         distance_km: distanceKm?.toFixed(2) || null,
+        awaiting_pricing: awaitingPricing,
       }];
 
-      const paymentStatus =
-        item.payment_method === "bank_transfer" ? "pending" :
-        item.payment_method === "cash" ? "pending" : "pending";
-
-      const orderPayload = {
+      const orderPayload: any = {
         delivery_company_id: selectedCompany.user_id,
         customer_id: user.id,
         customer_name: sender.name,
@@ -376,8 +388,8 @@ const DeliveryRequestPage = () => {
         delivery_lng: dropoff.lng || null,
         total: fee,
         delivery_fee: fee,
-        payment_method: item.payment_method,
-        payment_status: paymentStatus,
+        payment_method: awaitingPricing ? null : item.payment_method,
+        payment_status: "pending",
         status: "pending",
         items: orderItems,
         notes: item.notes || null,
@@ -385,13 +397,19 @@ const DeliveryRequestPage = () => {
 
       const result = await createDeliveryOrder(orderPayload);
 
-      // Notify delivery company
+      // Notify delivery company — send to pricing center if awaiting pricing
       try {
         await (supabase.from as any)("notifications").insert({
           user_id: selectedCompany.user_id,
-          title: "🚚 طلب توصيل جديد!",
-          body: `${sender.name} — ${svcLabel} من ${pickup.address}`,
-          data: { type: "new_delivery_request", url: "/delivery/orders", order_id: result.id },
+          title: awaitingPricing ? "💰 طلب تسعير جديد!" : "🚚 طلب توصيل جديد!",
+          body: awaitingPricing
+            ? `${sender.name} يطلب تسعير ${svcLabel} من ${pickup.address || "موقع غير محدد"}`
+            : `${sender.name} — ${svcLabel} من ${pickup.address}`,
+          data: {
+            type: awaitingPricing ? "pricing_request" : "new_delivery_request",
+            url: awaitingPricing ? "/delivery/pricing" : "/delivery/orders",
+            order_id: result.id,
+          },
           is_read: false,
         });
       } catch (_) {}
@@ -859,23 +877,56 @@ const DeliveryRequestPage = () => {
                 </div>
                 <div>
                   <Label className="text-xs mb-1 block">طريقة الدفع</Label>
-                  <Select value={item.payment_method} onValueChange={v => setItem(i => ({ ...i, payment_method: v }))}>
-                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">💵 نقداً عند الاستلام</SelectItem>
-                      <SelectItem value="bank_transfer">🏦 تحويل بنكي — تم الدفع مسبقاً</SelectItem>
-                      <SelectItem value="card">💳 بطاقة</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {item.payment_method === "cash" && finalFee !== null && finalFee > 0 && (
-                    <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-3 py-2 mt-2 flex items-center gap-2">
-                      💵 سيقوم المندوب بتحصيل <strong>{finalFee.toLocaleString()} ر.ي</strong> عند الاستلام
+                  {awaitingPricing ? (
+                    <p className="text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-lg px-3 py-3 flex items-start gap-2">
+                      <span className="text-base">📩</span>
+                      <span>
+                        <strong>سيصلك السعر من شركة التوصيل قريباً.</strong>
+                        <br />
+                        بعد استلام السعر، ستفتح صفحة الطلب لتختار طريقة الدفع المناسبة لك.
+                      </span>
                     </p>
-                  )}
-                  {item.payment_method === "bank_transfer" && (
-                    <p className="text-xs text-green-600 bg-green-50 dark:bg-green-950/20 rounded-lg px-3 py-2 mt-2 flex items-center gap-2">
-                      ✅ تم الدفع — سيتم إبلاغ المندوب بذلك
-                    </p>
+                  ) : (
+                    <>
+                      <Select value={item.payment_method} onValueChange={v => setItem(i => ({ ...i, payment_method: v }))}>
+                        <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {cashEnabled && <SelectItem value="cash">💵 نقداً عند الاستلام</SelectItem>}
+                          <SelectItem value="bank_transfer">🏦 تحويل بنكي — دفع مسبق</SelectItem>
+                          <SelectItem value="card">💳 بطاقة</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {!cashEnabled && (
+                        <p className="text-[11px] text-amber-700 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-3 py-2 mt-2">
+                          ⚠️ شركة التوصيل لا تقبل الدفع نقداً — يجب الدفع مسبقاً بالتحويل البنكي.
+                        </p>
+                      )}
+                      {item.payment_method === "cash" && finalFee !== null && finalFee > 0 && (
+                        <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-3 py-2 mt-2 flex items-center gap-2">
+                          💵 سيقوم المندوب بتحصيل <strong>{finalFee.toLocaleString()} ر.ي</strong> عند الاستلام
+                        </p>
+                      )}
+                      {item.payment_method === "bank_transfer" && (
+                        <div className="mt-2 space-y-2">
+                          <p className="text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20 rounded-lg px-3 py-2">
+                            🏦 حوّل المبلغ إلى أحد حسابات شركة التوصيل التالية:
+                          </p>
+                          {companyBanks.length === 0 ? (
+                            <p className="text-[11px] text-amber-700 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-3 py-2">
+                              ⚠️ لم تضِف الشركة حساباتها البنكية بعد — تواصل معها مباشرة.
+                            </p>
+                          ) : (
+                            companyBanks.map(b => (
+                              <div key={b.id} className="rounded-lg border border-green-200 dark:border-green-900/50 bg-card p-2.5 text-xs space-y-1">
+                                <p className="font-bold">{b.bank_name} — {b.account_name}</p>
+                                <p className="text-muted-foreground" dir="ltr">رقم الحساب: {b.account_number}</p>
+                                {b.iban && <p className="text-muted-foreground" dir="ltr">IBAN: {b.iban}</p>}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </CardContent>
@@ -915,10 +966,16 @@ const DeliveryRequestPage = () => {
                     <p className="text-[11px] text-muted-foreground">* السعر النهائي يُؤكَّد من شركة التوصيل</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-2">
-                    {!bothLocationsSet ? "لم تحدد الموقعين — سيرسل لك المندوب سعراً مخصصاً" :
-                     pricePerKm > 0 ? "جارٍ احتساب السعر..." : "سيصلك سعر من شركة التوصيل"}
-                  </p>
+                  <div className="text-center py-2 space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      {!bothLocationsSet
+                        ? "📩 لم تحدد الموقعين — سيُرسل طلبك إلى مركز تسعير الشركة"
+                        : pricePerKm > 0 ? "جارٍ احتساب السعر..." : "📩 سيصلك سعر من شركة التوصيل"}
+                    </p>
+                    <p className="text-[11px] text-blue-700 dark:text-blue-400">
+                      ستستلم إشعاراً فور تسعير طلبك ثم تختار طريقة الدفع.
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -943,7 +1000,7 @@ const DeliveryRequestPage = () => {
               <Button className="h-12 text-base gap-2" onClick={handleSubmit} disabled={submitting}>
                 {submitting
                   ? <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-                  : <><Send className="w-4 h-4" />{finalFee !== null ? `اطلب الآن · ~${finalFee.toLocaleString()} ر.ي` : "إرسال الطلب"}</>}
+                  : <><Send className="w-4 h-4" />{finalFee !== null ? `اطلب الآن · ~${finalFee.toLocaleString()} ر.ي` : "أرسل طلب التسعير"}</>}
               </Button>
             </div>
           </div>

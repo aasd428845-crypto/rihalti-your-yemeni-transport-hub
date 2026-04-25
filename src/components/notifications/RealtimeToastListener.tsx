@@ -110,6 +110,7 @@ const RealtimeToastListener = () => {
         const statusMessages: Record<string, string> = {
           confirmed: "تم تأكيد طلبك ✅",
           accepted: "تم قبول طلب التوصيل ✅",
+          priced: "💰 تم تسعير طلبك — اختر طريقة الدفع",
           preparing: "جاري تحضير طلبك 🍳",
           assigned: "تم تعيين سائق لطلبك 🏍️",
           picked_up: "تم استلام طلبك 📦",
@@ -126,8 +127,11 @@ const RealtimeToastListener = () => {
           }
           toast(msg, {
             icon: <Bike className="w-4 h-4 text-primary" />,
-            action: { label: "تتبع الطلب", onClick: () => navigate(`/order/delivery/${d.id}`) },
-            duration: 8000,
+            action: {
+              label: d.status === "priced" ? "اختر طريقة الدفع" : "تتبع الطلب",
+              onClick: () => navigate(`/order/track/delivery/${d.id}`),
+            },
+            duration: d.status === "priced" ? 14000 : 8000,
           });
         }
       }
