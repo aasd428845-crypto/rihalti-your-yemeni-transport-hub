@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, X, ArrowRight } from "lucide-react";
+import { Search, X, ArrowRight, Bell, MapPin } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import waslLogo from "@/assets/wasl-logo.png";
@@ -18,20 +18,22 @@ const SuperAppHeader = () => {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [firstName, setFirstName] = useState<string>("");
+  const [city, setCity] = useState<string>("");
   const detail = isDetailPage(location.pathname);
 
-  // Load user's first name for greeting
+  // Load user's first name + city for greeting
   useEffect(() => {
-    if (!user) { setFirstName(""); return; }
+    if (!user) { setFirstName(""); setCity(""); return; }
     supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, city")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (data?.full_name) {
           setFirstName(data.full_name.split(" ")[0]);
         }
+        if (data?.city) setCity(data.city);
       });
   }, [user?.id]);
 
@@ -64,17 +66,35 @@ const SuperAppHeader = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {/* ── Greeting row (only for logged-in users) ── */}
-            {user && firstName && (
-              <p className="text-sm font-semibold text-foreground">
-                مرحباً، <span className="text-primary">{firstName}</span> 👋
-              </p>
-            )}
-            {user && !firstName && (
-              <p className="text-sm font-semibold text-foreground">
-                مرحباً 👋
-              </p>
-            )}
+            {/* ── Greeting + Location + Notifications row ── */}
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => navigate("/addresses")}
+                className="flex items-center gap-1.5 text-right min-w-0"
+                aria-label="تغيير الموقع"
+              >
+                <MapPin className="w-4 h-4 text-primary shrink-0" />
+                <div className="min-w-0">
+                  {user && firstName ? (
+                    <p className="text-[11px] text-muted-foreground leading-tight truncate">
+                      مرحباً، <span className="text-primary font-bold">{firstName}</span> 👋
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground leading-tight">التوصيل إلى</p>
+                  )}
+                  <p className="text-sm font-bold text-foreground leading-tight truncate">
+                    {city || "حدد موقعك"}
+                  </p>
+                </div>
+              </button>
+              <button
+                onClick={() => navigate("/notifications")}
+                className="relative w-9 h-9 rounded-full bg-muted/60 hover:bg-muted flex items-center justify-center transition-colors shrink-0"
+                aria-label="الإشعارات"
+              >
+                <Bell className="w-4.5 h-4.5 text-foreground" />
+              </button>
+            </div>
 
             {/* ── Search Bar ── */}
             <form onSubmit={handleSearch} className="relative">

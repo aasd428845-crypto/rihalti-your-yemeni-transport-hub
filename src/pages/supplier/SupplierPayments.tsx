@@ -91,10 +91,10 @@ const SupplierPayments = () => {
       let receiptUrl = "";
       if (receiptFile) {
         const ext = receiptFile.name.split(".").pop();
-        const path = `${user.id}/${payInvoice.id}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("payment-receipts").upload(path, receiptFile, { upsert: true });
+        const path = `payment-receipts/${user.id}/${payInvoice.id}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("trip-images").upload(path, receiptFile, { upsert: true });
         if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from("payment-receipts").getPublicUrl(path);
+        const { data: urlData } = supabase.storage.from("trip-images").getPublicUrl(path);
         receiptUrl = urlData.publicUrl;
       }
 

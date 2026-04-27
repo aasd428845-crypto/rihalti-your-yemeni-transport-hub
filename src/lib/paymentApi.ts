@@ -153,13 +153,13 @@ export const getEntityDetails = async (entityType: string, entityId: string) => 
 
 export const uploadPaymentReceipt = async (userId: string, file: File) => {
   const ext = file.name.split(".").pop();
-  const path = `${userId}/${Date.now()}.${ext}`;
+  const path = `payment-receipts/${userId}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage
-    .from("payment-receipts")
+    .from("trip-images")
     .upload(path, file);
   if (error) throw error;
   const { data: urlData } = supabase.storage
-    .from("payment-receipts")
+    .from("trip-images")
     .getPublicUrl(path);
   return urlData.publicUrl;
 };

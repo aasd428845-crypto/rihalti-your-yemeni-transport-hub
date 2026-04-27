@@ -888,7 +888,7 @@ const DeliveryRequestPage = () => {
                 </div>
                 <div>
                   <Label className="text-xs mb-1.5 flex items-center gap-1 block"><ImageIcon className="w-3 h-3" /> صورة الطرد (اختياري)</Label>
-                  <ImageUpload value={item.image_url} onChange={url => setItem(i => ({ ...i, image_url: url }))} bucket="restaurant-images" folder="shipments" />
+                  <ImageUpload value={item.image_url} onChange={url => setItem(i => ({ ...i, image_url: url }))} bucket="trip-images" folder="delivery-parcels" />
                 </div>
                 <div>
                   <Label className="text-xs mb-1 block">ملاحظات إضافية</Label>
