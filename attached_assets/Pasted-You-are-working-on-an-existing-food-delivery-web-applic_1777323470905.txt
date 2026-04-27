@@ -1,0 +1,155 @@
+You are working on an existing food delivery web application, built with React (or similar), and already connected to a control panel (administrator panel).
+
+Important:
+
+Do not disable or remove any existing functionality.
+
+Only modify the API structure when necessary.
+
+Improve the user interface and user experience, and extend functionality securely.
+
+🎯 Goal:
+
+Upgrade the home delivery page to a modern, sleek, and distinctive user interface, similar to global apps (Talabat, Jahez, Hunger Station), while maintaining full compatibility with the existing backend and control panel.
+
+ 📱 Main Delivery Requirements:
+
+Title:
+
+Display user location (from current system)
+
+Notifications icon
+
+Stylish search bar with rounded edges
+
+Main Banner (Dynamic):
+
+Use existing banners from the control panel
+
+Support for multiple types:
+
+Restaurant → Open restaurant page
+
+Delivery → Open delivery form
+
+Category → Filter restaurants
+
+Add an auto-scroll bar with smooth movement
+
+Sections (Dynamic from API):
+
+🔥 Popular Items Section:
+
+Title: "Popular Items"
+
+Source and: Items where isPopular = true
+
+Horizontal scrolling cards
+
+⭐ Featured Section:
+
+Title: "Featured for You"
+
+Items where isFeatured = true
+
+🍔 Categories Section:
+
+Circular icons
+
+Horizontal scrolling
+
+From existing categories
+
+🏪 Nearby Restaurants:
+
+Design Card:
+
+Image
+
+Name
+
+Rating
+
+Delivery Time
+
+Fees  Delivery
+
+Click ← to open the restaurant page
+
+💸 Offers Section:
+
+From the offers in the dashboard
+
+Stylish card design (no clutter)
+
+🎨 Design Guidelines:
+
+Use light green (#16a34a) or the existing base color
+
+Background: #F9FAFB
+
+Border Radius: 16px
+
+Spacing:
+
+16px between elements
+
+24px between sections
+
+Use light (not heavy) shadows
+
+Font:
+
+Clear Arabic font (Cairo/Tajwal if available)
+
+⚙️ Data Handling:
+
+Do not embed data statically.
+
+ Reuse the existing API or create a secure endpoint like this:
+
+GET /api/home
+
+Response structure:
+
+{
+banners: [],
+categories: [],
+restaurants: [],
+items: []
+}
+
+Then filter in the UI:
+
+
+popularItems = items.filter(i => i.isPopular)
+
+
+featuredItems = items.filter(i => i.isFeatured)
+
+🧩 Components to create:
+
+BannerSlider
+
+CategoryScroller
+
+ItemCard
+
+RestaurantCard
+
+SectionHeader
+
+All are reusable and organized.
+
+ 🚫 The following are prohibited:
+
+Removing the existing control panel logic
+
+Disabling data paths
+
+Major database schema changes
+
+🎯 Result: A sleek, modern, and scalable homepage user interface, fully integrated with the existing server and control panel.
+
+Upon completion:
+Explain the changes made and how data flows from the control panel to the user interface.
