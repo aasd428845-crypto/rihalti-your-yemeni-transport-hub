@@ -505,14 +505,14 @@ const DeliveryHubPage = () => {
           })}
         </div>
 
-        {/* ── 2. Categories (circular scroller) ── */}
-        <CategoryScroller onNavigate={navigate} />
-
-        {/* ── 3. Hero Banner Carousel ── */}
+        {/* ── 2. Hero Banner Carousel ── */}
         <BannerCarousel banners={carouselBanners} onNavigate={navigate} />
 
-        {/* ── 4. Offers / Deals Section ── */}
+        {/* ── 3. Offers / Deals Section ── */}
         <OffersSection offers={offerBanners} onNavigate={navigate} />
+
+        {/* ── 4. Categories (circular scroller) ── */}
+        <CategoryScroller onNavigate={navigate} />
 
         {/* ── 5. Most ordered ── */}
         <PopularItems />
