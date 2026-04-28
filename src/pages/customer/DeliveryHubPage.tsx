@@ -156,6 +156,67 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
   );
 };
 
+// ─── Categories Scroller (circular) ──────────────────────────────────────────
+const CategoryScroller = ({ onNavigate }: { onNavigate: (url: string) => void }) => {
+  const [cats, setCats] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("menu_categories")
+      .select("id, name_ar, image_url, restaurant_id")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .limit(12)
+      .then(({ data }) => setCats(data || []));
+  }, []);
+
+  if (cats.length === 0) return null;
+
+  // De-duplicate by name_ar so the scroller stays clean.
+  const seen = new Set<string>();
+  const unique = cats.filter((c) => {
+    if (seen.has(c.name_ar)) return false;
+    seen.add(c.name_ar);
+    return true;
+  });
+
+  return (
+    <section>
+      <h2 className="text-lg font-black text-foreground mb-3">التصنيفات</h2>
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+        {unique.map((c) => (
+          <button
+            key={c.id}
+            onClick={() =>
+              onNavigate(`/food?tab=restaurants&category=${encodeURIComponent(c.name_ar)}`)
+            }
+            className="flex flex-col items-center gap-2 shrink-0 group"
+            style={{ minWidth: 72 }}
+          >
+            <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-primary/20 bg-card shadow-sm group-hover:ring-primary/60 group-hover:shadow-md transition-all">
+              {c.image_url ? (
+                <img
+                  src={c.image_url}
+                  alt={c.name_ar}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-2xl">
+                  🍽️
+                </div>
+              )}
+            </div>
+            <span className="text-[11px] font-bold text-foreground text-center leading-tight max-w-[72px] truncate">
+              {c.name_ar}
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+};
+
 // ─── Offers / Deals Horizontal Scroll ─────────────────────────────────────────
 const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url: string) => void }) => {
   if (!offers.length) return null;
@@ -274,10 +335,13 @@ const DeliveryHubPage = () => {
           })}
         </div>
 
-        {/* ── 2. Hero Banner Carousel ── */}
+        {/* ── 2. Categories (circular scroller) ── */}
+        <CategoryScroller onNavigate={navigate} />
+
+        {/* ── 3. Hero Banner Carousel ── */}
         <BannerCarousel banners={carouselBanners} onNavigate={navigate} />
 
-        {/* ── 3. Offers / Deals Section ── */}
+        {/* ── 4. Offers / Deals Section ── */}
         <OffersSection offers={offerBanners} onNavigate={navigate} />
 
       </div>
