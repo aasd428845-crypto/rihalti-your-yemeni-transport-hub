@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import RatingModal from "@/components/reviews/RatingModal";
+import RestaurantOrderRatingDialog from "@/components/customer/RestaurantOrderRatingDialog";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -69,6 +70,10 @@ const HistoryPage = () => {
   const [ratingTarget, setRatingTarget] = useState<{
     revieweeId: string; revieweeName: string;
     entityType: "supplier" | "delivery" | "driver"; entityId: string;
+  } | null>(null);
+  const [restaurantRatingTarget, setRestaurantRatingTarget] = useState<{
+    orderId: string; restaurantId: string; restaurantName?: string;
+    items: Array<{ menu_item_id: string; name: string; image_url?: string }>;
   } | null>(null);
   const [ratedIds, setRatedIds] = useState<Set<string>>(new Set());
 
@@ -350,12 +355,30 @@ const HistoryPage = () => {
                               <Eye className="w-4 h-4" /> تفاصيل
                             </Button>
                             {(d.status === 'completed' || d.status === 'delivered') && !ratedIds.has(d.id) && (
-                              <Button variant="outline" size="sm" className="gap-1" onClick={() => setRatingTarget({
-                                revieweeId: d.delivery_company_id, revieweeName: "شركة التوصيل",
-                                entityType: "delivery", entityId: d.id,
-                              })}>
-                                <Star className="w-3 h-3" /> قيّم
-                              </Button>
+                              d.restaurant_id ? (
+                                <Button variant="outline" size="sm" className="gap-1" onClick={() => {
+                                  const rawItems = Array.isArray(d.items) ? d.items : [];
+                                  setRestaurantRatingTarget({
+                                    orderId: d.id,
+                                    restaurantId: d.restaurant_id,
+                                    restaurantName: d.restaurants?.name_ar || d.restaurant_name,
+                                    items: rawItems.map((it: any) => ({
+                                      menu_item_id: it.menu_item_id || it.id,
+                                      name: it.name_ar || it.name || "وجبة",
+                                      image_url: it.image_url,
+                                    })).filter((it: any) => it.menu_item_id),
+                                  });
+                                }}>
+                                  <Star className="w-3 h-3" /> قيّم المطعم
+                                </Button>
+                              ) : (
+                                <Button variant="outline" size="sm" className="gap-1" onClick={() => setRatingTarget({
+                                  revieweeId: d.delivery_company_id, revieweeName: "شركة التوصيل",
+                                  entityType: "delivery", entityId: d.id,
+                                })}>
+                                  <Star className="w-3 h-3" /> قيّم
+                                </Button>
+                              )
                             )}
                             {canCancel(d.status) && (
                               <Button variant="outline" size="sm" className="text-destructive gap-1" onClick={() => setCancelModal({ type: "delivery", id: d.id })}>
@@ -479,6 +502,22 @@ const HistoryPage = () => {
             revieweeName={ratingTarget.revieweeName}
             entityType={ratingTarget.entityType}
             entityId={ratingTarget.entityId}
+          />
+        )}
+
+        {restaurantRatingTarget && (
+          <RestaurantOrderRatingDialog
+            open={!!restaurantRatingTarget}
+            onClose={() => setRestaurantRatingTarget(null)}
+            onDone={() => {
+              if (restaurantRatingTarget) {
+                setRatedIds(prev => new Set([...prev, restaurantRatingTarget.orderId]));
+              }
+            }}
+            orderId={restaurantRatingTarget.orderId}
+            restaurantId={restaurantRatingTarget.restaurantId}
+            restaurantName={restaurantRatingTarget.restaurantName}
+            items={restaurantRatingTarget.items}
           />
         )}
 

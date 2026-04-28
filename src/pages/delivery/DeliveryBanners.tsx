@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, ImageIcon, Tag, MonitorPlay, LayoutGrid, X } from "lucide-react";
+import { Plus, Pencil, Trash2, ImageIcon, Tag, MonitorPlay, LayoutGrid, X, Bike } from "lucide-react";
 import { getBannersForPortal, createBanner, updateBanner, deleteBanner } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/common/ImageUpload";
@@ -26,6 +26,7 @@ const BANNER_TYPES = [
   { value: "carousel", label: "بنر متحرك", icon: MonitorPlay, desc: "يظهر في البنر المتحرك أعلى صفحة الخدمات" },
   { value: "offer", label: "بطاقة عرض", icon: Tag, desc: "يظهر في قسم العروض والخصومات" },
   { value: "service_tile", label: "أيقونة خدمة", icon: LayoutGrid, desc: "يظهر في شبكة الأيقونات الأربع" },
+  { value: "delivery_request", label: "بنر طلب توصيل", icon: Bike, desc: "بنر صغير بين قسم الأكثر تقييماً وقسم مختارات لك — ينقل لصفحة طلب التوصيل (واحد فقط يظهر)" },
 ];
 
 const emptyForm = () => ({
@@ -174,6 +175,7 @@ const DeliveryBanners = () => {
           { key: "carousel", label: "بنرات متحركة", icon: <MonitorPlay className="w-3.5 h-3.5" /> },
           { key: "offer", label: "عروض", icon: <Tag className="w-3.5 h-3.5" /> },
           { key: "service_tile", label: "أيقونات الخدمات", icon: <LayoutGrid className="w-3.5 h-3.5" /> },
+          { key: "delivery_request", label: "بنر طلب التوصيل", icon: <Bike className="w-3.5 h-3.5" /> },
         ].map(f => (
           <button
             key={f.key}
@@ -284,7 +286,7 @@ const DeliveryBanners = () => {
             {/* Type selector */}
             <div>
               <Label className="font-semibold">نوع المحتوى</Label>
-              <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                 {BANNER_TYPES.map(t => (
                   <button
                     key={t.value}

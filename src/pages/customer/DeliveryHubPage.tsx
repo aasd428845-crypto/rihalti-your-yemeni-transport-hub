@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { getRestaurantCuisines } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
+import RatingStars from "@/components/customer/RatingStars";
+import FavoriteHeart from "@/components/customer/FavoriteHeart";
+import DeliveryRequestBanner from "@/components/customer/DeliveryRequestBanner";
+import FeaturedRestaurantsSection from "@/components/customer/FeaturedRestaurantsSection";
 
 // ─── Reusable: Section header ────────────────────────────────────────────────
 const SectionHeader = ({
@@ -51,18 +55,20 @@ const FEATURES = [
   { icon: TrendingUp, label: "أسعار تنافسية", color: "text-blue-500" },
 ];
 
-// ─── Item Card (used by Popular & Featured) ──────────────────────────────────
+// ─── Item Card (used by Most-rated & Featured) ───────────────────────────────
 const ItemCard = ({ item }: { item: any }) => {
   const navigate = useNavigate();
   const price = item.discounted_price ?? item.price;
   const hasDiscount =
     item.discounted_price && item.discounted_price < item.price;
+  const prepTime = item.preparation_time || item.restaurants?.estimated_delivery_time;
+
   return (
-    <button
+    <div
       onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="min-w-[160px] w-[160px] bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0"
+      className="min-w-[170px] w-[170px] bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0 cursor-pointer"
     >
-      <div className="relative w-full h-[110px] bg-muted">
+      <div className="relative w-full h-[120px] bg-muted">
         {item.image_url ? (
           <img
             src={item.image_url}
@@ -75,14 +81,30 @@ const ItemCard = ({ item }: { item: any }) => {
             🍔
           </div>
         )}
+        {/* Rating badge top-left */}
+        {Number(item.rating) > 0 && (
+          <div className="absolute top-2 left-2">
+            <RatingStars rating={item.rating} size="xs" />
+          </div>
+        )}
+        {/* Favorite heart top-right */}
+        <div className="absolute top-2 right-2">
+          <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
+        </div>
+        {/* Prep time bottom-right pill (like the screenshot) */}
+        {prepTime && (
+          <div className="absolute bottom-2 right-2 bg-emerald-600 text-white text-[10px] font-bold rounded-md px-1.5 py-0.5 shadow">
+            {prepTime} دقيقة
+          </div>
+        )}
         {hasDiscount && (
-          <Badge className="absolute top-2 right-2 bg-red-500 hover:bg-red-500 text-white text-[10px] font-bold border-0 shadow">
+          <Badge className="absolute bottom-2 left-2 bg-red-500 hover:bg-red-500 text-white text-[10px] font-bold border-0 shadow">
             خصم
           </Badge>
         )}
       </div>
       <div className="p-2.5">
-        <p className="font-bold text-sm text-foreground leading-tight line-clamp-1 mb-1">
+        <p className="font-bold text-sm text-foreground leading-tight line-clamp-1 mb-0.5">
           {item.name_ar}
         </p>
         {item.restaurants?.name_ar && (
@@ -101,25 +123,40 @@ const ItemCard = ({ item }: { item: any }) => {
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 };
 
-// ─── Popular Items section ───────────────────────────────────────────────────
-const PopularItems = () => {
+// ─── Most-rated Items section (was "الأكثر طلباً") ──────────────────────────
+const TopRatedItems = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
+    // Try ordering by rating first; fall back to is_popular if rating column missing.
     supabase
       .from("menu_items")
       .select(
-        "id, name_ar, image_url, price, discounted_price, restaurant_id, restaurants(name_ar)",
+        "id, name_ar, image_url, price, discounted_price, preparation_time, rating, total_ratings, restaurant_id, restaurants(name_ar, estimated_delivery_time)",
       )
-      .eq("is_popular", true)
       .eq("is_available", true)
+      .order("rating", { ascending: false })
+      .order("total_ratings", { ascending: false })
       .limit(10)
-      .then(({ data }) => setItems(data || []));
+      .then(({ data, error }) => {
+        if (error) {
+          // Fallback: rating column may not exist yet. Use is_popular.
+          supabase
+            .from("menu_items")
+            .select("id, name_ar, image_url, price, discounted_price, preparation_time, restaurant_id, restaurants(name_ar, estimated_delivery_time)")
+            .eq("is_popular", true)
+            .eq("is_available", true)
+            .limit(10)
+            .then(({ data: d2 }) => setItems(d2 || []));
+        } else {
+          setItems(data || []);
+        }
+      });
   }, []);
 
   if (items.length === 0) return null;
@@ -127,7 +164,7 @@ const PopularItems = () => {
   return (
     <div>
       <SectionHeader
-        title="الأكثر طلباً"
+        title="الأكثر تقييماً"
         icon={Flame}
         onMore={() => navigate("/food")}
       />
@@ -140,7 +177,7 @@ const PopularItems = () => {
   );
 };
 
-// ─── Featured Items section ──────────────────────────────────────────────────
+// ─── Featured Items (مختارات لك) ─────────────────────────────────────────────
 const FeaturedItems = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
@@ -149,7 +186,7 @@ const FeaturedItems = () => {
     supabase
       .from("menu_items")
       .select(
-        "id, name_ar, image_url, price, discounted_price, restaurant_id, restaurants(name_ar)",
+        "id, name_ar, image_url, price, discounted_price, preparation_time, rating, total_ratings, restaurant_id, restaurants(name_ar, estimated_delivery_time)",
       )
       .eq("is_featured", true)
       .eq("is_available", true)
@@ -530,13 +567,19 @@ const DeliveryHubPage = () => {
         {/* ── 4. Categories (circular scroller) ── */}
         <CategoryScroller onNavigate={navigate} />
 
-        {/* ── 5. Most ordered ── */}
-        <PopularItems />
+        {/* ── 5. Most rated ── */}
+        <TopRatedItems />
 
-        {/* ── 6. Featured for you ── */}
+        {/* ── 6. Delivery request banner (small green CTA) ── */}
+        <DeliveryRequestBanner />
+
+        {/* ── 7. Featured for you ── */}
         <FeaturedItems />
 
-        {/* ── 7. Feature pills (fast delivery, secure payment, …) ── */}
+        {/* ── 8. Featured restaurants (highest-rated marked-as-featured) ── */}
+        <FeaturedRestaurantsSection />
+
+        {/* ── 9. Feature pills (fast delivery, secure payment, …) ── */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {FEATURES.map((feat) => (
             <div
