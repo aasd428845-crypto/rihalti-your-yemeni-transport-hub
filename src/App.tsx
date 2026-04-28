@@ -9,7 +9,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import MainLayout from "@/layouts/MainLayout";
 const SuperAppLayout = lazy(() => import("./layouts/SuperAppLayout"));
 import PageLoader from "@/components/common/PageLoader";
-import Index from "./pages/Index";
+// Old home page kept for reference but no longer routed.
+// const Index = lazy(() => import("./pages/Index"));
 
 // Auth pages (lazy loaded)
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -149,7 +150,7 @@ const App = () => (
             <Routes>
               {/* Pages with SuperAppLayout (Super App UX) */}
               <Route element={<SuperAppLayout />}>
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<DeliveryHubPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/terms" element={<TermsPage />} />
