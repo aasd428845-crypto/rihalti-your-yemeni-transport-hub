@@ -432,6 +432,10 @@ const DeliveryHubPage = () => {
   const [carouselBanners, setCarouselBanners] = useState<any[]>([]);
   const [offerBanners, setOfferBanners] = useState<any[]>([]);
   const [serviceTiles, setServiceTiles] = useState<any[]>([]);
+  // Whether any banner row exists in the DB. If yes, the company is actively
+  // managing this section, so we should respect explicit empty states (e.g.
+  // they deleted all service tiles) instead of falling back to defaults.
+  const [companyManaged, setCompanyManaged] = useState(false);
 
   useEffect(() => {
     supabase
@@ -444,10 +448,12 @@ const DeliveryHubPage = () => {
         const carousel = bannersData.filter((b: any) => !b.banner_type || b.banner_type === "carousel");
         const offers = bannersData.filter((b: any) => b.banner_type === "offer");
         const tiles = bannersData.filter((b: any) => b.banner_type === "service_tile");
+        setCompanyManaged(bannersData.length > 0);
         setCarouselBanners(carousel.length > 0 ? carousel : DEFAULT_BANNERS);
         setOfferBanners(offers.length > 0 ? offers : DEFAULT_OFFERS);
         setServiceTiles(tiles);
       }, () => {
+        setCompanyManaged(false);
         setCarouselBanners(DEFAULT_BANNERS);
         setOfferBanners(DEFAULT_OFFERS);
         setServiceTiles([]);
@@ -468,13 +474,22 @@ const DeliveryHubPage = () => {
     else navigate("/food");
   };
 
-  const displayTiles = serviceTiles.length > 0 ? serviceTiles : DEFAULT_SERVICE_TILES;
+  // If the company has any banner rows in the DB, respect the empty
+  // service_tiles state (they intentionally deleted all tiles). Only fall back
+  // to defaults for a brand-new install where the company hasn't set anything.
+  const displayTiles =
+    serviceTiles.length > 0
+      ? serviceTiles
+      : companyManaged
+        ? []
+        : DEFAULT_SERVICE_TILES;
 
   return (
     <div className="min-h-screen bg-background pb-24" dir="rtl">
       <div className="container mx-auto px-4 max-w-5xl space-y-5 pt-3">
 
         {/* ── 1. Service Tiles (image only, no colored gradient) ── */}
+        {displayTiles.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           {displayTiles.map((tile: any, idx: number) => {
             const imgSrc = tile.image_url || tile.img || "";
@@ -504,6 +519,7 @@ const DeliveryHubPage = () => {
             );
           })}
         </div>
+        )}
 
         {/* ── 2. Hero Banner Carousel ── */}
         <BannerCarousel banners={carouselBanners} onNavigate={navigate} />
