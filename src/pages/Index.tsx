@@ -5,12 +5,7 @@ import {
   ChevronRight,
   Star,
   Clock,
-  Zap,
-  Shield,
-  TrendingUp,
   Tag,
-  Flame,
-  Sparkles,
   ChevronLeft as ArrowLeftIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,13 +84,6 @@ const SERVICES = [
     shadow: "shadow-yellow-200 dark:shadow-yellow-900/40",
     isNew: true,
   },
-];
-
-const FEATURES = [
-  { icon: Zap, label: "توصيل سريع", color: "text-amber-500" },
-  { icon: Shield, label: "دفع آمن", color: "text-emerald-500" },
-  { icon: Star, label: "تقييمات موثوقة", color: "text-orange-500" },
-  { icon: TrendingUp, label: "أسعار تنافسية", color: "text-blue-500" },
 ];
 
 // ─── Reusable: Section header ────────────────────────────────────────────────
@@ -223,192 +211,6 @@ const BannerCarousel = () => {
             }`}
             aria-label={`بانر ${i + 1}`}
           />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ─── Categories scroller (circular) ──────────────────────────────────────────
-const CategoryScroller = () => {
-  const navigate = useNavigate();
-  const [cats, setCats] = useState<any[]>([]);
-
-  useEffect(() => {
-    supabase
-      .from("menu_categories")
-      .select("id, name_ar, image_url, restaurant_id")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .limit(12)
-      .then(({ data }) => setCats(data || []));
-  }, []);
-
-  if (cats.length === 0) return null;
-
-  // De-duplicate by name_ar so the scroller stays clean.
-  const seen = new Set<string>();
-  const unique = cats.filter((c) => {
-    if (seen.has(c.name_ar)) return false;
-    seen.add(c.name_ar);
-    return true;
-  });
-
-  return (
-    <div className="mb-6">
-      <SectionHeader title="التصنيفات" />
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-        {unique.map((c) => (
-          <button
-            key={c.id}
-            onClick={() =>
-              navigate(`/restaurants?tab=restaurants&category=${encodeURIComponent(c.name_ar)}`)
-            }
-            className="flex flex-col items-center gap-2 shrink-0 group"
-            style={{ minWidth: 72 }}
-          >
-            <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-primary/20 bg-card shadow-sm group-hover:ring-primary/60 group-hover:shadow-md transition-all">
-              {c.image_url ? (
-                <img
-                  src={c.image_url}
-                  alt={c.name_ar}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-2xl">
-                  🍽️
-                </div>
-              )}
-            </div>
-            <span className="text-[11px] font-bold text-foreground text-center leading-tight max-w-[72px] truncate">
-              {c.name_ar}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ─── Item Card (used by Popular & Featured) ──────────────────────────────────
-const ItemCard = ({ item }: { item: any }) => {
-  const navigate = useNavigate();
-  const price = item.discounted_price ?? item.price;
-  const hasDiscount =
-    item.discounted_price && item.discounted_price < item.price;
-  return (
-    <button
-      onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="min-w-[160px] w-[160px] bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0"
-    >
-      <div className="relative w-full h-[110px] bg-muted">
-        {item.image_url ? (
-          <img
-            src={item.image_url}
-            alt={item.name_ar}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-3xl">
-            🍔
-          </div>
-        )}
-        {hasDiscount && (
-          <Badge className="absolute top-2 right-2 bg-red-500 hover:bg-red-500 text-white text-[10px] font-bold border-0 shadow">
-            خصم
-          </Badge>
-        )}
-      </div>
-      <div className="p-2.5">
-        <p className="font-bold text-sm text-foreground leading-tight line-clamp-1 mb-1">
-          {item.name_ar}
-        </p>
-        {item.restaurants?.name_ar && (
-          <p className="text-[11px] text-muted-foreground line-clamp-1 mb-1.5">
-            {item.restaurants.name_ar}
-          </p>
-        )}
-        <div className="flex items-center justify-between">
-          <span className="text-primary font-black text-sm">
-            {Number(price).toLocaleString("ar-YE")} ر.ي
-          </span>
-          {hasDiscount && (
-            <span className="text-[11px] text-muted-foreground line-through">
-              {Number(item.price).toLocaleString("ar-YE")}
-            </span>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-};
-
-// ─── Popular Items section ───────────────────────────────────────────────────
-const PopularItems = () => {
-  const navigate = useNavigate();
-  const [items, setItems] = useState<any[]>([]);
-
-  useEffect(() => {
-    supabase
-      .from("menu_items")
-      .select(
-        "id, name_ar, image_url, price, discounted_price, restaurant_id, restaurants(name_ar)",
-      )
-      .eq("is_popular", true)
-      .eq("is_available", true)
-      .limit(10)
-      .then(({ data }) => setItems(data || []));
-  }, []);
-
-  if (items.length === 0) return null;
-
-  return (
-    <div className="mb-6">
-      <SectionHeader
-        title="الأكثر طلباً"
-        icon={Flame}
-        onMore={() => navigate("/restaurants")}
-      />
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-        {items.map((it) => (
-          <ItemCard key={it.id} item={it} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ─── Featured Items section ──────────────────────────────────────────────────
-const FeaturedItems = () => {
-  const navigate = useNavigate();
-  const [items, setItems] = useState<any[]>([]);
-
-  useEffect(() => {
-    supabase
-      .from("menu_items")
-      .select(
-        "id, name_ar, image_url, price, discounted_price, restaurant_id, restaurants(name_ar)",
-      )
-      .eq("is_featured", true)
-      .eq("is_available", true)
-      .limit(10)
-      .then(({ data }) => setItems(data || []));
-  }, []);
-
-  if (items.length === 0) return null;
-
-  return (
-    <div className="mb-6">
-      <SectionHeader
-        title="مختارات لك"
-        icon={Sparkles}
-        onMore={() => navigate("/restaurants")}
-      />
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-        {items.map((it) => (
-          <ItemCard key={it.id} item={it} />
         ))}
       </div>
     </div>
@@ -688,45 +490,10 @@ const Index = () => {
           </div>
         </div>
 
-        <CategoryScroller />
-        <PopularItems />
-        <FeaturedItems />
         <NearbyRestaurants city={profile?.city || ""} />
         <OffersSection />
 
-        {/* Feature Pills */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-6">
-          {FEATURES.map((feat) => (
-            <div
-              key={feat.label}
-              className="flex items-center gap-1.5 shrink-0 bg-card border border-border/40 rounded-full px-4 py-2 shadow-sm"
-            >
-              <feat.icon className={`w-3.5 h-3.5 ${feat.color}`} />
-              <span className="text-xs font-semibold text-foreground whitespace-nowrap">
-                {feat.label}
-              </span>
-            </div>
-          ))}
-        </div>
-
         <RecentTrips />
-
-        {/* Platform stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[
-            { num: "+500", label: "مطعم" },
-            { num: "+20", label: "مدينة" },
-            { num: "4.9 ⭐", label: "تقييم" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="bg-card border border-border/40 rounded-2xl p-4 text-center shadow-sm"
-            >
-              <p className="font-black text-lg text-primary">{stat.num}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
