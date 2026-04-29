@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Star, Clock, Truck, Tag, AlertTriangle, Info, Sparkles } from "lucide-react";
-import { getActiveRestaurants, getRestaurantCuisines, CoverageStatus } from "@/lib/restaurantApi";
+import { Star, Clock, Truck, Tag, AlertTriangle, Info, Sparkles, Search, ArrowRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { getActiveRestaurants, CoverageStatus } from "@/lib/restaurantApi";
+import { getOpenStatus } from "@/lib/restaurantHours";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -64,88 +65,114 @@ const CoverageBadge = ({ status }: { status: CoverageStatus }) => {
   );
 };
 
-// ─── Restaurant Card ──────────────────────────────────────────────────────────
+// ─── Restaurant Card (HungerStation-style horizontal card) ────────────────────
 const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
   const primaryCuisine = r.cuisine_type?.[0] || "";
   const fallbackImg = CUISINE_IMAGES[primaryCuisine] || CUISINE_IMAGES["default"];
-  const heroSrc = r.cover_image || r.cover_image_url || fallbackImg;
-  const isOpen = r.is_active !== false;
+  const heroSrc = r.cover_image || r.cover_image_url || r.logo_url || fallbackImg;
   const isOutOfRange = r.coverage_status === "out_of_range";
   const displayFee = r.computed_delivery_fee ?? r.delivery_fee ?? 0;
+  const status = getOpenStatus(r.opening_hours);
+  const isOpen = r.is_active !== false && status.isOpen;
+  const ratingNum = Number(r.rating || 0);
+  const hasDiscount =
+    !!r.has_active_offer ||
+    (Array.isArray(r.cuisine_type) && r.discount_percent > 0);
+  const discountPct = r.discount_percent || 20;
 
   return (
-    <Card
+    <button
       onClick={onClick}
-      className={`cursor-pointer overflow-hidden rounded-2xl border border-border/20 bg-card shadow-md hover:shadow-xl hover:-translate-y-1 hover:border-amber-400/40 transition-all duration-300 group ${isOutOfRange ? "opacity-60" : ""}`}
+      className={`w-full bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:border-primary/30 transition-all text-right active:scale-[0.99] ${
+        isOutOfRange ? "opacity-60" : ""
+      }`}
     >
-      <div className="h-44 relative overflow-hidden">
-        <img
-          src={heroSrc} alt={r.name_ar}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
-          onError={(e) => { (e.target as HTMLImageElement).src = CUISINE_IMAGES["default"]; }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-        {r.is_featured && (
-          <Badge className="absolute top-3 right-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg text-xs font-bold gap-1 px-2.5">
-            <Sparkles className="w-3 h-3" />مميز
-          </Badge>
-        )}
-        <CoverageBadge status={r.coverage_status ?? "full"} />
-        {!isOpen && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="bg-black/70 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm">مغلق الآن</span>
-          </div>
-        )}
-        {r.logo_url && (
-          <div className="absolute bottom-12 left-3 w-10 h-10 rounded-xl bg-white shadow-xl overflow-hidden border-2 border-white/30">
-            <img src={r.logo_url} alt="" className="w-full h-full object-cover" />
-          </div>
-        )}
-        <div className="absolute bottom-3 right-3 left-3 text-white">
-          <h3 className="font-black text-base drop-shadow-lg leading-tight">{r.name_ar}</h3>
-          {r.cuisine_type?.length > 0 && (
-            <p className="text-xs text-white/75 mt-0.5">{r.cuisine_type.slice(0, 2).join(" • ")}</p>
+      <div className="flex items-stretch gap-3 p-2.5">
+        {/* Image RIGHT */}
+        <div className="relative w-[88px] h-[88px] rounded-xl overflow-hidden bg-muted shrink-0">
+          <img
+            src={heroSrc}
+            alt={r.name_ar}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).src = CUISINE_IMAGES["default"]; }}
+          />
+          {hasDiscount && (
+            <span className="absolute top-1 right-1 bg-emerald-600 text-white text-[9px] font-black rounded-md px-1.5 py-0.5 shadow">
+              خصم {discountPct}%
+            </span>
           )}
+          {!isOpen && (
+            <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
+              <span className="bg-black/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">مغلق</span>
+            </div>
+          )}
+        </div>
+
+        {/* Info LEFT (which is actually right side because rtl, text-right) */}
+        <div className="flex-1 min-w-0 flex flex-col py-0.5">
+          <div className="flex items-start gap-2">
+            <h3 className="flex-1 font-black text-[15px] leading-tight text-foreground line-clamp-1">
+              {r.name_ar}
+            </h3>
+            {r.is_featured && (
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+            )}
+          </div>
+
+          {Array.isArray(r.cuisine_type) && r.cuisine_type.length > 0 && (
+            <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+              {r.cuisine_type.slice(0, 3).join(" - ")}
+            </p>
+          )}
+
+          {/* Coverage warnings */}
+          {isOutOfRange && (
+            <div className="mt-1 flex items-center gap-1 text-[10px] text-red-600 font-medium">
+              <AlertTriangle className="w-2.5 h-2.5" />لا يوصل لمنطقتك
+            </div>
+          )}
+          {r.coverage_status === "extra_fee" && (
+            <div className="mt-1 flex items-center gap-1 text-[10px] text-amber-700 font-medium">
+              <Info className="w-2.5 h-2.5" />رسوم إضافية
+            </div>
+          )}
+
+          {/* Bottom row: rating + time + fee */}
+          <div className="mt-auto flex items-center gap-3 text-[11px] text-muted-foreground pt-1">
+            <span className="flex items-center gap-0.5 font-bold text-foreground">
+              <Clock className="w-3 h-3" />
+              {r.estimated_delivery_time
+                ? `${r.estimated_delivery_time} د`
+                : "20-30 د"}
+            </span>
+            <span className="flex items-center gap-0.5">
+              <Truck className="w-3 h-3" />
+              {displayFee === 0
+                ? <span className="text-emerald-600 font-bold">توصيل مجاني</span>
+                : <span className="font-medium">توصيل {displayFee} ر.ي</span>}
+            </span>
+            <span className="mr-auto inline-flex items-center gap-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-700 font-black rounded-md px-1.5 py-0.5">
+              <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+              {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+            </span>
+          </div>
         </div>
       </div>
-      <CardContent className="p-3">
-        {isOutOfRange && (
-          <div className="mb-2 flex items-center gap-1.5 text-[11px] text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg px-2 py-1.5 font-medium">
-            <AlertTriangle className="w-3 h-3 shrink-0" />لا يوصل لمنطقتك
-          </div>
-        )}
-        {r.coverage_status === "extra_fee" && (
-          <div className="mb-2 flex items-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-2 py-1.5 font-medium">
-            <Info className="w-3 h-3 shrink-0" />رسوم توصيل إضافية
-          </div>
-        )}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1 px-2 py-1 rounded-full font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/30">
-            <Star className="w-3.5 h-3.5 fill-current" />{Number(r.rating || 0).toFixed(1)}
-          </span>
-          {r.estimated_delivery_time && (
-            <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{r.estimated_delivery_time} د</span>
-          )}
-          <span className="flex items-center gap-1 mr-auto">
-            <Truck className="w-3.5 h-3.5" />
-            {displayFee === 0
-              ? <span className="text-emerald-600 font-semibold">مجاني</span>
-              : <span className={r.coverage_status === "extra_fee" ? "text-amber-600 font-bold" : ""}>{displayFee} ر.ي</span>}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+    </button>
   );
 };
 
 // ─── Skeleton Card ─────────────────────────────────────────────────────────────
 const SkeletonCard = () => (
-  <div className="rounded-2xl overflow-hidden bg-card border border-border/30 shadow-sm animate-pulse">
-    <div className="h-44 bg-muted" />
-    <div className="p-4 space-y-3">
-      <div className="h-4 bg-muted rounded w-3/4" />
-      <div className="h-3 bg-muted rounded w-1/2" />
+  <div className="bg-card rounded-2xl border border-border/40 p-2.5 animate-pulse">
+    <div className="flex gap-3">
+      <div className="w-[88px] h-[88px] rounded-xl bg-muted shrink-0" />
+      <div className="flex-1 space-y-2 py-1">
+        <div className="h-4 bg-muted rounded w-3/4" />
+        <div className="h-3 bg-muted rounded w-1/2" />
+        <div className="h-3 bg-muted rounded w-2/3 mt-3" />
+      </div>
     </div>
   </div>
 );
@@ -210,8 +237,11 @@ const RestaurantsPage = () => {
     return matchesCuisine && matchesSearch;
   });
 
-  const featured = filtered.filter(r => r.is_featured);
-  const rest = filtered.filter(r => !r.is_featured);
+  // Featured items appear inline in the list (marked with sparkle), no separate scroller
+  const sortedList = [
+    ...filtered.filter(r => r.is_featured),
+    ...filtered.filter(r => !r.is_featured),
+  ];
 
   // Build cuisine pills dynamically from actual restaurant data
   const allCuisineTypes = Array.from(new Set(restaurants.flatMap(r => r.cuisine_type || [])));
@@ -222,7 +252,31 @@ const RestaurantsPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24" dir="rtl">
-      <div className="container mx-auto px-4 max-w-5xl space-y-5 pt-3">
+      <div className="container mx-auto px-4 max-w-5xl space-y-3 pt-3">
+
+        {/* ── 0. Page header (back, title) ── */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center hover:bg-muted transition"
+            aria-label="رجوع"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </button>
+          <h1 className="text-base font-black text-foreground">جميع المطاعم</h1>
+          <div className="w-9 h-9" />
+        </div>
+
+        {/* ── 0.5 Search bar ── */}
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="ابحث عن مطعم أو مطبخ..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pr-9 bg-muted/50 border-0 rounded-xl h-10 text-sm"
+          />
+        </div>
 
         {/* ── 1. Offers / Deals Section ── */}
         <section>
@@ -280,7 +334,7 @@ const RestaurantsPage = () => {
         {/* ── 3. Restaurant List ── */}
         <section>
           {loading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
             </div>
           )}
@@ -296,7 +350,7 @@ const RestaurantsPage = () => {
                   <p className="text-muted-foreground text-sm">جرّب بحثاً مختلفاً</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {filtered.map(r => <RestaurantCard key={r.id} r={r} onClick={() => navigate(`/restaurants/${r.id}`)} />)}
                 </div>
               )}
@@ -306,39 +360,20 @@ const RestaurantsPage = () => {
           {/* Normal listing */}
           {!loading && !search && (
             <>
-              {/* Featured — horizontal scroll, only when no filter */}
-              {featured.length > 0 && cuisineFilter === "all" && (
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="w-5 h-5 text-amber-500" />
-                    <h2 className="text-lg font-black">اختيارات مميزة</h2>
-                    <Badge variant="secondary" className="mr-auto">{featured.length}</Badge>
-                  </div>
-                  <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4">
-                    {featured.map(r => (
-                      <div key={r.id} className="min-w-[240px] max-w-[260px] shrink-0">
-                        <RestaurantCard r={r} onClick={() => navigate(`/restaurants/${r.id}`)} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* All / filtered restaurants */}
-              {(cuisineFilter === "all" ? rest : filtered).length > 0 ? (
+              {sortedList.length > 0 ? (
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <h2 className="text-lg font-black">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h2 className="text-base font-black">
                       {cuisineFilter !== "all"
                         ? `${CUISINE_EMOJI[cuisineFilter] || "🍴"} ${cuisineFilter}`
                         : "جميع المطاعم"}
                     </h2>
-                    <Badge variant="secondary" className="mr-auto">
-                      {cuisineFilter === "all" ? rest.length : filtered.length}
+                    <Badge variant="secondary" className="mr-auto text-[11px] px-2 py-0">
+                      {sortedList.length}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {(cuisineFilter === "all" ? rest : filtered).map(r => (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {sortedList.map(r => (
                       <RestaurantCard key={r.id} r={r} onClick={() => navigate(`/restaurants/${r.id}`)} />
                     ))}
                   </div>

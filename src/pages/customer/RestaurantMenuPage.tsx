@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Star, Clock, Truck, Plus, Minus, ShoppingCart, ArrowLeft, Flame, Search, ChevronLeft } from "lucide-react";
+import { Star, Clock, Truck, Plus, Minus, ShoppingCart, ArrowLeft, Flame, Search, ChevronLeft, Heart, Share2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { getRestaurantById, getRestaurantMenu, getMenuItemOptions, upsertCart, getCart } from "@/lib/restaurantApi";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -20,6 +21,7 @@ interface CartItem {
   quantity: number;
   image_url?: string;
   selectedOptions?: Record<string, any>;
+  notes?: string;
 }
 
 interface OptionChoice {
@@ -103,6 +105,7 @@ const RestaurantMenuPage = () => {
   const [search, setSearch] = useState("");
   const [itemOptions, setItemOptions] = useState<any[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
+  const [itemNotes, setItemNotes] = useState("");
 
   // Refs for section scroll
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -166,17 +169,18 @@ const RestaurantMenuPage = () => {
       return sum + (val?.price || 0);
     }, 0);
     const price = (item.discounted_price || item.price) + optionsExtra;
+    const notes = itemNotes.trim() || undefined;
     setCart(prev => {
       const existing = prev.find(c => c.id === item.id);
-      if (existing) return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + qty, price, selectedOptions } : c);
-      return [...prev, { id: item.id, name_ar: item.name_ar, price, quantity: qty, image_url: item.image_url, selectedOptions }];
+      if (existing) return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + qty, price, selectedOptions, notes } : c);
+      return [...prev, { id: item.id, name_ar: item.name_ar, price, quantity: qty, image_url: item.image_url, selectedOptions, notes }];
     });
     toast({ title: "✅ تمت الإضافة", description: `${item.name_ar} أُضيف إلى السلة` });
-    setShowItemDetail(null); setItemQty(1); setSelectedOptions({}); setItemOptions([]);
+    setShowItemDetail(null); setItemQty(1); setSelectedOptions({}); setItemOptions([]); setItemNotes("");
   };
 
   const openItemDetail = async (item: any) => {
-    setShowItemDetail(item); setItemQty(1); setSelectedOptions({});
+    setShowItemDetail(item); setItemQty(1); setSelectedOptions({}); setItemNotes("");
     try { const opts = await getMenuItemOptions(item.id); setItemOptions(opts || []); }
     catch { setItemOptions([]); }
   };
@@ -336,6 +340,50 @@ const RestaurantMenuPage = () => {
         )}
       </div>
 
+      {/* ── Popular items ("الأكثر طلباً") ── */}
+      {!search && (() => {
+        const popular = items.filter(i => i.is_popular).slice(0, 10);
+        if (popular.length === 0) return null;
+        return (
+          <div className="pt-4 pb-2">
+            <div className="flex items-center justify-between px-4 mb-2">
+              <h2 className="text-base font-black flex items-center gap-1.5">
+                <Flame className="w-4 h-4 text-amber-500" />
+                الأكثر طلباً
+              </h2>
+              <span className="text-[11px] text-muted-foreground">{popular.length}</span>
+            </div>
+            <div className="flex gap-2.5 overflow-x-auto scrollbar-hide px-4 pb-2">
+              {popular.map(item => {
+                const price = item.discounted_price || item.price;
+                return (
+                  <button
+                    key={`pop-${item.id}`}
+                    onClick={() => openItemDetail(item)}
+                    className="min-w-[130px] w-[130px] bg-card rounded-xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md transition shrink-0 text-right"
+                  >
+                    <div className="relative w-full h-[88px] bg-muted">
+                      {item.image_url
+                        ? <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover" loading="lazy" />
+                        : <div className="w-full h-full flex items-center justify-center text-2xl">🍽️</div>}
+                    </div>
+                    <div className="p-2 space-y-1">
+                      <p className="font-bold text-[12px] leading-tight line-clamp-1">{item.name_ar}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-primary font-black text-[12px]">{price} ر.ي</span>
+                        <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow">
+                          <Plus className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Menu Sections ── */}
       <div className="pb-32">
         {search ? (
@@ -432,119 +480,211 @@ const RestaurantMenuPage = () => {
         </div>
       )}
 
-      {/* ── Item Detail Modal ── */}
-      <Dialog open={!!showItemDetail} onOpenChange={() => { setShowItemDetail(null); setItemOptions([]); setSelectedOptions({}); }}>
-        <DialogContent dir="rtl" className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
-          {showItemDetail && (
-            <>
-              {/* Food image */}
-              <div className="h-56 overflow-hidden rounded-t-lg bg-muted">
-                {showItemDetail.image_url
-                  ? <img src={showItemDetail.image_url} alt={showItemDetail.name_ar} loading="lazy" className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center text-6xl">🍽️</div>}
-              </div>
+      {/* ── Item Detail Modal — HungerStation-style ── */}
+      <Dialog open={!!showItemDetail} onOpenChange={() => { setShowItemDetail(null); setItemOptions([]); setSelectedOptions({}); setItemNotes(""); }}>
+        <DialogContent dir="rtl" className="max-w-md max-h-[95vh] overflow-hidden p-0 gap-0 flex flex-col">
+          {showItemDetail && (() => {
+            const basePrice = Number(showItemDetail.discounted_price || showItemDetail.price);
+            const optionsExtra = Object.values(selectedOptions).reduce((sum: number, val: any) => {
+              if (Array.isArray(val)) return sum + val.reduce((s: number, c: OptionChoice) => s + (c.price || 0), 0);
+              return sum + (val?.price || 0);
+            }, 0);
+            const totalPrice = (basePrice + optionsExtra) * itemQty;
+            const ratingNum = Number(showItemDetail.rating || 0);
+            const totalRatings = Number(showItemDetail.total_ratings || 0);
 
-              <div className="p-5 space-y-4">
-                <DialogHeader>
-                  <DialogTitle className="text-xl text-right">{showItemDetail.name_ar}</DialogTitle>
-                </DialogHeader>
-
-                {showItemDetail.description && (
-                  <p className="text-sm text-muted-foreground">{showItemDetail.description}</p>
-                )}
-
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  {showItemDetail.preparation_time && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{showItemDetail.preparation_time} دقيقة</span>}
-                  {showItemDetail.calories && <span>{showItemDetail.calories} سعرة</span>}
-                </div>
-
-                {/* Price */}
-                <div className="flex items-center gap-2">
-                  {showItemDetail.discounted_price ? (
-                    <>
-                      <span className="text-2xl font-bold text-primary">{showItemDetail.discounted_price} ر.ي</span>
-                      <span className="text-muted-foreground line-through text-sm">{showItemDetail.price} ر.ي</span>
-                    </>
-                  ) : (
-                    <span className="text-2xl font-bold text-primary">{showItemDetail.price} ر.ي</span>
-                  )}
-                </div>
-
-                {/* Options */}
-                {itemOptions.length > 0 && (
-                  <div className="space-y-4 border-t pt-4">
-                    {itemOptions.map((opt: any) => {
-                      const choices = (opt.choices as OptionChoice[]) || [];
-                      return (
-                        <div key={opt.id} className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Label className="font-bold">{opt.name_ar}</Label>
-                            {opt.is_required && <Badge variant="destructive" className="text-xs">مطلوب</Badge>}
-                          </div>
-                          {opt.option_type === "single" ? (
-                            <RadioGroup value={selectedOptions[opt.id]?.name_ar || ""}
-                              onValueChange={v => { const c = choices.find(c => c.name_ar === v); setSelectedOptions(prev => ({ ...prev, [opt.id]: c })); }}>
-                              {choices.map((choice, i) => (
-                                <div key={i} className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <RadioGroupItem value={choice.name_ar} id={`${opt.id}-${i}`} />
-                                    <Label htmlFor={`${opt.id}-${i}`}>{choice.name_ar}</Label>
-                                  </div>
-                                  {choice.price > 0 && <span className="text-sm text-muted-foreground">+{choice.price} ر.ي</span>}
-                                </div>
-                              ))}
-                            </RadioGroup>
-                          ) : (
-                            <div className="space-y-2">
-                              {choices.map((choice, i) => {
-                                const selected = (selectedOptions[opt.id] as OptionChoice[] || []);
-                                const isChecked = selected.some(s => s.name_ar === choice.name_ar);
-                                return (
-                                  <div key={i} className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <Checkbox id={`${opt.id}-${i}`} checked={isChecked}
-                                        onCheckedChange={checked => {
-                                          setSelectedOptions(prev => {
-                                            const cur = (prev[opt.id] as OptionChoice[] || []);
-                                            return { ...prev, [opt.id]: checked ? [...cur, choice] : cur.filter(s => s.name_ar !== choice.name_ar) };
-                                          });
-                                        }} />
-                                      <Label htmlFor={`${opt.id}-${i}`}>{choice.name_ar}</Label>
-                                    </div>
-                                    {choice.price > 0 && <span className="text-sm text-muted-foreground">+{choice.price} ر.ي</span>}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+            return (
+              <>
+                {/* Scrollable content */}
+                <div className="overflow-y-auto flex-1">
+                  {/* Hero image with floating buttons */}
+                  <div className="relative h-64 bg-muted">
+                    {showItemDetail.image_url
+                      ? <img src={showItemDetail.image_url} alt={showItemDetail.name_ar} loading="lazy" className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-7xl">🍽️</div>}
+                    <button
+                      onClick={() => { setShowItemDetail(null); setItemOptions([]); setSelectedOptions({}); setItemNotes(""); }}
+                      className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/95 shadow-lg flex items-center justify-center hover:bg-white transition"
+                      aria-label="رجوع"
+                    >
+                      <ArrowLeft className="w-4 h-4 rotate-180" />
+                    </button>
+                    <div className="absolute top-3 left-3 flex gap-2">
+                      <button className="w-9 h-9 rounded-full bg-white/95 shadow-lg flex items-center justify-center hover:bg-white transition" aria-label="مفضلة">
+                        <Heart className="w-4 h-4" />
+                      </button>
+                      <button className="w-9 h-9 rounded-full bg-white/95 shadow-lg flex items-center justify-center hover:bg-white transition" aria-label="مشاركة">
+                        <Share2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                )}
 
-                {/* Qty */}
-                <div className="flex items-center justify-center gap-5 py-2">
-                  <button className="w-9 h-9 rounded-full border-2 border-border flex items-center justify-center hover:bg-muted"
-                    onClick={() => setItemQty(Math.max(1, itemQty - 1))}>
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="text-2xl font-bold w-10 text-center">{itemQty}</span>
-                  <button className="w-9 h-9 rounded-full border-2 border-primary bg-primary/10 flex items-center justify-center hover:bg-primary/20"
-                    onClick={() => setItemQty(itemQty + 1)}>
-                    <Plus className="w-4 h-4 text-primary" />
-                  </button>
+                  {/* Body */}
+                  <div className="p-4 space-y-4">
+                    {/* Title row */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <DialogTitle className="text-xl font-black text-right">{showItemDetail.name_ar}</DialogTitle>
+                        {showItemDetail.name_en && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{showItemDetail.name_en}</p>
+                        )}
+                      </div>
+                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 dark:bg-amber-950/30 rounded-md px-2 py-1 text-xs font-bold whitespace-nowrap">
+                        <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                        {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+                        {totalRatings > 0 && <span className="text-[10px] text-muted-foreground">({totalRatings})</span>}
+                      </span>
+                    </div>
+
+                    {showItemDetail.description && (
+                      <p className="text-sm text-muted-foreground leading-relaxed">{showItemDetail.description}</p>
+                    )}
+
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      {showItemDetail.preparation_time && (
+                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{showItemDetail.preparation_time} د</span>
+                      )}
+                      {showItemDetail.calories && <span>🔥 {showItemDetail.calories} سعرة</span>}
+                    </div>
+
+                    {/* Options groups */}
+                    {itemOptions.length > 0 && (
+                      <div className="space-y-5 pt-2 border-t border-border/50">
+                        {itemOptions.map((opt: any) => {
+                          const choices = (opt.choices as OptionChoice[]) || [];
+                          const isSingle = opt.option_type === "single";
+                          return (
+                            <div key={opt.id} className="space-y-2.5 pt-3">
+                              {/* Header */}
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="font-black text-base">{isSingle ? "اختر " : "اختر "}{opt.name_ar}</h4>
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                                    {isSingle ? "اختيار واحد" : `حتى ${opt.max_selections || choices.length} خيارات`}
+                                  </p>
+                                </div>
+                                {opt.is_required && <Badge className="bg-emerald-600 text-white text-[10px] px-2">مطلوب</Badge>}
+                              </div>
+
+                              {/* Choices */}
+                              {isSingle ? (
+                                /* Pill buttons row */
+                                <div className="flex flex-wrap gap-2">
+                                  {choices.map((choice, i) => {
+                                    const isSelected = selectedOptions[opt.id]?.name_ar === choice.name_ar;
+                                    return (
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.id]: choice }))}
+                                        className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${
+                                          isSelected
+                                            ? "bg-emerald-50 border-emerald-600 text-emerald-700 dark:bg-emerald-950/40"
+                                            : "bg-background border-border text-foreground hover:border-emerald-400"
+                                        }`}
+                                      >
+                                        {choice.name_ar}
+                                        {choice.price > 0 && (
+                                          <span className="block text-[10px] font-medium text-muted-foreground mt-0.5">+{choice.price} ر.ي</span>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                /* Right-aligned checkbox list */
+                                <div className="space-y-1">
+                                  {choices.map((choice, i) => {
+                                    const selected = (selectedOptions[opt.id] as OptionChoice[] || []);
+                                    const isChecked = selected.some(s => s.name_ar === choice.name_ar);
+                                    const max = opt.max_selections || choices.length;
+                                    const atMax = !isChecked && selected.length >= max;
+                                    return (
+                                      <label
+                                        key={i}
+                                        htmlFor={`${opt.id}-${i}`}
+                                        className={`flex items-center justify-between gap-2 py-2.5 px-1 border-b border-border/50 last:border-0 cursor-pointer ${
+                                          atMax ? "opacity-50" : ""
+                                        }`}
+                                      >
+                                        <span className="text-sm font-medium flex-1">{choice.name_ar}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {choice.price > 0 ? `+ ${choice.price} ر.ي` : ""}
+                                        </span>
+                                        <Checkbox
+                                          id={`${opt.id}-${i}`}
+                                          checked={isChecked}
+                                          disabled={atMax}
+                                          onCheckedChange={(checked) => {
+                                            setSelectedOptions((prev) => {
+                                              const cur = (prev[opt.id] as OptionChoice[] || []);
+                                              return {
+                                                ...prev,
+                                                [opt.id]: checked
+                                                  ? [...cur, choice]
+                                                  : cur.filter(s => s.name_ar !== choice.name_ar),
+                                              };
+                                            });
+                                          }}
+                                        />
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    <div className="space-y-2 pt-3 border-t border-border/50">
+                      <h4 className="font-black text-base">الملاحظات</h4>
+                      <Textarea
+                        value={itemNotes}
+                        onChange={(e) => setItemNotes(e.target.value)}
+                        placeholder="اكتب ملاحظاتك هنا..."
+                        rows={2}
+                        className="resize-none text-sm"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <DialogFooter>
-                  <Button className="w-full h-12 rounded-xl gap-2 text-base" onClick={() => addToCart(showItemDetail, itemQty)}>
-                    <ShoppingCart className="w-5 h-5" />
-                    إضافة إلى السلة — {((showItemDetail.discounted_price || showItemDetail.price) * itemQty).toLocaleString()} ر.ي
+                {/* Sticky bottom bar */}
+                <div className="border-t bg-background p-3 flex items-center gap-3">
+                  {/* Qty */}
+                  <div className="flex items-center gap-2 bg-muted rounded-xl p-1">
+                    <button
+                      className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center hover:bg-muted"
+                      onClick={() => setItemQty(Math.max(1, itemQty - 1))}
+                      aria-label="تقليل"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-base font-black min-w-[24px] text-center">{itemQty}</span>
+                    <button
+                      className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center hover:bg-muted"
+                      onClick={() => setItemQty(itemQty + 1)}
+                      aria-label="زيادة"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Add to cart */}
+                  <Button
+                    className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm gap-2"
+                    onClick={() => addToCart(showItemDetail, itemQty)}
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    أضف للسلة — {totalPrice.toLocaleString()} ر.ي
                   </Button>
-                </DialogFooter>
-              </div>
-            </>
-          )}
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
