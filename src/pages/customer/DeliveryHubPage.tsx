@@ -30,18 +30,18 @@ const SectionHeader = ({
   icon?: any;
   onMore?: () => void;
 }) => (
-  <div className="flex items-center justify-between mb-3">
-    <h2 className="text-lg font-black text-foreground flex items-center gap-2">
-      {Icon && <Icon className="w-5 h-5 text-primary" />}
+  <div className="flex items-center justify-between mb-1.5">
+    <h2 className="text-[15px] font-black text-foreground flex items-center gap-1.5">
+      {Icon && <Icon className="w-4 h-4 text-primary" />}
       {title}
     </h2>
     {onMore && (
       <button
         onClick={onMore}
-        className="text-sm text-primary font-semibold flex items-center gap-1"
+        className="text-xs text-primary font-semibold flex items-center gap-0.5"
       >
         عرض الكل
-        <ArrowLeftIcon className="w-4 h-4" />
+        <ArrowLeftIcon className="w-3.5 h-3.5" />
       </button>
     )}
   </div>
@@ -66,9 +66,9 @@ const ItemCard = ({ item }: { item: any }) => {
   return (
     <div
       onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="min-w-[145px] w-[145px] bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0 cursor-pointer"
+      className="min-w-[140px] w-[140px] bg-card rounded-xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0 cursor-pointer"
     >
-      <div className="relative w-full h-[100px] bg-muted">
+      <div className="relative w-full h-[90px] bg-muted">
         {item.image_url ? (
           <img
             src={item.image_url}
@@ -77,47 +77,47 @@ const ItemCard = ({ item }: { item: any }) => {
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-3xl">
+          <div className="w-full h-full flex items-center justify-center text-2xl">
             🍔
           </div>
         )}
         {/* Rating badge top-left */}
         {Number(item.rating) > 0 && (
-          <div className="absolute top-2 left-2">
+          <div className="absolute top-1.5 left-1.5">
             <RatingStars rating={item.rating} size="xs" />
           </div>
         )}
         {/* Favorite heart top-right */}
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-1.5 right-1.5">
           <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
         </div>
         {/* Prep time bottom-right pill (like the screenshot) */}
         {prepTime && (
-          <div className="absolute bottom-2 right-2 bg-emerald-600 text-white text-[10px] font-bold rounded-md px-1.5 py-0.5 shadow">
+          <div className="absolute bottom-1.5 right-1.5 bg-emerald-600 text-white text-[9px] font-bold rounded-md px-1.5 py-0.5 shadow">
             {prepTime} دقيقة
           </div>
         )}
         {hasDiscount && (
-          <Badge className="absolute bottom-2 left-2 bg-red-500 hover:bg-red-500 text-white text-[10px] font-bold border-0 shadow">
+          <Badge className="absolute bottom-1.5 left-1.5 bg-red-500 hover:bg-red-500 text-white text-[9px] font-bold border-0 shadow px-1.5 py-0">
             خصم
           </Badge>
         )}
       </div>
-      <div className="p-2.5">
-        <p className="font-bold text-sm text-foreground leading-tight line-clamp-1 mb-0.5">
+      <div className="p-2">
+        <p className="font-bold text-[12px] text-foreground leading-tight line-clamp-1">
           {item.name_ar}
         </p>
         {item.restaurants?.name_ar && (
-          <p className="text-[11px] text-muted-foreground line-clamp-1 mb-1.5">
+          <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
             {item.restaurants.name_ar}
           </p>
         )}
-        <div className="flex items-center justify-between">
-          <span className="text-primary font-black text-sm">
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-primary font-black text-[12px]">
             {Number(price).toLocaleString("ar-YE")} ر.ي
           </span>
           {hasDiscount && (
-            <span className="text-[11px] text-muted-foreground line-through">
+            <span className="text-[10px] text-muted-foreground line-through">
               {Number(item.price).toLocaleString("ar-YE")}
             </span>
           )}
@@ -168,7 +168,7 @@ const TopRatedItems = () => {
         icon={Flame}
         onMore={() => navigate("/food")}
       />
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
         {items.map((it) => (
           <ItemCard key={it.id} item={it} />
         ))}
@@ -203,7 +203,7 @@ const FeaturedItems = () => {
         icon={Sparkles}
         onMore={() => navigate("/food")}
       />
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
         {items.map((it) => (
           <ItemCard key={it.id} item={it} />
         ))}
@@ -328,7 +328,7 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
   if (!banners.length) return null;
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl shadow-xl" style={{ aspectRatio: "16/7", minHeight: 150, maxHeight: 260 }}>
+    <div className="relative w-full overflow-hidden rounded-xl shadow-md" style={{ aspectRatio: "16/8", minHeight: 130, maxHeight: 200 }}>
       {banners.map((banner, i) => (
         <div
           key={banner.id}
@@ -389,18 +389,27 @@ const CategoryScroller = ({ onNavigate }: { onNavigate: (url: string) => void })
 
   return (
     <section>
-      <h2 className="text-lg font-black text-foreground mb-3">التصنيفات</h2>
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+      <div className="flex items-center justify-between mb-1.5">
+        <h2 className="text-[15px] font-black text-foreground">التصنيفات</h2>
+        <button
+          onClick={() => onNavigate("/food?tab=restaurants")}
+          className="text-xs text-primary font-semibold flex items-center gap-0.5"
+        >
+          عرض الكل
+          <ArrowLeftIcon className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
         {unique.map((c) => (
           <button
             key={c.id}
             onClick={() =>
               onNavigate(`/food?tab=restaurants&category=${encodeURIComponent(c.name_ar)}`)
             }
-            className="flex flex-col items-center gap-2 shrink-0 group"
-            style={{ minWidth: 72 }}
+            className="flex flex-col items-center gap-1 shrink-0 group"
+            style={{ minWidth: 60 }}
           >
-            <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-primary/20 bg-card shadow-sm group-hover:ring-primary/60 group-hover:shadow-md transition-all">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-card border border-border/40 shadow-sm group-hover:shadow-md group-hover:-translate-y-0.5 transition-all">
               {c.image_url ? (
                 <img
                   src={c.image_url}
@@ -409,12 +418,12 @@ const CategoryScroller = ({ onNavigate }: { onNavigate: (url: string) => void })
                   loading="lazy"
                 />
               ) : (
-                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-2xl">
+                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-xl">
                   🍽️
                 </div>
               )}
             </div>
-            <span className="text-[11px] font-bold text-foreground text-center leading-tight max-w-[72px] truncate">
+            <span className="text-[10px] font-bold text-foreground text-center leading-tight max-w-[60px] truncate">
               {c.name_ar}
             </span>
           </button>
@@ -429,13 +438,13 @@ const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url
   if (!offers.length) return null;
   return (
     <section>
-      <div className="flex items-center gap-2 mb-3">
-        <div className="p-1.5 rounded-lg bg-red-500/10">
-          <Tag className="w-4 h-4 text-red-500" />
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <div className="p-1 rounded-md bg-red-500/10">
+          <Tag className="w-3.5 h-3.5 text-red-500" />
         </div>
-        <h2 className="text-lg font-black text-foreground">عروض وخصومات</h2>
+        <h2 className="text-[15px] font-black text-foreground">عروض وخصومات</h2>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
         {offers.map((offer) => (
           <button
             key={offer.id}
@@ -444,8 +453,8 @@ const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url
               if (dest === "/shipment-request") dest = "/delivery-request";
               onNavigate(dest);
             }}
-            className="relative shrink-0 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
-            style={{ width: 145, height: 88 }}
+            className="relative shrink-0 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer"
+            style={{ width: 130, height: 72 }}
           >
             <img src={offer.image_url} alt={offer.title || ""} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
@@ -523,11 +532,11 @@ const DeliveryHubPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24" dir="rtl">
-      <div className="container mx-auto px-4 max-w-5xl space-y-5 pt-3">
+      <div className="container mx-auto px-3 max-w-5xl space-y-2.5 pt-2">
 
         {/* ── 1. Service Tiles (image only, no colored gradient) ── */}
         {displayTiles.length > 0 && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {displayTiles.map((tile: any, idx: number) => {
             const imgSrc = tile.image_url || tile.img || "";
             const label = tile.title || tile.label || "";
@@ -535,7 +544,7 @@ const DeliveryHubPage = () => {
               <button
                 key={tile.id || tile.key || idx}
                 onClick={() => handleTileClick(tile)}
-                className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group h-28"
+                className="relative rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group h-20"
               >
                 {imgSrc && (
                   <img
@@ -580,14 +589,14 @@ const DeliveryHubPage = () => {
         <FeaturedRestaurantsSection />
 
         {/* ── 9. Feature pills (fast delivery, secure payment, …) ── */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
           {FEATURES.map((feat) => (
             <div
               key={feat.label}
-              className="flex items-center gap-1.5 shrink-0 bg-card border border-border/40 rounded-full px-4 py-2 shadow-sm"
+              className="flex items-center gap-1 shrink-0 bg-card border border-border/40 rounded-full px-2.5 py-1 shadow-sm"
             >
-              <feat.icon className={`w-3.5 h-3.5 ${feat.color}`} />
-              <span className="text-xs font-semibold text-foreground whitespace-nowrap">
+              <feat.icon className={`w-3 h-3 ${feat.color}`} />
+              <span className="text-[10px] font-semibold text-foreground whitespace-nowrap">
                 {feat.label}
               </span>
             </div>
@@ -595,7 +604,7 @@ const DeliveryHubPage = () => {
         </div>
 
         {/* ── 8. Platform stats (مطاعم / مدينة / تقييم) ── */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {[
             { num: "+500", label: "مطعم" },
             { num: "+20", label: "مدينة" },
@@ -603,10 +612,10 @@ const DeliveryHubPage = () => {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="bg-card border border-border/40 rounded-2xl p-4 text-center shadow-sm"
+              className="bg-card border border-border/40 rounded-xl p-2 text-center shadow-sm"
             >
-              <p className="font-black text-lg text-primary">{stat.num}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="font-black text-sm text-primary">{stat.num}</p>
+              <p className="text-[10px] text-muted-foreground">{stat.label}</p>
             </div>
           ))}
         </div>

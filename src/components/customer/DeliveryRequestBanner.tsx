@@ -57,22 +57,22 @@ const DeliveryRequestBanner = () => {
   return (
     <button
       onClick={() => navigate(banner.link_url || "/delivery-request")}
-      className="relative w-full bg-gradient-to-l from-emerald-50 via-emerald-50 to-green-100 dark:from-emerald-950/40 dark:to-green-900/40 border border-emerald-200/70 dark:border-emerald-800/40 rounded-2xl p-4 flex items-center gap-3 text-right hover:shadow-md transition-all"
+      className="relative w-full bg-gradient-to-l from-emerald-50 via-emerald-50 to-green-100 dark:from-emerald-950/40 dark:to-green-900/40 border border-emerald-200/70 dark:border-emerald-800/40 rounded-xl p-2.5 flex items-center gap-2 text-right hover:shadow-md transition-all"
     >
-      <div className="shrink-0 w-16 h-16 rounded-xl bg-white/70 dark:bg-background/30 flex items-center justify-center overflow-hidden">
-        <img src={img} alt="" className="w-full h-full object-contain p-1.5" loading="lazy" />
+      <div className="shrink-0 w-11 h-11 rounded-lg bg-white/70 dark:bg-background/30 flex items-center justify-center overflow-hidden">
+        <img src={img} alt="" className="w-full h-full object-contain p-1" loading="lazy" />
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-black text-base text-emerald-900 dark:text-emerald-100 leading-tight mb-0.5">
+        <h3 className="font-black text-[13px] text-emerald-900 dark:text-emerald-100 leading-tight">
           {title}
         </h3>
-        <p className="text-xs text-emerald-700/80 dark:text-emerald-200/70 leading-snug line-clamp-2">
+        <p className="text-[10px] text-emerald-700/80 dark:text-emerald-200/70 leading-tight line-clamp-2 mt-0.5">
           {subtitle}
         </p>
       </div>
-      <span className="shrink-0 inline-flex items-center gap-1 bg-primary text-primary-foreground text-xs font-bold rounded-full px-3 py-2 shadow-md">
+      <span className="shrink-0 inline-flex items-center gap-0.5 bg-primary text-primary-foreground text-[11px] font-bold rounded-full px-2.5 py-1.5 shadow">
         {cta}
-        <ChevronLeft className="w-3.5 h-3.5" />
+        <ChevronLeft className="w-3 h-3" />
       </span>
     </button>
   );
