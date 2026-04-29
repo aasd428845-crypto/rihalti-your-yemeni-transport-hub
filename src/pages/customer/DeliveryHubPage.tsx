@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { getRestaurantCuisines } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
-import RatingStars from "@/components/customer/RatingStars";
 import FavoriteHeart from "@/components/customer/FavoriteHeart";
 import DeliveryRequestBanner from "@/components/customer/DeliveryRequestBanner";
 import FeaturedRestaurantsSection from "@/components/customer/FeaturedRestaurantsSection";
@@ -61,7 +60,7 @@ const ItemCard = ({ item }: { item: any }) => {
   const price = item.discounted_price ?? item.price;
   const hasDiscount =
     item.discounted_price && item.discounted_price < item.price;
-  const prepTime = item.preparation_time || item.restaurants?.estimated_delivery_time;
+  const ratingNum = Number(item.rating || 0);
 
   return (
     <div
@@ -81,22 +80,15 @@ const ItemCard = ({ item }: { item: any }) => {
             🍔
           </div>
         )}
-        {/* Rating badge top-left */}
-        {Number(item.rating) > 0 && (
-          <div className="absolute top-1.5 left-1.5">
-            <RatingStars rating={item.rating} size="xs" />
-          </div>
-        )}
         {/* Favorite heart top-right */}
         <div className="absolute top-1.5 right-1.5">
           <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
         </div>
-        {/* Prep time bottom-right pill (like the screenshot) */}
-        {prepTime && (
-          <div className="absolute bottom-1.5 right-1.5 bg-emerald-600 text-white text-[9px] font-bold rounded-md px-1.5 py-0.5 shadow">
-            {prepTime} دقيقة
-          </div>
-        )}
+        {/* Rating bottom-right pill (replaces time pill) — always shown */}
+        <div className="absolute bottom-1.5 right-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-md px-1.5 py-0.5 shadow inline-flex items-center gap-0.5">
+          <Star className="w-2.5 h-2.5 fill-yellow-300 text-yellow-300" />
+          {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+        </div>
         {hasDiscount && (
           <Badge className="absolute bottom-1.5 left-1.5 bg-red-500 hover:bg-red-500 text-white text-[9px] font-bold border-0 shadow px-1.5 py-0">
             خصم
