@@ -46,9 +46,9 @@ const FeaturedRestaurantsSection = () => {
             tabIndex={0}
             onClick={() => navigate(`/restaurants/${r.id}`)}
             onKeyDown={(e) => { if (e.key === "Enter") navigate(`/restaurants/${r.id}`); }}
-            className="min-w-[170px] w-[170px] bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0 cursor-pointer"
+            className="min-w-[145px] w-[145px] bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0 cursor-pointer"
           >
-            <div className="relative w-full h-[120px] bg-muted">
+            <div className="relative w-full h-[100px] bg-muted">
               {r.cover_image || r.logo_url ? (
                 <img
                   src={r.cover_image || r.logo_url}

@@ -66,9 +66,9 @@ const ItemCard = ({ item }: { item: any }) => {
   return (
     <div
       onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="min-w-[170px] w-[170px] bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0 cursor-pointer"
+      className="min-w-[145px] w-[145px] bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0 cursor-pointer"
     >
-      <div className="relative w-full h-[120px] bg-muted">
+      <div className="relative w-full h-[100px] bg-muted">
         {item.image_url ? (
           <img
             src={item.image_url}
