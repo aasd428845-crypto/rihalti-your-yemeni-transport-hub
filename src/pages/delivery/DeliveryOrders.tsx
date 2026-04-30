@@ -647,12 +647,42 @@ const DeliveryOrders = () => {
 
               <div>
                 {!isDeliveryRequest(selectedOrder) && <h4 className="font-bold mb-2">العناصر:</h4>}
-                {!isDeliveryRequest(selectedOrder) && (selectedOrder.items || []).map((item: any, i: number) => (
-                  <div key={i} className="flex justify-between border-b py-1">
-                    <span>{item.name_ar || item.name} × {item.quantity}</span>
-                    <span>{Number(item.price * item.quantity).toLocaleString()} ر.ي</span>
-                  </div>
-                ))}
+                {!isDeliveryRequest(selectedOrder) && (selectedOrder.items || []).map((item: any, i: number) => {
+                  const opts = item.selectedOptions && typeof item.selectedOptions === "object" ? item.selectedOptions : {};
+                  const flatChoices: { name_ar: string; price: number; image_url?: string }[] = [];
+                  Object.values(opts).forEach((v: any) => {
+                    if (Array.isArray(v)) v.forEach((c: any) => c?.name_ar && flatChoices.push(c));
+                    else if (v?.name_ar) flatChoices.push(v);
+                  });
+                  return (
+                    <div key={i} className="border-b py-2 space-y-1.5">
+                      <div className="flex justify-between gap-2">
+                        <span className="font-medium">{item.name_ar || item.name} × {item.quantity}</span>
+                        <span className="text-primary font-semibold whitespace-nowrap">{Number(item.price * item.quantity).toLocaleString()} ر.ي</span>
+                      </div>
+                      {flatChoices.length > 0 && (
+                        <div className="bg-muted/40 rounded-md p-2 space-y-1">
+                          <div className="text-[11px] font-bold text-muted-foreground">الإضافات:</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {flatChoices.map((c, j) => (
+                              <span key={j} className="inline-flex items-center gap-1 bg-background border border-border/60 rounded-full pr-1 pl-2 py-0.5 text-xs">
+                                {c.image_url && <img src={c.image_url} alt="" className="w-4 h-4 rounded-full object-cover" />}
+                                <span>{c.name_ar}</span>
+                                {Number(c.price) > 0 && <span className="text-muted-foreground">+{c.price}</span>}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {item.notes && (
+                        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-md p-2 text-xs">
+                          <span className="font-bold text-amber-700 dark:text-amber-400">📌 ملاحظة العميل: </span>
+                          <span>{item.notes}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               {tracking.length > 0 && (
                 <div>

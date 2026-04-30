@@ -9,11 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Edit, Trash2, Settings2 } from "lucide-react";
 import { getMenuItemOptions, createMenuItemOption, updateMenuItemOption, deleteMenuItemOption } from "@/lib/restaurantApi";
 import { useToast } from "@/hooks/use-toast";
+import ImageUpload from "@/components/common/ImageUpload";
 
 interface Choice {
   name_ar: string;
   name_en?: string;
   price: number;
+  image_url?: string;
 }
 
 interface Props {
@@ -50,11 +52,11 @@ const MenuItemOptionsManager = ({ menuItemId, menuItemName }: Props) => {
   useEffect(() => { if (open) load(); }, [open]);
 
   const resetForm = () => {
-    setForm({ name_ar: "", name_en: "", option_type: "single", is_required: false, max_selections: 1, choices: [{ name_ar: "", price: 0 }] });
+    setForm({ name_ar: "", name_en: "", option_type: "single", is_required: false, max_selections: 1, choices: [{ name_ar: "", price: 0, image_url: "" }] });
     setEditOption(null);
   };
 
-  const addChoice = () => setForm(f => ({ ...f, choices: [...f.choices, { name_ar: "", price: 0 }] }));
+  const addChoice = () => setForm(f => ({ ...f, choices: [...f.choices, { name_ar: "", price: 0, image_url: "" }] }));
   const removeChoice = (i: number) => setForm(f => ({ ...f, choices: f.choices.filter((_, idx) => idx !== i) }));
   const updateChoice = (i: number, field: keyof Choice, value: any) => {
     setForm(f => ({ ...f, choices: f.choices.map((c, idx) => idx === i ? { ...c, [field]: value } : c) }));
@@ -152,8 +154,11 @@ const MenuItemOptionsManager = ({ menuItemId, menuItemName }: Props) => {
                       </div>
                       <div className="flex gap-2 flex-wrap">
                         {((opt.choices as Choice[]) || []).map((c, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">
-                            {c.name_ar} {c.price > 0 && `(+${c.price} ر.ي)`}
+                          <Badge key={i} variant="secondary" className="text-xs gap-1.5 pr-1 pl-2 py-0.5">
+                            {c.image_url && (
+                              <img src={c.image_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                            )}
+                            <span>{c.name_ar} {c.price > 0 && `(+${c.price} ر.ي)`}</span>
                           </Badge>
                         ))}
                       </div>
@@ -184,11 +189,23 @@ const MenuItemOptionsManager = ({ menuItemId, menuItemName }: Props) => {
               </div>
 
               <div>
-                <Label className="mb-2 block">الخيارات:</Label>
+                <Label className="mb-2 block">الخيارات (الإضافات):</Label>
+                <p className="text-xs text-muted-foreground mb-3">يمكنك رفع صورة مصغّرة لكل إضافة لتظهر للعميل عند الطلب.</p>
                 {form.choices.map((choice, i) => (
-                  <div key={i} className="flex gap-2 mb-2 items-center">
-                    <Input value={choice.name_ar} onChange={e => updateChoice(i, "name_ar", e.target.value)} placeholder="اسم الخيار" className="flex-1" />
-                    <Input type="number" value={choice.price} onChange={e => updateChoice(i, "price", Number(e.target.value))} placeholder="سعر إضافي" className="w-24" />
+                  <div key={i} className="flex gap-2 mb-3 items-start p-2 border border-border/60 rounded-lg">
+                    <ImageUpload
+                      value={choice.image_url}
+                      onChange={url => updateChoice(i, "image_url", url)}
+                      bucket="menu-items"
+                      folder="addons"
+                      aspectRatio="square"
+                      placeholder="صورة"
+                      className="!w-16 !h-16 !rounded-lg shrink-0"
+                    />
+                    <div className="flex-1 flex flex-col gap-2">
+                      <Input value={choice.name_ar} onChange={e => updateChoice(i, "name_ar", e.target.value)} placeholder="اسم الإضافة (مثل: جبنة إضافية)" />
+                      <Input type="number" value={choice.price} onChange={e => updateChoice(i, "price", Number(e.target.value))} placeholder="سعر إضافي (ر.ي)" />
+                    </div>
                     {form.choices.length > 1 && (
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive shrink-0" onClick={() => removeChoice(i)}><Trash2 className="w-3 h-3" /></Button>
                     )}

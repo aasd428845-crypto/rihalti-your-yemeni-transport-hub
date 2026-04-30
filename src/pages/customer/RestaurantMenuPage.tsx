@@ -29,6 +29,7 @@ interface OptionChoice {
   name_ar: string;
   name_en?: string;
   price: number;
+  image_url?: string;
 }
 
 // ── Compute open/closed status from opening_hours JSONB ──
@@ -587,7 +588,7 @@ const RestaurantMenuPage = () => {
 
                               {/* Choices */}
                               {isSingle ? (
-                                /* Pill buttons row */
+                                /* Pill / image card buttons row */
                                 <div className="flex flex-wrap gap-2">
                                   {choices.map((choice, i) => {
                                     const isSelected = selectedOptions[opt.id]?.name_ar === choice.name_ar;
@@ -596,22 +597,27 @@ const RestaurantMenuPage = () => {
                                         key={i}
                                         type="button"
                                         onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.id]: choice }))}
-                                        className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${
+                                        className={`flex items-center gap-2 ${choice.image_url ? "pr-1 pl-3 py-1" : "px-4 py-2"} rounded-xl border-2 text-sm font-bold transition-all ${
                                           isSelected
                                             ? "bg-emerald-50 border-emerald-600 text-emerald-700 dark:bg-emerald-950/40"
                                             : "bg-background border-border text-foreground hover:border-emerald-400"
                                         }`}
                                       >
-                                        {choice.name_ar}
-                                        {choice.price > 0 && (
-                                          <span className="block text-[10px] font-medium text-muted-foreground mt-0.5">+{choice.price} ر.ي</span>
+                                        {choice.image_url && (
+                                          <img src={choice.image_url} alt={choice.name_ar} loading="lazy" className="w-9 h-9 rounded-lg object-cover" />
                                         )}
+                                        <span className="text-right">
+                                          {choice.name_ar}
+                                          {choice.price > 0 && (
+                                            <span className="block text-[10px] font-medium text-muted-foreground mt-0.5">+{choice.price} ر.ي</span>
+                                          )}
+                                        </span>
                                       </button>
                                     );
                                   })}
                                 </div>
                               ) : (
-                                /* Right-aligned checkbox list */
+                                /* Right-aligned checkbox list with thumbnails */
                                 <div className="space-y-1">
                                   {choices.map((choice, i) => {
                                     const selected = (selectedOptions[opt.id] as OptionChoice[] || []);
@@ -622,10 +628,15 @@ const RestaurantMenuPage = () => {
                                       <label
                                         key={i}
                                         htmlFor={`${opt.id}-${i}`}
-                                        className={`flex items-center justify-between gap-2 py-2.5 px-1 border-b border-border/50 last:border-0 cursor-pointer ${
+                                        className={`flex items-center gap-2.5 py-2 px-1 border-b border-border/50 last:border-0 cursor-pointer ${
                                           atMax ? "opacity-50" : ""
                                         }`}
                                       >
+                                        {choice.image_url ? (
+                                          <img src={choice.image_url} alt={choice.name_ar} loading="lazy" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                                        ) : (
+                                          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-base shrink-0">🍽️</div>
+                                        )}
                                         <span className="text-sm font-medium flex-1">{choice.name_ar}</span>
                                         <span className="text-xs text-muted-foreground">
                                           {choice.price > 0 ? `+ ${choice.price} ر.ي` : ""}
