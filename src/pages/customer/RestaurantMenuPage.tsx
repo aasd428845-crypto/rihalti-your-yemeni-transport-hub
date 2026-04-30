@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { getCategoryFallbackImage } from "@/components/customer/CategoryScroller";
 
 interface CartItem {
   id: string;
@@ -307,35 +308,53 @@ const RestaurantMenuPage = () => {
           </div>
         </div>
 
-        {/* ── Category Chips (horizontal pill bar) ── */}
+        {/* ── Categories Scroller (circular images, scroll-to-section on click) ── */}
         {!search && categories.length > 0 && (
-          <div
-            ref={chipScrollRef}
-            className="flex gap-2 overflow-x-auto scrollbar-hide px-4 pb-3 border-t border-border/50 pt-3"
-          >
-            {categories.map(cat => {
-              const emoji = cat.image_url ? null : getCategoryEmoji(cat.name_ar || "");
-              const isActive = activeCat === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  data-chip={cat.id}
-                  onClick={() => scrollToCategory(cat.id)}
-                  className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-xs font-semibold transition-all border ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                      : 'bg-background text-foreground border-border hover:border-primary/50'
-                  }`}
-                >
-                  {cat.image_url ? (
-                    <img src={cat.image_url} alt="" className="w-5 h-5 rounded-full object-cover" />
-                  ) : (
-                    <span className="text-sm leading-none">{emoji}</span>
-                  )}
-                  <span>{cat.name_ar}</span>
-                </button>
-              );
-            })}
+          <div className="border-t border-border/50 pt-3 pb-3 px-4">
+            <h3 className="text-[13px] font-black text-foreground mb-2">التصنيفات</h3>
+            <div
+              ref={chipScrollRef}
+              className="flex gap-2.5 overflow-x-auto scrollbar-hide -mx-4 px-4"
+            >
+              {categories.map(cat => {
+                const isActive = activeCat === cat.id;
+                const src = cat.image_url || getCategoryFallbackImage(cat.name_ar || "");
+                return (
+                  <button
+                    key={cat.id}
+                    data-chip={cat.id}
+                    onClick={() => scrollToCategory(cat.id)}
+                    className="flex flex-col items-center gap-1 shrink-0 group"
+                    style={{ minWidth: 64 }}
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-full overflow-hidden bg-card border-2 shadow-sm group-hover:shadow-md group-hover:-translate-y-0.5 transition-all ${
+                        isActive
+                          ? 'border-primary ring-2 ring-primary/30'
+                          : 'border-border/40'
+                      }`}
+                    >
+                      <img
+                        src={src}
+                        alt={cat.name_ar}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = getCategoryFallbackImage("default");
+                        }}
+                      />
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold text-center leading-tight max-w-[64px] truncate ${
+                        isActive ? 'text-primary' : 'text-foreground'
+                      }`}
+                    >
+                      {cat.name_ar}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -708,11 +727,11 @@ const MenuItemCard = ({
       className="flex flex-col w-full bg-background rounded-xl overflow-hidden shadow-sm border border-border/60 hover:shadow-md transition-all active:scale-[0.99] cursor-pointer"
       onClick={onOpen}
     >
-      {/* Image (top) */}
-      <div className="relative w-full h-64 bg-muted overflow-hidden">
+      {/* Image (top) — compact */}
+      <div className="relative w-full h-40 bg-muted overflow-hidden">
         {item.image_url
           ? <img src={item.image_url} alt={item.name_ar} loading="lazy" className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center text-5xl">🍽️</div>}
+          : <div className="w-full h-full flex items-center justify-center text-4xl">🍽️</div>}
         {item.is_popular && (
           <div className="absolute top-2 right-2">
             <Badge className="text-[10px] px-1.5 py-0 bg-amber-500 text-white border-0 gap-0.5 h-5 shadow">
@@ -722,51 +741,51 @@ const MenuItemCard = ({
         )}
       </div>
 
-      {/* Content (bottom) */}
-      <div className="p-4 flex flex-col flex-1 gap-2">
-        <h3 className="font-bold text-base leading-snug line-clamp-2">{item.name_ar}</h3>
+      {/* Content (bottom) — compact */}
+      <div className="p-3 flex flex-col flex-1 gap-1.5">
+        <h3 className="font-bold text-sm leading-snug line-clamp-1">{item.name_ar}</h3>
         {item.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{item.description}</p>
+          <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{item.description}</p>
         )}
         {hasDiscount && (
-          <div className="inline-flex items-center gap-1 self-start bg-red-50 text-red-600 text-xs font-bold px-2 py-0.5 rounded-md border border-red-200">
-            <Flame className="w-3 h-3" />
+          <div className="inline-flex items-center gap-1 self-start bg-red-50 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-red-200">
+            <Flame className="w-2.5 h-2.5" />
             <span>خصم {discountPct}%</span>
           </div>
         )}
 
         {/* Price + Add button row */}
-        <div className="mt-auto pt-3 flex items-center justify-between gap-2">
+        <div className="mt-auto pt-2 flex items-center justify-between gap-2">
           <div className="flex flex-col leading-tight">
-            <span className="font-extrabold text-primary text-lg">{price} ر.ي</span>
+            <span className="font-extrabold text-primary text-base">{price} ر.ي</span>
             {hasDiscount && (
-              <span className="text-xs text-muted-foreground line-through">{item.price} ر.ي</span>
+              <span className="text-[10px] text-muted-foreground line-through">{item.price} ر.ي</span>
             )}
           </div>
 
           {cartItem ? (
-            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
               <button
-                className="w-9 h-9 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
+                className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
                 onClick={() => onUpdateQty(item.id, -1)}
               >
-                <Minus className="w-4 h-4 text-primary" />
+                <Minus className="w-3.5 h-3.5 text-primary" />
               </button>
-              <span className="text-base font-bold min-w-[24px] text-center">{cartItem.quantity}</span>
+              <span className="text-sm font-bold min-w-[20px] text-center">{cartItem.quantity}</span>
               <button
-                className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
                 onClick={() => onUpdateQty(item.id, 1)}
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
             <button
-              className="h-11 px-5 rounded-full bg-primary text-primary-foreground flex items-center gap-1.5 font-bold text-sm shadow-md hover:bg-primary/90 active:scale-95 transition-all shrink-0"
+              className="h-9 px-3.5 rounded-full bg-primary text-primary-foreground flex items-center gap-1 font-bold text-xs shadow-md hover:bg-primary/90 active:scale-95 transition-all shrink-0"
               onClick={e => { e.stopPropagation(); onAdd(); }}
               aria-label="أضف للسلة"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               <span>إضافة</span>
             </button>
           )}

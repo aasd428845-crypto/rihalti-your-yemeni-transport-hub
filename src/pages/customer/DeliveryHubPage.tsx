@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import FavoriteHeart from "@/components/customer/FavoriteHeart";
 import DeliveryRequestBanner from "@/components/customer/DeliveryRequestBanner";
 import FeaturedRestaurantsSection from "@/components/customer/FeaturedRestaurantsSection";
+import SharedCategoryScroller from "@/components/customer/CategoryScroller";
 
 // ─── Reusable: Section header ────────────────────────────────────────────────
 const SectionHeader = ({
@@ -355,75 +356,7 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
   );
 };
 
-// ─── Categories Scroller (circular) ──────────────────────────────────────────
-const CategoryScroller = ({ onNavigate }: { onNavigate: (url: string) => void }) => {
-  const [cats, setCats] = useState<any[]>([]);
-
-  useEffect(() => {
-    supabase
-      .from("menu_categories")
-      .select("id, name_ar, image_url, restaurant_id")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .limit(12)
-      .then(({ data }) => setCats(data || []));
-  }, []);
-
-  if (cats.length === 0) return null;
-
-  // De-duplicate by name_ar so the scroller stays clean.
-  const seen = new Set<string>();
-  const unique = cats.filter((c) => {
-    if (seen.has(c.name_ar)) return false;
-    seen.add(c.name_ar);
-    return true;
-  });
-
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-1.5">
-        <h2 className="text-[15px] font-black text-foreground">التصنيفات</h2>
-        <button
-          onClick={() => onNavigate("/food?tab=restaurants")}
-          className="text-xs text-primary font-semibold flex items-center gap-0.5"
-        >
-          عرض الكل
-          <ArrowLeftIcon className="w-3.5 h-3.5" />
-        </button>
-      </div>
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
-        {unique.map((c) => (
-          <button
-            key={c.id}
-            onClick={() =>
-              onNavigate(`/food?tab=restaurants&category=${encodeURIComponent(c.name_ar)}`)
-            }
-            className="flex flex-col items-center gap-1 shrink-0 group"
-            style={{ minWidth: 60 }}
-          >
-            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-card border border-border/40 shadow-sm group-hover:shadow-md group-hover:-translate-y-0.5 transition-all">
-              {c.image_url ? (
-                <img
-                  src={c.image_url}
-                  alt={c.name_ar}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-xl">
-                  🍽️
-                </div>
-              )}
-            </div>
-            <span className="text-[10px] font-bold text-foreground text-center leading-tight max-w-[60px] truncate">
-              {c.name_ar}
-            </span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-};
+// CategoryScroller is now the shared SharedCategoryScroller imported above.
 
 // ─── Offers / Deals Horizontal Scroll ─────────────────────────────────────────
 const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url: string) => void }) => {
@@ -566,7 +499,7 @@ const DeliveryHubPage = () => {
         <OffersSection offers={offerBanners} onNavigate={navigate} />
 
         {/* ── 4. Categories (circular scroller) ── */}
-        <CategoryScroller onNavigate={navigate} />
+        <SharedCategoryScroller />
 
         {/* ── 5. Most rated ── */}
         <TopRatedItems />

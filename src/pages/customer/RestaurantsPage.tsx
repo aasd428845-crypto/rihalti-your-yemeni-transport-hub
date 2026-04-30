@@ -7,6 +7,7 @@ import { getActiveRestaurants, CoverageStatus } from "@/lib/restaurantApi";
 import { getOpenStatus } from "@/lib/restaurantHours";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import CategoryScroller from "@/components/customer/CategoryScroller";
 
 // ─── Cuisine Fallback Images ──────────────────────────────────────────────────
 const CUISINE_IMAGES: Record<string, string> = {
@@ -186,7 +187,8 @@ const RestaurantsPage = () => {
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [offerBanners, setOfferBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cuisineFilter, setCuisineFilter] = useState("all");
+  const [cuisineFilter, setCuisineFilter] = useState(searchParams.get("category") || "all");
+  const [categoryRestaurantMap, setCategoryRestaurantMap] = useState<Record<string, Set<string>>>({});
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [selectedCity, setSelectedCity] = useState<string>(() => localStorage.getItem("wasal_selected_city") || "");
   const [selectedArea, setSelectedArea] = useState<string>(() => localStorage.getItem("wasal_selected_area") || "");
@@ -225,29 +227,43 @@ const RestaurantsPage = () => {
     ).then(data => setRestaurants(data || [])).catch(() => setRestaurants([])).finally(() => setLoading(false));
   }, [selectedCity, selectedArea]);
 
-  // URL search query
+  // URL search & category query
   useEffect(() => {
     const q = searchParams.get("q");
     if (q) setSearch(q);
+    const cat = searchParams.get("category");
+    if (cat) setCuisineFilter(cat);
   }, [searchParams]);
 
+  // Load category→restaurant map (so we can filter by menu_categories.name_ar too)
+  useEffect(() => {
+    supabase
+      .from("menu_categories")
+      .select("name_ar, restaurant_id")
+      .eq("is_active", true)
+      .then(({ data }) => {
+        const map: Record<string, Set<string>> = {};
+        (data || []).forEach((row: any) => {
+          if (!row.name_ar || !row.restaurant_id) return;
+          if (!map[row.name_ar]) map[row.name_ar] = new Set();
+          map[row.name_ar].add(row.restaurant_id);
+        });
+        setCategoryRestaurantMap(map);
+      });
+  }, []);
+
   const filtered = restaurants.filter(r => {
-    const matchesCuisine = cuisineFilter === "all" || r.cuisine_type?.includes(cuisineFilter);
+    const inCuisine = cuisineFilter === "all" || r.cuisine_type?.includes(cuisineFilter);
+    const inMenuCats = cuisineFilter !== "all" && categoryRestaurantMap[cuisineFilter]?.has(r.id);
+    const matchesCategory = cuisineFilter === "all" || inCuisine || inMenuCats;
     const matchesSearch = !search || r.name_ar.toLowerCase().includes(search.toLowerCase()) || r.name_en?.toLowerCase().includes(search.toLowerCase());
-    return matchesCuisine && matchesSearch;
+    return matchesCategory && matchesSearch;
   });
 
   // Featured items appear inline in the list (marked with sparkle), no separate scroller
   const sortedList = [
     ...filtered.filter(r => r.is_featured),
     ...filtered.filter(r => !r.is_featured),
-  ];
-
-  // Build cuisine pills dynamically from actual restaurant data
-  const allCuisineTypes = Array.from(new Set(restaurants.flatMap(r => r.cuisine_type || [])));
-  const cuisinePills = [
-    { key: "all", label: "الكل", emoji: "🍽️" },
-    ...allCuisineTypes.map(c => ({ key: c, label: c, emoji: CUISINE_EMOJI[c] || "🍴" })),
   ];
 
   return (
@@ -308,28 +324,25 @@ const RestaurantsPage = () => {
           </div>
         </section>
 
-        {/* ── 2. Cuisine Filter Pills (emoji + text, no images) ── */}
-        {!loading && cuisinePills.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
-            {cuisinePills.map(pill => {
-              const isActive = cuisineFilter === pill.key;
-              return (
-                <button
-                  key={pill.key}
-                  onClick={() => setCuisineFilter(pill.key)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full shrink-0 text-sm font-bold border transition-all duration-200 ${
-                    isActive
-                      ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
-                      : "bg-card text-foreground border-border hover:border-primary/40 hover:bg-primary/5"
-                  }`}
-                >
-                  <span className="text-base leading-none">{pill.emoji}</span>
-                  <span>{pill.label}</span>
-                </button>
-              );
-            })}
+        {/* ── 2. Categories scroller (replaces old cuisine pills) ── */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[15px] font-black text-foreground">التصنيفات</h2>
+            {cuisineFilter !== "all" && (
+              <button
+                onClick={() => setCuisineFilter("all")}
+                className="text-xs text-primary font-semibold"
+              >
+                إظهار الكل
+              </button>
+            )}
           </div>
-        )}
+          <CategoryScroller
+            showHeader={false}
+            active={cuisineFilter === "all" ? undefined : cuisineFilter}
+            onSelect={(c) => setCuisineFilter(prev => prev === c.name_ar ? "all" : c.name_ar)}
+          />
+        </div>
 
         {/* ── 3. Restaurant List ── */}
         <section>
