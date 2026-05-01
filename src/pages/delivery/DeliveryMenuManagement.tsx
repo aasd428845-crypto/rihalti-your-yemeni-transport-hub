@@ -55,7 +55,7 @@ const DeliveryMenuManagement = () => {
   const [showItemDialog, setShowItemDialog] = useState(false);
   const [editCat, setEditCat] = useState<any>(null);
   const [editItem, setEditItem] = useState<any>(null);
-  const [catForm, setCatForm] = useState({ name_ar: "", name_en: "", description: "", sort_order: 0 });
+  const [catForm, setCatForm] = useState({ name_ar: "", name_en: "", description: "", sort_order: 0, image_url: "" });
   const [itemForm, setItemForm] = useState(emptyItemForm());
 
   const load = async () => {
@@ -88,7 +88,7 @@ const DeliveryMenuManagement = () => {
         toast({ title: "تمت إضافة الفئة" });
       }
       setShowCatDialog(false); setEditCat(null);
-      setCatForm({ name_ar: "", name_en: "", description: "", sort_order: 0 });
+      setCatForm({ name_ar: "", name_en: "", description: "", sort_order: 0, image_url: "" });
       load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -167,7 +167,7 @@ const DeliveryMenuManagement = () => {
 
   const openEditCat = (c: any) => {
     setEditCat(c);
-    setCatForm({ name_ar: c.name_ar, name_en: c.name_en || "", description: c.description || "", sort_order: c.sort_order || 0 });
+    setCatForm({ name_ar: c.name_ar, name_en: c.name_en || "", description: c.description || "", sort_order: c.sort_order || 0, image_url: c.image_url || "" });
     setShowCatDialog(true);
   };
 
@@ -228,7 +228,7 @@ const DeliveryMenuManagement = () => {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-lg">الفئات</h3>
-            <Button size="sm" onClick={() => { setEditCat(null); setCatForm({ name_ar: "", name_en: "", description: "", sort_order: 0 }); setShowCatDialog(true); }}>
+            <Button size="sm" onClick={() => { setEditCat(null); setCatForm({ name_ar: "", name_en: "", description: "", sort_order: 0, image_url: "" }); setShowCatDialog(true); }}>
               <Plus className="w-3 h-3 ml-1" /> فئة
             </Button>
           </div>
@@ -349,9 +349,20 @@ const DeliveryMenuManagement = () => {
 
       {/* Category Dialog */}
       <Dialog open={showCatDialog} onOpenChange={v => { setShowCatDialog(v); if (!v) setEditCat(null); }}>
-        <DialogContent dir="rtl">
+        <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editCat ? "تعديل فئة" : "إضافة فئة جديدة"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            <div>
+              <Label className="mb-2 block">صورة الفئة <span className="text-muted-foreground text-xs">(تظهر في قسم الفئات بالواجهة الرئيسية)</span></Label>
+              <ImageUpload
+                value={catForm.image_url}
+                onChange={url => setCatForm({...catForm, image_url: url})}
+                bucket="menu-items"
+                folder="categories"
+                aspectRatio="square"
+                placeholder="اضغط لرفع صورة الفئة"
+              />
+            </div>
             <div><Label>الاسم بالعربية *</Label><Input value={catForm.name_ar} onChange={e => setCatForm({...catForm, name_ar: e.target.value})} placeholder="مثال: المشويات" /></div>
             <div><Label>الاسم بالإنجليزية</Label><Input value={catForm.name_en} onChange={e => setCatForm({...catForm, name_en: e.target.value})} placeholder="Grills" /></div>
             <div><Label>الوصف</Label><Textarea value={catForm.description} onChange={e => setCatForm({...catForm, description: e.target.value})} rows={2} /></div>

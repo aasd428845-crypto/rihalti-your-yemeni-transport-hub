@@ -54,13 +54,13 @@ type Props = {
   active?: string;
   /** Show "عرض الكل" link + section title above (default true). */
   showHeader?: boolean;
-  /** Section title (default "التصنيفات"). */
+  /** Section title (default "الفئات"). */
   title?: string;
   /** Where the "عرض الكل" link points to. */
   seeAllHref?: string;
   /**
-   * Click handler. When omitted, navigates to
-   * /food?tab=restaurants&category=<name>.
+   * Click handler. When omitted, navigates to the restaurant that owns
+   * the category (if restaurant_id is set), otherwise filters by category name.
    */
   onSelect?: (cat: CategoryItem) => void;
   /** Larger circular tiles (used on the home page). */
@@ -71,7 +71,7 @@ const CategoryScroller = ({
   restaurantId,
   active,
   showHeader = true,
-  title = "التصنيفات",
+  title = "الفئات",
   seeAllHref = "/food?tab=restaurants",
   onSelect,
   size = "md",
@@ -106,7 +106,11 @@ const CategoryScroller = ({
 
   const handleClick = (c: CategoryItem) => {
     if (onSelect) return onSelect(c);
-    navigate(`/food?tab=restaurants&category=${encodeURIComponent(c.name_ar)}`);
+    if (c.restaurant_id) {
+      navigate(`/restaurants/${c.restaurant_id}`);
+    } else {
+      navigate(`/food?tab=restaurants&category=${encodeURIComponent(c.name_ar)}`);
+    }
   };
 
   return (

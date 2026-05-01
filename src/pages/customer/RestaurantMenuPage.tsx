@@ -572,7 +572,7 @@ const RestaurantMenuPage = () => {
                       <div className="space-y-5 pt-2 border-t border-border/50">
                         {itemOptions.map((opt: any) => {
                           const choices = (opt.choices as OptionChoice[]) || [];
-                          const isSingle = opt.option_type === "single";
+                          const isSingle = opt.option_type === "single" || opt.option_type === "size" || opt.option_type === "remove";
                           return (
                             <div key={opt.id} className="space-y-2.5 pt-3">
                               {/* Header */}
