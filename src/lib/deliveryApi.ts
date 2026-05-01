@@ -24,7 +24,12 @@ export const updateRestaurant = async (id: string, updates: any) => {
 };
 
 export const deleteRestaurant = async (id: string) => {
-  const { error } = await supabase.from("restaurants").delete().eq("id", id);
+  // Soft-delete: mark as inactive instead of hard-deleting to avoid FK constraint
+  // errors from delivery_orders that reference this restaurant.
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ is_active: false } as any)
+    .eq("id", id);
   if (error) throw error;
 };
 

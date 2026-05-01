@@ -19,7 +19,7 @@ import BackButton from "@/components/common/BackButton";
 import MenuExcelImport from "@/components/delivery/MenuExcelImport";
 import MenuItemOptionsManager from "@/components/delivery/MenuItemOptionsManager";
 import ImageUpload from "@/components/common/ImageUpload";
-import { computeItemPromo } from "@/lib/promotionsApi";
+import { computeItemPromo, notifyCustomersAboutPromo } from "@/lib/promotionsApi";
 
 const MENU_ITEM_PROMO_TYPES = [
   { value: "none", label: "لا يوجد عرض", icon: UtensilsCrossed },
@@ -27,6 +27,8 @@ const MENU_ITEM_PROMO_TYPES = [
   { value: "fixed_price", label: "سعر مخفّض ثابت", icon: BadgeDollarSign },
   { value: "custom_text", label: "نص عرض مخصص", icon: Tag },
 ];
+
+const DAYS_AR = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
 const emptyItemForm = () => ({
   name_ar: "", name_en: "", description: "", price: 0,
@@ -39,6 +41,12 @@ const emptyItemForm = () => ({
   promo_value: 0,
   promo_text: "",
   promo_active: false,
+  // Promo scheduling
+  promo_starts_at: "",
+  promo_ends_at: "",
+  promo_active_days: [] as string[],
+  promo_start_time: "",
+  promo_end_time: "",
 });
 
 const DeliveryMenuManagement = () => {
@@ -137,7 +145,15 @@ const DeliveryMenuManagement = () => {
         promo_value: promoType && itemForm.promo_value ? itemForm.promo_value : null,
         promo_text: promoType === "custom_text" ? itemForm.promo_text : null,
         promo_active: promoType ? itemForm.promo_active : false,
+        // Scheduling
+        promo_starts_at: promoType && itemForm.promo_starts_at ? new Date(itemForm.promo_starts_at).toISOString() : null,
+        promo_ends_at: promoType && itemForm.promo_ends_at ? new Date(itemForm.promo_ends_at).toISOString() : null,
+        promo_active_days: promoType && itemForm.promo_active_days?.length ? itemForm.promo_active_days : null,
+        promo_start_time: promoType && itemForm.promo_start_time ? itemForm.promo_start_time : null,
+        promo_end_time: promoType && itemForm.promo_end_time ? itemForm.promo_end_time : null,
       };
+
+      const wasPromoNewlyActivated = promoType && itemForm.promo_active && (!editItem || !editItem.promo_active);
 
       if (editItem) {
         await updateMenuItem(editItem.id, payload);
@@ -145,6 +161,19 @@ const DeliveryMenuManagement = () => {
       } else {
         await createMenuItem(payload);
         toast({ title: "تمت إضافة الصنف" });
+      }
+
+      // Send push notification to all customers when promo is newly activated
+      if (wasPromoNewlyActivated && restaurant) {
+        const promoLabel = itemForm.promo_type === "discount_percent" ? `خصم ${itemForm.promo_value}%` :
+                           itemForm.promo_type === "fixed_price" ? `عرض سعر خاص` :
+                           itemForm.promo_text || "عرض خاص";
+        notifyCustomersAboutPromo(
+          `عرض جديد 🎉 - ${restaurant.name_ar}`,
+          `${itemForm.name_ar}: ${promoLabel}`,
+          restaurantId,
+          itemForm.image_url || undefined
+        );
       }
       setShowItemDialog(false); setEditItem(null);
       setItemForm(emptyItemForm());
@@ -184,6 +213,11 @@ const DeliveryMenuManagement = () => {
       promo_value: i.promo_value || 0,
       promo_text: i.promo_text || "",
       promo_active: i.promo_active || false,
+      promo_starts_at: i.promo_starts_at ? i.promo_starts_at.slice(0, 16) : "",
+      promo_ends_at: i.promo_ends_at ? i.promo_ends_at.slice(0, 16) : "",
+      promo_active_days: i.promo_active_days || [],
+      promo_start_time: i.promo_start_time || "",
+      promo_end_time: i.promo_end_time || "",
     });
     setShowItemDialog(true);
   };
@@ -513,6 +547,68 @@ const DeliveryMenuManagement = () => {
                   <Switch checked={itemForm.promo_active} onCheckedChange={v => setItemForm({...itemForm, promo_active: v})} />
                   <Label className="font-semibold">تفعيل العرض الآن</Label>
                   <span className="text-xs text-muted-foreground">{itemForm.promo_active ? "✅ العرض مفعّل وسيظهر للزبائن" : "⏸️ العرض معطّل حالياً"}</span>
+                </div>
+              )}
+
+              {/* Promo Scheduling */}
+              {itemForm.promo_type !== "none" && (
+                <div className="border-t border-dashed border-primary/20 pt-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
+                    <h4 className="font-bold text-sm">جدولة العرض (اختياري)</h4>
+                    <span className="text-[11px] text-muted-foreground">— حدد متى يظهر العرض تلقائياً</span>
+                  </div>
+
+                  {/* Date range */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs font-semibold">تاريخ البداية</Label>
+                      <Input type="datetime-local" value={itemForm.promo_starts_at} onChange={e => setItemForm({...itemForm, promo_starts_at: e.target.value})} className="text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">تاريخ الانتهاء ⏱️</Label>
+                      <Input type="datetime-local" value={itemForm.promo_ends_at} onChange={e => setItemForm({...itemForm, promo_ends_at: e.target.value})} className="text-sm" />
+                    </div>
+                  </div>
+
+                  {/* Days of week */}
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">الأيام المخصصة (اترك فارغاً لكل الأيام)</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {DAYS_AR.map(d => {
+                        const active = itemForm.promo_active_days?.includes(d);
+                        return (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => setItemForm(f => ({
+                              ...f,
+                              promo_active_days: active
+                                ? (f.promo_active_days || []).filter(x => x !== d)
+                                : [...(f.promo_active_days || []), d]
+                            }))}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${active ? "bg-primary text-white border-primary" : "bg-background border-border text-foreground"}`}
+                          >{d}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Daily time range */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs font-semibold">وقت البداية اليومي</Label>
+                      <Input type="time" value={itemForm.promo_start_time} onChange={e => setItemForm({...itemForm, promo_start_time: e.target.value})} className="text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">وقت الانتهاء اليومي</Label>
+                      <Input type="time" value={itemForm.promo_end_time} onChange={e => setItemForm({...itemForm, promo_end_time: e.target.value})} className="text-sm" />
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg px-3 py-2">
+                    🔔 عند تفعيل العرض، يُرسل إشعار فوري لجميع العملاء
+                  </p>
                 </div>
               )}
             </div>

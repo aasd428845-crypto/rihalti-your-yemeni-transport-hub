@@ -64,6 +64,13 @@ The following env vars are set in Replit (shared environment):
   3. **تسعير المطاعم** — Inline per-restaurant `price_per_km` editor (writes `restaurants.price_per_km`).
 - Sidebar menu item "مركز التسعير" (Calculator icon) at `/delivery/pricing`.
 
+## Promotion Scheduling System (May 2026)
+- **Menu item promos**: Added `promo_starts_at`, `promo_ends_at`, `promo_active_days`, `promo_start_time`, `promo_end_time` columns to `menu_items` via SQL migration `20260501100000_menu_item_promo_scheduling.sql` (must be run in Supabase SQL Editor).
+- **Admin UI (`DeliveryMenuManagement.tsx`)**: Promo dialog now has a "جدولة العرض" section — date range pickers, day-of-week toggles, and daily time window. Scheduling is optional; omit to make promo always active.
+- **Customer UI (`RestaurantMenuPage.tsx`)**: Item cards use `isPromoScheduleActive()` to check if schedule is currently valid. Shows a real-time countdown badge (refreshes every minute) when `promo_ends_at` is set. Custom promo labels and discount badges only show when schedule is active.
+- **Notifications**: Activating any menu item promo (new or toggle-on) fires `send-push-notification` Edge Function to all customers via OneSignal. Same applies to restaurant-level promotions (`DeliveryPromotions.tsx`) on save and on toggle-active.
+- **Helpers in `promotionsApi.ts`**: `isPromoScheduleActive()`, `getPromoCountdown()`, `notifyCustomersAboutPromo()`.
+
 ## DeliveryRequestPage Step 4 — Payment Flow
 - Loads each delivery company's `cash_on_delivery_enabled` and `partner_bank_accounts` when a company is selected.
 - Cash option hidden if the company disables cash; bank-transfer view shows the company's actual bank accounts inline.

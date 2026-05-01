@@ -150,10 +150,10 @@ const DeliveryRestaurants = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("هل تريد حذف هذا المطعم؟")) return;
+    if (!confirm("هل تريد حذف هذا المطعم؟ سيتم إخفاؤه عن العملاء.")) return;
     try {
       await deleteRestaurant(id);
-      toast({ title: "تم حذف المطعم" }); load();
+      toast({ title: "تم إخفاء المطعم بنجاح", description: "المطعم لن يظهر للعملاء" }); load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     }

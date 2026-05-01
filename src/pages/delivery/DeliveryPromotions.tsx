@@ -13,7 +13,7 @@ import { Plus, Pencil, Trash2, Tag, Truck, Clock, Calendar, Gift, Percent, Badge
 import { getActiveRestaurants } from "@/lib/restaurantApi";
 import {
   getRestaurantPromotions, createRestaurantPromotion, updateRestaurantPromotion,
-  deleteRestaurantPromotion, type RestaurantPromotion, type PromoType
+  deleteRestaurantPromotion, notifyCustomersAboutPromo, type RestaurantPromotion, type PromoType
 } from "@/lib/promotionsApi";
 import { useToast } from "@/hooks/use-toast";
 
@@ -147,6 +147,7 @@ const DeliveryPromotions = () => {
         starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
         ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
       };
+      const isNewlyActive = form.is_active && !(editItem?.is_active ?? false);
       if (editItem) {
         await updateRestaurantPromotion(editItem.id, payload);
         toast({ title: "تم تحديث العرض ✓" });
@@ -156,6 +157,16 @@ const DeliveryPromotions = () => {
       }
       setShowDialog(false);
       getRestaurantPromotions(selectedRestaurant).then(setPromotions).catch(() => {});
+
+      // Send push notification to all customers when promo is newly activated
+      if (isNewlyActive) {
+        const rest = restaurants.find(r => r.id === form.restaurant_id);
+        notifyCustomersAboutPromo(
+          `عرض جديد 🎉 - ${rest?.name_ar || "مطعم"}`,
+          form.title,
+          form.restaurant_id
+        );
+      }
     } catch (err: any) {
       toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
     }
@@ -174,8 +185,17 @@ const DeliveryPromotions = () => {
 
   const toggleActive = async (p: RestaurantPromotion) => {
     try {
-      await updateRestaurantPromotion(p.id, { is_active: !p.is_active });
-      setPromotions(prev => prev.map(x => x.id === p.id ? { ...x, is_active: !x.is_active } : x));
+      const newActive = !p.is_active;
+      await updateRestaurantPromotion(p.id, { is_active: newActive });
+      setPromotions(prev => prev.map(x => x.id === p.id ? { ...x, is_active: newActive } : x));
+      if (newActive) {
+        const rest = restaurants.find(r => r.id === p.restaurant_id);
+        notifyCustomersAboutPromo(
+          `عرض جديد 🎉 - ${rest?.name_ar || "مطعم"}`,
+          p.title,
+          p.restaurant_id ?? undefined
+        );
+      }
     } catch {}
   };
 

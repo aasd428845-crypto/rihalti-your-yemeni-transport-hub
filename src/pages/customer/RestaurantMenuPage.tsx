@@ -6,14 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Star, Clock, Truck, Plus, Minus, ShoppingCart, ArrowLeft, Flame, Search, ChevronLeft, Heart, Share2 } from "lucide-react";
+import { Star, Clock, Truck, Plus, Minus, ShoppingCart, ArrowLeft, Flame, Search, ChevronLeft, Heart, Share2, Timer } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { getRestaurantById, getRestaurantMenu, getMenuItemOptions, upsertCart, getCart } from "@/lib/restaurantApi";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { getCategoryFallbackImage } from "@/components/customer/CategoryScroller";
+import { computeItemPromo, isPromoScheduleActive, getPromoCountdown } from "@/lib/promotionsApi";
 
 interface CartItem {
   id: string;
@@ -134,6 +136,36 @@ const RestaurantMenuPage = () => {
     load();
   }, [id, user]);
 
+  // Realtime subscription: when menu items are added/updated/deleted by admin,
+  // update the customer's menu immediately without requiring a page reload.
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`menu-items-rt-${id}`)
+      .on(
+        "postgres_changes" as any,
+        { event: "*", schema: "public", table: "menu_items", filter: `restaurant_id=eq.${id}` },
+        (payload: any) => {
+          if (payload.eventType === "DELETE") {
+            setItems((prev) => prev.filter((i) => i.id !== payload.old.id));
+          } else if (payload.eventType === "UPDATE") {
+            const updated = payload.new;
+            if (updated.is_available === false) {
+              setItems((prev) => prev.filter((i) => i.id !== updated.id));
+            } else {
+              setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+            }
+          } else if (payload.eventType === "INSERT") {
+            if (payload.new.is_available !== false) {
+              setItems((prev) => [...prev, payload.new]);
+            }
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id]);
+
   // IntersectionObserver: update active chip as user scrolls through sections
   useEffect(() => {
     if (categories.length === 0) return;
@@ -170,7 +202,9 @@ const RestaurantMenuPage = () => {
       if (Array.isArray(val)) return sum + val.reduce((s: number, c: OptionChoice) => s + (c.price || 0), 0);
       return sum + (val?.price || 0);
     }, 0);
-    const price = (item.discounted_price || item.price) + optionsExtra;
+    const promoActive = isPromoScheduleActive(item);
+    const { finalPrice } = computeItemPromo({ ...item, promo_active: promoActive ? item.promo_active : false });
+    const price = finalPrice + optionsExtra;
     const notes = itemNotes.trim() || undefined;
     setCart(prev => {
       const existing = prev.find(c => c.id === item.id);
@@ -375,7 +409,8 @@ const RestaurantMenuPage = () => {
             </div>
             <div className="flex gap-2.5 overflow-x-auto scrollbar-hide px-4 pb-2">
               {popular.map(item => {
-                const price = item.discounted_price || item.price;
+                const popPromoActive = isPromoScheduleActive(item);
+                const { finalPrice: popPrice } = computeItemPromo({ ...item, promo_active: popPromoActive ? item.promo_active : false });
                 return (
                   <button
                     key={`pop-${item.id}`}
@@ -390,7 +425,7 @@ const RestaurantMenuPage = () => {
                     <div className="p-2 space-y-1">
                       <p className="font-bold text-[12px] leading-tight line-clamp-1">{item.name_ar}</p>
                       <div className="flex items-center justify-between">
-                        <span className="text-primary font-black text-[12px]">{price} ر.ي</span>
+                        <span className="text-primary font-black text-[12px]">{popPrice} ر.ي</span>
                         <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow">
                           <Plus className="w-3.5 h-3.5" />
                         </span>
@@ -504,11 +539,16 @@ const RestaurantMenuPage = () => {
       <Dialog open={!!showItemDetail} onOpenChange={() => { setShowItemDetail(null); setItemOptions([]); setSelectedOptions({}); setItemNotes(""); }}>
         <DialogContent dir="rtl" className="max-w-md max-h-[95vh] overflow-hidden p-0 gap-0 flex flex-col">
           {showItemDetail && (() => {
-            const basePrice = Number(showItemDetail.discounted_price || showItemDetail.price);
+            const promoScheduleActiveDetail = isPromoScheduleActive(showItemDetail);
+            const { finalPrice: detailFinalPrice, originalPrice: detailOriginalPrice, hasPromo: detailHasPromo } = computeItemPromo({
+              ...showItemDetail,
+              promo_active: promoScheduleActiveDetail ? showItemDetail.promo_active : false,
+            });
             const optionsExtra = Object.values(selectedOptions).reduce((sum: number, val: any) => {
               if (Array.isArray(val)) return sum + val.reduce((s: number, c: OptionChoice) => s + (c.price || 0), 0);
               return sum + (val?.price || 0);
             }, 0);
+            const basePrice = detailFinalPrice;
             const totalPrice = (basePrice + optionsExtra) * itemQty;
             const ratingNum = Number(showItemDetail.rating || 0);
             const totalRatings = Number(showItemDetail.total_ratings || 0);
@@ -728,11 +768,23 @@ const MenuItemCard = ({
   item: any; cartItem?: CartItem; onOpen: () => void; onAdd: () => void;
   onUpdateQty: (id: string, delta: number) => void;
 }) => {
-  const hasDiscount = !!item.discounted_price && Number(item.discounted_price) < Number(item.price);
-  const price = hasDiscount ? item.discounted_price : item.price;
-  const discountPct = hasDiscount
-    ? Math.round((1 - Number(item.discounted_price) / Number(item.price)) * 100)
-    : 0;
+  // Countdown ticker — refresh every 60 s so badge stays accurate
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!item.promo_ends_at) return;
+    const t = setInterval(() => setTick(n => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, [item.promo_ends_at]);
+
+  const promoScheduleActive = isPromoScheduleActive(item);
+  const { finalPrice, originalPrice, promoLabel, hasPromo } = computeItemPromo({
+    ...item,
+    promo_active: promoScheduleActive ? item.promo_active : false,
+  });
+  const hasDiscount = hasPromo && finalPrice < originalPrice;
+  const discountPct = hasDiscount ? Math.round((1 - finalPrice / originalPrice) * 100) : 0;
+  const countdown = promoScheduleActive ? getPromoCountdown(item.promo_ends_at) : null;
+
   return (
     <div
       className="flex flex-col w-full bg-background rounded-xl overflow-hidden shadow-sm border border-border/60 hover:shadow-md transition-all active:scale-[0.99] cursor-pointer"
@@ -750,6 +802,14 @@ const MenuItemCard = ({
             </Badge>
           </div>
         )}
+        {/* Countdown badge — bottom-left of image */}
+        {countdown && (
+          <div className="absolute bottom-2 left-2">
+            <span className="inline-flex items-center gap-1 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
+              <Timer className="w-2.5 h-2.5 text-orange-300" />{countdown}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content (bottom) — compact */}
@@ -758,19 +818,25 @@ const MenuItemCard = ({
         {item.description && (
           <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{item.description}</p>
         )}
-        {hasDiscount && (
+        {/* Promo badge: discount % or custom label */}
+        {promoScheduleActive && hasDiscount && (
           <div className="inline-flex items-center gap-1 self-start bg-red-50 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-red-200">
             <Flame className="w-2.5 h-2.5" />
             <span>خصم {discountPct}%</span>
+          </div>
+        )}
+        {promoScheduleActive && promoLabel && !hasDiscount && (
+          <div className="inline-flex items-center gap-1 self-start bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-primary/20">
+            <span>🎁 {promoLabel}</span>
           </div>
         )}
 
         {/* Price + Add button row */}
         <div className="mt-auto pt-2 flex items-center justify-between gap-2">
           <div className="flex flex-col leading-tight">
-            <span className="font-extrabold text-primary text-base">{price} ر.ي</span>
+            <span className="font-extrabold text-primary text-base">{finalPrice} ر.ي</span>
             {hasDiscount && (
-              <span className="text-[10px] text-muted-foreground line-through">{item.price} ر.ي</span>
+              <span className="text-[10px] text-muted-foreground line-through">{originalPrice} ر.ي</span>
             )}
           </div>
 

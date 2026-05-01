@@ -119,6 +119,82 @@ export const computeEffectiveDeliveryFee = (
   return { fee: baseFee, promoLabel: null };
 };
 
+// ─── Helper: check if a menu item promo is active right now (respects schedule) ──
+export const isPromoScheduleActive = (item: {
+  promo_active?: boolean;
+  promo_starts_at?: string | null;
+  promo_ends_at?: string | null;
+  promo_active_days?: string[] | null;
+  promo_start_time?: string | null;
+  promo_end_time?: string | null;
+}): boolean => {
+  if (!item.promo_active) return false;
+  const now = new Date();
+
+  if (item.promo_starts_at && new Date(item.promo_starts_at) > now) return false;
+  if (item.promo_ends_at && new Date(item.promo_ends_at) < now) return false;
+
+  if (item.promo_active_days && item.promo_active_days.length > 0) {
+    const dayNames = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    const today = dayNames[now.getDay()];
+    if (!item.promo_active_days.includes(today)) return false;
+  }
+
+  if (item.promo_start_time || item.promo_end_time) {
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    if (item.promo_start_time) {
+      const [h, m] = item.promo_start_time.split(":").map(Number);
+      if (nowMin < h * 60 + (m || 0)) return false;
+    }
+    if (item.promo_end_time) {
+      const [h, m] = item.promo_end_time.split(":").map(Number);
+      if (nowMin >= h * 60 + (m || 0)) return false;
+    }
+  }
+
+  return true;
+};
+
+// ─── Helper: get countdown string until promo ends ────────────────────────────
+export const getPromoCountdown = (endsAt?: string | null): string | null => {
+  if (!endsAt) return null;
+  const diff = new Date(endsAt).getTime() - Date.now();
+  if (diff <= 0) return null;
+  const totalMin = Math.floor(diff / 60000);
+  if (totalMin < 1) return "ينتهي الآن";
+  if (totalMin < 60) return `ينتهي خلال ${totalMin} د`;
+  const hours = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+  if (hours < 24) return `ينتهي خلال ${hours}س${mins > 0 ? ` ${mins}د` : ""}`;
+  const days = Math.floor(hours / 24);
+  return `ينتهي خلال ${days} يوم`;
+};
+
+// ─── Notify all customers about a new promotion ───────────────────────────────
+export const notifyCustomersAboutPromo = async (
+  title: string,
+  body: string,
+  restaurantId?: string,
+  image?: string
+) => {
+  try {
+    const { supabase: sb } = await import("@/integrations/supabase/client");
+    await (sb as any).functions.invoke("send-push-notification", {
+      body: {
+        targetRole: "customer",
+        title,
+        body,
+        sound: "default",
+        data: { type: "promo", restaurant_id: restaurantId },
+        url: restaurantId ? `/restaurants/${restaurantId}` : "/food",
+        image,
+      },
+    });
+  } catch (e) {
+    console.warn("Could not send promo notification:", e);
+  }
+};
+
 // ─── Helper: compute effective item price based on item promo fields ──────────
 export const computeItemPromo = (item: {
   price: number;
