@@ -190,11 +190,15 @@ const RestaurantCheckoutPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <div className="container mx-auto px-4 py-6 max-w-3xl">
-        <BackButton />
-        <h1 className="text-2xl font-bold mb-6">إتمام الطلب</h1>
-
-        <div className="space-y-6">
+      <div className="fixed inset-0 z-40 bg-background overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+          <div className="container mx-auto px-4 py-4 max-w-3xl flex items-center justify-between">
+            <h1 className="text-2xl font-bold">إتمام الطلب</h1>
+            <BackButton />
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-6 max-w-3xl">
+          <div className="space-y-6">
           {/* Cart Summary */}
           <Card>
             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><ShoppingCart className="w-5 h-5" />ملخص الطلب من {restaurant?.name_ar}</CardTitle></CardHeader>
@@ -326,6 +330,7 @@ const RestaurantCheckoutPage = () => {
             {submitting ? <div className="animate-spin w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full" /> :
               <>تأكيد الطلب - {total} ر.ي</>}
           </Button>
+          </div>
         </div>
       </div>
     </div>

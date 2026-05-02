@@ -44,7 +44,7 @@ const MorePage = () => {
       items: [
         { icon: FileText, label: "الشروط والأحكام", desc: "شروط استخدام وصل", action: () => navigate("/terms"), color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-950/30" },
         { icon: Shield, label: "سياسة الخصوصية", desc: "كيف نحمي بياناتك", action: () => navigate("/privacy"), color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-950/30" },
-        { icon: Info, label: "عن وصل", desc: "تعرف على منصة وصل", action: () => navigate("/about"), color: "text-primary", bg: "bg-primary/10" },
+        { icon: Info, label: "عن وصل", desc: "تعرف على منصة التوصيل الذكي", action: () => navigate("/about"), color: "text-primary", bg: "bg-primary/10" },
       ],
     },
   ];
@@ -174,7 +174,7 @@ const MorePage = () => {
           </button>
         )}
 
-        <p className="text-center text-xs text-muted-foreground/40 pb-2">وصل v2.0 • منصة النقل الذكية 🇾🇪</p>
+        <p className="text-center text-xs text-muted-foreground/40 pb-2">وصل v2.0 • منصة التوصيل الذكي 🇾🇪</p>
       </div>
     </div>
   );

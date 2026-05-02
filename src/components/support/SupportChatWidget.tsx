@@ -7,6 +7,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
+const SUPPORT_WHATSAPP = "967712345678";
+const SUPPORT_PHONE = "+967712345678";
+
 interface SupportChatWidgetProps {
   inline?: boolean;
 }
@@ -126,7 +129,7 @@ const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
             <p className="text-muted-foreground text-sm">سجّل دخولك للتواصل مع فريق الدعم مباشرة</p>
             <div className="flex gap-3">
               <a
-                href="https://wa.me/967712345678"
+                href={`https://wa.me/${SUPPORT_WHATSAPP}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors"
@@ -134,7 +137,7 @@ const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
                 <MessageSquare className="w-4 h-4" />واتساب
               </a>
               <a
-                href="tel:+9671234567"
+                href={`tel:${SUPPORT_PHONE}`}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity"
               >
                 <Phone className="w-4 h-4" />اتصال
@@ -154,7 +157,7 @@ const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
             <p className="text-xs opacity-80">نحن هنا لمساعدتك</p>
           </div>
           <a
-            href="https://wa.me/967712345678"
+            href={`https://wa.me/${SUPPORT_WHATSAPP}`}
             target="_blank"
             rel="noopener noreferrer"
             className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
@@ -208,7 +211,7 @@ const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
     <>
       {showOptions && !user && (
         <div className="fixed bottom-24 left-6 z-50 flex flex-col gap-3 animate-fade-in">
-          <a href="https://wa.me/967712345678" target="_blank" rel="noopener noreferrer"
+          <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 shadow-xl hover:border-primary/30 transition-all group">
             <div className="w-10 h-10 rounded-full bg-green-500/15 flex items-center justify-center">
               <MessageSquare className="w-5 h-5 text-green-500" />
@@ -218,7 +221,7 @@ const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
               <p className="text-xs text-muted-foreground">تواصل عبر واتساب</p>
             </div>
           </a>
-          <a href="tel:+9671234567"
+          <a href={`tel:${SUPPORT_PHONE}`}
             className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 shadow-xl hover:border-primary/30 transition-all group">
             <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
               <Phone className="w-5 h-5 text-primary-glow" />
@@ -245,7 +248,7 @@ const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
               <p className="font-bold text-sm">الدعم المباشر</p>
               <p className="text-xs opacity-80">نحن هنا لمساعدتك</p>
             </div>
-            <a href="https://wa.me/967712345678" target="_blank" rel="noopener noreferrer"
+            <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer"
               className="p-1.5 rounded-lg hover:bg-white/20 transition-colors" title="واتساب">
               <MessageSquare className="w-4 h-4" />
             </a>

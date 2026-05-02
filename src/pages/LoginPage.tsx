@@ -23,18 +23,22 @@ const LoginPage = () => {
   }, []);
 
   const redirectByRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    const r = data?.role;
-    if (r === "admin") navigate("/admin", { replace: true });
-    else if (r === "supplier") navigate("/supplier", { replace: true });
-    else if (r === "delivery_company") navigate("/delivery", { replace: true });
-    else if (r === "driver") navigate("/driver", { replace: true });
-    else if (r === "delivery_driver") navigate("/delivery-driver", { replace: true });
-    else navigate("/", { replace: true });
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const r = data?.role;
+      if (r === "admin") navigate("/admin", { replace: true });
+      else if (r === "supplier") navigate("/supplier", { replace: true });
+      else if (r === "delivery_company") navigate("/delivery", { replace: true });
+      else if (r === "driver") navigate("/driver", { replace: true });
+      else if (r === "delivery_driver") navigate("/delivery-driver", { replace: true });
+      else navigate("/", { replace: true });
+    } catch {
+      navigate("/", { replace: true });
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -42,24 +46,26 @@ const LoginPage = () => {
     if (!email || !password) return;
 
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      toast({
-        title: "خطأ في تسجيل الدخول",
-        description:
-          error.message === "Invalid login credentials"
-            ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
-            : error.message === "Email not confirmed"
-            ? "يرجى تأكيد بريدك الإلكتروني أولاً"
-            : error.message,
-        variant: "destructive",
-      });
+      if (error) {
+        toast({
+          title: "خطأ في تسجيل الدخول",
+          description:
+            error.message === "Invalid login credentials"
+              ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+              : error.message === "Email not confirmed"
+              ? "يرجى تأكيد بريدك الإلكتروني أولاً"
+              : error.message,
+          variant: "destructive",
+        });
+      } else if (data.user) {
+        toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في منصة التوصيل الذكي!" });
+        await redirectByRole(data.user.id);
+      }
+    } finally {
       setLoading(false);
-    } else if (data.user) {
-      toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في وصل!" });
-      await redirectByRole(data.user.id);
-      // Don't setLoading(false) here — page will navigate away
     }
   };
 
