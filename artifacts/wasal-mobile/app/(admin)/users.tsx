@@ -37,15 +37,18 @@ export default function AdminUsers() {
       .select("user_id, role, profiles(full_name, phone, city, account_status)")
       .limit(100);
     type ProfileRef = { full_name: string | null; phone: string | null; city: string | null; account_status: string | null };
-    type UserRoleRow = { user_id: string; role: string; profiles: ProfileRef | null };
-    const list = ((data ?? []) as UserRoleRow[]).map((u) => ({
-      user_id: u.user_id,
-      role: u.role,
-      name: u.profiles?.full_name ?? "-",
-      phone: u.profiles?.phone ?? "-",
-      city: u.profiles?.city ?? "-",
-      status: u.profiles?.account_status ?? "active",
-    }));
+    type UserRoleRow = { user_id: string; role: string; profiles: ProfileRef[] | ProfileRef | null };
+    const list = ((data ?? []) as unknown as UserRoleRow[]).map((u) => {
+      const profile = Array.isArray(u.profiles) ? u.profiles[0] : u.profiles;
+      return {
+        user_id: u.user_id,
+        role: u.role,
+        name: profile?.full_name ?? "-",
+        phone: profile?.phone ?? "-",
+        city: profile?.city ?? "-",
+        status: profile?.account_status ?? "active",
+      };
+    });
     setUsers(list);
     setFiltered(list);
     setLoading(false);

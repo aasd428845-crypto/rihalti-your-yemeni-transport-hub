@@ -16,11 +16,10 @@ export default function DeliveryCompanyLayout() {
   }
 
   if (!session) return <Redirect href="/auth/login" />;
-
   if (role !== "delivery_company") {
-    if (role === "admin") return <Redirect href="/(admin)/" />;
-    if (role === "delivery_driver" || role === "driver") return <Redirect href="/(rider)/" />;
-    return <Redirect href="/(customer)/" />;
+    if (role === "admin") return <Redirect href="/(admin)" />;
+    if (role === "delivery_driver" || role === "driver") return <Redirect href="/(rider)" />;
+    return <Redirect href="/(customer)" />;
   }
 
   return (

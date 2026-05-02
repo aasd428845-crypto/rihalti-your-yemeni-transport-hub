@@ -51,10 +51,10 @@ export default function LoginScreen() {
           .eq("user_id", data.user.id)
           .maybeSingle();
         const role = roleData?.role;
-        if (role === "admin") router.replace("/(admin)/");
-        else if (role === "delivery_company") router.replace("/(delivery-company)/");
-        else if (role === "delivery_driver" || role === "driver") router.replace("/(rider)/");
-        else router.replace("/(customer)/");
+        if (role === "admin") router.replace("/(admin)");
+        else if (role === "delivery_company") router.replace("/(delivery-company)");
+        else if (role === "delivery_driver" || role === "driver") router.replace("/(rider)");
+        else router.replace("/(customer)");
       }
     } finally {
       setLoading(false);
@@ -73,7 +73,6 @@ export default function LoginScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo */}
         <View style={styles.logoContainer}>
           <View style={styles.logoBg}>
             <Image source={WASAL_LOGO} style={styles.logoImg} resizeMode="contain" />
@@ -82,11 +81,9 @@ export default function LoginScreen() {
           <Text style={styles.appSubtitle}>منصة النقل الذكية</Text>
         </View>
 
-        {/* Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>تسجيل الدخول</Text>
 
-          {/* Email */}
           <View style={styles.inputWrapper}>
             <Feather name="mail" size={18} color={colors.light.mutedForeground} style={styles.inputIcon} />
             <TextInput
@@ -101,7 +98,6 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* Password */}
           <View style={styles.inputWrapper}>
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.inputIcon}>
               <Feather name={showPassword ? "eye-off" : "eye"} size={18} color={colors.light.mutedForeground} />
@@ -117,7 +113,6 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* Login Button */}
           <TouchableOpacity
             style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
             onPress={handleLogin}
@@ -139,108 +134,38 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 40,
-  },
+  container: { flexGrow: 1, paddingHorizontal: 24, alignItems: "center", justifyContent: "center" },
+  logoContainer: { alignItems: "center", marginBottom: 40 },
   logoBg: {
-    width: 90,
-    height: 90,
-    borderRadius: 24,
+    width: 90, height: 90, borderRadius: 24,
     backgroundColor: colors.light.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
+    justifyContent: "center", alignItems: "center", marginBottom: 12,
     shadowColor: colors.light.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8,
     overflow: "hidden",
   },
-  logoImg: {
-    width: 72,
-    height: 72,
-  },
-  appName: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: colors.light.primary,
-    letterSpacing: 1,
-  },
-  appSubtitle: {
-    fontSize: 14,
-    color: colors.light.mutedForeground,
-    marginTop: 4,
-  },
+  logoImg: { width: 72, height: 72 },
+  appName: { fontSize: 30, fontWeight: "700", color: colors.light.primary, letterSpacing: 1 },
+  appSubtitle: { fontSize: 14, color: colors.light.mutedForeground, marginTop: 4 },
   card: {
-    width: "100%",
-    backgroundColor: colors.light.card,
-    borderRadius: colors.radius,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    width: "100%", backgroundColor: colors.light.card, borderRadius: colors.radius, padding: 24,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: colors.light.foreground,
-    textAlign: "center",
-    marginBottom: 24,
-  },
+  cardTitle: { fontSize: 22, fontWeight: "700", color: colors.light.foreground, textAlign: "center", marginBottom: 24 },
   inputWrapper: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    backgroundColor: colors.light.muted,
-    borderRadius: 10,
-    marginBottom: 14,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: colors.light.border,
+    flexDirection: "row-reverse", alignItems: "center",
+    backgroundColor: colors.light.muted, borderRadius: 10, marginBottom: 14,
+    paddingHorizontal: 12, borderWidth: 1, borderColor: colors.light.border,
   },
-  inputIcon: {
-    padding: 4,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    fontSize: 15,
-    color: colors.light.foreground,
-    paddingHorizontal: 8,
-  },
+  inputIcon: { padding: 4 },
+  input: { flex: 1, height: 50, fontSize: 15, color: colors.light.foreground, paddingHorizontal: 8 },
   loginBtn: {
-    backgroundColor: colors.light.primary,
-    borderRadius: 10,
-    height: 52,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 8,
+    backgroundColor: colors.light.primary, borderRadius: 10, height: 52,
+    justifyContent: "center", alignItems: "center", marginTop: 8,
     shadowColor: colors.light.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
   },
-  loginBtnDisabled: {
-    opacity: 0.7,
-  },
-  loginBtnText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  footer: {
-    marginTop: 32,
-    fontSize: 12,
-    color: colors.light.mutedForeground,
-  },
+  loginBtnDisabled: { opacity: 0.7 },
+  loginBtnText: { color: "#fff", fontSize: 17, fontWeight: "700" },
+  footer: { marginTop: 32, fontSize: 12, color: colors.light.mutedForeground },
 });

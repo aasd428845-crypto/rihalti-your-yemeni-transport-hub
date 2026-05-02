@@ -16,10 +16,9 @@ export default function CustomerLayout() {
   }
 
   if (!session) return <Redirect href="/auth/login" />;
-
-  if (role === "admin") return <Redirect href="/(admin)/" />;
-  if (role === "delivery_company") return <Redirect href="/(delivery-company)/" />;
-  if (role === "delivery_driver" || role === "driver") return <Redirect href="/(rider)/" />;
+  if (role === "admin") return <Redirect href="/(admin)" />;
+  if (role === "delivery_company") return <Redirect href="/(delivery-company)" />;
+  if (role === "delivery_driver" || role === "driver") return <Redirect href="/(rider)" />;
 
   return (
     <Tabs
@@ -37,33 +36,9 @@ export default function CustomerLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "الرئيسية",
-          tabBarLabel: "الرئيسية",
-          tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />,
-          headerTitle: "وصال",
-        }}
-      />
-      <Tabs.Screen
-        name="orders"
-        options={{
-          title: "طلباتي",
-          tabBarLabel: "طلباتي",
-          tabBarIcon: ({ color }) => <Feather name="shopping-bag" size={22} color={color} />,
-          headerTitle: "طلباتي",
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "حسابي",
-          tabBarLabel: "حسابي",
-          tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
-          headerTitle: "الملف الشخصي",
-        }}
-      />
+      <Tabs.Screen name="index" options={{ title: "الرئيسية", tabBarLabel: "الرئيسية", tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />, headerTitle: "وصال" }} />
+      <Tabs.Screen name="orders" options={{ title: "طلباتي", tabBarLabel: "طلباتي", tabBarIcon: ({ color }) => <Feather name="shopping-bag" size={22} color={color} />, headerTitle: "طلباتي" }} />
+      <Tabs.Screen name="profile" options={{ title: "حسابي", tabBarLabel: "حسابي", tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />, headerTitle: "الملف الشخصي" }} />
     </Tabs>
   );
 }

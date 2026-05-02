@@ -16,11 +16,10 @@ export default function AdminLayout() {
   }
 
   if (!session) return <Redirect href="/auth/login" />;
-
   if (role !== "admin") {
-    if (role === "delivery_company") return <Redirect href="/(delivery-company)/" />;
-    if (role === "delivery_driver" || role === "driver") return <Redirect href="/(rider)/" />;
-    return <Redirect href="/(customer)/" />;
+    if (role === "delivery_company") return <Redirect href="/(delivery-company)" />;
+    if (role === "delivery_driver" || role === "driver") return <Redirect href="/(rider)" />;
+    return <Redirect href="/(customer)" />;
   }
 
   return (

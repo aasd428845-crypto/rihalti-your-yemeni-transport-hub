@@ -21,7 +21,7 @@ interface RiderRow {
   vehicle_number: string | null;
   earnings: number | null;
   delivery_company_id: string | null;
-  profiles: ProfileRef | null;
+  profiles: ProfileRef | ProfileRef[] | null;
 }
 
 export default function CompanyRiders() {
@@ -37,7 +37,7 @@ export default function CompanyRiders() {
       .select("id, is_online, full_name, phone, vehicle_type, vehicle_number, earnings, delivery_company_id, profiles(full_name, phone)")
       .eq("delivery_company_id", user.id)
       .order("created_at", { ascending: false });
-    setRiders((data ?? []) as RiderRow[]);
+    setRiders((data ?? []) as unknown as RiderRow[]);
     setLoading(false);
   }, [user]);
 
@@ -85,8 +85,15 @@ export default function CompanyRiders() {
               </View>
             </View>
             <View style={styles.cardBody}>
-              <Text style={styles.riderName}>{item.full_name ?? item.profiles?.full_name ?? "مندوب"}</Text>
-              <Text style={styles.riderPhone}>{item.phone ?? item.profiles?.phone ?? "-"}</Text>
+              {(() => {
+                const prof = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
+                return (
+                  <>
+                    <Text style={styles.riderName}>{item.full_name ?? prof?.full_name ?? "مندوب"}</Text>
+                    <Text style={styles.riderPhone}>{item.phone ?? prof?.phone ?? "-"}</Text>
+                  </>
+                );
+              })()}
               <Text style={styles.riderVehicle}>
                 {item.vehicle_type ? `${item.vehicle_type} · ${item.vehicle_number ?? ""}` : "لا يوجد مركبة"}
               </Text>

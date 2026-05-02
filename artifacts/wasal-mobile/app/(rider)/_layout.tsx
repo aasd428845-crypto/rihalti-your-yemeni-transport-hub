@@ -16,11 +16,10 @@ export default function RiderLayout() {
   }
 
   if (!session) return <Redirect href="/auth/login" />;
-
   if (role && role !== "delivery_driver" && role !== "driver") {
-    if (role === "admin") return <Redirect href="/(admin)/" />;
-    if (role === "delivery_company") return <Redirect href="/(delivery-company)/" />;
-    return <Redirect href="/(customer)/" />;
+    if (role === "admin") return <Redirect href="/(admin)" />;
+    if (role === "delivery_company") return <Redirect href="/(delivery-company)" />;
+    return <Redirect href="/(customer)" />;
   }
 
   return (
@@ -39,30 +38,9 @@ export default function RiderLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "طلباتي",
-          tabBarIcon: ({ color }) => <Feather name="package" size={22} color={color} />,
-          headerTitle: "طلبات المندوب",
-        }}
-      />
-      <Tabs.Screen
-        name="collections"
-        options={{
-          title: "التحصيلات",
-          tabBarIcon: ({ color }) => <Feather name="dollar-sign" size={22} color={color} />,
-          headerTitle: "التحصيلات النقدية",
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "حسابي",
-          tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
-          headerTitle: "الملف الشخصي",
-        }}
-      />
+      <Tabs.Screen name="index" options={{ title: "طلباتي", tabBarIcon: ({ color }) => <Feather name="package" size={22} color={color} />, headerTitle: "طلبات المندوب" }} />
+      <Tabs.Screen name="collections" options={{ title: "التحصيلات", tabBarIcon: ({ color }) => <Feather name="dollar-sign" size={22} color={color} />, headerTitle: "التحصيلات النقدية" }} />
+      <Tabs.Screen name="profile" options={{ title: "حسابي", tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />, headerTitle: "الملف الشخصي" }} />
     </Tabs>
   );
 }

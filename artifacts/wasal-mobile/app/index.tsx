@@ -18,14 +18,14 @@ export default function Index() {
 
   switch (role) {
     case "admin":
-      return <Redirect href="/(admin)/" />;
+      return <Redirect href="/(admin)" />;
     case "delivery_company":
-      return <Redirect href="/(delivery-company)/" />;
+      return <Redirect href="/(delivery-company)" />;
     case "delivery_driver":
-      return <Redirect href="/(rider)/" />;
+      return <Redirect href="/(rider)" />;
     case "driver":
-      return <Redirect href="/(rider)/" />;
+      return <Redirect href="/(rider)" />;
     default:
-      return <Redirect href="/(customer)/" />;
+      return <Redirect href="/(customer)" />;
   }
 }

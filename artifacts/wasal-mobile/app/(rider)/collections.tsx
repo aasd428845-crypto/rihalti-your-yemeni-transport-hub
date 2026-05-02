@@ -19,7 +19,7 @@ interface CollectionRow {
   status: CollectionStatus;
   amount: number;
   created_at: string;
-  delivery_orders: OrderRef | null;
+  delivery_orders: OrderRef | OrderRef[] | null;
 }
 
 const STATUS: Record<CollectionStatus, { label: string; color: string }> = {
@@ -49,7 +49,7 @@ export default function RiderCollections() {
       .select("id, status, amount, created_at, delivery_orders(restaurant_name, customer_address)")
       .eq("rider_id", rider.id)
       .order("created_at", { ascending: false });
-    const typed = (data ?? []) as CollectionRow[];
+    const typed = (data ?? []) as unknown as CollectionRow[];
     setCollections(typed);
     const pending = typed
       .filter(c => c.status === "pending_pickup" || c.status === "collected")
@@ -97,8 +97,15 @@ export default function RiderCollections() {
                 <Text style={[styles.status, { color: st.color }]}>{st.label}</Text>
                 <Text style={styles.date}>{new Date(item.created_at).toLocaleDateString("ar-YE")}</Text>
               </View>
-              <Text style={styles.restaurant}>{item.delivery_orders?.restaurant_name ?? "طلب"}</Text>
-              <Text style={styles.address} numberOfLines={1}>{item.delivery_orders?.customer_address ?? "-"}</Text>
+              {(() => {
+                const order = Array.isArray(item.delivery_orders) ? item.delivery_orders[0] : item.delivery_orders;
+                return (
+                  <>
+                    <Text style={styles.restaurant}>{order?.restaurant_name ?? "طلب"}</Text>
+                    <Text style={styles.address} numberOfLines={1}>{order?.customer_address ?? "-"}</Text>
+                  </>
+                );
+              })()}
               <Text style={styles.amount}>{Number(item.amount).toLocaleString()} ر.ي</Text>
             </View>
           );
