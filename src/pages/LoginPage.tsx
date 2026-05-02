@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Bus, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const LoginPage = () => {
@@ -15,56 +15,61 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // If already logged in redirect immediately
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) redirectByRole(session.user.id);
+    });
+  }, []);
+
+  const redirectByRole = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const r = data?.role;
+    if (r === "admin") navigate("/admin", { replace: true });
+    else if (r === "supplier") navigate("/supplier", { replace: true });
+    else if (r === "delivery_company") navigate("/delivery", { replace: true });
+    else if (r === "driver") navigate("/driver", { replace: true });
+    else if (r === "delivery_driver") navigate("/delivery-driver", { replace: true });
+    else navigate("/", { replace: true });
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       toast({
         title: "خطأ في تسجيل الدخول",
-        description: error.message === "Invalid login credentials" 
-          ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
-          : error.message === "Email not confirmed"
-          ? "يرجى تأكيد بريدك الإلكتروني أولاً"
-          : error.message,
+        description:
+          error.message === "Invalid login credentials"
+            ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+            : error.message === "Email not confirmed"
+            ? "يرجى تأكيد بريدك الإلكتروني أولاً"
+            : error.message,
         variant: "destructive",
       });
-    } else {
+      setLoading(false);
+    } else if (data.user) {
       toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في وصل!" });
-      // Fetch role for redirect
-      const { data: { user: loggedUser } } = await supabase.auth.getUser();
-      if (loggedUser) {
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", loggedUser.id)
-          .maybeSingle();
-        const r = roleData?.role;
-        if (r === "admin") navigate("/admin");
-        else if (r === "supplier") navigate("/supplier");
-        else if (r === "delivery_company") navigate("/delivery");
-        else if (r === "driver") navigate("/driver");
-        else if (r === "delivery_driver") navigate("/delivery-driver");
-        else navigate("/");
-      } else {
-        navigate("/");
-      }
+      await redirectByRole(data.user.id);
+      // Don't setLoading(false) here — page will navigate away
     }
-    setLoading(false);
   };
 
   const handleGoogleLogin = async () => {
     try {
-      const { lovable } = await import("@/integrations/lovable/index");
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
       });
-      if (result?.error) {
-        toast({ title: "خطأ", description: String(result.error), variant: "destructive" });
-      }
+      if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } catch (err: any) {
       toast({ title: "خطأ", description: err?.message || "فشل الاتصال بـ Google", variant: "destructive" });
     }
@@ -77,11 +82,11 @@ const LoginPage = () => {
         <div className="text-center mb-8">
           <a href="/" className="inline-flex items-center gap-2 mb-4">
             <div className="w-12 h-12 rounded-xl bg-hero-gradient flex items-center justify-center">
-              <Bus className="w-6 h-6 text-primary-foreground" />
+              <span className="text-2xl font-black text-white">و</span>
             </div>
             <div className="text-right">
-               <div className="text-xl font-black text-foreground">وصل</div>
-              <div className="text-xs text-muted-foreground">منصة النقل الذكية</div>
+              <div className="text-xl font-black text-foreground">وصل</div>
+              <div className="text-xs text-muted-foreground">منصة التوصيل الذكي</div>
             </div>
           </a>
         </div>
@@ -158,8 +163,18 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90" disabled={loading} loading={loading}>
-              {loading ? "جاري التسجيل..." : "تسجيل الدخول"}
+            <Button
+              type="submit"
+              className="w-full h-11 font-bold text-base"
+              style={{ background: "var(--hero-gradient, #16a34a)", color: "white" }}
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  جاري الدخول...
+                </span>
+              ) : "تسجيل الدخول"}
             </Button>
           </form>
 

@@ -16,7 +16,7 @@ import { MapPin, Plus, Trash2, Star, Phone, Navigation, Building2, Map, Pencil }
 import { getPhoneError, formatYemeniPhone } from "@/lib/phoneValidation";
 import MapPicker from "@/components/maps/MapPicker";
 
-const YEMEN_CITIES = ["صنعاء", "عدن", "تعز", "الحديدة", "إب", "المكلا", "ذمار", "عمران", "صعدة", "حجة", "البيضاء", "مأرب", "لحج", "أبين", "شبوة", "المهرة", "الضالع", "ريمة", "سيئون", "سقطرى"];
+const YEMEN_CITIES = ["سيئون"];
 
 const AddressesPage = () => {
   const { user, profile, loading: authLoading } = useAuth();
