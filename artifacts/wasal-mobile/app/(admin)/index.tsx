@@ -6,6 +6,21 @@ import { Feather } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import colors from "@/constants/colors";
 
+type UserRole = "customer" | "supplier" | "delivery_company" | "admin" | "driver" | "delivery_driver";
+
+interface UserRoleRow {
+  role: UserRole;
+}
+
+interface TxRow {
+  id: string;
+  platform_commission: number | null;
+}
+
+interface JoinReqRow {
+  id: string;
+}
+
 interface AdminStats {
   totalUsers: number;
   customers: number;
@@ -19,6 +34,15 @@ interface AdminStats {
   overdueInvoices: number;
 }
 
+const FEATHER_ICONS = {
+  users: "users" as const,
+  shopping_bag: "shopping-bag" as const,
+  trending_up: "trending-up" as const,
+  clock: "clock" as const,
+  user_plus: "user-plus" as const,
+  alert_triangle: "alert-triangle" as const,
+};
+
 export default function AdminOverview() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,17 +54,19 @@ export default function AdminOverview() {
 
     const [{ data: roles }, { data: txMonth }, { data: txToday }, { data: joinReqs }, { data: invoices }] = await Promise.all([
       supabase.from("user_roles").select("role"),
-      supabase.from("financial_transactions").select("platform_commission").gte("created_at", monthStart),
+      supabase.from("financial_transactions").select("id, platform_commission").gte("created_at", monthStart),
       supabase.from("financial_transactions").select("id").gte("created_at", today),
       supabase.from("partner_join_requests").select("id").eq("status", "pending"),
       supabase.from("partner_invoices").select("id").eq("status", "overdue"),
     ]);
 
-    const roleCount = (role: string) => (roles ?? []).filter((r: any) => r.role === role).length;
-    const earnings = (txMonth ?? []).reduce((s: number, t: any) => s + Number(t.platform_commission ?? 0), 0);
+    const roleList = (roles ?? []) as UserRoleRow[];
+    const txList = (txMonth ?? []) as TxRow[];
+    const roleCount = (role: UserRole) => roleList.filter(r => r.role === role).length;
+    const earnings = txList.reduce((s, t) => s + Number(t.platform_commission ?? 0), 0);
 
     setStats({
-      totalUsers: (roles ?? []).length,
+      totalUsers: roleList.length,
       customers: roleCount("customer"),
       suppliers: roleCount("supplier"),
       deliveryCompanies: roleCount("delivery_company"),
@@ -60,10 +86,10 @@ export default function AdminOverview() {
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.light.primary} /></View>;
 
   const kpiCards = [
-    { icon: "users", label: "إجمالي المستخدمين", value: stats!.totalUsers, color: "#3b82f6" },
-    { icon: "shopping-bag", label: "معاملات الشهر", value: stats!.txMonth, color: colors.light.primary },
-    { icon: "trending-up", label: "إيرادات المنصة", value: `${stats!.platformEarnings.toLocaleString()} ر.ي`, color: colors.light.accent },
-    { icon: "clock", label: "معاملات اليوم", value: stats!.txToday, color: "#8b5cf6" },
+    { icon: FEATHER_ICONS.users, label: "إجمالي المستخدمين", value: stats!.totalUsers, color: "#3b82f6" },
+    { icon: FEATHER_ICONS.shopping_bag, label: "معاملات الشهر", value: stats!.txMonth, color: colors.light.primary },
+    { icon: FEATHER_ICONS.trending_up, label: "إيرادات المنصة", value: `${stats!.platformEarnings.toLocaleString()} ر.ي`, color: colors.light.accent },
+    { icon: FEATHER_ICONS.clock, label: "معاملات اليوم", value: stats!.txToday, color: "#8b5cf6" },
   ];
 
   const roleCards = [
@@ -79,30 +105,28 @@ export default function AdminOverview() {
       contentContainerStyle={{ paddingBottom: 100 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.light.primary} />}
     >
-      {/* Alerts */}
       {(stats!.pendingJoinRequests > 0 || stats!.overdueInvoices > 0) && (
         <View style={styles.alertsContainer}>
           {stats!.pendingJoinRequests > 0 && (
             <View style={styles.alertBox}>
-              <Feather name="user-plus" size={16} color="#f59e0b" />
+              <Feather name={FEATHER_ICONS.user_plus} size={16} color="#f59e0b" />
               <Text style={styles.alertText}>{stats!.pendingJoinRequests} طلب انضمام معلق</Text>
             </View>
           )}
           {stats!.overdueInvoices > 0 && (
             <View style={[styles.alertBox, { backgroundColor: "#fee2e2" }]}>
-              <Feather name="alert-triangle" size={16} color="#dc2626" />
+              <Feather name={FEATHER_ICONS.alert_triangle} size={16} color="#dc2626" />
               <Text style={[styles.alertText, { color: "#dc2626" }]}>{stats!.overdueInvoices} فاتورة متأخرة</Text>
             </View>
           )}
         </View>
       )}
 
-      {/* KPI Cards */}
       <View style={styles.kpiGrid}>
         {kpiCards.map((k, i) => (
           <View key={i} style={styles.kpiCard}>
             <View style={[styles.kpiIcon, { backgroundColor: k.color + "22" }]}>
-              <Feather name={k.icon as any} size={22} color={k.color} />
+              <Feather name={k.icon} size={22} color={k.color} />
             </View>
             <Text style={styles.kpiVal}>{k.value}</Text>
             <Text style={styles.kpiLbl}>{k.label}</Text>
@@ -110,7 +134,6 @@ export default function AdminOverview() {
         ))}
       </View>
 
-      {/* Roles breakdown */}
       <Text style={styles.sectionTitle}>توزيع الأدوار</Text>
       <View style={styles.rolesRow}>
         {roleCards.map((r, i) => (

@@ -10,35 +10,52 @@ import {
   Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
-const SERVICE_ICONS: Record<string, string> = {
+type FeatherIconName = ComponentProps<typeof Feather>["name"];
+
+const SERVICE_ICONS: Record<string, FeatherIconName> = {
   مطاعم: "coffee",
   بقالة: "shopping-cart",
   صيدلية: "plus-circle",
   نقل: "truck",
 };
 
+interface ServiceType {
+  id: string;
+  name_ar: string;
+  image_url?: string | null;
+  is_active: boolean;
+  sort_order?: number;
+}
+
+interface Cuisine {
+  id: string;
+  name_ar: string;
+  image_url?: string | null;
+}
+
 export default function CustomerHome() {
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
-  const [services, setServices] = useState<any[]>([]);
-  const [cuisines, setCuisines] = useState<any[]>([]);
+  const [services, setServices] = useState<ServiceType[]>([]);
+  const [cuisines, setCuisines] = useState<Cuisine[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeOrders, setActiveOrders] = useState(0);
 
   const load = async () => {
     const [{ data: s }, { data: c }, { data: o }] = await Promise.all([
-      supabase.from("service_types").select("*").eq("is_active", true).order("sort_order"),
-      supabase.from("restaurant_cuisines").select("*").eq("is_active", true).order("sort_order").limit(6),
-      supabase.from("delivery_orders").select("id", { count: "exact" }).neq("status", "delivered"),
+      supabase.from("service_types").select("id, name_ar, image_url, is_active, sort_order").eq("is_active", true).order("sort_order"),
+      supabase.from("restaurant_cuisines").select("id, name_ar, image_url").eq("is_active", true).order("sort_order").limit(6),
+      supabase.from("delivery_orders").select("id").not("status", "in", '("delivered","cancelled")'),
     ]);
-    setServices(s ?? []);
-    setCuisines(c ?? []);
-    setActiveOrders(o?.length ?? 0);
+    setServices((s ?? []) as ServiceType[]);
+    setCuisines((c ?? []) as Cuisine[]);
+    setActiveOrders((o ?? []).length);
   };
 
   const onRefresh = async () => {
@@ -49,7 +66,14 @@ export default function CustomerHome() {
 
   useEffect(() => { load(); }, []);
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const fallbackServices: ServiceType[] = [
+    { id: "1", name_ar: "مطاعم", is_active: true },
+    { id: "2", name_ar: "بقالة", is_active: true },
+    { id: "3", name_ar: "صيدلية", is_active: true },
+    { id: "4", name_ar: "نقل", is_active: true },
+  ];
+
+  const displayServices = services.length > 0 ? services : fallbackServices;
 
   return (
     <ScrollView
@@ -73,23 +97,21 @@ export default function CustomerHome() {
       {/* Services */}
       <Text style={styles.sectionTitle}>الخدمات</Text>
       <View style={styles.servicesGrid}>
-        {(services.length > 0 ? services : [
-          { id: "1", name_ar: "مطاعم" },
-          { id: "2", name_ar: "بقالة" },
-          { id: "3", name_ar: "صيدلية" },
-          { id: "4", name_ar: "نقل" },
-        ]).map((s: any) => (
-          <TouchableOpacity key={s.id} style={styles.serviceCard} activeOpacity={0.75}>
-            {s.image_url ? (
-              <Image source={{ uri: s.image_url }} style={styles.serviceImg} />
-            ) : (
-              <View style={[styles.serviceImg, styles.serviceImgFallback]}>
-                <Feather name={(SERVICE_ICONS[s.name_ar] ?? "box") as any} size={28} color={colors.light.primary} />
-              </View>
-            )}
-            <Text style={styles.serviceLabel}>{s.name_ar}</Text>
-          </TouchableOpacity>
-        ))}
+        {displayServices.map((s) => {
+          const iconName: FeatherIconName = SERVICE_ICONS[s.name_ar] ?? "box";
+          return (
+            <TouchableOpacity key={s.id} style={styles.serviceCard} activeOpacity={0.75}>
+              {s.image_url ? (
+                <Image source={{ uri: s.image_url }} style={styles.serviceImg} />
+              ) : (
+                <View style={[styles.serviceImg, styles.serviceImgFallback]}>
+                  <Feather name={iconName} size={28} color={colors.light.primary} />
+                </View>
+              )}
+              <Text style={styles.serviceLabel}>{s.name_ar}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Cuisines */}
@@ -97,7 +119,7 @@ export default function CustomerHome() {
         <>
           <Text style={styles.sectionTitle}>أنواع المطبخ</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cuisineRow}>
-            {cuisines.map((c: any) => (
+            {cuisines.map((c) => (
               <TouchableOpacity key={c.id} style={styles.cuisineChip} activeOpacity={0.75}>
                 {c.image_url ? (
                   <Image source={{ uri: c.image_url }} style={styles.cuisineImg} />

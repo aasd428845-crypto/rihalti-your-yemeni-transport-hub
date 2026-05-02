@@ -5,17 +5,30 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
-const STATUSES = [
-  { key: "all", label: "الكل" },
-  { key: "pending", label: "معلقة" },
-  { key: "on_the_way", label: "في الطريق" },
-  { key: "delivered", label: "مُسلَّمة" },
+type OrderStatus = "pending" | "accepted" | "preparing" | "on_the_way" | "delivered" | "cancelled";
+
+interface OrderRow {
+  id: string;
+  status: OrderStatus;
+  total: number | null;
+  restaurant_name: string | null;
+  customer_name: string | null;
+  customer_address: string | null;
+  created_at: string;
+}
+
+const FILTER_OPTIONS = [
+  { key: "all" as const, label: "الكل" },
+  { key: "pending" as const, label: "معلقة" },
+  { key: "on_the_way" as const, label: "في الطريق" },
+  { key: "delivered" as const, label: "مُسلَّمة" },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; next?: string; nextLabel?: string }> = {
+type FilterKey = "all" | OrderStatus;
+
+const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; next?: OrderStatus; nextLabel?: string }> = {
   pending: { label: "انتظار", color: "#f59e0b", next: "accepted", nextLabel: "قبول" },
   accepted: { label: "مقبول", color: "#3b82f6", next: "preparing", nextLabel: "تحضير" },
   preparing: { label: "تحضير", color: "#8b5cf6", next: "on_the_way", nextLabel: "تسليم للمندوب" },
@@ -25,25 +38,27 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; next?: strin
 };
 
 export default function CompanyOrders() {
-  const { user } = useAuth();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [filter, setFilter] = useState("all");
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [filter, setFilter] = useState<FilterKey>("all");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    if (!user) return;
-    let q = supabase.from("delivery_orders").select("*").eq("delivery_company_id" as any, user.id).order("created_at", { ascending: false }).limit(100);
+    let q = supabase
+      .from("delivery_orders")
+      .select("id, status, total, restaurant_name, customer_name, customer_address, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
     if (filter !== "all") q = q.eq("status", filter);
     const { data } = await q;
-    setOrders(data ?? []);
+    setOrders((data ?? []) as OrderRow[]);
     setLoading(false);
-  }, [user, filter]);
+  }, [filter]);
 
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
   useEffect(() => { setLoading(true); load(); }, [load]);
 
-  const updateStatus = (orderId: string, newStatus: string, label: string) => {
+  const updateStatus = (orderId: string, newStatus: OrderStatus, label: string) => {
     Alert.alert("تأكيد", `تغيير الحالة إلى: ${label}؟`, [
       { text: "إلغاء", style: "cancel" },
       {
@@ -59,9 +74,8 @@ export default function CompanyOrders() {
 
   return (
     <View style={styles.container}>
-      {/* Filter tabs */}
       <View style={styles.filterRow}>
-        {STATUSES.map(s => (
+        {FILTER_OPTIONS.map(s => (
           <TouchableOpacity
             key={s.key}
             style={[styles.filterTab, filter === s.key && styles.filterTabActive]}
@@ -84,7 +98,7 @@ export default function CompanyOrders() {
           </View>
         }
         renderItem={({ item }) => {
-          const sc = STATUS_CONFIG[item.status] ?? { label: item.status, color: "#888" };
+          const sc = STATUS_CONFIG[item.status];
           return (
             <View style={styles.card}>
               <View style={styles.cardTop}>
@@ -95,7 +109,7 @@ export default function CompanyOrders() {
               <Text style={styles.address} numberOfLines={1}>{item.customer_address ?? "-"}</Text>
               <View style={styles.cardFooter}>
                 <Text style={styles.amount}>{item.total ? `${Number(item.total).toLocaleString()} ر.ي` : "-"}</Text>
-                {sc.next && (
+                {sc.next && sc.nextLabel && (
                   <TouchableOpacity style={styles.actionBtn} onPress={() => updateStatus(item.id, sc.next!, sc.nextLabel!)}>
                     <Text style={styles.actionBtnText}>{sc.nextLabel}</Text>
                   </TouchableOpacity>

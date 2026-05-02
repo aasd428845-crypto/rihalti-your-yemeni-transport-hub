@@ -7,12 +7,45 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
+type InvoiceStatus = "pending" | "paid" | "overdue" | "cancelled";
+
+interface InvoiceRow {
+  id: string;
+  invoice_number: string;
+  status: InvoiceStatus;
+  net_amount: number;
+  period_start: string;
+  period_end: string;
+}
+
+interface TxRow {
+  amount: number | null;
+  payment_status: string | null;
+}
+
+interface FinanceData {
+  totalRevenue: number;
+  monthRevenue: number;
+  pendingAmount: number;
+  invoices: InvoiceRow[];
+}
+
+const INVOICE_STATUS: Record<InvoiceStatus, { label: string; color: string }> = {
+  pending: { label: "معلقة", color: "#f59e0b" },
+  paid: { label: "مدفوعة", color: "#16a34a" },
+  overdue: { label: "متأخرة", color: "#dc2626" },
+  cancelled: { label: "ملغية", color: "#6b7280" },
+};
+
 export default function CompanyFinance() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [data, setData] = useState({
-    totalRevenue: 0, monthRevenue: 0, pendingAmount: 0, invoices: [] as any[],
+  const [data, setData] = useState<FinanceData>({
+    totalRevenue: 0,
+    monthRevenue: 0,
+    pendingAmount: 0,
+    invoices: [],
   });
 
   const load = useCallback(async () => {
@@ -23,14 +56,17 @@ export default function CompanyFinance() {
     const [{ data: allTx }, { data: monthTx }, { data: invoices }] = await Promise.all([
       supabase.from("financial_transactions").select("amount, payment_status").eq("partner_id", user.id),
       supabase.from("financial_transactions").select("amount, payment_status").eq("partner_id", user.id).gte("created_at", monthStart),
-      supabase.from("partner_invoices").select("*").eq("partner_id", user.id).order("created_at", { ascending: false }).limit(10),
+      supabase.from("partner_invoices").select("id, invoice_number, status, net_amount, period_start, period_end").eq("partner_id", user.id).order("created_at", { ascending: false }).limit(10),
     ]);
 
-    const totalRevenue = (allTx ?? []).reduce((s: number, t: any) => s + Number(t.amount ?? 0), 0);
-    const monthRevenue = (monthTx ?? []).reduce((s: number, t: any) => s + Number(t.amount ?? 0), 0);
-    const pendingAmount = (invoices ?? []).filter((i: any) => ["pending", "overdue"].includes(i.status)).reduce((s: number, i: any) => s + Number(i.net_amount ?? 0), 0);
+    const typedInvoices = (invoices ?? []) as InvoiceRow[];
+    const totalRevenue = ((allTx ?? []) as TxRow[]).reduce((s, t) => s + Number(t.amount ?? 0), 0);
+    const monthRevenue = ((monthTx ?? []) as TxRow[]).reduce((s, t) => s + Number(t.amount ?? 0), 0);
+    const pendingAmount = typedInvoices
+      .filter(i => i.status === "pending" || i.status === "overdue")
+      .reduce((s, i) => s + Number(i.net_amount ?? 0), 0);
 
-    setData({ totalRevenue, monthRevenue, pendingAmount, invoices: invoices ?? [] });
+    setData({ totalRevenue, monthRevenue, pendingAmount, invoices: typedInvoices });
     setLoading(false);
   }, [user]);
 
@@ -39,20 +75,12 @@ export default function CompanyFinance() {
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.light.primary} /></View>;
 
-  const INVOICE_STATUS: Record<string, { label: string; color: string }> = {
-    pending: { label: "معلقة", color: "#f59e0b" },
-    paid: { label: "مدفوعة", color: "#16a34a" },
-    overdue: { label: "متأخرة", color: "#dc2626" },
-    cancelled: { label: "ملغية", color: "#6b7280" },
-  };
-
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 100 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.light.primary} />}
     >
-      {/* Revenue summary */}
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
           <Feather name="trending-up" size={22} color={colors.light.primary} />
@@ -65,6 +93,7 @@ export default function CompanyFinance() {
           <Text style={styles.statLbl}>إيرادات الشهر</Text>
         </View>
       </View>
+
       {data.pendingAmount > 0 && (
         <View style={styles.alertBox}>
           <Feather name="alert-triangle" size={18} color="#dc2626" />
@@ -72,32 +101,35 @@ export default function CompanyFinance() {
         </View>
       )}
 
-      {/* Invoices */}
       <Text style={styles.sectionTitle}>الفواتير</Text>
       {data.invoices.length === 0 ? (
         <View style={styles.empty}>
           <Feather name="file-text" size={48} color={colors.light.muted} />
           <Text style={styles.emptyText}>لا توجد فواتير</Text>
         </View>
-      ) : data.invoices.map((inv: any) => {
-        const st = INVOICE_STATUS[inv.status] ?? { label: inv.status, color: "#888" };
-        return (
-          <View key={inv.id} style={styles.invoiceCard}>
-            <View style={styles.invoiceTop}>
-              <Text style={[styles.invoiceStatus, { color: st.color }]}>{st.label}</Text>
-              <Text style={styles.invoiceNum}>{inv.invoice_number}</Text>
+      ) : (
+        data.invoices.map((inv) => {
+          const st = INVOICE_STATUS[inv.status] ?? { label: String(inv.status), color: "#888" };
+          return (
+            <View key={inv.id} style={styles.invoiceCard}>
+              <View style={styles.invoiceTop}>
+                <Text style={[styles.invoiceStatus, { color: st.color }]}>{st.label}</Text>
+                <Text style={styles.invoiceNum}>{inv.invoice_number}</Text>
+              </View>
+              <View style={styles.invoiceRow}>
+                <Text style={styles.invoiceLabel}>الفترة:</Text>
+                <Text style={styles.invoiceVal}>{inv.period_start} — {inv.period_end}</Text>
+              </View>
+              <View style={styles.invoiceRow}>
+                <Text style={styles.invoiceLabel}>الصافي:</Text>
+                <Text style={[styles.invoiceVal, { color: colors.light.primary, fontWeight: "700" }]}>
+                  {Number(inv.net_amount).toLocaleString()} ر.ي
+                </Text>
+              </View>
             </View>
-            <View style={styles.invoiceRow}>
-              <Text style={styles.invoiceLabel}>الفترة:</Text>
-              <Text style={styles.invoiceVal}>{inv.period_start} — {inv.period_end}</Text>
-            </View>
-            <View style={styles.invoiceRow}>
-              <Text style={styles.invoiceLabel}>الصافي:</Text>
-              <Text style={[styles.invoiceVal, { color: colors.light.primary, fontWeight: "700" }]}>{Number(inv.net_amount).toLocaleString()} ر.ي</Text>
-            </View>
-          </View>
-        );
-      })}
+          );
+        })
+      )}
     </ScrollView>
   );
 }

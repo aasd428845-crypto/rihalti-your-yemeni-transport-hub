@@ -3,13 +3,20 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { ComponentProps } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
+type FeatherIconName = ComponentProps<typeof Feather>["name"];
+
+interface InfoRow {
+  icon: FeatherIconName;
+  label: string;
+  value: string;
+}
+
 export default function CustomerProfile() {
   const { profile, user, signOut } = useAuth();
-  const insets = useSafeAreaInsets();
 
   const handleLogout = () => {
     Alert.alert("تسجيل الخروج", "هل أنت متأكد؟", [
@@ -18,7 +25,7 @@ export default function CustomerProfile() {
     ]);
   };
 
-  const rows = [
+  const rows: InfoRow[] = [
     { icon: "user", label: "الاسم", value: profile?.full_name ?? "-" },
     { icon: "mail", label: "البريد الإلكتروني", value: user?.email ?? "-" },
     { icon: "phone", label: "الهاتف", value: profile?.phone ?? "-" },
@@ -27,7 +34,6 @@ export default function CustomerProfile() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
-      {/* Avatar */}
       <View style={styles.avatarSection}>
         <View style={styles.avatar}>
           <Text style={styles.avatarInitial}>
@@ -38,18 +44,16 @@ export default function CustomerProfile() {
         <Text style={styles.email}>{user?.email}</Text>
       </View>
 
-      {/* Info rows */}
       <View style={styles.section}>
         {rows.map((r, i) => (
           <View key={i} style={[styles.row, i < rows.length - 1 && styles.rowBorder]}>
             <Text style={styles.rowValue}>{r.value}</Text>
             <Text style={styles.rowLabel}>{r.label}</Text>
-            <Feather name={r.icon as any} size={18} color={colors.light.mutedForeground} />
+            <Feather name={r.icon} size={18} color={colors.light.mutedForeground} />
           </View>
         ))}
       </View>
 
-      {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
         <Text style={styles.logoutText}>تسجيل الخروج</Text>
         <Feather name="log-out" size={18} color={colors.light.destructive} />

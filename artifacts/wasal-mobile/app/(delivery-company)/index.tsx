@@ -1,11 +1,27 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
+
+type OrderStatus = "pending" | "accepted" | "preparing" | "on_the_way" | "delivered" | "cancelled";
+
+interface OrderRow {
+  id: string;
+  status: OrderStatus;
+  total: number | null;
+  restaurant_name: string | null;
+  customer_name: string | null;
+  created_at: string;
+}
+
+interface RiderRow {
+  id: string;
+  is_online: boolean;
+}
 
 interface Stats {
   todayOrders: number;
@@ -16,10 +32,28 @@ interface Stats {
   pendingOrders: number;
 }
 
+const STATUS_COLORS: Record<OrderStatus, string> = {
+  pending: "#f59e0b",
+  accepted: "#3b82f6",
+  preparing: "#8b5cf6",
+  on_the_way: "#06b6d4",
+  delivered: "#16a34a",
+  cancelled: "#dc2626",
+};
+
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: "انتظار",
+  accepted: "مقبول",
+  preparing: "تحضير",
+  on_the_way: "في الطريق",
+  delivered: "مُسلَّم",
+  cancelled: "ملغي",
+};
+
 export default function DeliveryDashboard() {
   const { user, profile } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -28,25 +62,38 @@ export default function DeliveryDashboard() {
     const today = new Date().toISOString().split("T")[0];
 
     const [{ data: todayOrders }, { data: allOrders }, { data: riders }] = await Promise.all([
-      supabase.from("delivery_orders").select("id, total, status").gte("created_at", today).eq("delivery_company_id" as any, user.id),
-      supabase.from("delivery_orders").select("*").eq("delivery_company_id" as any, user.id).order("created_at", { ascending: false }).limit(10),
-      supabase.from("riders").select("id, is_online").eq("delivery_company_id", user.id),
+      supabase
+        .from("delivery_orders")
+        .select("id, total, status")
+        .gte("created_at", today),
+      supabase
+        .from("delivery_orders")
+        .select("id, status, total, restaurant_name, customer_name, created_at")
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase
+        .from("riders")
+        .select("id, is_online")
+        .eq("delivery_company_id", user.id),
     ]);
 
-    const active = (todayOrders ?? []).filter((o: any) => !["delivered", "cancelled"].includes(o.status)).length;
-    const revenue = (todayOrders ?? []).reduce((s: number, o: any) => s + Number(o.total ?? 0), 0);
-    const online = (riders ?? []).filter((r: any) => r.is_online).length;
-    const pending = (todayOrders ?? []).filter((o: any) => o.status === "pending").length;
+    const typedToday = (todayOrders ?? []) as Array<{ id: string; total: number | null; status: OrderStatus }>;
+    const typedRiders = (riders ?? []) as RiderRow[];
+
+    const active = typedToday.filter(o => o.status !== "delivered" && o.status !== "cancelled").length;
+    const revenue = typedToday.reduce((s, o) => s + Number(o.total ?? 0), 0);
+    const online = typedRiders.filter(r => r.is_online).length;
+    const pending = typedToday.filter(o => o.status === "pending").length;
 
     setStats({
-      todayOrders: (todayOrders ?? []).length,
+      todayOrders: typedToday.length,
       activeOrders: active,
       todayRevenue: revenue,
       onlineRiders: online,
-      totalRiders: (riders ?? []).length,
+      totalRiders: typedRiders.length,
       pendingOrders: pending,
     });
-    setRecentOrders((allOrders ?? []).slice(0, 8));
+    setRecentOrders(((allOrders ?? []) as OrderRow[]).slice(0, 8));
     setLoading(false);
   }, [user]);
 
@@ -55,21 +102,12 @@ export default function DeliveryDashboard() {
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.light.primary} /></View>;
 
-  const STATUS_COLORS: Record<string, string> = {
-    pending: "#f59e0b", accepted: "#3b82f6", preparing: "#8b5cf6",
-    on_the_way: "#06b6d4", delivered: "#16a34a", cancelled: "#dc2626",
-  };
-  const STATUS_LABELS: Record<string, string> = {
-    pending: "انتظار", accepted: "مقبول", preparing: "تحضير",
-    on_the_way: "في الطريق", delivered: "مُسلَّم", cancelled: "ملغي",
-  };
-
   const statBoxes = [
-    { icon: "shopping-bag", label: "طلبات اليوم", value: stats!.todayOrders, color: "#3b82f6" },
-    { icon: "clock", label: "نشطة", value: stats!.activeOrders, color: "#f59e0b" },
-    { icon: "alert-circle", label: "معلقة", value: stats!.pendingOrders, color: "#dc2626" },
-    { icon: "users", label: `${stats!.onlineRiders}/${stats!.totalRiders}`, value: "متصل", color: "#16a34a" },
-    { icon: "dollar-sign", label: "إيرادات اليوم", value: `${stats!.todayRevenue.toLocaleString()} ر.ي`, color: "#10b981" },
+    { icon: "shopping-bag" as const, label: "طلبات اليوم", value: stats!.todayOrders, color: "#3b82f6" },
+    { icon: "clock" as const, label: "نشطة", value: stats!.activeOrders, color: "#f59e0b" },
+    { icon: "alert-circle" as const, label: "معلقة", value: stats!.pendingOrders, color: "#dc2626" },
+    { icon: "users" as const, label: `${stats!.onlineRiders}/${stats!.totalRiders}`, value: "متصل", color: "#16a34a" },
+    { icon: "dollar-sign" as const, label: "إيرادات اليوم", value: `${stats!.todayRevenue.toLocaleString()} ر.ي`, color: "#10b981" },
   ];
 
   return (
@@ -78,18 +116,16 @@ export default function DeliveryDashboard() {
       contentContainerStyle={{ paddingBottom: 100 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.light.primary} />}
     >
-      {/* Welcome */}
       <View style={styles.banner}>
         <Text style={styles.bannerTitle}>أهلاً، {profile?.full_name?.split(" ")[0] ?? "شركة التوصيل"}</Text>
         <Text style={styles.bannerSub}>لوحة تحكم شركة التوصيل</Text>
       </View>
 
-      {/* Stats Grid */}
       <View style={styles.statsGrid}>
         {statBoxes.map((s, i) => (
           <View key={i} style={styles.statBox}>
             <View style={[styles.statIcon, { backgroundColor: s.color + "22" }]}>
-              <Feather name={s.icon as any} size={20} color={s.color} />
+              <Feather name={s.icon} size={20} color={s.color} />
             </View>
             <Text style={styles.statVal}>{s.value}</Text>
             <Text style={styles.statLbl}>{s.label}</Text>
@@ -97,9 +133,8 @@ export default function DeliveryDashboard() {
         ))}
       </View>
 
-      {/* Recent Orders */}
       <Text style={styles.sectionTitle}>آخر الطلبات</Text>
-      {recentOrders.map((o: any) => (
+      {recentOrders.map((o) => (
         <View key={o.id} style={styles.orderCard}>
           <View style={styles.orderHeader}>
             <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[o.status] ?? "#888" }]} />
@@ -130,7 +165,7 @@ const styles = StyleSheet.create({
   bannerSub: { fontSize: 13, color: "rgba(255,255,255,0.75)", marginTop: 4 },
   statsGrid: { flexDirection: "row", flexWrap: "wrap", padding: 12, gap: 10 },
   statBox: {
-    width: "30%", flex: 1, minWidth: "28%",
+    flex: 1, minWidth: "28%",
     backgroundColor: colors.light.card, borderRadius: 12, padding: 12, alignItems: "center",
     shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
   },

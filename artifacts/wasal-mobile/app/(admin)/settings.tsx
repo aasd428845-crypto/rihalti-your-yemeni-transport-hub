@@ -7,20 +7,34 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
+interface SettingRow {
+  id: string;
+  key: string;
+  value: string;
+}
+
+interface AccountingSettings {
+  global_commission_booking: number;
+  global_commission_delivery: number;
+  global_commission_shipment: number;
+  payment_due_days: number;
+  auto_suspend_days: number;
+}
+
 export default function AdminSettings() {
   const { signOut } = useAuth();
-  const [settings, setSettings] = useState<any[]>([]);
-  const [accounting, setAccounting] = useState<any>(null);
+  const [settings, setSettings] = useState<SettingRow[]>([]);
+  const [accounting, setAccounting] = useState<AccountingSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     const [{ data: s }, { data: a }] = await Promise.all([
-      supabase.from("admin_settings").select("*").order("key"),
-      supabase.from("accounting_settings").select("*").eq("id", 1 as any).maybeSingle(),
+      supabase.from("admin_settings").select("id, key, value").order("key"),
+      supabase.from("accounting_settings").select("global_commission_booking, global_commission_delivery, global_commission_shipment, payment_due_days, auto_suspend_days").limit(1).maybeSingle(),
     ]);
-    setSettings(s ?? []);
-    setAccounting(a);
+    setSettings((s ?? []) as SettingRow[]);
+    setAccounting((a as AccountingSettings | null) ?? null);
     setLoading(false);
   }, []);
 
@@ -50,7 +64,6 @@ export default function AdminSettings() {
       contentContainerStyle={{ paddingBottom: 100 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.light.primary} />}
     >
-      {/* Accounting */}
       {accounting && (
         <>
           <Text style={styles.sectionTitle}>إعدادات العمولات</Text>
@@ -65,12 +78,11 @@ export default function AdminSettings() {
         </>
       )}
 
-      {/* Settings */}
       {settings.length > 0 && (
         <>
           <Text style={styles.sectionTitle}>إعدادات النظام</Text>
           <View style={styles.card}>
-            {settings.map((s: any, i: number) => (
+            {settings.map((s, i) => (
               <View key={s.id} style={[styles.row, i < settings.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.light.border }]}>
                 <Text style={styles.rowVal} numberOfLines={1}>{s.value}</Text>
                 <Text style={styles.rowLbl}>{s.key}</Text>
@@ -80,7 +92,6 @@ export default function AdminSettings() {
         </>
       )}
 
-      {/* App info */}
       <Text style={styles.sectionTitle}>معلومات التطبيق</Text>
       <View style={styles.card}>
         {[
@@ -94,7 +105,6 @@ export default function AdminSettings() {
         ))}
       </View>
 
-      {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
         <Text style={styles.logoutText}>تسجيل الخروج</Text>
         <Feather name="log-out" size={18} color={colors.light.destructive} />

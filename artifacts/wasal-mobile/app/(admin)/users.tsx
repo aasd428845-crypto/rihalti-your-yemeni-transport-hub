@@ -27,10 +27,12 @@ export default function AdminUsers() {
     const { data } = await supabase
       .from("user_roles")
       .select("user_id, role, profiles(full_name, phone, city, account_status)")
-      .order("created_at" as any, { ascending: false })
       .limit(100);
-    const list = (data ?? []).map((u: any) => ({
-      ...u,
+    type ProfileRef = { full_name: string | null; phone: string | null; city: string | null; account_status: string | null };
+    type UserRoleRow = { user_id: string; role: string; profiles: ProfileRef | null };
+    const list = ((data ?? []) as UserRoleRow[]).map((u) => ({
+      user_id: u.user_id,
+      role: u.role,
       name: u.profiles?.full_name ?? "-",
       phone: u.profiles?.phone ?? "-",
       city: u.profiles?.city ?? "-",

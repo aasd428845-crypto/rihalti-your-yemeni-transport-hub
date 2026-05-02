@@ -1,9 +1,28 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { Platform } from "react-native";
+import { Platform, ActivityIndicator, View } from "react-native";
+import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
 export default function DeliveryCompanyLayout() {
+  const { session, role, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.light.background }}>
+        <ActivityIndicator size="large" color={colors.light.primary} />
+      </View>
+    );
+  }
+
+  if (!session) return <Redirect href="/auth/login" />;
+
+  if (role !== "delivery_company") {
+    if (role === "admin") return <Redirect href="/(admin)/" />;
+    if (role === "delivery_driver" || role === "driver") return <Redirect href="/(rider)/" />;
+    return <Redirect href="/(customer)/" />;
+  }
+
   return (
     <Tabs
       screenOptions={{

@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import colors from "@/constants/colors";
 
+const WASAL_LOGO = require("../../assets/images/wasl-logo.png");
+
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -65,13 +67,16 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        contentContainerStyle={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}
+        contentContainerStyle={[
+          styles.container,
+          { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Logo */}
         <View style={styles.logoContainer}>
           <View style={styles.logoBg}>
-            <Text style={styles.logoText}>و</Text>
+            <Image source={WASAL_LOGO} style={styles.logoImg} resizeMode="contain" />
           </View>
           <Text style={styles.appName}>وصال</Text>
           <Text style={styles.appSubtitle}>منصة النقل الذكية</Text>
@@ -157,11 +162,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
+    overflow: "hidden",
   },
-  logoText: {
-    fontSize: 44,
-    color: "#fff",
-    fontWeight: "700",
+  logoImg: {
+    width: 72,
+    height: 72,
   },
   appName: {
     fontSize: 30,
