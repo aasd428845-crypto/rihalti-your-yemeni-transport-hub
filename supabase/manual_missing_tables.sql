@@ -15,12 +15,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   user_id UUID NOT NULL UNIQUE,
   full_name TEXT,
   phone TEXT,
-  phone_secondary TEXT,
   city TEXT,
   district TEXT,
   avatar_url TEXT,
   account_status TEXT DEFAULT 'pending',
-  rejection_reason TEXT,
   is_verified BOOLEAN DEFAULT false,
   is_trial_active BOOLEAN DEFAULT false,
   trial_start_date TIMESTAMPTZ,
@@ -175,7 +173,7 @@ CREATE TABLE IF NOT EXISTS public.violation_logs (
 );
 
 CREATE TABLE IF NOT EXISTS public.payment_accounts (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id UUID,
   account_type TEXT NOT NULL CHECK (account_type IN ('platform', 'partner')),
   bank_name TEXT NOT NULL,
@@ -393,13 +391,13 @@ CREATE TABLE IF NOT EXISTS public.delivery_orders (
 CREATE TABLE IF NOT EXISTS public.rider_cash_collections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   rider_id UUID NOT NULL REFERENCES public.riders(id) ON DELETE CASCADE,
-  delivery_company_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  delivery_company_id UUID NOT NULL,
   order_id UUID NOT NULL REFERENCES public.delivery_orders(id) ON DELETE CASCADE,
   amount NUMERIC(12,2) NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'pending_pickup' CHECK (status IN ('pending_pickup', 'collected', 'settled', 'cancelled')),
   collected_at TIMESTAMPTZ,
   settled_at TIMESTAMPTZ,
-  settled_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  settled_by UUID,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -451,162 +449,6 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_trial_active BOOLEAN DEF
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS trial_start_date TIMESTAMPTZ;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS trial_end_date TIMESTAMPTZ;
 
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.privacy_policies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.financial_transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.partner_invoices ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.accounting_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.violation_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.payment_accounts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.payment_transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.payouts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.partner_commission_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.platform_bank_accounts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.partner_bank_accounts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.trips ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.deliveries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.shipment_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.partner_join_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cancellation_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.approval_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.riders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.rider_cash_collections ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.service_types ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.restaurant_cuisines ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.delivery_orders ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Admins can manage all profiles" ON public.profiles;
-CREATE POLICY "Admins can manage all profiles" ON public.profiles FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Admins can manage all roles" ON public.user_roles;
-CREATE POLICY "Admins can manage all roles" ON public.user_roles FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Admins can manage admin_settings" ON public.admin_settings;
-CREATE POLICY "Admins can manage admin_settings" ON public.admin_settings FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Anyone can read privacy policies" ON public.privacy_policies;
-CREATE POLICY "Anyone can read privacy policies" ON public.privacy_policies FOR SELECT TO authenticated USING (true);
-DROP POLICY IF EXISTS "Admins can manage privacy policies" ON public.privacy_policies;
-CREATE POLICY "Admins can manage privacy policies" ON public.privacy_policies FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Admins can view audit logs" ON public.audit_logs;
-CREATE POLICY "Admins can view audit logs" ON public.audit_logs FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Admins can create audit logs" ON public.audit_logs;
-CREATE POLICY "Admins can create audit logs" ON public.audit_logs FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Users can view own notifications" ON public.notifications;
-CREATE POLICY "Users can view own notifications" ON public.notifications FOR SELECT TO authenticated USING (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
-CREATE POLICY "Users can update own notifications" ON public.notifications FOR UPDATE TO authenticated USING (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Admins can manage conversations" ON public.conversations;
-CREATE POLICY "Admins can manage conversations" ON public.conversations FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Users can view own conversations" ON public.conversations;
-CREATE POLICY "Users can view own conversations" ON public.conversations FOR SELECT TO authenticated USING (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Users can create conversations" ON public.conversations;
-CREATE POLICY "Users can create conversations" ON public.conversations FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Admins can manage messages" ON public.messages;
-CREATE POLICY "Admins can manage messages" ON public.messages FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Conversation participants can view messages" ON public.messages;
-CREATE POLICY "Conversation participants can view messages" ON public.messages FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.conversations WHERE id = conversation_id AND (user_id = auth.uid() OR admin_id = auth.uid())));
-DROP POLICY IF EXISTS "Conversation participants can send messages" ON public.messages;
-CREATE POLICY "Conversation participants can send messages" ON public.messages FOR INSERT TO authenticated WITH CHECK (auth.uid() = sender_id AND EXISTS (SELECT 1 FROM public.conversations WHERE id = conversation_id AND (user_id = auth.uid() OR admin_id = auth.uid())));
-DROP POLICY IF EXISTS "Admins can manage support messages" ON public.support_messages;
-CREATE POLICY "Admins can manage support messages" ON public.support_messages FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Admins manage financial_transactions" ON public.financial_transactions;
-CREATE POLICY "Admins manage financial_transactions" ON public.financial_transactions FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Partners view own financial_transactions" ON public.financial_transactions;
-CREATE POLICY "Partners view own financial_transactions" ON public.financial_transactions FOR SELECT TO authenticated USING (auth.uid() = partner_id);
-DROP POLICY IF EXISTS "Customers view own financial_transactions" ON public.financial_transactions;
-CREATE POLICY "Customers view own financial_transactions" ON public.financial_transactions FOR SELECT TO authenticated USING (auth.uid() = customer_id);
-DROP POLICY IF EXISTS "Admins manage partner_invoices" ON public.partner_invoices;
-CREATE POLICY "Admins manage partner_invoices" ON public.partner_invoices FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Partners view own invoices" ON public.partner_invoices;
-CREATE POLICY "Partners view own invoices" ON public.partner_invoices FOR SELECT TO authenticated USING (auth.uid() = partner_id);
-DROP POLICY IF EXISTS "Admins manage accounting_settings" ON public.accounting_settings;
-CREATE POLICY "Admins manage accounting_settings" ON public.accounting_settings FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Anyone can read accounting_settings" ON public.accounting_settings;
-CREATE POLICY "Anyone can read accounting_settings" ON public.accounting_settings FOR SELECT TO authenticated USING (true);
-DROP POLICY IF EXISTS "Admins can manage payment_accounts" ON public.payment_accounts;
-CREATE POLICY "Admins can manage payment_accounts" ON public.payment_accounts FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Partners manage own payment_accounts" ON public.payment_accounts;
-CREATE POLICY "Partners manage own payment_accounts" ON public.payment_accounts FOR ALL TO authenticated USING (auth.uid() = owner_id) WITH CHECK (auth.uid() = owner_id);
-DROP POLICY IF EXISTS "Admins can manage platform bank accounts" ON public.platform_bank_accounts;
-CREATE POLICY "Admins can manage platform bank accounts" ON public.platform_bank_accounts FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Anyone can view active platform bank accounts" ON public.platform_bank_accounts;
-CREATE POLICY "Anyone can view active platform bank accounts" ON public.platform_bank_accounts FOR SELECT TO anon, authenticated USING (is_active = true);
-DROP POLICY IF EXISTS "Admins can manage partner bank accounts" ON public.partner_bank_accounts;
-CREATE POLICY "Admins can manage partner bank accounts" ON public.partner_bank_accounts FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Partners can manage own accounts" ON public.partner_bank_accounts;
-CREATE POLICY "Partners can manage own accounts" ON public.partner_bank_accounts FOR ALL TO authenticated USING (auth.uid() = partner_id) WITH CHECK (auth.uid() = partner_id);
-DROP POLICY IF EXISTS "Admins manage payment_transactions" ON public.payment_transactions;
-CREATE POLICY "Admins manage payment_transactions" ON public.payment_transactions FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Users manage own payment_transactions" ON public.payment_transactions;
-CREATE POLICY "Users manage own payment_transactions" ON public.payment_transactions FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Partners view related payment_transactions" ON public.payment_transactions;
-CREATE POLICY "Partners view related payment_transactions" ON public.payment_transactions FOR SELECT TO authenticated USING (auth.uid() = partner_id);
-DROP POLICY IF EXISTS "Partners update related payment_transactions" ON public.payment_transactions;
-CREATE POLICY "Partners update related payment_transactions" ON public.payment_transactions FOR UPDATE TO authenticated USING (auth.uid() = partner_id);
-DROP POLICY IF EXISTS "Admins can manage payouts" ON public.payouts;
-CREATE POLICY "Admins can manage payouts" ON public.payouts FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Partners can view own payouts" ON public.payouts;
-CREATE POLICY "Partners can view own payouts" ON public.payouts FOR SELECT TO authenticated USING (auth.uid() = partner_id);
-DROP POLICY IF EXISTS "Admins manage partner_commission_settings" ON public.partner_commission_settings;
-CREATE POLICY "Admins manage partner_commission_settings" ON public.partner_commission_settings FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Partners view own commission_settings" ON public.partner_commission_settings;
-CREATE POLICY "Partners view own commission_settings" ON public.partner_commission_settings FOR SELECT TO authenticated USING (auth.uid() = partner_id);
-DROP POLICY IF EXISTS "Admins can manage trips" ON public.trips;
-CREATE POLICY "Admins can manage trips" ON public.trips FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Suppliers can manage own trips" ON public.trips;
-CREATE POLICY "Suppliers can manage own trips" ON public.trips FOR ALL TO authenticated USING (auth.uid() = supplier_id) WITH CHECK (auth.uid() = supplier_id);
-DROP POLICY IF EXISTS "Anyone can view approved trips" ON public.trips;
-CREATE POLICY "Anyone can view approved trips" ON public.trips FOR SELECT TO authenticated USING (status = 'approved');
-DROP POLICY IF EXISTS "Admins can manage shipments" ON public.shipments;
-CREATE POLICY "Admins can manage shipments" ON public.shipments FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Customers can view own shipments" ON public.shipments;
-CREATE POLICY "Customers can view own shipments" ON public.shipments FOR SELECT TO authenticated USING (auth.uid() = customer_id);
-DROP POLICY IF EXISTS "Suppliers can view assigned shipments" ON public.shipments;
-CREATE POLICY "Suppliers can view assigned shipments" ON public.shipments FOR SELECT TO authenticated USING (auth.uid() = supplier_id);
-DROP POLICY IF EXISTS "Admins can manage deliveries" ON public.deliveries;
-CREATE POLICY "Admins can manage deliveries" ON public.deliveries FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Customers can view own deliveries" ON public.deliveries;
-CREATE POLICY "Customers can view own deliveries" ON public.deliveries FOR SELECT TO authenticated USING (auth.uid() = customer_id);
-DROP POLICY IF EXISTS "Partners can view assigned deliveries" ON public.deliveries;
-CREATE POLICY "Partners can view assigned deliveries" ON public.deliveries FOR SELECT TO authenticated USING (auth.uid() = delivery_partner_id);
-DROP POLICY IF EXISTS "Admins can manage bookings" ON public.bookings;
-CREATE POLICY "Admins can manage bookings" ON public.bookings FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Customers can update own bookings" ON public.bookings;
-CREATE POLICY "Customers can update own bookings" ON public.bookings FOR UPDATE TO authenticated USING (auth.uid() = customer_id) WITH CHECK (auth.uid() = customer_id);
-DROP POLICY IF EXISTS "Admins can manage shipment requests" ON public.shipment_requests;
-CREATE POLICY "Admins can manage shipment requests" ON public.shipment_requests FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Admins can manage partner join requests" ON public.partner_join_requests;
-CREATE POLICY "Admins can manage partner join requests" ON public.partner_join_requests FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Admins can manage cancellation requests" ON public.cancellation_requests;
-CREATE POLICY "Admins can manage cancellation requests" ON public.cancellation_requests FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Users can view own cancellations" ON public.cancellation_requests;
-CREATE POLICY "Users can view own cancellations" ON public.cancellation_requests FOR SELECT TO authenticated USING (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Users can create cancellations" ON public.cancellation_requests;
-CREATE POLICY "Users can create cancellations" ON public.cancellation_requests FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Admins can manage approval requests" ON public.approval_requests;
-CREATE POLICY "Admins can manage approval requests" ON public.approval_requests FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Admins can manage riders" ON public.riders;
-CREATE POLICY "Admins can manage riders" ON public.riders FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Company manages its rider collections" ON public.rider_cash_collections;
-CREATE POLICY "Company manages its rider collections" ON public.rider_cash_collections FOR ALL TO authenticated USING (delivery_company_id = auth.uid()) WITH CHECK (delivery_company_id = auth.uid());
-DROP POLICY IF EXISTS "Rider views own collections" ON public.rider_cash_collections;
-CREATE POLICY "Rider views own collections" ON public.rider_cash_collections FOR SELECT TO authenticated USING (rider_id IN (SELECT id FROM public.riders WHERE user_id = auth.uid()));
-DROP POLICY IF EXISTS "Anyone can view active service types" ON public.service_types;
-CREATE POLICY "Anyone can view active service types" ON public.service_types FOR SELECT USING (is_active = true);
-DROP POLICY IF EXISTS "Admins can manage service types" ON public.service_types;
-CREATE POLICY "Admins can manage service types" ON public.service_types FOR ALL USING (public.has_role(auth.uid(), 'admin'));
-DROP POLICY IF EXISTS "Anyone can view active restaurant cuisines" ON public.restaurant_cuisines;
-CREATE POLICY "Anyone can view active restaurant cuisines" ON public.restaurant_cuisines FOR SELECT USING (is_active = true);
-DROP POLICY IF EXISTS "Admins can manage restaurant cuisines" ON public.restaurant_cuisines;
-CREATE POLICY "Admins can manage restaurant cuisines" ON public.restaurant_cuisines FOR ALL USING (public.has_role(auth.uid(), 'admin'));
-
 CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_roles_user_id ON public.user_roles(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_settings_key ON public.admin_settings(key);
@@ -622,7 +464,6 @@ CREATE INDEX IF NOT EXISTS idx_payment_transactions_partner_id ON public.payment
 CREATE INDEX IF NOT EXISTS idx_support_messages_status ON public.support_messages(status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_service_types_name_ar ON public.service_types(name_ar);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_restaurant_cuisines_name_ar ON public.restaurant_cuisines(name_ar);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_rider_cash_one_active_per_order ON public.rider_cash_collections(order_id) WHERE status IN ('pending_pickup', 'collected');
 
 DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
@@ -654,23 +495,22 @@ DROP TRIGGER IF EXISTS trg_touch_rider_cash_collections ON public.rider_cash_col
 CREATE TRIGGER trg_touch_rider_cash_collections BEFORE UPDATE ON public.rider_cash_collections FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 INSERT INTO public.accounting_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.platform_bank_accounts (bank_name, account_name, account_number, iban)
-VALUES
+INSERT INTO public.platform_bank_accounts (bank_name, account_name, account_number, iban) VALUES
   ('بنك الكريمي', 'شركة رحلاتي للتقنية', '1234567890', 'YE12KREM1234567890'),
   ('بنك التسليف التعاوني', 'شركة رحلاتي للتقنية', '0987654321', 'YE12COOP1234567890')
 ON CONFLICT DO NOTHING;
 INSERT INTO public.service_types (name_ar, image_url, sort_order) VALUES
-('مطاعم', 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80&fit=crop', 1),
-('بقالة', 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80&fit=crop', 2),
-('صيدلية', 'https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?w=600&q=80&fit=crop', 3)
+  ('مطاعم', 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80&fit=crop', 1),
+  ('بقالة', 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80&fit=crop', 2),
+  ('صيدلية', 'https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?w=600&q=80&fit=crop', 3)
 ON CONFLICT DO NOTHING;
 INSERT INTO public.restaurant_cuisines (name_ar, image_url, sort_order) VALUES
-('يمني', 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=600&q=80&fit=crop', 1),
-('برجر', 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&fit=crop', 2),
-('بيتزا', 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80&fit=crop', 3),
-('مأكولات بحرية', 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80&fit=crop', 4),
-('حلويات', 'https://images.unsplash.com/photo-1551024601-bec78aea704b?w=600&q=80&fit=crop', 5),
-('مشروبات', 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80&fit=crop', 6),
-('شاورما', 'https://images.unsplash.com/photo-1561651823-34feb02250e4?w=600&q=80&fit=crop', 7),
-('مرق', 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&q=80&fit=crop', 8)
+  ('يمني', 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=600&q=80&fit=crop', 1),
+  ('برجر', 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&fit=crop', 2),
+  ('بيتزا', 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80&fit=crop', 3),
+  ('مأكولات بحرية', 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80&fit=crop', 4),
+  ('حلويات', 'https://images.unsplash.com/photo-1551024601-bec78aea704b?w=600&q=80&fit=crop', 5),
+  ('مشروبات', 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80&fit=crop', 6),
+  ('شاورما', 'https://images.unsplash.com/photo-1561651823-34feb02250e4?w=600&q=80&fit=crop', 7),
+  ('مرق', 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&q=80&fit=crop', 8)
 ON CONFLICT DO NOTHING;
