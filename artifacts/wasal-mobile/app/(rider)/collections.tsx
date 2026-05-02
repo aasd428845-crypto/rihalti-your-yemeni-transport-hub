@@ -7,25 +7,56 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
+type CollectionStatus = "pending_pickup" | "collected" | "settled" | "cancelled";
+
+interface OrderRef {
+  restaurant_name: string | null;
+  customer_address: string | null;
+}
+
+interface CollectionRow {
+  id: string;
+  status: CollectionStatus;
+  amount: number;
+  created_at: string;
+  delivery_orders: OrderRef | null;
+}
+
+const STATUS: Record<CollectionStatus, { label: string; color: string }> = {
+  pending_pickup: { label: "في انتظار الاستلام", color: "#f59e0b" },
+  collected: { label: "تم الاستلام", color: "#3b82f6" },
+  settled: { label: "تمت التسوية", color: "#16a34a" },
+  cancelled: { label: "ملغي", color: "#dc2626" },
+};
+
 export default function RiderCollections() {
   const { user } = useAuth();
-  const [collections, setCollections] = useState<any[]>([]);
+  const [collections, setCollections] = useState<CollectionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [totals, setTotals] = useState({ pending: 0, settled: 0 });
 
   const load = useCallback(async () => {
     if (!user) return;
-    const { data: rider } = await supabase.from("riders").select("id").eq("user_id", user.id).maybeSingle();
+    const { data: rider } = await supabase
+      .from("riders")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
     if (!rider) { setLoading(false); return; }
     const { data } = await supabase
       .from("rider_cash_collections")
-      .select("*, delivery_orders(restaurant_name, customer_address)")
+      .select("id, status, amount, created_at, delivery_orders(restaurant_name, customer_address)")
       .eq("rider_id", rider.id)
       .order("created_at", { ascending: false });
-    setCollections(data ?? []);
-    const pending = (data ?? []).filter((c: any) => ["pending_pickup", "collected"].includes(c.status)).reduce((s: number, c: any) => s + Number(c.amount), 0);
-    const settled = (data ?? []).filter((c: any) => c.status === "settled").reduce((s: number, c: any) => s + Number(c.amount), 0);
+    const typed = (data ?? []) as CollectionRow[];
+    setCollections(typed);
+    const pending = typed
+      .filter(c => c.status === "pending_pickup" || c.status === "collected")
+      .reduce((s, c) => s + Number(c.amount), 0);
+    const settled = typed
+      .filter(c => c.status === "settled")
+      .reduce((s, c) => s + Number(c.amount), 0);
     setTotals({ pending, settled });
     setLoading(false);
   }, [user]);
@@ -34,13 +65,6 @@ export default function RiderCollections() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.light.primary} /></View>;
-
-  const STATUS: Record<string, { label: string; color: string }> = {
-    pending_pickup: { label: "في انتظار الاستلام", color: "#f59e0b" },
-    collected: { label: "تم الاستلام", color: "#3b82f6" },
-    settled: { label: "تمت التسوية", color: "#16a34a" },
-    cancelled: { label: "ملغي", color: "#dc2626" },
-  };
 
   return (
     <View style={styles.container}>

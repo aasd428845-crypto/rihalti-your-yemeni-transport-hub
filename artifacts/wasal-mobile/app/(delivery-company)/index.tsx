@@ -16,11 +16,13 @@ interface OrderRow {
   restaurant_name: string | null;
   customer_name: string | null;
   created_at: string;
+  delivery_company_id: string | null;
 }
 
 interface RiderRow {
   id: string;
   is_online: boolean;
+  delivery_company_id: string | null;
 }
 
 interface Stats {
@@ -50,6 +52,14 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: "ملغي",
 };
 
+const STAT_ICONS = {
+  shopping_bag: "shopping-bag" as const,
+  clock: "clock" as const,
+  alert_circle: "alert-circle" as const,
+  users: "users" as const,
+  dollar_sign: "dollar-sign" as const,
+};
+
 export default function DeliveryDashboard() {
   const { user, profile } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
@@ -64,20 +74,22 @@ export default function DeliveryDashboard() {
     const [{ data: todayOrders }, { data: allOrders }, { data: riders }] = await Promise.all([
       supabase
         .from("delivery_orders")
-        .select("id, total, status")
+        .select("id, total, status, delivery_company_id")
+        .eq("delivery_company_id", user.id)
         .gte("created_at", today),
       supabase
         .from("delivery_orders")
-        .select("id, status, total, restaurant_name, customer_name, created_at")
+        .select("id, status, total, restaurant_name, customer_name, created_at, delivery_company_id")
+        .eq("delivery_company_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10),
       supabase
         .from("riders")
-        .select("id, is_online")
+        .select("id, is_online, delivery_company_id")
         .eq("delivery_company_id", user.id),
     ]);
 
-    const typedToday = (todayOrders ?? []) as Array<{ id: string; total: number | null; status: OrderStatus }>;
+    const typedToday = (todayOrders ?? []) as Array<{ id: string; total: number | null; status: OrderStatus; delivery_company_id: string | null }>;
     const typedRiders = (riders ?? []) as RiderRow[];
 
     const active = typedToday.filter(o => o.status !== "delivered" && o.status !== "cancelled").length;
@@ -103,11 +115,11 @@ export default function DeliveryDashboard() {
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.light.primary} /></View>;
 
   const statBoxes = [
-    { icon: "shopping-bag" as const, label: "طلبات اليوم", value: stats!.todayOrders, color: "#3b82f6" },
-    { icon: "clock" as const, label: "نشطة", value: stats!.activeOrders, color: "#f59e0b" },
-    { icon: "alert-circle" as const, label: "معلقة", value: stats!.pendingOrders, color: "#dc2626" },
-    { icon: "users" as const, label: `${stats!.onlineRiders}/${stats!.totalRiders}`, value: "متصل", color: "#16a34a" },
-    { icon: "dollar-sign" as const, label: "إيرادات اليوم", value: `${stats!.todayRevenue.toLocaleString()} ر.ي`, color: "#10b981" },
+    { icon: STAT_ICONS.shopping_bag, label: "طلبات اليوم", value: stats!.todayOrders, color: "#3b82f6" },
+    { icon: STAT_ICONS.clock, label: "نشطة", value: stats!.activeOrders, color: "#f59e0b" },
+    { icon: STAT_ICONS.alert_circle, label: "معلقة", value: stats!.pendingOrders, color: "#dc2626" },
+    { icon: STAT_ICONS.users, label: `${stats!.onlineRiders}/${stats!.totalRiders}`, value: "متصل", color: "#16a34a" },
+    { icon: STAT_ICONS.dollar_sign, label: "إيرادات اليوم", value: `${stats!.todayRevenue.toLocaleString()} ر.ي`, color: "#10b981" },
   ];
 
   return (

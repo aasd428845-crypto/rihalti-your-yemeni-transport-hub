@@ -1,15 +1,32 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity,
+  View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
+interface ProfileRef {
+  full_name: string | null;
+  phone: string | null;
+}
+
+interface RiderRow {
+  id: string;
+  is_online: boolean;
+  full_name: string | null;
+  phone: string | null;
+  vehicle_type: string | null;
+  vehicle_number: string | null;
+  earnings: number | null;
+  delivery_company_id: string | null;
+  profiles: ProfileRef | null;
+}
+
 export default function CompanyRiders() {
   const { user } = useAuth();
-  const [riders, setRiders] = useState<any[]>([]);
+  const [riders, setRiders] = useState<RiderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -17,10 +34,10 @@ export default function CompanyRiders() {
     if (!user) return;
     const { data } = await supabase
       .from("riders")
-      .select("*, profiles(full_name, phone)")
+      .select("id, is_online, full_name, phone, vehicle_type, vehicle_number, earnings, delivery_company_id, profiles(full_name, phone)")
       .eq("delivery_company_id", user.id)
       .order("created_at", { ascending: false });
-    setRiders(data ?? []);
+    setRiders((data ?? []) as RiderRow[]);
     setLoading(false);
   }, [user]);
 

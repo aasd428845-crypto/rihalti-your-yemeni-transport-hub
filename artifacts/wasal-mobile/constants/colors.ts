@@ -1,12 +1,12 @@
 const colors = {
   light: {
     text: "#1b2d45",
-    tint: "#0f6b31",
+    tint: "#0c7d4a",
     background: "#f7f5f0",
     foreground: "#1b2d45",
     card: "#ffffff",
     cardForeground: "#1b2d45",
-    primary: "#0f6b31",
+    primary: "#0c7d4a",
     primaryForeground: "#ffffff",
     secondary: "#e8edf3",
     secondaryForeground: "#1b2d45",

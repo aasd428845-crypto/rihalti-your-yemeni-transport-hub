@@ -8,7 +8,24 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
-const STATUS_LABELS: Record<string, { label: string; color: string; next?: string; nextLabel?: string }> = {
+type OrderStatus = "pending" | "on_the_way" | "delivered";
+
+interface OrderRow {
+  id: string;
+  status: OrderStatus;
+  total: number | null;
+  restaurant_name: string | null;
+  customer_address: string | null;
+  created_at: string;
+}
+
+interface RiderRow {
+  id: string;
+  is_online: boolean;
+  earnings: number | null;
+}
+
+const STATUS_LABELS: Record<OrderStatus, { label: string; color: string; next?: OrderStatus; nextLabel?: string }> = {
   pending: { label: "قيد الانتظار", color: "#f59e0b", next: "on_the_way", nextLabel: "استلام الطلب" },
   on_the_way: { label: "في الطريق", color: "#3b82f6", next: "delivered", nextLabel: "تم التسليم" },
   delivered: { label: "تم التسليم", color: "#16a34a" },
@@ -16,28 +33,33 @@ const STATUS_LABELS: Record<string, { label: string; color: string; next?: strin
 
 export default function RiderOrders() {
   const { user } = useAuth();
-  const [riderData, setRiderData] = useState<any>(null);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [riderData, setRiderData] = useState<RiderRow | null>(null);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
   const [isOnline, setIsOnline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchRider = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from("riders").select("*").eq("user_id", user.id).maybeSingle();
-    setRiderData(data);
-    setIsOnline(data?.is_online ?? false);
+    const { data } = await supabase
+      .from("riders")
+      .select("id, is_online, earnings")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const typed = data as RiderRow | null;
+    setRiderData(typed);
+    setIsOnline(typed?.is_online ?? false);
   }, [user]);
 
   const fetchOrders = useCallback(async () => {
     if (!riderData?.id) return;
     const { data } = await supabase
       .from("delivery_orders")
-      .select("*")
+      .select("id, status, total, restaurant_name, customer_address, created_at")
       .eq("rider_id", riderData.id)
       .in("status", ["pending", "on_the_way"])
       .order("created_at", { ascending: false });
-    setOrders(data ?? []);
+    setOrders((data ?? []) as OrderRow[]);
   }, [riderData]);
 
   const load = useCallback(async () => {
@@ -54,8 +76,8 @@ export default function RiderOrders() {
     await supabase.from("riders").update({ is_online: val }).eq("id", riderData.id);
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    Alert.alert("تأكيد", `هل تريد تغيير حالة الطلب؟`, [
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    Alert.alert("تأكيد", "هل تريد تغيير حالة الطلب؟", [
       { text: "إلغاء", style: "cancel" },
       {
         text: "تأكيد", onPress: async () => {
@@ -66,15 +88,11 @@ export default function RiderOrders() {
     ]);
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchOrders();
-    setRefreshing(false);
-  };
+  const onRefresh = async () => { setRefreshing(true); await fetchOrders(); setRefreshing(false); };
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.light.primary} /></View>;
 
-  const renderItem = ({ item }: { item: any }) => {
+  const renderItem = ({ item }: { item: OrderRow }) => {
     const st = STATUS_LABELS[item.status] ?? { label: item.status, color: colors.light.mutedForeground };
     return (
       <View style={styles.card}>
@@ -102,7 +120,6 @@ export default function RiderOrders() {
 
   return (
     <View style={styles.container}>
-      {/* Online toggle */}
       <View style={styles.onlineBar}>
         <Text style={styles.onlineLabel}>{isOnline ? "🟢 متصل الآن" : "🔴 غير متصل"}</Text>
         <Switch
@@ -113,7 +130,6 @@ export default function RiderOrders() {
         />
       </View>
 
-      {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
           <Text style={styles.statVal}>{orders.length}</Text>

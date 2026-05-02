@@ -17,8 +17,16 @@ const ROLE_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 export default function AdminUsers() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [filtered, setFiltered] = useState<any[]>([]);
+  interface UserListItem {
+    user_id: string;
+    role: string;
+    name: string;
+    phone: string;
+    city: string;
+    status: string;
+  }
+  const [users, setUsers] = useState<UserListItem[]>([]);
+  const [filtered, setFiltered] = useState<UserListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");

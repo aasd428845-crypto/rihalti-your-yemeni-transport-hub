@@ -20,7 +20,6 @@ interface InvoiceRow {
 
 interface TxRow {
   amount: number | null;
-  payment_status: string | null;
 }
 
 interface FinanceData {
@@ -54,9 +53,14 @@ export default function CompanyFinance() {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
     const [{ data: allTx }, { data: monthTx }, { data: invoices }] = await Promise.all([
-      supabase.from("financial_transactions").select("amount, payment_status").eq("partner_id", user.id),
-      supabase.from("financial_transactions").select("amount, payment_status").eq("partner_id", user.id).gte("created_at", monthStart),
-      supabase.from("partner_invoices").select("id, invoice_number, status, net_amount, period_start, period_end").eq("partner_id", user.id).order("created_at", { ascending: false }).limit(10),
+      supabase.from("financial_transactions").select("amount").eq("partner_id", user.id),
+      supabase.from("financial_transactions").select("amount").eq("partner_id", user.id).gte("created_at", monthStart),
+      supabase
+        .from("partner_invoices")
+        .select("id, invoice_number, status, net_amount, period_start, period_end")
+        .eq("partner_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10),
     ]);
 
     const typedInvoices = (invoices ?? []) as InvoiceRow[];

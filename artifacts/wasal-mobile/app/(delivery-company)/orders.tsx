@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
 type OrderStatus = "pending" | "accepted" | "preparing" | "on_the_way" | "delivered" | "cancelled";
@@ -17,6 +18,7 @@ interface OrderRow {
   customer_name: string | null;
   customer_address: string | null;
   created_at: string;
+  delivery_company_id: string | null;
 }
 
 const FILTER_OPTIONS = [
@@ -38,22 +40,25 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; next?: 
 };
 
 export default function CompanyOrders() {
+  const { user } = useAuth();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
+    if (!user) return;
     let q = supabase
       .from("delivery_orders")
-      .select("id, status, total, restaurant_name, customer_name, customer_address, created_at")
+      .select("id, status, total, restaurant_name, customer_name, customer_address, created_at, delivery_company_id")
+      .eq("delivery_company_id", user.id)
       .order("created_at", { ascending: false })
       .limit(100);
     if (filter !== "all") q = q.eq("status", filter);
     const { data } = await q;
     setOrders((data ?? []) as OrderRow[]);
     setLoading(false);
-  }, [filter]);
+  }, [user, filter]);
 
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
   useEffect(() => { setLoading(true); load(); }, [load]);

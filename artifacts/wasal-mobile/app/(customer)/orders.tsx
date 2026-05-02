@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, FlatList,
   RefreshControl, ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -8,7 +8,19 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import colors from "@/constants/colors";
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+type OrderStatus = "pending" | "accepted" | "preparing" | "on_the_way" | "delivered" | "cancelled";
+
+interface OrderRow {
+  id: string;
+  status: OrderStatus;
+  total: number | null;
+  restaurant_name: string | null;
+  customer_address: string | null;
+  payment_method: string | null;
+  created_at: string;
+}
+
+const STATUS_LABELS: Record<OrderStatus, { label: string; color: string }> = {
   pending: { label: "قيد الانتظار", color: "#f59e0b" },
   accepted: { label: "تم القبول", color: "#3b82f6" },
   preparing: { label: "جاري التحضير", color: "#8b5cf6" },
@@ -19,7 +31,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 export default function CustomerOrders() {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -27,27 +39,20 @@ export default function CustomerOrders() {
     if (!user) return;
     const { data } = await supabase
       .from("delivery_orders")
-      .select("*")
+      .select("id, status, total, restaurant_name, customer_address, payment_method, created_at")
       .eq("customer_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50);
-    setOrders(data ?? []);
+    setOrders((data ?? []) as OrderRow[]);
     setLoading(false);
   }, [user]);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  };
-
+  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
   useEffect(() => { load(); }, [load]);
 
-  if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={colors.light.primary} /></View>;
-  }
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.light.primary} /></View>;
 
-  const renderItem = ({ item }: { item: any }) => {
+  const renderItem = ({ item }: { item: OrderRow }) => {
     const st = STATUS_LABELS[item.status] ?? { label: item.status, color: colors.light.mutedForeground };
     return (
       <View style={styles.card}>
@@ -63,7 +68,7 @@ export default function CustomerOrders() {
         <View style={styles.cardFooter}>
           <Text style={styles.amount}>{item.total ? `${item.total.toLocaleString()} ر.ي` : "-"}</Text>
           <Text style={styles.payMethod}>
-            {item.payment_method === "cash" ? "💵 كاش" : item.payment_method}
+            {item.payment_method === "cash" ? "💵 كاش" : item.payment_method ?? "-"}
           </Text>
         </View>
       </View>
@@ -91,15 +96,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.light.background },
   list: { padding: 16, backgroundColor: colors.light.background, flexGrow: 1 },
   card: {
-    backgroundColor: colors.light.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: colors.light.card, borderRadius: 12, padding: 16, marginBottom: 12,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
   },
   cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginLeft: 6 },
