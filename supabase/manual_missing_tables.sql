@@ -623,6 +623,7 @@ CREATE INDEX IF NOT EXISTS idx_payment_transactions_user_id ON public.payment_tr
 CREATE INDEX IF NOT EXISTS idx_payment_transactions_partner_id ON public.payment_transactions(partner_id);
 CREATE INDEX IF NOT EXISTS idx_support_messages_status ON public.support_messages(status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_service_types_name_ar ON public.service_types(name_ar);
+DROP INDEX IF EXISTS public.idx_restaurant_cuisines_name_ar;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_restaurant_cuisines_name_ar ON public.restaurant_cuisines(name_ar);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rider_cash_one_active_per_order ON public.rider_cash_collections(order_id) WHERE status IN ('pending_pickup', 'collected');
 
