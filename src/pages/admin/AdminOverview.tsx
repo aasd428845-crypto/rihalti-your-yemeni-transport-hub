@@ -17,7 +17,10 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDashboardStats().then((data) => { setStats(data); setLoading(false); });
+    getDashboardStats()
+      .then((data) => { setStats(data); })
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading || !stats) {
@@ -34,16 +37,16 @@ const AdminDashboard = () => {
       {(stats.overdueInvoiceCount > 0 || stats.joinRequests > 0) && (
         <div className="flex flex-wrap gap-3">
           {stats.overdueInvoiceCount > 0 && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-lg text-sm cursor-pointer" onClick={() => navigate("/admin/invoices")}>
+            <button type="button" className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-lg text-sm cursor-pointer" onClick={() => navigate("/admin/invoices")}>
               <AlertTriangle className="w-4 h-4" />
               <span>{stats.overdueInvoiceCount} فاتورة متأخرة ({stats.overdueInvoiceTotal.toLocaleString()} ر.ي)</span>
-            </div>
+            </button>
           )}
           {stats.joinRequests > 0 && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 rounded-lg text-sm cursor-pointer" onClick={() => navigate("/admin/join-requests")}>
+            <button type="button" className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 rounded-lg text-sm cursor-pointer" onClick={() => navigate("/admin/join-requests")}>
               <UserPlus className="w-4 h-4" />
               <span>{stats.joinRequests} طلب انضمام جديد</span>
-            </div>
+            </button>
           )}
         </div>
       )}

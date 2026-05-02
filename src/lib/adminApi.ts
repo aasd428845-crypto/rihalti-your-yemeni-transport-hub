@@ -196,6 +196,19 @@ export const getDashboardStats = async () => {
   ]);
 
   const rolesData = roles.data || [];
+  const totals = {
+    profiles: profiles.count || 0,
+    pendingApprovals: pendingApprovals.count || 0,
+    trips: trips.count || 0,
+    deliveries: deliveries.count || 0,
+    txToday: financialTxToday.count || 0,
+    txWeek: financialTxWeek.count || 0,
+    txMonth: financialTxMonth.count || 0,
+    pendingInvoiceCount: pendingInvoices.count || 0,
+    overdueInvoiceCount: overdueInvoices.count || 0,
+    unreadSupport: unreadSupport.count || 0,
+    joinRequests: joinRequests.count || 0,
+  };
   const allTx = financialTxAll.data || [];
   const totalRevenue = allTx.reduce((s, t) => s + Number(t.amount || 0), 0);
   const platformEarnings = allTx.reduce((s, t) => s + Number(t.platform_commission || 0), 0);
@@ -230,25 +243,25 @@ export const getDashboardStats = async () => {
   const overdueInvoiceTotal = (overdueInvoices.data || []).reduce((s, i) => s + Number(i.total_commission || 0), 0);
 
   return {
-    totalUsers: profiles.count || 0,
+    totalUsers: totals.profiles,
     customers: rolesData.filter(r => r.role === "customer").length,
     suppliers: rolesData.filter(r => r.role === "supplier").length,
     deliveryCompanies: rolesData.filter(r => r.role === "delivery_company").length,
     drivers: rolesData.filter(r => r.role === "driver").length,
-    pendingApprovals: pendingApprovals.count || 0,
-    totalTrips: trips.count || 0,
-    totalDeliveries: deliveries.count || 0,
+    pendingApprovals: totals.pendingApprovals,
+    totalTrips: totals.trips,
+    totalDeliveries: totals.deliveries,
     totalRevenue,
     platformEarnings,
-    txToday: financialTxToday.count || 0,
-    txWeek: financialTxWeek.count || 0,
-    txMonth: financialTxMonth.count || 0,
-    pendingInvoiceCount: pendingInvoices.count || 0,
-    overdueInvoiceCount: overdueInvoices.count || 0,
+    txToday: totals.txToday,
+    txWeek: totals.txWeek,
+    txMonth: totals.txMonth,
+    pendingInvoiceCount: totals.pendingInvoiceCount,
+    overdueInvoiceCount: totals.overdueInvoiceCount,
     pendingInvoiceTotal,
     overdueInvoiceTotal,
-    unreadSupport: unreadSupport.count || 0,
-    joinRequests: joinRequests.count || 0,
+    unreadSupport: totals.unreadSupport,
+    joinRequests: totals.joinRequests,
     typeDistribution,
     dailyChartData,
     recentTransactions: recentTx.data || [],
