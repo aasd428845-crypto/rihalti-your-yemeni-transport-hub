@@ -42,9 +42,11 @@ export const getActiveRestaurants = async (
   if (error) throw error;
   if (!data || data.length === 0) return [];
 
+  const activeRestaurants = data as any[];
+
   // If no customer area provided, return with 'full' coverage status
   if (!customerArea || customerArea.trim() === "") {
-    return data.map((r) => ({
+    return activeRestaurants.map((r) => ({
       ...r,
       coverage_status: "full" as CoverageStatus,
       computed_delivery_fee: r.delivery_fee ?? 0,
@@ -52,7 +54,14 @@ export const getActiveRestaurants = async (
   }
 
   // Batch-load all delivery zones for all delivery companies in the result set
-  const companyIds = [...new Set(data.map((r) => r.delivery_company_id))];
+  const companyIds = [...new Set(activeRestaurants.map((r) => r.delivery_company_id).filter(Boolean))];
+  if (companyIds.length === 0) {
+    return activeRestaurants.map((r) => ({
+      ...r,
+      coverage_status: "out_of_range" as CoverageStatus,
+      computed_delivery_fee: r.delivery_fee ?? 0,
+    }));
+  }
   const { data: allZones } = await (supabase
     .from("delivery_zones" as any)
     .select("*")
@@ -66,7 +75,7 @@ export const getActiveRestaurants = async (
     zonesByCompany[z.delivery_company_id].push(z);
   }
 
-  return data.map((r) => {
+  return activeRestaurants.map((r) => {
     const coverageAreas: string[] = r.coverage_areas || [];
     const companyZones: any[] = zonesByCompany[r.delivery_company_id] || [];
     const matchingZone = companyZones.find((z) => z.zone_name === customerArea);
