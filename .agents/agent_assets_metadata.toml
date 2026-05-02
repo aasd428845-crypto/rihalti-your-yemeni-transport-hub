@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "kid_mcpwwVjhFx7Dvivfu"
+uri = "file://artifacts/wasal-mobile/assets/images/icon.png"
+type = "image"
+title = "wasal app icon"
