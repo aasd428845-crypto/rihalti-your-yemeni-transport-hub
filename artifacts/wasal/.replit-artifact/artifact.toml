@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "وصال - منصة النقل الذكية"
+version = "1.0.0"
+id = "artifacts/wasal"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26222
+
+[services.development]
+run = "pnpm --filter @workspace/wasal run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/wasal", "run", "build" ]
+publicDir = "artifacts/wasal/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26222"
+BASE_PATH = "/"

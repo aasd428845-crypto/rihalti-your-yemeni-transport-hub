@@ -1,0 +1,25 @@
+​Strict UI/UX Correction Prompt for Wasl App
+​Crucial Notice: Use high-quality, professional real-world imagery (HD photography, not cartoons) for all visual elements. Your previous attempt failed to meet this standard.
+​1. Primary Visuals & Service Grid:
+​Eliminate Cartoons: Immediately replace all cartoonish icons (like the fork/knife and service icons in image_18.png and image_20.png).
+​Realistic Photography: Implement realistic, high-definition photography for all services:
+​(Restaurants): HD photo of a gourmet burger.
+​(Bus Trips): Professional photo of a modern intercity bus.
+​(Parcels): Photo of real cardboard shipping boxes.
+​(Taxi): Photo of a modern sedan taxi.
+​Header Banner: Replace the generic shopping cart in the top banner (image_18.png) with a realistic photo of a delivery driver or a well-packed delivery bag.
+​Service Grid Layout: Organize the 4 services into a clean, symmetric grid (2x2) with high-quality banners for promotions at the top.
+​2. Navigation & Smart Location:
+​Dynamic Header Picker: In the top header, implement a "Deliver to: [Area Name]" (توصيل إلى) element.
+​Address Page Link: When clicked, this element must immediately navigate the user to the existing 'Addresses' (العناوين) page/modal to select a specific location.
+​3. App Styling & Brand Harmony:
+​Logo Integration: Replace the current "pasted" logo. Blend the Wasl logo (Transparent PNG/SVG) professionally into the header next to the Location Picker, as part of the unified header.
+​Color Harmony: Correct all misaligned colors. Use the Wasl Primary Colors (e.g., from the main banner in image_18.png) for all active states, buttons, headers, and highlights throughout the app (especially the 'View All' section in image_20.png) to ensure color harmony.
+​Bottom Navigation Bar (UI Fix):
+​Make the bar opaque white (not transparent).
+​Add a distinctive top border or soft shadow to separate it from the content.
+​Use a floating/arched design in the center to match the professional style of the overall UI.
+​The icons should not touch the edges and should have adequate spacing.
+​4. 'More' Tab (Full Page):
+​Full Screen Only: When clicking 'More', open a dedicated Full-Screen Page. It should featured: User Profile, Customer Service (linked to Chat), Settings, Terms, and About Us.
+​Chat Relocation: Remove the floating chat bubble from the main UI. Place it exclusively within the 'Customer Service' section on this 'More' page.

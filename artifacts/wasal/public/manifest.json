@@ -1,0 +1,26 @@
+{
+  "name": "وصل - منصة النقل الذكية",
+  "short_name": "وصل",
+  "description": "أول منصة يمنية متكاملة لخدمات النقل والطرود والتوصيل",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f5f2",
+  "theme_color": "#1a5c3a",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

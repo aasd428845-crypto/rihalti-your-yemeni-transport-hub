@@ -1,0 +1,345 @@
+/* Fonts loaded via index.html link tags to avoid render-blocking CSS imports */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light mode – clean warm white with green/gold accents */
+    --background: 40 20% 97%;
+    --foreground: 213 40% 16%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 213 40% 16%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 213 40% 16%;
+
+    --primary: 153 82% 27%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 213 20% 93%;
+    --secondary-foreground: 213 40% 16%;
+
+    --muted: 213 15% 92%;
+    --muted-foreground: 213 20% 45%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 85% 97%;
+
+    --border: 213 15% 87%;
+    --input: 213 15% 90%;
+    --ring: 153 74% 45%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --primary-glow: 153 74% 35%;
+    --hero-gradient: linear-gradient(135deg, hsl(40 20% 97%), hsl(213 20% 93%));
+    --gold: 38 92% 50%;
+    --gold-light: 48 96% 70%;
+    --gold-dark: 38 92% 40%;
+    --success: 153 74% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 213 40% 16%;
+    --sidebar-primary: 153 82% 27%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 15% 95%;
+    --sidebar-accent-foreground: 213 40% 16%;
+    --sidebar-border: 213 15% 87%;
+    --sidebar-ring: 153 74% 45%;
+    --chart-1: 153 82% 27%;
+    --chart-2: 38 92% 50%;
+    --chart-3: 213 60% 50%;
+    --chart-4: 280 60% 50%;
+    --chart-5: 340 65% 55%;
+    --sidebar: 0 0% 100%;
+    --font-sans: 'Cairo', sans-serif;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.06);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.06);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.08);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.08);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.12), 0 8px 10px -6px hsl(0 0% 0% / 0.12);
+    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.2);
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+  }
+
+  .dark {
+    /* Dark green premium theme */
+    --background: 213 54% 11%;
+    --foreground: 160 33% 93%;
+
+    --card: 213 44% 14%;
+    --card-foreground: 160 33% 93%;
+
+    --popover: 213 44% 16%;
+    --popover-foreground: 160 33% 93%;
+
+    --primary: 153 82% 27%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 213 44% 19%;
+    --secondary-foreground: 160 33% 93%;
+
+    --muted: 213 30% 18%;
+    --muted-foreground: 160 16% 60%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 85% 97%;
+
+    --border: 153 30% 15%;
+    --input: 213 30% 20%;
+    --ring: 153 74% 45%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --primary-glow: 153 74% 45%;
+    --hero-gradient: linear-gradient(135deg, hsl(213 54% 11%), hsl(213 44% 19%));
+    --gold: 38 92% 50%;
+    --gold-light: 48 96% 70%;
+    --gold-dark: 38 92% 40%;
+    --success: 153 74% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --sidebar-background: 213 54% 8%;
+    --sidebar-foreground: 160 33% 93%;
+    --sidebar-primary: 153 82% 27%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 44% 16%;
+    --sidebar-accent-foreground: 160 33% 93%;
+    --sidebar-border: 213 30% 16%;
+    --sidebar-ring: 153 74% 45%;
+    --chart-1: 153 82% 27%;
+    --chart-2: 38 92% 50%;
+    --chart-3: 213 60% 50%;
+    --chart-4: 280 60% 50%;
+    --chart-5: 340 65% 55%;
+    --sidebar: 213 54% 8%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.1);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.1);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.2), 0 2px 4px -2px hsl(0 0% 0% / 0.2);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.2), 0 4px 6px -4px hsl(0 0% 0% / 0.2);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.3), 0 8px 10px -6px hsl(0 0% 0% / 0.3);
+    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.5);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-cairo;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: contain;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: hsl(var(--background)); }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--primary)); border-radius: 3px; }
+
+  @supports (padding: env(safe-area-inset-top)) {
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@layer utilities {
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(90deg, hsl(var(--primary-glow)), hsl(var(--accent)));
+  }
+
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--gold)), hsl(var(--gold-dark)));
+  }
+
+  .bg-hero-gradient {
+    background: var(--hero-gradient);
+  }
+
+  .bg-primary-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+  }
+
+  .bg-gold-gradient {
+    background: linear-gradient(135deg, hsl(var(--gold)), hsl(var(--gold-dark)));
+  }
+
+  .shadow-primary {
+    box-shadow: 0 4px 24px hsl(var(--primary) / 0.35);
+  }
+
+  .shadow-primary-lg {
+    box-shadow: 0 8px 32px hsl(var(--primary) / 0.5);
+  }
+
+  .shadow-gold {
+    box-shadow: 0 10px 30px -10px hsl(var(--accent) / 0.4);
+  }
+
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border;
+  }
+
+  .glass-dark {
+    @apply bg-background/70 backdrop-blur-xl border border-border;
+  }
+
+  .glow-badge {
+    @apply inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold tracking-wide;
+    background: hsl(var(--primary) / 0.2);
+    border: 1px solid hsl(var(--primary-glow) / 0.4);
+    color: hsl(var(--primary-glow));
+  }
+
+  .glow-badge-gold {
+    @apply inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold tracking-wide;
+    background: hsl(var(--accent) / 0.15);
+    border: 1px solid hsl(var(--accent) / 0.4);
+    color: hsl(var(--gold-light));
+  }
+
+  .grid-pattern {
+    background-image:
+      linear-gradient(hsl(var(--primary-glow) / 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary-glow) / 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Scroll-triggered animation helpers */
+  .animate-on-scroll {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+  .animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Staggered children */
+  .stagger-children > * {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  }
+  .stagger-children.is-visible > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
+  .stagger-children.is-visible > *:nth-child(2) { transition-delay: 80ms; opacity: 1; transform: translateY(0); }
+  .stagger-children.is-visible > *:nth-child(3) { transition-delay: 160ms; opacity: 1; transform: translateY(0); }
+  .stagger-children.is-visible > *:nth-child(4) { transition-delay: 240ms; opacity: 1; transform: translateY(0); }
+  .stagger-children.is-visible > *:nth-child(5) { transition-delay: 320ms; opacity: 1; transform: translateY(0); }
+  .stagger-children.is-visible > *:nth-child(6) { transition-delay: 400ms; opacity: 1; transform: translateY(0); }
+
+  /* Hover card lift */
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  .hover-lift:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px -12px hsl(var(--primary) / 0.15);
+  }
+
+  /* Shimmer effect for loading states */
+  .shimmer {
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.08) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Gold shimmer — used on premium cards & CTA buttons */
+  .gold-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .gold-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 30%,
+      hsl(var(--gold) / 0.18) 50%,
+      transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: gold-sweep 2.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Royal hover lift with gold shadow */
+  .royal-card {
+    @apply transition-all duration-300;
+  }
+  .royal-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow:
+      0 20px 40px -12px hsl(var(--primary) / 0.18),
+      0 0 0 1px hsl(var(--gold) / 0.25),
+      0 8px 20px -8px hsl(var(--gold) / 0.2);
+  }
+
+  /* Scrollbar hide utility */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes gold-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@layer base {
+  button, a, [role="button"], [type="button"], [type="submit"] {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+/* Fix Leaflet z-index inside dialogs */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-control {
+  z-index: 0 !important;
+}
+.leaflet-container {
+  z-index: 0;
+}
