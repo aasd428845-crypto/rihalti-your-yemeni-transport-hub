@@ -40,7 +40,7 @@ interface Cuisine {
 }
 
 export default function CustomerHome() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const insets = useSafeAreaInsets();
   const [services, setServices] = useState<ServiceType[]>([]);
   const [cuisines, setCuisines] = useState<Cuisine[]>([]);
@@ -51,7 +51,7 @@ export default function CustomerHome() {
     const [{ data: s }, { data: c }, { data: o }] = await Promise.all([
       supabase.from("service_types").select("id, name_ar, image_url, is_active, sort_order").eq("is_active", true).order("sort_order"),
       supabase.from("restaurant_cuisines").select("id, name_ar, image_url").eq("is_active", true).order("sort_order").limit(6),
-      supabase.from("delivery_orders").select("id").not("status", "in", '("delivered","cancelled")'),
+      supabase.from("delivery_orders").select("id").eq("customer_id", user?.id ?? "").not("status", "in", '("delivered","cancelled")'),
     ]);
     setServices((s ?? []) as ServiceType[]);
     setCuisines((c ?? []) as Cuisine[]);
