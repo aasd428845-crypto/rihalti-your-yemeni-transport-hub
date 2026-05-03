@@ -426,7 +426,7 @@ const AdminSettings = () => {
             <div className="space-y-2 col-span-2"><Label>اسم البنك</Label><Input value={editBank.bank_name} onChange={(e) => setEditBank({ ...editBank, bank_name: e.target.value })} /></div>
             <div className="space-y-2 col-span-2"><Label>اسم الحساب</Label><Input value={editBank.account_name} onChange={(e) => setEditBank({ ...editBank, account_name: e.target.value })} /></div>
             <div className="space-y-2"><Label>رقم الحساب</Label><Input value={editBank.account_number} onChange={(e) => setEditBank({ ...editBank, account_number: e.target.value })} /></div>
-            <div className="space-y-2"><Label>IBAN</Label><Input value={editBank.iban} onChange={(e) => setEditBank({ ...editBank, iban: e.target.value })} /></div>
+            <div className="space-y-2"><Label>IBAN</Label><Input value={editBank.iban ?? ""} onChange={(e) => setEditBank({ ...editBank, iban: e.target.value })} /></div>
             <div className="flex items-center gap-2 mt-4"><Switch checked={editBank.is_primary} onCheckedChange={(val) => setEditBank({ ...editBank, is_primary: val })} /><Label>حساب أساسي</Label></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setBankModal(false)}>إلغاء</Button><Button onClick={handleSaveBank} disabled={savingBank}>{savingBank ? "جاري الحفظ..." : "حفظ"}</Button></DialogFooter>

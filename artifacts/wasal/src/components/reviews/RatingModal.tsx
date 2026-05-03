@@ -101,7 +101,7 @@ const RatingModal = ({ open, onClose, revieweeId, revieweeName, entityType, enti
           _user_id: user.id,
           _points: 3,
           _description: "تقييم خدمة",
-          _reference_id: entityId || null,
+          _reference_id: entityId || undefined,
           _reference_type: entityType,
         });
       } catch {}

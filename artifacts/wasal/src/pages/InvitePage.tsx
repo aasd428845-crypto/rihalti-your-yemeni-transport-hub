@@ -220,7 +220,7 @@ const InvitePage = () => {
         if (vehicleImageUrl) profileUpdate.vehicle_image = vehicleImageUrl;
       }
 
-      await supabase.from("profiles").update(profileUpdate).eq("user_id", userId);
+      await supabase.from("profiles").update(profileUpdate as any).eq("user_id", userId);
 
       // 4. If delivery_driver, link to delivery company via riders table.
       //    If the delivery company pre-created a rider row (via "إضافة مندوب"),
@@ -252,7 +252,7 @@ const InvitePage = () => {
           };
 
           if (existingRider?.id) {
-            await supabase.from("riders").update(riderPayload).eq("id", existingRider.id);
+            await supabase.from("riders").update(riderPayload as any).eq("id", existingRider.id);
           } else {
             await supabase.from("riders").insert({
               ...riderPayload,

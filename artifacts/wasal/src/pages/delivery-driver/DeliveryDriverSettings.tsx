@@ -43,11 +43,11 @@ const DeliveryDriverSettings = () => {
     setSettings(updated);
     setSaving(true);
     if (settings?.id) {
-      await supabase.from("notification_settings").update({ [key]: value }).eq("id", settings.id);
+      await supabase.from("notification_settings").update({ [key]: value } as any).eq("id", settings.id);
     } else {
       const { data } = await supabase
         .from("notification_settings")
-        .insert({ user_id: user!.id, ...updated })
+        .insert({ user_id: user!.id, ...updated } as any)
         .select()
         .single();
       if (data) setSettings(data);

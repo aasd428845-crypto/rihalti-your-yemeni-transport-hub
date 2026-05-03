@@ -129,18 +129,18 @@ const PageIntro = () => (
 const BannerCarousel = () => {
   const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const banners = FALLBACK_BANNERS;
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
       setCurrent((p) => (p + 1) % banners.length);
     }, 4500);
-    return () => clearInterval(intervalRef.current);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [banners.length]);
 
   const go = (dir: "next" | "prev") => {
-    clearInterval(intervalRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
     setCurrent((p) =>
       dir === "next"
         ? (p + 1) % banners.length

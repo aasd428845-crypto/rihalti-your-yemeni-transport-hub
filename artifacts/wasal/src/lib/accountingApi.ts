@@ -106,7 +106,7 @@ export const getPartnerInvoices = async (filters?: { status?: string; partnerId?
 export const updateInvoiceStatus = async (id: string, status: string, paidAt?: string) => {
   const update: Record<string, unknown> = { status };
   if (paidAt) update.paid_at = paidAt;
-  return supabase.from("partner_invoices").update(update).eq("id", id);
+  return supabase.from("partner_invoices").update(update as any).eq("id", id);
 };
 
 // ==================== Payment Logs ====================

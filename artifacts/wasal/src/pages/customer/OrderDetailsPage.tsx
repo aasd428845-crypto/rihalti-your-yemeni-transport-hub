@@ -50,7 +50,7 @@ export default function OrderDetailsPage() {
       setOrder(data);
 
       // Fetch supplier/partner profile
-      const partnerId = data.supplier_id || data.delivery_company_id;
+      const partnerId = (data as any).supplier_id || (data as any).delivery_company_id;
       if (partnerId) {
         const { data: profile } = await supabase
           .from('profiles')

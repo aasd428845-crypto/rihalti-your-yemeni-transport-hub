@@ -149,9 +149,9 @@ const DeliveryDriverOrderDetails = () => {
   const hasLocation = order.delivery_lat && order.delivery_lng;
   const chatUnlocked = isMyOrder && ["assigned", "picked_up", "in_transit", "on_the_way"].includes(order.status);
 
-  const handleAction = () => {
-    if (canAccept) return acceptOrder();
-    if (flow) return updateStatus(flow.next);
+  const handleAction = (): void => {
+    if (canAccept) { acceptOrder(); return; }
+    if (flow) { updateStatus(flow.next); return; }
   };
 
   const openInGoogleMaps = () => {

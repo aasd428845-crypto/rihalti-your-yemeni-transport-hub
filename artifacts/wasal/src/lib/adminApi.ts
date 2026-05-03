@@ -229,7 +229,7 @@ export const getDashboardStats = async () => {
     dailyMap.set(key, { date: key, amount: 0, commission: 0, count: 0 });
   }
   allTx.forEach(tx => {
-    const key = new Date(tx.created_at).toISOString().split("T")[0];
+    const key = new Date(tx.created_at ?? new Date()).toISOString().split("T")[0];
     const entry = dailyMap.get(key);
     if (entry) {
       entry.amount += Number(tx.amount || 0);

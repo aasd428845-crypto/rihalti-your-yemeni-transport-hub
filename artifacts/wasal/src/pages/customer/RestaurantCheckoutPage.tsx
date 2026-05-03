@@ -60,8 +60,8 @@ const RestaurantCheckoutPage = () => {
         // Use restaurant-level price_per_km first, then fall back to company settings
         if (r?.delivery_company_id) {
           // Restaurant-level rate takes priority
-          if (r.price_per_km && Number(r.price_per_km) > 0) {
-            setPricePerKm(Number(r.price_per_km));
+          if ((r as any).price_per_km && Number((r as any).price_per_km) > 0) {
+            setPricePerKm(Number((r as any).price_per_km));
           } else {
             // Fall back to company-level settings
             const settingsRes = await supabase

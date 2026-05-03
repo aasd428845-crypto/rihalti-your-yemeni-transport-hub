@@ -298,15 +298,15 @@ const DEFAULT_SERVICE_TILES = [
 // ─── Hero Banner Carousel ─────────────────────────────────────────────────────
 const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (url: string) => void }) => {
   const [idx, setIdx] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     timerRef.current = setInterval(() => setIdx(i => (i + 1) % banners.length), 4500);
-    return () => clearInterval(timerRef.current);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [banners.length]);
 
   const go = (dir: number) => {
-    clearInterval(timerRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
     setIdx(i => (i + dir + banners.length) % banners.length);
   };
 

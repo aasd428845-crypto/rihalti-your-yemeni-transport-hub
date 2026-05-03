@@ -3,7 +3,7 @@ export interface Region {
   name_ar: string;
   type: string;
   parent_id: number | null;
-  is_active: boolean;
+  is_active: boolean | null;
 }
 
 export interface TripType {

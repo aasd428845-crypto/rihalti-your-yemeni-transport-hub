@@ -9,7 +9,7 @@ export interface Restaurant {
   address?: string;
   location_lat?: number;
   location_lng?: number;
-  is_active: boolean;
+  is_active: boolean | null;
   commission_rate: number;
   created_at: string;
   updated_at: string;
@@ -21,7 +21,7 @@ export interface MenuCategory {
   name_ar: string;
   name_en?: string;
   sort_order: number;
-  is_active: boolean;
+  is_active: boolean | null;
 }
 
 export interface MenuItem {
@@ -47,23 +47,23 @@ export interface Rider {
   delivery_company_id: string;
   full_name: string;
   phone: string;
-  email?: string;
-  profile_image?: string;
-  vehicle_type: string;
-  vehicle_plate?: string;
-  id_number?: string;
-  is_active: boolean;
-  is_online: boolean;
-  current_lat?: number;
-  current_lng?: number;
-  last_location_update?: string;
-  total_deliveries: number;
-  rating: number;
-  earnings: number;
-  commission_type: string;
-  commission_value: number;
-  created_at: string;
-  updated_at: string;
+  email?: string | null;
+  profile_image?: string | null;
+  vehicle_type: string | null;
+  vehicle_plate?: string | null;
+  id_number?: string | null;
+  is_active: boolean | null;
+  is_online: boolean | null;
+  current_lat?: number | null;
+  current_lng?: number | null;
+  last_location_update?: string | null;
+  total_deliveries: number | null;
+  rating: number | null;
+  earnings: number | null;
+  commission_type: string | null;
+  commission_value: number | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface DeliveryOrder {
@@ -113,12 +113,12 @@ export interface CustomLink {
   id: string;
   delivery_company_id: string;
   merchant_name: string;
-  merchant_phone?: string;
+  merchant_phone?: string | null;
   link_token: string;
-  is_active: boolean;
-  clicks: number;
-  expires_at?: string;
-  created_at: string;
+  is_active: boolean | null;
+  clicks: number | null;
+  expires_at?: string | null;
+  created_at: string | null;
 }
 
 export interface RiderReward {
@@ -136,14 +136,14 @@ export interface PartnerJoinRequest {
   id: string;
   delivery_company_id: string;
   business_name: string;
-  business_type: string;
-  contact_name?: string;
+  business_type: string | null;
+  contact_name?: string | null;
   contact_phone: string;
-  contact_email?: string;
-  address?: string;
-  notes?: string;
-  status: string;
-  created_at: string;
+  contact_email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  status: string | null;
+  created_at: string | null;
 }
 
 export type OrderStatus = 'pending' | 'accepted' | 'preparing' | 'ready' | 'assigned' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled' | 'returned';

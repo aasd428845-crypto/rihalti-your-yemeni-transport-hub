@@ -97,7 +97,7 @@ const DeliveryRiders = () => {
 
   const openEdit = (r: Rider) => {
     setEditItem(r);
-    setForm({ full_name: r.full_name, phone: r.phone, email: r.email || "", vehicle_type: r.vehicle_type, vehicle_plate: r.vehicle_plate || "", id_number: r.id_number || "", commission_type: r.commission_type, commission_value: r.commission_value });
+    setForm({ full_name: r.full_name, phone: r.phone, email: r.email || "", vehicle_type: r.vehicle_type || "motorcycle", vehicle_plate: r.vehicle_plate || "", id_number: r.id_number || "", commission_type: r.commission_type || "percentage", commission_value: r.commission_value ?? 10 });
     setShowAdd(true);
   };
 
@@ -200,7 +200,7 @@ const DeliveryRiders = () => {
                     <Badge variant={r.is_online ? "default" : "secondary"}>{r.is_online ? "متصل 🟢" : "غير متصل"}</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div><span className="text-muted-foreground">المركبة:</span> <span className="font-medium">{vehicleLabels[r.vehicle_type] || r.vehicle_type}</span></div>
+                    <div><span className="text-muted-foreground">المركبة:</span> <span className="font-medium">{vehicleLabels[r.vehicle_type || ""] || r.vehicle_type}</span></div>
                     <div><span className="text-muted-foreground">التوصيلات:</span> <span className="font-medium">{r.total_deliveries}</span></div>
                     <div><span className="text-muted-foreground">التقييم:</span> <span className="font-medium">⭐ {r.rating}</span></div>
                     <div><span className="text-muted-foreground">الأرباح:</span> <span className="font-medium">{Number(r.earnings).toLocaleString()} ر.ي</span></div>
@@ -236,7 +236,7 @@ const DeliveryRiders = () => {
                   <tr key={r.id} className="border-b hover:bg-muted/30">
                     <td className="p-3 font-medium">{r.full_name}</td>
                     <td className="p-3">{r.phone}</td>
-                    <td className="p-3">{vehicleLabels[r.vehicle_type] || r.vehicle_type}</td>
+                    <td className="p-3">{vehicleLabels[r.vehicle_type || ""] || r.vehicle_type}</td>
                     <td className="p-3">
                       <Badge variant={r.is_online ? "default" : "secondary"}>{r.is_online ? "متصل 🟢" : "غير متصل"}</Badge>
                     </td>

@@ -31,13 +31,13 @@ export const getDeliveryOffers = async (companyId: string): Promise<DeliveryOffe
     .order("sort_order")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data || []) as DeliveryOffer[];
+  return (data || []) as unknown as DeliveryOffer[];
 };
 
 export const createDeliveryOffer = async (offer: Omit<DeliveryOffer, "id" | "created_at">) => {
   const { data, error } = await supabase.from(TABLE).insert(offer).select().single();
   if (error) throw error;
-  return data as DeliveryOffer;
+  return data as unknown as DeliveryOffer;
 };
 
 export const updateDeliveryOffer = async (id: string, updates: Partial<DeliveryOffer>) => {
@@ -70,7 +70,7 @@ export const getActiveOffersForCompany = async (
     const todayName = ARABIC_DAYS[now.getDay()];
     const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
-    for (const offer of data as DeliveryOffer[]) {
+    for (const offer of (data as unknown as DeliveryOffer[])) {
       // Date range check
       if (offer.starts_at && new Date(offer.starts_at) > now) continue;
       if (offer.ends_at && new Date(offer.ends_at) < now) continue;
