@@ -8,6 +8,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Phone, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+
 const PhoneRegisterForm = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -40,34 +42,25 @@ const PhoneRegisterForm = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-verification-code", {
-        body: { phone_number: fullPhone },
+      const res = await fetch(`${API_BASE}/api/sms/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone_number: fullPhone }),
       });
 
-      // Even if the function returned a non-2xx, supabase-js may wrap the body
-      // inside `error.context` (a Response). Try to extract a useful message.
-      let payload: any = data;
-      if (error && (error as any).context) {
-        try {
-          payload = await (error as any).context.json();
-        } catch {
-          payload = null;
-        }
-      }
+      const data = await res.json();
 
-      const errMsg = payload?.error || (error ? String((error as any).message || error) : null);
-
-      if (errMsg) {
+      if (!res.ok || data.error) {
         toast({
           title: "تعذّر إرسال الرمز",
-          description: errMsg,
+          description: data.error || "فشل إرسال رمز التحقق",
           variant: "destructive",
           duration: 8000,
         });
       } else {
         setOtpSent(true);
         startCountdown();
-        toast({ title: "تم الإرسال", description: "تم إرسال رمز التحقق إلى واتساب الخاص بك" });
+        toast({ title: "تم الإرسال ✅", description: "تم إرسال رمز التحقق إلى هاتفك" });
       }
     } catch (err: any) {
       toast({
@@ -87,33 +80,23 @@ const PhoneRegisterForm = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("verify-code", {
-        body: { phone_number: fullPhone, code: otpCode },
+      const res = await fetch(`${API_BASE}/api/sms/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone_number: fullPhone, code: otpCode }),
       });
 
-      // Read body even on non-2xx
-      let payload: any = data;
-      if (error && (error as any).context) {
-        try {
-          payload = await (error as any).context.json();
-        } catch {
-          payload = null;
-        }
-      }
+      const payload = await res.json();
 
-      const errMsg = payload?.error || (error ? String((error as any).message || error) : null);
-
-      if (errMsg) {
-        toast({ title: "خطأ في التحقق", description: errMsg, variant: "destructive", duration: 8000 });
+      if (!res.ok || payload.error) {
+        toast({ title: "خطأ في التحقق", description: payload.error || "رمز غير صحيح", variant: "destructive", duration: 8000 });
         setLoading(false);
         return;
       }
 
-      if (payload?.success && payload?.email && payload?.token_hash) {
-        const data: any = payload;
-        // Verify the magic link token to establish session
+      if (payload.success && payload.email && payload.token_hash) {
         const { error: verifyError } = await supabase.auth.verifyOtp({
-          token_hash: data.token_hash,
+          token_hash: payload.token_hash,
           type: "email",
         });
 
@@ -123,9 +106,9 @@ const PhoneRegisterForm = () => {
           return;
         }
 
-        toast({ title: "تم التحقق بنجاح!", description: "جاري تحويلك..." });
+        toast({ title: "تم التحقق بنجاح! ✅", description: "جاري تحويلك..." });
 
-        if (data.is_new_user) {
+        if (payload.is_new_user) {
           navigate("/complete-profile");
         } else {
           navigate("/");
@@ -144,7 +127,7 @@ const PhoneRegisterForm = () => {
           <div>
             <Label htmlFor="phone">رقم الهاتف</Label>
             <div className="relative mt-1 flex gap-2">
-              <div className="flex items-center justify-center bg-muted rounded-md px-3 h-11 text-sm font-medium text-muted-foreground border border-input shrink-0" dir="ltr">
+              <div className="flex items-center justify-center bg-muted rounded-md px-3 h-11 text-sm font-medium text-foreground border border-input shrink-0" dir="ltr">
                 +967
               </div>
               <div className="relative flex-1">
@@ -161,7 +144,7 @@ const PhoneRegisterForm = () => {
                 />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">أدخل رقمك بدون رمز البلد</p>
+            <p className="text-xs text-muted-foreground mt-1">أدخل رقمك بدون رمز البلد (+967)</p>
           </div>
 
           <Button
@@ -184,7 +167,7 @@ const PhoneRegisterForm = () => {
           </button>
 
           <p className="text-sm text-muted-foreground text-center">
-            تم إرسال رمز التحقق عبر واتساب إلى <span className="font-bold text-foreground" dir="ltr">{fullPhone}</span>
+            تم إرسال رمز التحقق إلى <span className="font-bold text-foreground" dir="ltr">{fullPhone}</span>
           </p>
 
           <div className="flex justify-center" dir="ltr">
