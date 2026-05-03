@@ -163,8 +163,7 @@ const RegisterPage = () => {
 
               <Button
                 type="submit"
-                className="w-full h-11 font-bold text-base"
-                style={{ background: "var(--hero-gradient, #16a34a)", color: "white" }}
+                className="w-full h-11 font-bold text-base bg-primary text-primary-foreground hover:bg-primary/90"
                 disabled={loading}
               >
                 {loading ? (

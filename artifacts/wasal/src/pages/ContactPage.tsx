@@ -98,7 +98,7 @@ const ContactPage = () => {
                   <Label>الرسالة *</Label>
                   <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="اكتب رسالتك هنا..." className="mt-1 min-h-[120px]" required />
                 </div>
-                <Button type="submit" className="w-full bg-hero-gradient text-primary-foreground font-bold hover:opacity-90" disabled={loading}>
+                <Button type="submit" className="w-full bg-primary text-primary-foreground font-bold hover:bg-primary/90" disabled={loading}>
                   {loading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Send className="w-4 h-4 ml-2" />}
                   إرسال الرسالة
                 </Button>

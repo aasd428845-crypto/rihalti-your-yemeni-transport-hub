@@ -610,7 +610,7 @@ const InvitePage = () => {
               <div className="pt-4 border-t border-border">
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90 text-base"
+                  className="w-full h-12 bg-primary text-primary-foreground font-bold hover:bg-primary/90 text-base"
                   disabled={submitting}
                 >
                   {submitting ? (

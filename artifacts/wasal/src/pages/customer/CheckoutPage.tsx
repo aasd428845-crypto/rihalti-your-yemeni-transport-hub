@@ -201,7 +201,7 @@ const CheckoutPage = () => {
 
         {/* Submit */}
         <Button
-          className="w-full h-12 bg-hero-gradient text-primary-foreground font-bold text-lg hover:opacity-90"
+          className="w-full h-12 bg-primary text-primary-foreground font-bold hover:bg-primary/90 text-lg hover:opacity-90"
           onClick={handleSubmit}
           disabled={submitting || !agreedToPolicy}
         >

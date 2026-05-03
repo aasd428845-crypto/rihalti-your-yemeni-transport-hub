@@ -156,7 +156,7 @@ const CompleteProfilePage = () => {
 
             <Button
               type="submit"
-              className="w-full h-11 bg-hero-gradient text-primary-foreground font-bold hover:opacity-90"
+              className="w-full h-11 bg-primary text-primary-foreground font-bold hover:bg-primary/90"
               disabled={loading || !fullName.trim()}
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}

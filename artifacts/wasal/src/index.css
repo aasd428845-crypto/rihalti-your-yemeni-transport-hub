@@ -38,7 +38,7 @@
 
     /* Custom tokens */
     --primary-glow: 153 74% 35%;
-    --hero-gradient: linear-gradient(135deg, hsl(40 20% 97%), hsl(213 20% 93%));
+    --hero-gradient: linear-gradient(135deg, hsl(153 82% 27%), hsl(153 74% 35%));
     --gold: 38 92% 50%;
     --gold-light: 48 96% 70%;
     --gold-dark: 38 92% 40%;

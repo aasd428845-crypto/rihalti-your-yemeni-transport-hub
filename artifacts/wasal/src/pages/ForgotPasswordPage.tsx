@@ -63,7 +63,7 @@ const ForgotPasswordPage = () => {
                     <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" className="pr-10 h-11" required dir="ltr" />
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 bg-hero-gradient text-primary-foreground font-bold" disabled={loading}>
+                <Button type="submit" className="w-full h-11 bg-primary text-primary-foreground font-bold hover:bg-primary/90" disabled={loading}>
                   {loading ? "جاري الإرسال..." : "إرسال رابط إعادة التعيين"}
                 </Button>
               </form>

@@ -94,7 +94,7 @@ const ResetPasswordPage = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-11 bg-hero-gradient text-primary-foreground font-bold" disabled={loading}>
+            <Button type="submit" className="w-full h-11 bg-primary text-primary-foreground font-bold hover:bg-primary/90" disabled={loading}>
               {loading ? "جاري التحديث..." : "تحديث كلمة المرور"}
             </Button>
           </form>
