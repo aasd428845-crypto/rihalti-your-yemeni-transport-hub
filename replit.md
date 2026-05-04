@@ -1,41 +1,59 @@
-# Workspace
+# وصال - منصة النقل الذكية
 
-## Overview
+## نظرة عامة
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+تطبيق ويب متكامل لمنصة نقل ذكية تشمل: توصيل الطلبات، حجز الرحلات، نقل البضائع، وإدارة المطاعم.
+
+## هيكل المشروع
+
+```
+workspace/
+├── artifacts/
+│   ├── wasal/          # تطبيق الويب الرئيسي (React + Vite + Supabase)
+│   ├── api-server/     # API Server (Express 5 + Node.js)
+│   └── mockup-sandbox/ # بيئة تصميم المكونات
+├── tsconfig.base.json
+├── tsconfig.json
+├── pnpm-workspace.yaml
+└── package.json
+```
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **Monorepo**: pnpm workspaces
+- **Frontend**: React 19 + Vite + TailwindCSS + shadcn/ui
+- **Backend**: Express 5 + Node.js 24
+- **Database**: Supabase (PostgreSQL) — project: `hhqhoqwpebnmfuhwhllw`
+- **Auth**: Supabase Auth + Phone OTP via Traccar SMS Gateway
+- **TypeScript**: 5.9 (strict mode)
 
-## Key Commands
+## الأوامر الرئيسية
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
-
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
-
----
+- `pnpm --filter @workspace/wasal run typecheck` — فحص أنواع الويب
+- `pnpm --filter @workspace/api-server run typecheck` — فحص أنواع API
+- `pnpm run typecheck` — فحص شامل
 
 ## Artifacts
 
-### وصال - منصة النقل الذكية (Web)
+### وصال - Web App
 - **Path**: `artifacts/wasal`
 - **Stack**: React + Vite + Supabase
 - **Preview**: `/`
+- **Features**: Customer portal, Driver dashboard, Delivery management, Restaurant ordering, Admin panel
 
 ### API Server
 - **Path**: `artifacts/api-server`
-- **Stack**: Express 5 + Drizzle ORM
+- **Stack**: Express 5 + fetch API
 - **Preview**: `/api`
+- **Routes**: `/api/sms/send`, `/api/sms/verify` (Phone OTP via Traccar)
+
+## متغيرات البيئة المطلوبة
+
+- `SUPABASE_URL` — رابط مشروع Supabase
+- `SUPABASE_SERVICE_ROLE_KEY` — مفتاح الخدمة
+- `TRACCAR_TOKEN` — مفتاح بوابة الرسائل
+
+## الجداول الجديدة في قاعدة البيانات
+
+- `phone_otps` — رموز التحقق عبر الهاتف
+- `delivery_company_offers` — عروض شركات التوصيل

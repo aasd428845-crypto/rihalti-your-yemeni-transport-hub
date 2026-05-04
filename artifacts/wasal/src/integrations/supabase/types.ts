@@ -748,6 +748,63 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_company_offers: {
+        Row: {
+          active_days: string[] | null
+          created_at: string
+          delivery_company_id: string
+          description: string | null
+          discount_amount: number | null
+          discount_percent: number | null
+          ends_at: string | null
+          end_time: string | null
+          id: string
+          is_active: boolean
+          min_order_amount: number | null
+          offer_type: string
+          sort_order: number
+          start_time: string | null
+          starts_at: string | null
+          title: string
+        }
+        Insert: {
+          active_days?: string[] | null
+          created_at?: string
+          delivery_company_id: string
+          description?: string | null
+          discount_amount?: number | null
+          discount_percent?: number | null
+          ends_at?: string | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          min_order_amount?: number | null
+          offer_type: string
+          sort_order?: number
+          start_time?: string | null
+          starts_at?: string | null
+          title: string
+        }
+        Update: {
+          active_days?: string[] | null
+          created_at?: string
+          delivery_company_id?: string
+          description?: string | null
+          discount_amount?: number | null
+          discount_percent?: number | null
+          ends_at?: string | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          min_order_amount?: number | null
+          offer_type?: string
+          sort_order?: number
+          start_time?: string | null
+          starts_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       delivery_drivers: {
         Row: {
           created_at: string | null
@@ -2220,6 +2277,30 @@ export type Database = {
           user_id?: string
           verified_at?: string | null
           verified_by?: string | null
+        }
+        Relationships: []
+      }
+      phone_otps: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          otp: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          otp: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          otp?: string
+          phone?: string
         }
         Relationships: []
       }
