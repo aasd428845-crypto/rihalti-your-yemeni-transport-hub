@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm --filter @workspace/wasal run build",
-  "outputDirectory": "artifacts/wasal/dist",
+  "outputDirectory": "dist",
   "installCommand": "pnpm install",
   "framework": null,
   "rewrites": [
