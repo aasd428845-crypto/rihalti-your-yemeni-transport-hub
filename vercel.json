@@ -1,27 +1,10 @@
 {
-  "buildCommand": "cd artifacts/wasal && pnpm install && pnpm run build && cd ../.. && cp -r artifacts/wasal/dist ./dist",
-  "outputDirectory": "dist",
+  "version": 2,
+  "buildCommand": "pnpm install && pnpm --filter @workspace/wasal run build",
+  "outputDirectory": "artifacts/wasal/dist/public",
   "installCommand": "pnpm install",
-  "framework": "vite",
+  "framework": null,
   "rewrites": [
-    {
-      "source": "/assets/(.*)",
-      "destination": "/assets/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

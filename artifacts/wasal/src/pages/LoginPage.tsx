@@ -8,7 +8,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Phone, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
 
 type AuthMethod = "email" | "phone";
 
