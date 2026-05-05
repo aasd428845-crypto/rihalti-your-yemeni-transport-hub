@@ -107,9 +107,15 @@ export default defineConfig({
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@radix-ui/react-accordion', '@radix-ui/react-dialog', 'lucide-react'],
+        manualChunks(id) {
+          // Keep react and react-dom in a single chunk to avoid circular dependencies
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+            return 'react-vendor';
+          }
+          // Keep react-router in its own chunk
+          if (id.includes('node_modules/react-router') || id.includes('node_modules/react-router-dom/')) {
+            return 'router-vendor';
+          }
         }
       }
     }
