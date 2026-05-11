@@ -5,25 +5,38 @@ const router = Router();
 
 async function execSQL(sql: string): Promise<void> {
   const url = process.env.SUPABASE_URL ?? "";
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const dbPass = process.env.SUPABASE_DB_PASSWORD ?? "";
   const ref = url.replace("https://", "").split(".")[0];
 
-  const client = new Client({
-    host: "aws-0-us-east-1.pooler.supabase.com",
-    port: 6543,
-    database: "postgres",
-    user: `postgres.${ref}`,
-    password: key,
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 15000,
-  });
+  // جرب pooler أولاً ثم direct
+  const configs = [
+    { host: `aws-0-us-east-1.pooler.supabase.com`, port: 6543, user: `postgres.${ref}` },
+    { host: `aws-0-us-east-1.pooler.supabase.com`, port: 5432, user: `postgres.${ref}` },
+    { host: `${ref}.supabase.co`, port: 5432, user: "postgres" },
+  ];
 
-  await client.connect();
-  try {
-    await client.query(sql);
-  } finally {
-    await client.end();
+  let lastErr: Error | null = null;
+  for (const cfg of configs) {
+    const client = new Client({
+      host: cfg.host,
+      port: cfg.port,
+      database: "postgres",
+      user: cfg.user,
+      password: dbPass,
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000,
+    });
+    try {
+      await client.connect();
+      await client.query(sql);
+      await client.end();
+      return;
+    } catch (e: any) {
+      lastErr = e;
+      try { await client.end(); } catch (_) {}
+    }
   }
+  throw lastErr ?? new Error("All connection attempts failed");
 }
 
 router.post("/db-setup", async (req, res) => {
@@ -87,6 +100,39 @@ router.post("/db-setup", async (req, res) => {
   }
 
   return res.json({ results });
+});
+
+// endpoint للتحقق من الاتصال
+router.get("/db-setup/check", async (req, res) => {
+  const secret = req.headers["x-setup-secret"];
+  if (secret !== "wasal-setup-2026") {
+    return res.status(403).json({ error: "forbidden" });
+  }
+
+  const url = process.env.SUPABASE_URL ?? "";
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+
+  // فحص الجداول عبر REST API
+  const tables = ["request_messages", "phone_otps"];
+  const missing: string[] = [];
+  const existing: string[] = [];
+
+  for (const t of tables) {
+    const r = await fetch(`${url}/rest/v1/${t}?limit=0`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
+    if (r.status === 200) existing.push(t);
+    else missing.push(t);
+  }
+
+  // فحص أعمدة profiles
+  const colCheck = await fetch(
+    `${url}/rest/v1/profiles?select=phone,city,vehicle_color&limit=0`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+  );
+  const colsOk = colCheck.status === 200;
+
+  return res.json({ existing, missing, profiles_cols_ok: colsOk });
 });
 
 export default router;
