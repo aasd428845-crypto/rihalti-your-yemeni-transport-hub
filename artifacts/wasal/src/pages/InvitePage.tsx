@@ -185,15 +185,14 @@ const InvitePage = () => {
       // 3. Wait a moment for the trigger to create profile, then update
       await new Promise((r) => setTimeout(r, 1500));
 
-      // delivery_company and delivery_driver are auto-approved; other roles wait on admin review.
-      const autoApprove = inviteData.role === "delivery_driver" || inviteData.role === "delivery_company";
+      // Delivery riders are auto-approved; other roles still wait on admin review.
+      const autoApprove = inviteData.role === "delivery_driver";
       const profileUpdate: Record<string, any> = {
         full_name: fullName,
         phone,
         phone_secondary: phoneSecondary || null,
         account_status: autoApprove ? "active" : "pending",
         is_verified: autoApprove,
-        ...(inviteData.role === "delivery_company" ? { profile_completed: true } : {}),
       };
 
       if (inviteData.role === "supplier" || inviteData.role === "delivery_company") {
@@ -284,19 +283,18 @@ const InvitePage = () => {
         await supabase.from("notifications").insert(notifications);
       }
 
-      // 6. Auto-approved roles (delivery_company + delivery_driver): sign in and go to dashboard.
-      //    Other roles: manual review flow → login page.
+      // 6. For auto-approved delivery riders: sign them in and send them
+      //    straight to their dashboard. For other roles: keep the manual
+      //    review flow and bounce them to the login page.
       if (autoApprove) {
         try {
           await supabase.auth.signInWithPassword({ email: inviteData.email, password });
-          toast.success("تم إنشاء حسابك وتسجيل الدخول بنجاح 🎉");
-          if (inviteData.role === "delivery_company") {
-            navigate("/delivery");
-          } else {
-            navigate("/delivery-driver");
-          }
+          toast.success("تم إنشاء حسابك وتسجيل الدخول بنجاح");
+          navigate("/delivery-driver");
           return;
         } catch {
+          // If auto sign-in is blocked (e.g. email confirmation required),
+          // fall through to the login page so the user can sign in manually.
           toast.success("تم إنشاء حسابك بنجاح! يمكنك الآن تسجيل الدخول.");
           navigate("/login");
           return;
