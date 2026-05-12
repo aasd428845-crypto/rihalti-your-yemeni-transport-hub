@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Wasl - غير متصل</title>
+    <meta name="theme-color" content="#FFD700" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: 'Cairo', 'Segoe UI', sans-serif;
+        background: #0a0a0a;
+        color: #fff;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .logo {
+        width: 100px;
+        height: 100px;
+        background: #FFD700;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 0 40px rgba(255,215,0,0.3);
+      }
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #FFD700;
+        margin-bottom: 0.75rem;
+      }
+      p {
+        font-size: 1rem;
+        color: #aaa;
+        line-height: 1.7;
+        max-width: 320px;
+        margin-bottom: 2rem;
+      }
+      .icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.6;
+      }
+      button {
+        background: #FFD700;
+        color: #000;
+        border: none;
+        padding: 0.85rem 2.5rem;
+        border-radius: 50px;
+        font-size: 1rem;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+      button:active { transform: scale(0.96); }
+    </style>
+  </head>
+  <body>
+    <div class="logo">🚗</div>
+    <div class="icon">📡</div>
+    <h1>لا يوجد اتصال</h1>
+    <p>يبدو أنك غير متصل بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.</p>
+    <button onclick="window.location.reload()">إعادة المحاولة</button>
+  </body>
+</html>
