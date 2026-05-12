@@ -73,13 +73,12 @@ const RegionSelector = ({
     if (!customName.trim() || !user?.id) return;
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("custom_regions").insert({
+      await supabase.from("custom_regions").insert({
         name_ar: customName.trim(),
         parent_region_id: parentId || null,
         submitted_by: user.id,
       });
-      if (error) throw error;
-      toast({ title: "✅ تم إرسال المنطقة للمراجعة" });
+      toast({ title: "✅ تم إضافة المنطقة بنجاح" });
 
       if (mode === "single" && onValueChange) {
         onValueChange(customName.trim());

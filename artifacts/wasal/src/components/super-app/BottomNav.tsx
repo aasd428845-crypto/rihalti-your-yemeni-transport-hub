@@ -1,9 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Package, Bell, User, MoreHorizontal, ShoppingCart } from "lucide-react";
+import { Package, Bell, User, MoreHorizontal, ShoppingCart, Home } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import waslLogo from "@/assets/wasl-logo.png";
 
 const BottomNav = () => {
   const navigate = useNavigate();
@@ -76,7 +75,7 @@ const BottomNav = () => {
             <span className="text-[10px] font-semibold leading-none">طلباتي</span>
           </button>
 
-          {/* CENTER: Home — floating raised button (was Offers position) */}
+          {/* CENTER: Home — floating raised button */}
           <div className="flex flex-col items-center relative" style={{ marginTop: -24 }}>
             <button
               data-testid="bottom-nav-home"
@@ -87,7 +86,7 @@ const BottomNav = () => {
                   : "bg-primary hover:bg-primary/90 shadow-primary/30"
               }`}
             >
-              <img src={waslLogo} alt="وصل" className="w-8 h-8 object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+              <Home className="w-7 h-7 text-white" strokeWidth={2.5} />
             </button>
             <span className={`text-[10px] font-bold mt-1 leading-none ${location.pathname === "/" ? "text-primary" : "text-muted-foreground"}`}>
               الرئيسية

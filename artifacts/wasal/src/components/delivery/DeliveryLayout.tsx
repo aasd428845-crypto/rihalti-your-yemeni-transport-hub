@@ -73,9 +73,6 @@ const DeliveryLayout = () => {
   if (role !== "delivery_company") return <Navigate to="/" replace />;
 
   const isOnProfilePage = location.pathname === "/delivery/profile";
-  if (!isComplete && !isOnProfilePage) {
-    return <Navigate to="/delivery/profile" replace />;
-  }
 
   return (
     <SidebarProvider>
