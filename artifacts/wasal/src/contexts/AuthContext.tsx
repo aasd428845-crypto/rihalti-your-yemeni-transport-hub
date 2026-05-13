@@ -42,7 +42,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (roleRes.data) setRole(roleRes.data.role as AppRole);
       if (profileRes.data) {
         setProfile(profileRes.data);
-        // If user is suspended, sign them out
         if (profileRes.data.account_status === "suspended") {
           await supabase.auth.signOut();
           return;
@@ -54,34 +53,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    // Load initial session — await role/profile BEFORE clearing the loading state
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserData(session.user.id);
+      }
+      if (mounted) setLoading(false);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
+        if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-            initOneSignal();
+          // Use setTimeout to avoid Supabase client deadlock inside the callback,
+          // but keep loading=true until role is resolved.
+          setTimeout(async () => {
+            if (!mounted) return;
+            await fetchUserData(session.user.id);
+            if (mounted) {
+              setLoading(false);
+              initOneSignal();
+            }
           }, 0);
         } else {
           setRole(null);
           setProfile(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Register for push when role is available
