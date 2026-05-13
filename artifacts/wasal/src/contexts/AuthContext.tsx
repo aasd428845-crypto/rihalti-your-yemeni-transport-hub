@@ -39,7 +39,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         supabase.from("profiles").select("full_name, phone, city, account_status, avatar_url").eq("user_id", userId).maybeSingle(),
       ]);
 
-      if (roleRes.data) setRole(roleRes.data.role as AppRole);
+      // Always set a role — "customer" is the default so guards never stay
+      // in a permanent null/loading limbo after fetchUserData finishes.
+      setRole((roleRes.data?.role ?? "customer") as AppRole);
+
       if (profileRes.data) {
         setProfile(profileRes.data);
         if (profileRes.data.account_status === "suspended") {
@@ -49,6 +52,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (err) {
       console.error("Error fetching user data:", err);
+      // On error fall back to customer so guards can redirect instead of spinning
+      setRole("customer");
     }
   };
 
@@ -67,24 +72,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Reset loading=true so layout guards wait for the new role to load.
-          setLoading(true);
-          setRole(null);
-          // Use setTimeout to avoid Supabase client deadlock inside the callback.
-          setTimeout(async () => {
-            if (!mounted) return;
-            await fetchUserData(session.user.id);
-            if (mounted) {
-              setLoading(false);
-              initOneSignal();
-            }
-          }, 0);
+          // Only reset role/loading for genuine sign-in events, not for
+          // silent token refreshes — those should not cause a navigation loop.
+          if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+            setLoading(true);
+            setRole(null);
+            // Use setTimeout to avoid Supabase client deadlock inside the callback.
+            setTimeout(async () => {
+              if (!mounted) return;
+              await fetchUserData(session.user.id);
+              if (mounted) {
+                setLoading(false);
+                initOneSignal();
+              }
+            }, 0);
+          }
         } else {
           setRole(null);
           setProfile(null);
