@@ -1,9 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Package, Bell, User, MoreHorizontal, ShoppingCart } from "lucide-react";
+import { Package, Bell, User, MoreHorizontal, ShoppingCart, Home } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import waslLogo from "@/assets/wasl-logo.png";
 
 const BottomNav = () => {
   const navigate = useNavigate();
@@ -14,7 +13,6 @@ const BottomNav = () => {
   const isActive = (paths: string[]) =>
     paths.some((p) => location.pathname === p || location.pathname.startsWith(p + "/"));
 
-  // Load unread notification count
   useEffect(() => {
     if (!user) return;
 
@@ -52,7 +50,7 @@ const BottomNav = () => {
       <div className="bg-white dark:bg-background border-t-2 border-border/30">
         <div className="flex items-center justify-around max-w-2xl mx-auto px-3 pb-[env(safe-area-inset-bottom,6px)]" style={{ height: 62 }}>
 
-          {/* Cart (rightmost — was Home position) */}
+          {/* Cart */}
           <button
             data-testid="bottom-nav-cart"
             onClick={() => navigate("/cart")}
@@ -76,7 +74,7 @@ const BottomNav = () => {
             <span className="text-[10px] font-semibold leading-none">طلباتي</span>
           </button>
 
-          {/* CENTER: Home — floating raised button (was Offers position) */}
+          {/* CENTER: Home — floating raised button with House icon */}
           <div className="flex flex-col items-center relative" style={{ marginTop: -24 }}>
             <button
               data-testid="bottom-nav-home"
@@ -87,14 +85,14 @@ const BottomNav = () => {
                   : "bg-primary hover:bg-primary/90 shadow-primary/30"
               }`}
             >
-              <img src={waslLogo} alt="وصل" className="w-8 h-8 object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+              <Home className="w-7 h-7 text-white" strokeWidth={2.5} />
             </button>
             <span className={`text-[10px] font-bold mt-1 leading-none ${location.pathname === "/" ? "text-primary" : "text-muted-foreground"}`}>
               الرئيسية
             </span>
           </div>
 
-          {/* Bell (was Wallet position) */}
+          {/* Bell */}
           <button
             data-testid="bottom-nav-bell"
             onClick={() => { setUnreadCount(0); navigate("/notifications"); }}
