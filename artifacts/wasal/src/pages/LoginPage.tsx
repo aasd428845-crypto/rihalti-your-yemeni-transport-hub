@@ -13,15 +13,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.BASE_URL?.
 
 type AuthMethod = "email" | "phone";
 
-const goByRole = (role: string, navigate: ReturnType<typeof useNavigate>) => {
-  if (role === "admin") navigate("/admin", { replace: true });
-  else if (role === "supplier") navigate("/supplier", { replace: true });
-  else if (role === "delivery_company") navigate("/delivery", { replace: true });
-  else if (role === "driver") navigate("/driver", { replace: true });
-  else if (role === "delivery_driver") navigate("/delivery-driver", { replace: true });
-  else navigate("/", { replace: true });
-};
-
 const LoginPage = () => {
   const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
 
@@ -42,12 +33,39 @@ const LoginPage = () => {
   const { toast } = useToast();
   const { role, loading: authLoading, user } = useAuth();
 
-  // Once auth context has resolved role, navigate away from login page.
-  // This covers: existing session on page load, fresh login, and OTP login.
+  // If auth context is already settled and user has a session, redirect immediately.
+  // This handles: page refresh while already logged in, OAuth redirect back.
+  // Uses role already in AuthContext — no extra Supabase query needed.
   useEffect(() => {
     if (authLoading || !user || !role) return;
-    goByRole(role, navigate);
+    if (role === "admin") navigate("/admin", { replace: true });
+    else if (role === "supplier") navigate("/supplier", { replace: true });
+    else if (role === "delivery_company") navigate("/delivery", { replace: true });
+    else if (role === "driver") navigate("/driver", { replace: true });
+    else if (role === "delivery_driver") navigate("/delivery-driver", { replace: true });
+    else navigate("/", { replace: true });
   }, [authLoading, user, role]);
+
+  // Direct role lookup — called after a successful login/OTP verify.
+  // Runs OUTSIDE the onAuthStateChange callback so there is no Supabase deadlock.
+  const redirectByRole = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const r = data?.role;
+      if (r === "admin") navigate("/admin", { replace: true });
+      else if (r === "supplier") navigate("/supplier", { replace: true });
+      else if (r === "delivery_company") navigate("/delivery", { replace: true });
+      else if (r === "driver") navigate("/driver", { replace: true });
+      else if (r === "delivery_driver") navigate("/delivery-driver", { replace: true });
+      else navigate("/", { replace: true });
+    } catch {
+      navigate("/", { replace: true });
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +86,7 @@ const LoginPage = () => {
         });
       } else if (data.user) {
         toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في منصة التوصيل الذكي!" });
-        // Navigation is handled by the useEffect above once AuthContext resolves the role.
+        await redirectByRole(data.user.id);
       }
     } finally {
       setLoading(false);
@@ -155,7 +173,9 @@ const LoginPage = () => {
           return;
         }
         toast({ title: "تم تسجيل الدخول ✅", description: "جاري تحويلك..." });
-        // Navigation is handled by the useEffect above once AuthContext resolves the role.
+        const { data: { session: otpSession } } = await supabase.auth.getSession();
+        if (otpSession?.user) await redirectByRole(otpSession.user.id);
+        else navigate("/");
       }
     } catch (err: any) {
       toast({ title: "خطأ", description: err?.message || "فشل في التحقق", variant: "destructive" });
