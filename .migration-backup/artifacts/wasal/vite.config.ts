@@ -45,8 +45,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: "وصل - منصة النقل الذكية",
-        short_name: "وصل",
+        name: "وصال - منصة النقل الذكية",
+        short_name: "وصال",
         description: "أول منصة يمنية متكاملة لخدمات النقل والطرود والتوصيل",
         start_url: "/",
         display: "standalone",
@@ -85,14 +85,6 @@ export default defineConfig({
         ]
       : []),
   ],
-  css: {
-    postcss: {
-      plugins: [
-        (await import("tailwindcss")).default,
-        (await import("autoprefixer")).default,
-      ],
-    },
-  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
@@ -102,17 +94,15 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist"),
+    outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Keep react and react-dom in a single chunk to avoid circular dependencies
           if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
             return 'react-vendor';
           }
-          // Keep react-router in its own chunk
           if (id.includes('node_modules/react-router') || id.includes('node_modules/react-router-dom/')) {
             return 'router-vendor';
           }
@@ -127,6 +117,12 @@ export default defineConfig({
     allowedHosts: true,
     fs: {
       strict: false,
+    },
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
     },
   },
   preview: {

@@ -121,13 +121,27 @@ export const deleteRider = async (id: string) => {
 export const getDeliveryOrders = async (companyId: string, status?: string) => {
   let query = supabase
     .from("delivery_orders")
-    .select("*, restaurant:restaurants(*), rider:riders(*)")
+    .select("*, restaurant:restaurants(*)")
     .eq("delivery_company_id", companyId)
     .order("created_at", { ascending: false });
   if (status && status !== "all") query = query.eq("status", status);
   const { data, error } = await query;
   if (error) throw error;
-  return data;
+  if (!data?.length) return data;
+
+  // Enrich orders with rider data via a separate query (no FK in schema cache)
+  const riderIds = [...new Set(data.filter((o: any) => o.rider_id).map((o: any) => o.rider_id as string))];
+  if (riderIds.length > 0) {
+    const { data: riders } = await supabase
+      .from("riders")
+      .select("id, full_name, phone, vehicle_type, vehicle_plate")
+      .in("id", riderIds);
+    if (riders) {
+      const riderMap: Record<string, any> = Object.fromEntries(riders.map((r: any) => [r.id, r]));
+      return data.map((o: any) => ({ ...o, rider: o.rider_id ? (riderMap[o.rider_id] ?? null) : null }));
+    }
+  }
+  return data.map((o: any) => ({ ...o, rider: null }));
 };
 
 export const createDeliveryOrder = async (order: any) => {

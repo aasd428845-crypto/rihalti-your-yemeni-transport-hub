@@ -1,27 +1,24 @@
 {
-  "buildCommand": "cd artifacts/wasal && pnpm install && pnpm run build",
-  "outputDirectory": "artifacts/wasal/dist",
+  "version": 2,
+  "buildCommand": "pnpm --filter @workspace/wasal run build",
+  "outputDirectory": "artifacts/wasal/dist/public",
   "installCommand": "pnpm install",
-  "framework": "vite",
+  "framework": null,
   "rewrites": [
-    {
-      "source": "/assets/(.*)",
-      "destination": "/assets/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/((?!assets|icons|manifest\\.json|sw\\.js|workbox-.*).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
+      "source": "/manifest.json",
+      "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+    },
+    {
       "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }
   ]
 }

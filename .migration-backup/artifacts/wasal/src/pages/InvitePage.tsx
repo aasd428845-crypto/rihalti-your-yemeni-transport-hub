@@ -185,8 +185,8 @@ const InvitePage = () => {
       // 3. Wait a moment for the trigger to create profile, then update
       await new Promise((r) => setTimeout(r, 1500));
 
-      // Delivery riders are auto-approved; other roles still wait on admin review.
-      const autoApprove = inviteData.role === "delivery_driver";
+      // delivery_driver and delivery_company are auto-approved; other roles wait on admin review.
+      const autoApprove = inviteData.role === "delivery_driver" || inviteData.role === "delivery_company";
       const profileUpdate: Record<string, any> = {
         full_name: fullName,
         phone,
@@ -283,18 +283,19 @@ const InvitePage = () => {
         await supabase.from("notifications").insert(notifications);
       }
 
-      // 6. For auto-approved delivery riders: sign them in and send them
-      //    straight to their dashboard. For other roles: keep the manual
-      //    review flow and bounce them to the login page.
+      // 6. For auto-approved roles: sign them in and redirect to their dashboard.
+      //    For other roles: keep the manual review flow.
       if (autoApprove) {
         try {
           await supabase.auth.signInWithPassword({ email: inviteData.email, password });
           toast.success("تم إنشاء حسابك وتسجيل الدخول بنجاح");
-          navigate("/delivery-driver");
+          if (inviteData.role === "delivery_company") {
+            navigate("/delivery");
+          } else {
+            navigate("/delivery-driver");
+          }
           return;
         } catch {
-          // If auto sign-in is blocked (e.g. email confirmation required),
-          // fall through to the login page so the user can sign in manually.
           toast.success("تم إنشاء حسابك بنجاح! يمكنك الآن تسجيل الدخول.");
           navigate("/login");
           return;
@@ -418,11 +419,13 @@ const InvitePage = () => {
         <Card className="border-border shadow-lg">
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-xl">أكمل بياناتك</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              سيتم مراجعة طلبك والموافقة عليه من قبل إدارة المنصة
-            </p>
           </CardHeader>
           <CardContent>
+            {(inviteData.role === "supplier" || inviteData.role === "driver") && (
+              <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm text-center">
+                سيتم مراجعة طلبك والموافقة عليه من قبل إدارة المنصة
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email (read-only) */}
               <div>

@@ -1,59 +1,45 @@
-# وصال - منصة النقل الذكية
+# [Project name]
 
-## نظرة عامة
+_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
 
-تطبيق ويب متكامل لمنصة نقل ذكية تشمل: توصيل الطلبات، حجز الرحلات، نقل البضائع، وإدارة المطاعم.
+## Run & Operate
 
-## هيكل المشروع
-
-```
-workspace/
-├── artifacts/
-│   ├── wasal/          # تطبيق الويب الرئيسي (React + Vite + Supabase)
-│   ├── api-server/     # API Server (Express 5 + Node.js)
-│   └── mockup-sandbox/ # بيئة تصميم المكونات
-├── tsconfig.base.json
-├── tsconfig.json
-├── pnpm-workspace.yaml
-└── package.json
-```
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm run typecheck` — full typecheck across all packages
+- `pnpm run build` — typecheck + build all packages
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
-- **Monorepo**: pnpm workspaces
-- **Frontend**: React 19 + Vite + TailwindCSS + shadcn/ui
-- **Backend**: Express 5 + Node.js 24
-- **Database**: Supabase (PostgreSQL) — project: `hhqhoqwpebnmfuhwhllw`
-- **Auth**: Supabase Auth + Phone OTP via Traccar SMS Gateway
-- **TypeScript**: 5.9 (strict mode)
+- pnpm workspaces, Node.js 24, TypeScript 5.9
+- API: Express 5
+- DB: PostgreSQL + Drizzle ORM
+- Validation: Zod (`zod/v4`), `drizzle-zod`
+- API codegen: Orval (from OpenAPI spec)
+- Build: esbuild (CJS bundle)
 
-## الأوامر الرئيسية
+## Where things live
 
-- `pnpm --filter @workspace/wasal run typecheck` — فحص أنواع الويب
-- `pnpm --filter @workspace/api-server run typecheck` — فحص أنواع API
-- `pnpm run typecheck` — فحص شامل
+_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
 
-## Artifacts
+## Architecture decisions
 
-### وصال - Web App
-- **Path**: `artifacts/wasal`
-- **Stack**: React + Vite + Supabase
-- **Preview**: `/`
-- **Features**: Customer portal, Driver dashboard, Delivery management, Restaurant ordering, Admin panel
+_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
 
-### API Server
-- **Path**: `artifacts/api-server`
-- **Stack**: Express 5 + fetch API
-- **Preview**: `/api`
-- **Routes**: `/api/sms/send`, `/api/sms/verify` (Phone OTP via Traccar)
+## Product
 
-## متغيرات البيئة المطلوبة
+_Describe the high-level user-facing capabilities of this app once they exist._
 
-- `SUPABASE_URL` — رابط مشروع Supabase
-- `SUPABASE_SERVICE_ROLE_KEY` — مفتاح الخدمة
-- `TRACCAR_TOKEN` — مفتاح بوابة الرسائل
+## User preferences
 
-## الجداول الجديدة في قاعدة البيانات
+_Populate as you build — explicit user instructions worth remembering across sessions._
 
-- `phone_otps` — رموز التحقق عبر الهاتف
-- `delivery_company_offers` — عروض شركات التوصيل
+## Gotchas
+
+_Populate as you build — sharp edges, "always run X before Y" rules._
+
+## Pointers
+
+- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details

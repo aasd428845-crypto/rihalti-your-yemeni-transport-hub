@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import DeleteAccountButton from "@/components/common/DeleteAccountButton";
-import { Navigation } from "lucide-react";
+import { Navigation, Upload, User } from "lucide-react";
 
 const DeliverySettings = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const [profileForm, setProfileForm] = useState({ full_name: "", phone: "", city: "" });
+  const [profileForm, setProfileForm] = useState({ full_name: "", phone: "", city: "", company_name: "" });
+  const [logoUrl, setLogoUrl] = useState<string>("");
+  const [logoUploading, setLogoUploading] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ password: "", confirm: "" });
   const [bankForm, setBankForm] = useState({ bank_name: "", account_name: "", account_number: "", iban: "" });
   const [banks, setBanks] = useState<any[]>([]);
@@ -22,17 +24,52 @@ const DeliverySettings = () => {
   const [pricePerKm, setPricePerKm] = useState<number>(0);
   const [minDeliveryFee, setMinDeliveryFee] = useState<number>(0);
   const [savingPricing, setSavingPricing] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (profile) setProfileForm({ full_name: profile.full_name, phone: profile.phone || "", city: profile.city || "" });
+    if (profile) setProfileForm({ full_name: profile.full_name, phone: profile.phone || "", city: profile.city || "", company_name: "" });
     loadBanks();
     loadPaymentSettings();
+    loadCompanyProfile();
   }, [profile]);
 
   const loadBanks = async () => {
     if (!user) return;
     const { data } = await supabase.from("partner_bank_accounts").select("*").eq("partner_id", user.id);
     setBanks(data || []);
+  };
+
+  const loadCompanyProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("company_name, logo_url")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (data) {
+      setProfileForm(f => ({ ...f, company_name: (data as any).company_name || "" }));
+      setLogoUrl((data as any).logo_url || "");
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+    setLogoUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/logo.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("company-logos").upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("company-logos").getPublicUrl(path);
+      await supabase.from("profiles").update({ logo_url: urlData.publicUrl } as any).eq("user_id", user.id);
+      setLogoUrl(urlData.publicUrl);
+      toast({ title: "تم رفع الشعار بنجاح" });
+    } catch (err: any) {
+      toast({ title: "خطأ في رفع الشعار", description: err.message, variant: "destructive" });
+    } finally {
+      setLogoUploading(false);
+    }
   };
 
   const loadPaymentSettings = async () => {
@@ -142,9 +179,28 @@ const DeliverySettings = () => {
           <Card>
             <CardHeader><CardTitle className="text-base">الملف الشخصي</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div><Label>الاسم الكامل</Label><Input value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} /></div>
-              <div><Label>رقم الهاتف</Label><Input value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} /></div>
-              <div><Label>المدينة</Label><Input value={profileForm.city} onChange={e => setProfileForm({...profileForm, city: e.target.value})} /></div>
+              {/* Logo */}
+              <div>
+                <Label>شعار الشركة</Label>
+                <div className="flex items-center gap-4 mt-2">
+                  <input type="file" accept="image/*" ref={logoInputRef} className="hidden" onChange={handleLogoUpload} />
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="شعار الشركة" className="w-20 h-20 rounded-full object-cover border-2 border-border" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+                      <User className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                  )}
+                  <Button type="button" variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading} className="gap-2">
+                    <Upload className="w-4 h-4" />
+                    {logoUploading ? "جاري الرفع..." : "تغيير الشعار"}
+                  </Button>
+                </div>
+              </div>
+              <div><Label>اسم شركة التوصيل</Label><Input value={profileForm.company_name} onChange={e => setProfileForm({...profileForm, company_name: e.target.value})} placeholder="اسم الشركة" className="mt-1" /></div>
+              <div><Label>اسم المسؤول</Label><Input value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} className="mt-1" /></div>
+              <div><Label>رقم الهاتف</Label><Input value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} dir="ltr" className="mt-1" /></div>
+              <div><Label>المدينة</Label><Input value={profileForm.city} onChange={e => setProfileForm({...profileForm, city: e.target.value})} className="mt-1" /></div>
               <Button onClick={updateProfile}>حفظ التغييرات</Button>
             </CardContent>
           </Card>
