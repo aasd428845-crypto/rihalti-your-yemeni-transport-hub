@@ -73,15 +73,20 @@ const RegionSelector = ({
     if (!customName.trim() || !user?.id) return;
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("custom_regions").insert({
+      // Insert directly into regions as auto-approved (no pending review)
+      const { data: newRegion, error } = await supabase.from("regions").insert({
         name_ar: customName.trim(),
-        parent_region_id: parentId || null,
-        submitted_by: user.id,
-      });
-      if (error) throw error;
-      toast({ title: "✅ تم إرسال المنطقة للمراجعة" });
+        type: "custom",
+        parent_id: parentId || null,
+      }).select("id, name_ar, type, parent_id").single();
 
-      if (mode === "single" && onValueChange) {
+      if (error) throw error;
+
+      toast({ title: "✅ تمت إضافة المنطقة بنجاح" });
+
+      if (mode === "multi" && newRegion && onSelectedIdsChange) {
+        onSelectedIdsChange([...selectedIds, newRegion.id]);
+      } else if (mode === "single" && onValueChange) {
         onValueChange(customName.trim());
       }
       setCustomName("");

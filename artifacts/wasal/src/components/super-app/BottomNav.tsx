@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Package, Bell, User, MoreHorizontal, ShoppingCart, Home } from "lucide-react";
+import { Package, Bell, User, MoreHorizontal, ShoppingCart, House } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,7 +85,7 @@ const BottomNav = () => {
                   : "bg-primary hover:bg-primary/90 shadow-primary/30"
               }`}
             >
-              <Home className="w-7 h-7 text-white" strokeWidth={2.5} />
+              <House className="w-7 h-7 text-white" strokeWidth={2} />
             </button>
             <span className={`text-[10px] font-bold mt-1 leading-none ${location.pathname === "/" ? "text-primary" : "text-muted-foreground"}`}>
               الرئيسية
