@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,15 @@ import { useToast } from "@/hooks/use-toast";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
 
 type AuthMethod = "email" | "phone";
+
+const goByRole = (role: string, navigate: ReturnType<typeof useNavigate>) => {
+  if (role === "admin") navigate("/admin", { replace: true });
+  else if (role === "supplier") navigate("/supplier", { replace: true });
+  else if (role === "delivery_company") navigate("/delivery", { replace: true });
+  else if (role === "driver") navigate("/driver", { replace: true });
+  else if (role === "delivery_driver") navigate("/delivery-driver", { replace: true });
+  else navigate("/", { replace: true });
+};
 
 const LoginPage = () => {
   const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
@@ -30,31 +40,14 @@ const LoginPage = () => {
 
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { role, loading: authLoading, user } = useAuth();
 
+  // Once auth context has resolved role, navigate away from login page.
+  // This covers: existing session on page load, fresh login, and OTP login.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) redirectByRole(session.user.id);
-    });
-  }, []);
-
-  const redirectByRole = async (userId: string) => {
-    try {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const r = data?.role;
-      if (r === "admin") navigate("/admin", { replace: true });
-      else if (r === "supplier") navigate("/supplier", { replace: true });
-      else if (r === "delivery_company") navigate("/delivery", { replace: true });
-      else if (r === "driver") navigate("/driver", { replace: true });
-      else if (r === "delivery_driver") navigate("/delivery-driver", { replace: true });
-      else navigate("/", { replace: true });
-    } catch {
-      navigate("/", { replace: true });
-    }
-  };
+    if (authLoading || !user || !role) return;
+    goByRole(role, navigate);
+  }, [authLoading, user, role]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +68,7 @@ const LoginPage = () => {
         });
       } else if (data.user) {
         toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في منصة التوصيل الذكي!" });
-        await redirectByRole(data.user.id);
+        // Navigation is handled by the useEffect above once AuthContext resolves the role.
       }
     } finally {
       setLoading(false);
@@ -162,9 +155,7 @@ const LoginPage = () => {
           return;
         }
         toast({ title: "تم تسجيل الدخول ✅", description: "جاري تحويلك..." });
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) await redirectByRole(session.user.id);
-        else navigate("/");
+        // Navigation is handled by the useEffect above once AuthContext resolves the role.
       }
     } catch (err: any) {
       toast({ title: "خطأ", description: err?.message || "فشل في التحقق", variant: "destructive" });

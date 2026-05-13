@@ -78,9 +78,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Only reset role/loading for genuine sign-in events, not for
-          // silent token refreshes — those should not cause a navigation loop.
-          if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+          // Only do a full role-reset on SIGNED_IN (fresh login).
+          // INITIAL_SESSION is handled by getSession() above (with await).
+          // TOKEN_REFRESHED / USER_UPDATED must NOT reset the role — that
+          // would cause an unnecessary loading flicker and navigation loops.
+          if (event === "SIGNED_IN") {
             setLoading(true);
             setRole(null);
             // Use setTimeout to avoid Supabase client deadlock inside the callback.
