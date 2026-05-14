@@ -125,12 +125,59 @@ const PageIntro = () => (
   </div>
 );
 
+// ─── Route map for link_tab values ───────────────────────────────────────────
+const TAB_ROUTE: Record<string, string> = {
+  restaurants: "/restaurants?tab=restaurants",
+  grocery: "/restaurants?tab=grocery",
+  pharmacy: "/restaurants?tab=pharmacy",
+  more: "/delivery-request",
+  trips: "/trips",
+  taxi: "/ride/request",
+  shipments: "/delivery-request",
+};
+
+const CACHE_KEY = "wasal_home_banners_v2";
+
 // ─── Banner Carousel (auto-scroll) ───────────────────────────────────────────
 const BannerCarousel = () => {
   const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const banners = FALLBACK_BANNERS;
+
+  // Load from sessionStorage on first render to avoid flicker on revisit
+  const [banners, setBanners] = useState<typeof FALLBACK_BANNERS>(() => {
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return FALLBACK_BANNERS;
+  });
+
+  // Fetch from DB once; replace state + cache if found
+  useEffect(() => {
+    supabase
+      .from("delivery_banners")
+      .select("id, title, subtitle, image_url, badge_text, link_tab, tile_gradient, tile_action")
+      .eq("banner_type", "carousel")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const mapped = data.map((b) => ({
+            id: b.id,
+            title: b.title || "",
+            subtitle: b.subtitle || "",
+            cta: b.tile_action || "اكتشف الآن",
+            route: TAB_ROUTE[b.link_tab || ""] || b.link_tab || "/",
+            overlay: b.tile_gradient || "from-orange-900/80 via-orange-800/50 to-transparent",
+            img: b.image_url,
+            badge: b.badge_text || "",
+          }));
+          setBanners(mapped);
+          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(mapped)); } catch {}
+        }
+      });
+  }, []);
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
