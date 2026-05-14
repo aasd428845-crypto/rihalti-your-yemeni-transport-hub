@@ -97,7 +97,7 @@ const LoginPage = () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: `${window.location.origin}/login` },
       });
       if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } catch (err: any) {

@@ -31,8 +31,8 @@ GRANT SELECT, INSERT, DELETE
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.menu_item_reviews (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  menu_item_id uuid NOT NULL REFERENCES public.menu_items(id)  ON DELETE CASCADE,
-  customer_id  uuid NOT NULL REFERENCES public.profiles(id)    ON DELETE CASCADE,
+  menu_item_id uuid NOT NULL REFERENCES public.menu_items(id)     ON DELETE CASCADE,
+  customer_id  uuid NOT NULL REFERENCES public.profiles(id)       ON DELETE CASCADE,
   order_id     uuid             REFERENCES public.delivery_orders(id) ON DELETE SET NULL,
   rating       smallint NOT NULL CHECK (rating BETWEEN 1 AND 5),
   created_at   timestamptz NOT NULL DEFAULT now()
@@ -41,13 +41,10 @@ CREATE TABLE IF NOT EXISTS public.menu_item_reviews (
 ALTER TABLE public.menu_item_reviews ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "anyone_can_read_item_reviews"
-  ON public.menu_item_reviews
-  FOR SELECT
-  USING (true);
+  ON public.menu_item_reviews FOR SELECT USING (true);
 
 CREATE POLICY "customers_insert_own_item_reviews"
-  ON public.menu_item_reviews
-  FOR INSERT
+  ON public.menu_item_reviews FOR INSERT
   WITH CHECK (auth.uid() = customer_id);
 
 GRANT SELECT ON public.menu_item_reviews TO anon;
@@ -55,6 +52,7 @@ GRANT SELECT, INSERT ON public.menu_item_reviews TO authenticated;
 
 -- ─────────────────────────────────────────────
 -- 3. restaurant_promotions
+--    Note: restaurants table uses delivery_company_id (no owner_id column)
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.restaurant_promotions (
   id                uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -85,37 +83,32 @@ CREATE INDEX IF NOT EXISTS restaurant_promotions_is_active_idx
 
 ALTER TABLE public.restaurant_promotions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "anyone_can_read_active_promotions"
-  ON public.restaurant_promotions
-  FOR SELECT
-  USING (true);
+CREATE POLICY "anyone_can_read_promotions"
+  ON public.restaurant_promotions FOR SELECT USING (true);
 
-CREATE POLICY "restaurant_owners_manage_promotions"
-  ON public.restaurant_promotions
-  FOR ALL
+CREATE POLICY "delivery_companies_manage_promotions"
+  ON public.restaurant_promotions FOR ALL
   USING (
     EXISTS (
       SELECT 1 FROM public.restaurants r
       WHERE r.id = restaurant_id
-        AND r.owner_id = auth.uid()
+        AND r.delivery_company_id = auth.uid()
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.restaurants r
       WHERE r.id = restaurant_id
-        AND r.owner_id = auth.uid()
+        AND r.delivery_company_id = auth.uid()
     )
   );
 
 CREATE POLICY "admins_manage_all_promotions"
-  ON public.restaurant_promotions
-  FOR ALL
+  ON public.restaurant_promotions FOR ALL
   USING (
     EXISTS (
       SELECT 1 FROM public.user_roles ur
-      WHERE ur.user_id = auth.uid()
-        AND ur.role = 'admin'
+      WHERE ur.user_id = auth.uid() AND ur.role = 'admin'
     )
   );
 
@@ -137,18 +130,14 @@ CREATE TABLE IF NOT EXISTS public.restaurant_cuisines (
 ALTER TABLE public.restaurant_cuisines ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "anyone_can_read_cuisines"
-  ON public.restaurant_cuisines
-  FOR SELECT
-  USING (true);
+  ON public.restaurant_cuisines FOR SELECT USING (true);
 
 CREATE POLICY "admins_manage_cuisines"
-  ON public.restaurant_cuisines
-  FOR ALL
+  ON public.restaurant_cuisines FOR ALL
   USING (
     EXISTS (
       SELECT 1 FROM public.user_roles ur
-      WHERE ur.user_id = auth.uid()
-        AND ur.role = 'admin'
+      WHERE ur.user_id = auth.uid() AND ur.role = 'admin'
     )
   );
 
@@ -170,18 +159,14 @@ CREATE TABLE IF NOT EXISTS public.service_types (
 ALTER TABLE public.service_types ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "anyone_can_read_service_types"
-  ON public.service_types
-  FOR SELECT
-  USING (true);
+  ON public.service_types FOR SELECT USING (true);
 
 CREATE POLICY "admins_manage_service_types"
-  ON public.service_types
-  FOR ALL
+  ON public.service_types FOR ALL
   USING (
     EXISTS (
       SELECT 1 FROM public.user_roles ur
-      WHERE ur.user_id = auth.uid()
-        AND ur.role = 'admin'
+      WHERE ur.user_id = auth.uid() AND ur.role = 'admin'
     )
   );
 
