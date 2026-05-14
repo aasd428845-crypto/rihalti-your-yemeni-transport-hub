@@ -400,12 +400,11 @@ const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url
 // ─── Main Component ───────────────────────────────────────────────────────────
 const DeliveryHubPage = () => {
   const navigate = useNavigate();
-  const [carouselBanners, setCarouselBanners] = useState<any[]>([]);
-  const [offerBanners, setOfferBanners] = useState<any[]>([]);
+  const [carouselBanners, setCarouselBanners] = useState<any[] | null>(null);
+  const [offerBanners, setOfferBanners] = useState<any[] | null>(null);
   const [serviceTiles, setServiceTiles] = useState<any[]>([]);
-  // Whether any banner row exists in the DB. If yes, the company is actively
-  // managing this section, so we should respect explicit empty states (e.g.
-  // they deleted all service tiles) instead of falling back to defaults.
+  const [bannersLoaded, setBannersLoaded] = useState(false);
+  // Whether any banner row exists in the DB.
   const [companyManaged, setCompanyManaged] = useState(false);
 
   useEffect(() => {
@@ -423,11 +422,13 @@ const DeliveryHubPage = () => {
         setCarouselBanners(carousel.length > 0 ? carousel : DEFAULT_BANNERS);
         setOfferBanners(offers.length > 0 ? offers : DEFAULT_OFFERS);
         setServiceTiles(tiles);
+        setBannersLoaded(true);
       }, () => {
         setCompanyManaged(false);
         setCarouselBanners(DEFAULT_BANNERS);
         setOfferBanners(DEFAULT_OFFERS);
         setServiceTiles([]);
+        setBannersLoaded(true);
       });
   }, []);
 
@@ -493,10 +494,12 @@ const DeliveryHubPage = () => {
         )}
 
         {/* ── 2. Hero Banner Carousel ── */}
-        <BannerCarousel banners={carouselBanners} onNavigate={navigate} />
+        {!bannersLoaded
+          ? <div className="w-full rounded-xl bg-muted animate-pulse" style={{ aspectRatio: "16/8", minHeight: 130, maxHeight: 200 }} />
+          : <BannerCarousel banners={carouselBanners!} onNavigate={navigate} />}
 
         {/* ── 3. Offers / Deals Section ── */}
-        <OffersSection offers={offerBanners} onNavigate={navigate} />
+        {bannersLoaded && <OffersSection offers={offerBanners!} onNavigate={navigate} />}
 
         {/* ── 4. Categories (circular scroller) ── */}
         <SharedCategoryScroller />

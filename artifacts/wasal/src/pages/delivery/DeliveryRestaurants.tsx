@@ -124,8 +124,9 @@ const DeliveryRestaurants = () => {
           savedId = created?.id;
         }
       } catch (coverageErr: any) {
+        const msg: string = coverageErr?.message || "";
         // If coverage_areas column doesn't exist yet, retry without it
-        if (coverageErr?.message?.includes("coverage_areas") || coverageErr?.code === "42703") {
+        if (msg.includes("coverage_areas") || (coverageErr?.code === "42703" && msg.includes("coverage_areas"))) {
           if (editItem) {
             await updateRestaurant(editItem.id, basePayload);
           } else {
@@ -135,6 +136,22 @@ const DeliveryRestaurants = () => {
           toast({
             title: editItem ? "تم التحديث" : "تمت إضافة المطعم",
             description: "ملاحظة: لم تُطبَّق مناطق التغطية. طبّق migration قاعدة البيانات لتفعيلها.",
+          });
+          setShowAdd(false); setEditItem(null); setForm(emptyForm()); load();
+          return;
+        }
+        // If city column not found in schema cache, retry without city
+        if (msg.includes("city") && (msg.includes("schema cache") || msg.includes("column"))) {
+          const { city: _city, ...payloadWithoutCity } = basePayload;
+          if (editItem) {
+            await updateRestaurant(editItem.id, payloadWithoutCity);
+          } else {
+            const created = await createRestaurant({ ...payloadWithoutCity, delivery_company_id: user.id });
+            savedId = created?.id;
+          }
+          toast({
+            title: editItem ? "تم التحديث بنجاح" : "تمت إضافة المطعم بنجاح",
+            description: "ملاحظة: لم يُحفظ حقل المدينة. يرجى تشغيل: NOTIFY pgrst, 'reload schema'; في Supabase.",
           });
           setShowAdd(false); setEditItem(null); setForm(emptyForm()); load();
           return;

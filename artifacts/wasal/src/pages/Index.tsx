@@ -144,16 +144,15 @@ const BannerCarousel = () => {
   const [current, setCurrent] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load from sessionStorage on first render to avoid flicker on revisit
-  const [banners, setBanners] = useState<typeof FALLBACK_BANNERS>(() => {
+  // null = still loading (show skeleton); array = ready to display
+  const [banners, setBanners] = useState<typeof FALLBACK_BANNERS | null>(() => {
     try {
       const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached) return JSON.parse(cached);
     } catch {}
-    return FALLBACK_BANNERS;
+    return null;
   });
 
-  // Fetch from DB once; replace state + cache if found
   useEffect(() => {
     supabase
       .from("delivery_banners")
@@ -161,32 +160,39 @@ const BannerCarousel = () => {
       .eq("banner_type", "carousel")
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          const mapped = data.map((b) => ({
-            id: b.id,
-            title: b.title || "",
-            subtitle: b.subtitle || "",
-            cta: b.tile_action || "اكتشف الآن",
-            route: TAB_ROUTE[b.link_tab || ""] || b.link_tab || "/",
-            overlay: b.tile_gradient || "from-orange-900/80 via-orange-800/50 to-transparent",
-            img: b.image_url,
-            badge: b.badge_text || "",
-          }));
-          setBanners(mapped);
-          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(mapped)); } catch {}
-        }
-      });
+      .then(
+        ({ data }) => {
+          if (data && data.length > 0) {
+            const mapped = data.map((b) => ({
+              id: b.id,
+              title: b.title || "",
+              subtitle: b.subtitle || "",
+              cta: b.tile_action || "اكتشف الآن",
+              route: TAB_ROUTE[b.link_tab || ""] || b.link_tab || "/",
+              overlay: b.tile_gradient || "from-orange-900/80 via-orange-800/50 to-transparent",
+              img: b.image_url,
+              badge: b.badge_text || "",
+            }));
+            setBanners(mapped);
+            try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(mapped)); } catch {}
+          } else {
+            setBanners(FALLBACK_BANNERS);
+          }
+        },
+        () => setBanners(FALLBACK_BANNERS),
+      );
   }, []);
 
   useEffect(() => {
+    if (!banners) return;
     intervalRef.current = setInterval(() => {
       setCurrent((p) => (p + 1) % banners.length);
     }, 4500);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [banners.length]);
+  }, [banners]);
 
   const go = (dir: "next" | "prev") => {
+    if (!banners) return;
     if (intervalRef.current) clearInterval(intervalRef.current);
     setCurrent((p) =>
       dir === "next"
@@ -194,9 +200,19 @@ const BannerCarousel = () => {
         : (p - 1 + banners.length) % banners.length,
     );
     intervalRef.current = setInterval(() => {
-      setCurrent((p) => (p + 1) % banners.length);
+      setCurrent((p) => (p + 1) % banners!.length);
     }, 4500);
   };
+
+  // Skeleton while loading
+  if (!banners) {
+    return (
+      <div
+        className="relative rounded-3xl overflow-hidden shadow-xl mb-6 bg-muted animate-pulse"
+        style={{ minHeight: 190 }}
+      />
+    );
+  }
 
   const banner = banners[current];
 
