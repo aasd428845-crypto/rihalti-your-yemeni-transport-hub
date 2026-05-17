@@ -162,24 +162,33 @@ const BannerCarousel = () => {
       .order("sort_order", { ascending: true })
       .then(
         ({ data }) => {
-          if (data && data.length > 0) {
-            const mapped = data.map((b) => ({
-              id: b.id,
-              title: b.title || "",
-              subtitle: b.subtitle || "",
-              cta: b.tile_action || "اكتشف الآن",
-              route: TAB_ROUTE[b.link_tab || ""] || b.link_tab || "/",
-              overlay: b.tile_gradient || "from-orange-900/80 via-orange-800/50 to-transparent",
-              img: b.image_url,
-              badge: b.badge_text || "",
-            }));
-            setBanners(mapped);
-            try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(mapped)); } catch {}
-          } else {
-            setBanners(FALLBACK_BANNERS);
+          const next = data && data.length > 0
+            ? data.map((b) => ({
+                id: b.id,
+                title: b.title || "",
+                subtitle: b.subtitle || "",
+                cta: b.tile_action || "اكتشف الآن",
+                route: TAB_ROUTE[b.link_tab || ""] || b.link_tab || "/",
+                overlay: b.tile_gradient || "from-orange-900/80 via-orange-800/50 to-transparent",
+                img: b.image_url,
+                badge: b.badge_text || "",
+              }))
+            : FALLBACK_BANNERS;
+
+          // Only update state (and cause a re-render) if content actually changed.
+          // This prevents the visible flash when navigating back to the home page
+          // with a warm sessionStorage cache that already matches the DB.
+          const nextJson = JSON.stringify(next);
+          const cachedJson = sessionStorage.getItem(CACHE_KEY);
+          if (nextJson !== cachedJson) {
+            setBanners(next);
+            try { sessionStorage.setItem(CACHE_KEY, nextJson); } catch {}
           }
         },
-        () => setBanners(FALLBACK_BANNERS),
+        () => {
+          // Only fall back if we have nothing cached yet
+          setBanners((prev) => prev ?? FALLBACK_BANNERS);
+        },
       );
   }, []);
 

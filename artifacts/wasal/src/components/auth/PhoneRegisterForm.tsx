@@ -48,7 +48,8 @@ const PhoneRegisterForm = () => {
         body: JSON.stringify({ phone_number: fullPhone }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
 
       if (!res.ok || data.error) {
         toast({

@@ -133,7 +133,8 @@ const LoginPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone_number: fullPhone }),
       });
-      const data = await res.json();
+      let data: any = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
       if (!res.ok || data.error) {
         toast({ title: "تعذّر إرسال الرمز", description: data.error || "فشل إرسال رمز التحقق", variant: "destructive", duration: 8000 });
       } else {
@@ -159,7 +160,8 @@ const LoginPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone_number: fullPhone, code: otpCode }),
       });
-      const payload = await res.json();
+      let payload: any = {};
+      try { payload = await res.json(); } catch { /* non-JSON response */ }
       if (!res.ok || payload.error) {
         toast({ title: "خطأ في التحقق", description: payload.error || "رمز غير صحيح", variant: "destructive", duration: 8000 });
         setPhoneLoading(false);
