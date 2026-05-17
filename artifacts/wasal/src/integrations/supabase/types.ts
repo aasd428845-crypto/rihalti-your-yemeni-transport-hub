@@ -2945,6 +2945,63 @@ export type Database = {
         }
         Relationships: []
       }
+      rider_cash_collections: {
+        Row: {
+          amount: number
+          collected_at: string | null
+          created_at: string | null
+          delivery_company_id: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          rider_id: string | null
+          settled_at: string | null
+          settled_by: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          collected_at?: string | null
+          created_at?: string | null
+          delivery_company_id: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          rider_id?: string | null
+          settled_at?: string | null
+          settled_by?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          collected_at?: string | null
+          created_at?: string | null
+          delivery_company_id?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          rider_id?: string | null
+          settled_at?: string | null
+          settled_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rider_cash_collections_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rider_cash_collections_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rider_rewards: {
         Row: {
           achieved_at: string | null
