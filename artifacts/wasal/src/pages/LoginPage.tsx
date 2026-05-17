@@ -84,11 +84,14 @@ const LoginPage = () => {
               : error.message,
           variant: "destructive",
         });
+        setLoading(false);
       } else if (data.user) {
         toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في منصة التوصيل الذكي!" });
-        await redirectByRole(data.user.id);
+        // Let the useEffect handle the redirect once AuthContext settles the role.
+        // Do NOT await redirectByRole here — if the user_roles query hangs the
+        // spinner stays stuck forever and finally never fires.
       }
-    } finally {
+    } catch {
       setLoading(false);
     }
   };
@@ -173,9 +176,7 @@ const LoginPage = () => {
           return;
         }
         toast({ title: "تم تسجيل الدخول ✅", description: "جاري تحويلك..." });
-        const { data: { session: otpSession } } = await supabase.auth.getSession();
-        if (otpSession?.user) await redirectByRole(otpSession.user.id);
-        else navigate("/");
+        // Let useEffect handle redirect once AuthContext settles the role.
       }
     } catch (err: any) {
       toast({ title: "خطأ", description: err?.message || "فشل في التحقق", variant: "destructive" });

@@ -84,15 +84,14 @@ const DeliveryRestaurants = () => {
     if (!user || !form.name_ar.trim()) {
       toast({ title: "يرجى إدخال اسم المطعم", variant: "destructive" }); return;
     }
-    if (!form.city) {
-      toast({ title: "يرجى تحديد مدينة المطعم", variant: "destructive" }); return;
-    }
     try {
       // Base payload without coverage_areas — handles case where migration not yet applied
       const basePayload = {
         name_ar: form.name_ar, name_en: form.name_en || null,
         description: form.description || null, phone: form.phone || null,
-        address: form.address || null, city: form.city,
+        address: form.address || null,
+        // city is stored in address text for now; the DB column may not exist yet.
+        // Run in Supabase SQL: ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS city text; NOTIFY pgrst, 'reload schema';
         commission_rate: form.commission_rate,
         min_order_amount: form.min_order_amount, estimated_delivery_time: form.estimated_delivery_time,
         is_featured: form.is_featured,
@@ -136,22 +135,6 @@ const DeliveryRestaurants = () => {
           toast({
             title: editItem ? "تم التحديث" : "تمت إضافة المطعم",
             description: "ملاحظة: لم تُطبَّق مناطق التغطية. طبّق migration قاعدة البيانات لتفعيلها.",
-          });
-          setShowAdd(false); setEditItem(null); setForm(emptyForm()); load();
-          return;
-        }
-        // If city column not found in schema cache, retry without city
-        if (msg.includes("city") && (msg.includes("schema cache") || msg.includes("column"))) {
-          const { city: _city, ...payloadWithoutCity } = basePayload;
-          if (editItem) {
-            await updateRestaurant(editItem.id, payloadWithoutCity);
-          } else {
-            const created = await createRestaurant({ ...payloadWithoutCity, delivery_company_id: user.id });
-            savedId = created?.id;
-          }
-          toast({
-            title: editItem ? "تم التحديث بنجاح" : "تمت إضافة المطعم بنجاح",
-            description: "ملاحظة: لم يُحفظ حقل المدينة. يرجى تشغيل: NOTIFY pgrst, 'reload schema'; في Supabase.",
           });
           setShowAdd(false); setEditItem(null); setForm(emptyForm()); load();
           return;
