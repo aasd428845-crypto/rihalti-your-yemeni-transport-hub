@@ -8,7 +8,7 @@ const isReplit = process.env.REPL_ID !== undefined;
 const isProduction = process.env.NODE_ENV === "production" && !isReplit;
 
 const rawPort = process.env.PORT;
-const port = rawPort ? Number(rawPort) : 3000;
+const port = rawPort ? Number(rawPort) : 5000;
 
 const basePath = process.env.BASE_PATH ?? "/";
 
