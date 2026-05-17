@@ -39,14 +39,13 @@ router.post("/sms/send", async (req, res) => {
 
   const supabase = adminClient();
 
-  // Delete any previous code for this phone then insert fresh one
-  await supabase.from("verification_codes").delete().eq("phone_number", phone_number);
+  // Delete any previous code for this phone then insert a fresh one
+  await supabase.from("verification_codes").delete().eq("phone", phone_number);
 
   const { error: insertErr } = await supabase.from("verification_codes").insert({
-    phone_number,
+    phone: phone_number,
     code: otp,
     expires_at: expiresAt,
-    attempts: 0,
   });
 
   if (insertErr) {
@@ -82,8 +81,8 @@ router.post("/sms/verify", async (req, res) => {
 
   const { data: record, error: fetchErr } = await supabase
     .from("verification_codes")
-    .select("*")
-    .eq("phone_number", phone_number)
+    .select("code, expires_at")
+    .eq("phone", phone_number)
     .maybeSingle();
 
   if (fetchErr || !record) {
@@ -94,36 +93,24 @@ router.post("/sms/verify", async (req, res) => {
     return res.status(400).json({ error: "انتهت صلاحية الرمز (10 دقائق). أرسل رمزاً جديداً." });
   }
 
-  const attempts = record.attempts ?? 0;
-  if (attempts >= 5) {
-    return res.status(400).json({ error: "تجاوزت عدد المحاولات المسموح بها. أرسل رمزاً جديداً." });
-  }
-
-  // Increment attempts regardless of outcome
-  await supabase
-    .from("verification_codes")
-    .update({ attempts: attempts + 1 })
-    .eq("phone_number", phone_number);
-
   if (record.code !== String(code)) {
     return res.status(400).json({ error: "رمز التحقق غير صحيح" });
   }
 
-  // Code correct — delete it
-  await supabase.from("verification_codes").delete().eq("phone_number", phone_number);
+  // Code correct — delete it so it can't be reused
+  await supabase.from("verification_codes").delete().eq("phone", phone_number);
 
   const email = phoneToEmail(phone_number);
   let is_new_user = false;
 
-  // Try to create the user — if it already exists the error message contains "already been registered"
-  const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+  // Create the user; a 422 / "already registered" error just means they exist — that's fine
+  const { error: createErr } = await supabase.auth.admin.createUser({
     email,
     email_confirm: true,
     user_metadata: { phone: phone_number },
   });
 
   if (createErr) {
-    // 422 / "already registered" means user exists — that's fine
     const alreadyExists =
       createErr.message?.toLowerCase().includes("already") ||
       createErr.status === 422 ||
@@ -136,7 +123,7 @@ router.post("/sms/verify", async (req, res) => {
     is_new_user = true;
   }
 
-  // Generate a magic-link token_hash so the client can call supabase.auth.verifyOtp
+  // Generate a magic-link token_hash for the client to call supabase.auth.verifyOtp
   const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
     type: "magiclink",
     email,
