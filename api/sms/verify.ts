@@ -12,6 +12,17 @@ function adminClient() {
   });
 }
 
+// admin API is available at runtime when using service role key;
+// the TypeScript types don't expose it on SupabaseAuthClient directly.
+function getAdmin(client: ReturnType<typeof adminClient>) {
+  return (client.auth as any) as {
+    admin: {
+      createUser: (opts: any) => Promise<{ data: any; error: any }>;
+      generateLink: (opts: any) => Promise<{ data: any; error: any }>;
+    };
+  };
+}
+
 function phoneToEmail(phone: string) {
   return `phone.${phone.replace(/\D/g, "")}@wasal-auth.local`;
 }
@@ -35,6 +46,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const supabase = adminClient();
+  const adminAuth = getAdmin(supabase);
 
   const { data: record, error: fetchErr } = await supabase
     .from("verification_codes")
@@ -59,7 +71,7 @@ export default async function handler(req: any, res: any) {
   const email = phoneToEmail(phone_number);
   let is_new_user = false;
 
-  const { error: createErr } = await supabase.auth.admin.createUser({
+  const { error: createErr } = await adminAuth.admin.createUser({
     email,
     email_confirm: true,
     user_metadata: { phone: phone_number },
@@ -78,7 +90,7 @@ export default async function handler(req: any, res: any) {
     is_new_user = true;
   }
 
-  const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
+  const { data: linkData, error: linkErr } = await adminAuth.admin.generateLink({
     type: "magiclink",
     email,
     options: { redirectTo: `${APP_URL}/` },
