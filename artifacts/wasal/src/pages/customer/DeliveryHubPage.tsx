@@ -461,7 +461,11 @@ const DeliveryHubPage = () => {
       <div className="container mx-auto px-3 max-w-5xl space-y-2.5 pt-2">
 
         {/* ── 1. Service Tiles (image only, no colored gradient) ── */}
-        {displayTiles.length > 0 && (
+        {!bannersLoaded ? (
+          <div className="grid grid-cols-2 gap-2">
+            {[1,2,3,4].map(i => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}
+          </div>
+        ) : displayTiles.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
           {displayTiles.map((tile: any, idx: number) => {
             const imgSrc = tile.image_url || tile.img || "";

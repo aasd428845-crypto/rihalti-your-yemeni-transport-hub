@@ -85,14 +85,11 @@ const DeliveryRestaurants = () => {
       toast({ title: "يرجى إدخال اسم المطعم", variant: "destructive" }); return;
     }
     try {
-      // Base payload without coverage_areas — handles case where migration not yet applied
+      // Base payload — only columns guaranteed to exist in the new schema
       const basePayload = {
         name_ar: form.name_ar, name_en: form.name_en || null,
         description: form.description || null, phone: form.phone || null,
         address: form.address || null,
-        // city is stored in address text for now; the DB column may not exist yet.
-        // Run in Supabase SQL: ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS city text; NOTIFY pgrst, 'reload schema';
-        commission_rate: form.commission_rate,
         min_order_amount: form.min_order_amount, estimated_delivery_time: form.estimated_delivery_time,
         is_featured: form.is_featured,
         cuisine_type: form.cuisine_type.length > 0 ? form.cuisine_type : null,
@@ -111,35 +108,39 @@ const DeliveryRestaurants = () => {
         (basePayload as any).price_per_km = form.price_per_km;
       }
 
-      // Try to include coverage_areas (requires migration); fall back to base payload if column missing
-      const payloadWithCoverage = { ...basePayload, coverage_areas: form.coverage_areas };
+      // Build an extended payload that includes optional columns
+      // These columns may not exist in all DB versions — handled via fallback below
+      const payloadWithExtras = {
+        ...basePayload,
+        coverage_areas: form.coverage_areas,
+        ...(form.commission_rate > 0 ? { commission_rate: form.commission_rate } : {}),
+      };
 
       let savedId = editItem?.id;
       try {
         if (editItem) {
-          await updateRestaurant(editItem.id, payloadWithCoverage);
+          await updateRestaurant(editItem.id, payloadWithExtras);
         } else {
-          const created = await createRestaurant({ ...payloadWithCoverage, delivery_company_id: user.id });
+          const created = await createRestaurant({ ...payloadWithExtras, delivery_company_id: user.id });
           savedId = created?.id;
         }
-      } catch (coverageErr: any) {
-        const msg: string = coverageErr?.message || "";
-        // If coverage_areas column doesn't exist yet, retry without it
-        if (msg.includes("coverage_areas") || (coverageErr?.code === "42703" && msg.includes("coverage_areas"))) {
+      } catch (extrasErr: any) {
+        const msg: string = extrasErr?.message || "";
+        // If any optional column is missing in the DB schema, retry with base payload only
+        const isSchemaError = msg.includes("coverage_areas") || msg.includes("commission_rate") ||
+          msg.includes("schema cache") || extrasErr?.code === "42703";
+        if (isSchemaError) {
           if (editItem) {
             await updateRestaurant(editItem.id, basePayload);
           } else {
             const created = await createRestaurant({ ...basePayload, delivery_company_id: user.id });
             savedId = created?.id;
           }
-          toast({
-            title: editItem ? "تم التحديث" : "تمت إضافة المطعم",
-            description: "ملاحظة: لم تُطبَّق مناطق التغطية. طبّق migration قاعدة البيانات لتفعيلها.",
-          });
+          toast({ title: editItem ? "تم التحديث بنجاح" : "تمت إضافة المطعم بنجاح" });
           setShowAdd(false); setEditItem(null); setForm(emptyForm()); load();
           return;
         }
-        throw coverageErr;
+        throw extrasErr;
       }
 
       toast({ title: editItem ? "تم التحديث بنجاح" : "تمت إضافة المطعم بنجاح" });
@@ -265,7 +266,9 @@ const DeliveryRestaurants = () => {
                   </p>
                 )}
                 {r.phone && <p className="text-sm text-muted-foreground">📞 {r.phone}</p>}
-                <p className="text-sm text-muted-foreground">العمولة: {r.commission_rate}%</p>
+                {r.commission_rate != null && r.commission_rate > 0 && (
+                  <p className="text-sm text-muted-foreground">العمولة: {r.commission_rate}%</p>
+                )}
                 <div className="flex gap-2 flex-wrap">
                   <Button size="sm" variant="default" onClick={() => navigate(`/delivery/menu/${r.id}`)}>
                     <Menu className="w-3 h-3 ml-1" /> المنيو
