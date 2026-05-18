@@ -20,20 +20,36 @@ author = "agent"
 task = "workflow.run"
 args = "وصال - Web App"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "API Server"
+
 [[workflows.workflow]]
 name = "وصال - Web App"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/wasal run dev"
-waitForPort = 3000
-
 [workflows.workflow.metadata]
 outputType = "webview"
 
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/wasal run dev"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "API Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=8080 pnpm --filter @workspace/api-server run dev"
+waitForPort = 8080
+
+[workflows.workflow.metadata]
+outputType = "console"
+
 [agent]
-stack = "PNPM_WORKSPACE"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
 
 [postMerge]
@@ -46,7 +62,11 @@ externalPort = 80
 
 [[ports]]
 localPort = 5000
+<<<<<<< HEAD
 externalPort = 5000
+=======
+externalPort = 80
+>>>>>>> 6ad334cfdf773076556016ec0f9a01f57002a1bf
 
 [[ports]]
 localPort = 8080
