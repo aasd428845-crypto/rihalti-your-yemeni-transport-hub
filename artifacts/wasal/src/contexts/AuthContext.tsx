@@ -39,10 +39,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         supabase.from("profiles").select("full_name, phone, city, account_status, avatar_url").eq("user_id", userId).maybeSingle(),
       ]);
 
-      if (roleRes.data) setRole(roleRes.data.role as AppRole);
+      // Always set a role — "customer" is the default so guards never stay
+      // in a permanent null/loading limbo after fetchUserData finishes.
+      setRole((roleRes.data?.role ?? "customer") as AppRole);
+
       if (profileRes.data) {
         setProfile(profileRes.data);
-        // If user is suspended, sign them out
         if (profileRes.data.account_status === "suspended") {
           await supabase.auth.signOut();
           return;
@@ -50,38 +52,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (err) {
       console.error("Error fetching user data:", err);
+      // On error fall back to customer so guards can redirect instead of spinning
+      setRole("customer");
     }
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    // Load initial session — await role/profile BEFORE clearing the loading state
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserData(session.user.id);
+      }
+      if (mounted) setLoading(false);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (event, session) => {
+        if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-            initOneSignal();
-          }, 0);
+          // Only do a full role-reset on SIGNED_IN (fresh login).
+          // INITIAL_SESSION is handled by getSession() above (with await).
+          // TOKEN_REFRESHED / USER_UPDATED must NOT reset the role — that
+          // would cause an unnecessary loading flicker and navigation loops.
+          if (event === "SIGNED_IN") {
+            setLoading(true);
+            setRole(null);
+            // Use setTimeout to avoid Supabase client deadlock inside the callback.
+            setTimeout(async () => {
+              if (!mounted) return;
+              await fetchUserData(session.user.id);
+              if (mounted) {
+                setLoading(false);
+                initOneSignal();
+              }
+            }, 0);
+          }
         } else {
           setRole(null);
           setProfile(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Register for push when role is available

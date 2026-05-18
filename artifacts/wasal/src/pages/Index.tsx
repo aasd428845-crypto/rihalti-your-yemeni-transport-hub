@@ -125,21 +125,83 @@ const PageIntro = () => (
   </div>
 );
 
+// ─── Route map for link_tab values ───────────────────────────────────────────
+const TAB_ROUTE: Record<string, string> = {
+  restaurants: "/restaurants?tab=restaurants",
+  grocery: "/restaurants?tab=grocery",
+  pharmacy: "/restaurants?tab=pharmacy",
+  more: "/delivery-request",
+  trips: "/trips",
+  taxi: "/ride/request",
+  shipments: "/delivery-request",
+};
+
+const CACHE_KEY = "wasal_home_banners_v2";
+
 // ─── Banner Carousel (auto-scroll) ───────────────────────────────────────────
 const BannerCarousel = () => {
   const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const banners = FALLBACK_BANNERS;
+
+  // null = still loading (show skeleton); array = ready to display
+  const [banners, setBanners] = useState<typeof FALLBACK_BANNERS | null>(() => {
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return null;
+  });
 
   useEffect(() => {
+    supabase
+      .from("delivery_banners")
+      .select("id, title, subtitle, image_url, badge_text, link_tab, tile_gradient, tile_action")
+      .eq("banner_type", "carousel")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .then(
+        ({ data }) => {
+          const next = data && data.length > 0
+            ? data.map((b) => ({
+                id: b.id,
+                title: b.title || "",
+                subtitle: b.subtitle || "",
+                cta: b.tile_action || "اكتشف الآن",
+                route: TAB_ROUTE[b.link_tab || ""] || b.link_tab || "/",
+                overlay: b.tile_gradient || "from-orange-900/80 via-orange-800/50 to-transparent",
+                img: b.image_url,
+                badge: b.badge_text || "",
+              }))
+            : FALLBACK_BANNERS;
+
+          // Only update state (and cause a re-render) if content actually changed.
+          // This prevents the visible flash when navigating back to the home page
+          // with a warm sessionStorage cache that already matches the DB.
+          const nextJson = JSON.stringify(next);
+          const cachedJson = sessionStorage.getItem(CACHE_KEY);
+          if (nextJson !== cachedJson) {
+            setBanners(next);
+            try { sessionStorage.setItem(CACHE_KEY, nextJson); } catch {}
+          }
+        },
+        () => {
+          // Only fall back if we have nothing cached yet
+          setBanners((prev) => prev ?? FALLBACK_BANNERS);
+        },
+      );
+  }, []);
+
+  useEffect(() => {
+    if (!banners) return;
     intervalRef.current = setInterval(() => {
       setCurrent((p) => (p + 1) % banners.length);
     }, 4500);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [banners.length]);
+  }, [banners]);
 
   const go = (dir: "next" | "prev") => {
+    if (!banners) return;
     if (intervalRef.current) clearInterval(intervalRef.current);
     setCurrent((p) =>
       dir === "next"
@@ -147,9 +209,19 @@ const BannerCarousel = () => {
         : (p - 1 + banners.length) % banners.length,
     );
     intervalRef.current = setInterval(() => {
-      setCurrent((p) => (p + 1) % banners.length);
+      setCurrent((p) => (p + 1) % banners!.length);
     }, 4500);
   };
+
+  // Skeleton while loading
+  if (!banners) {
+    return (
+      <div
+        className="relative rounded-3xl overflow-hidden shadow-xl mb-6 bg-muted animate-pulse"
+        style={{ minHeight: 190 }}
+      />
+    );
+  }
 
   const banner = banners[current];
 

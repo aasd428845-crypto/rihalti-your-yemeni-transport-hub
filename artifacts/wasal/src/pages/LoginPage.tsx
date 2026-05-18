@@ -1,92 +1,74 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Phone, ArrowLeft, Loader2 } from "lucide-react";
+import { Phone, ArrowRight, ArrowLeft, Loader2, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import TermsModal from "@/components/auth/TermsModal";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const TERMS_KEY = "wasal_terms_v1";
 
-type AuthMethod = "email" | "phone";
+const GoogleIcon = () => (
+  <svg className="w-5 h-5 ml-2 shrink-0" viewBox="0 0 24 24">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+  </svg>
+);
 
 const LoginPage = () => {
-  const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
-
-  // Email login
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  // Phone OTP login
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
 
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { role, loading: authLoading, user } = useAuth();
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) redirectByRole(session.user.id);
-    });
-  }, []);
+  // Detect OAuth redirect (code in URL) → show loading state while session resolves
+  const isOAuthCallback = typeof window !== "undefined" &&
+    (window.location.search.includes("code=") || window.location.hash.includes("access_token="));
 
-  const redirectByRole = async (userId: string) => {
-    try {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const r = data?.role;
-      if (r === "admin") navigate("/admin", { replace: true });
-      else if (r === "supplier") navigate("/supplier", { replace: true });
-      else if (r === "delivery_company") navigate("/delivery", { replace: true });
-      else if (r === "driver") navigate("/driver", { replace: true });
-      else if (r === "delivery_driver") navigate("/delivery-driver", { replace: true });
-      else navigate("/", { replace: true });
-    } catch {
-      navigate("/", { replace: true });
-    }
+  const navigateByRole = (r: string) => {
+    if (r === "admin") navigate("/admin", { replace: true });
+    else if (r === "supplier") navigate("/supplier", { replace: true });
+    else if (r === "delivery_company") navigate("/delivery", { replace: true });
+    else if (r === "driver") navigate("/driver", { replace: true });
+    else if (r === "delivery_driver") navigate("/delivery-driver", { replace: true });
+    else navigate("/", { replace: true });
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) return;
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast({
-          title: "خطأ في تسجيل الدخول",
-          description:
-            error.message === "Invalid login credentials"
-              ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
-              : error.message === "Email not confirmed"
-              ? "يرجى تأكيد بريدك الإلكتروني أولاً"
-              : error.message,
-          variant: "destructive",
-        });
-      } else if (data.user) {
-        toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في منصة التوصيل الذكي!" });
-        await redirectByRole(data.user.id);
-      }
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (authLoading || !user || !role) return;
+    const accepted = localStorage.getItem(TERMS_KEY);
+    if (!accepted) {
+      setShowTerms(true);
+    } else {
+      navigateByRole(role);
     }
+  }, [authLoading, user, role]);
+
+  const handleTermsAccept = () => {
+    localStorage.setItem(TERMS_KEY, "accepted");
+    setShowTerms(false);
+    if (role) navigateByRole(role);
   };
 
   const handleGoogleLogin = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: `${window.location.origin}/login` },
       });
       if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } catch (err: any) {
@@ -94,7 +76,6 @@ const LoginPage = () => {
     }
   };
 
-  // ── Phone OTP ──
   const fullPhone = `+967${phoneNumber}`;
 
   const startCountdown = () => {
@@ -119,23 +100,24 @@ const LoginPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone_number: fullPhone }),
       });
-      const data = await res.json();
+      let data: any = {};
+      try { data = await res.json(); } catch { /* non-JSON */ }
       if (!res.ok || data.error) {
         toast({ title: "تعذّر إرسال الرمز", description: data.error || "فشل إرسال رمز التحقق", variant: "destructive", duration: 8000 });
       } else {
         setOtpSent(true);
         startCountdown();
-        toast({ title: "تم الإرسال ✅", description: "تم إرسال رمز التحقق إلى هاتفك" });
+        toast({ title: "تم الإرسال ✓", description: "تم إرسال رمز التحقق إلى هاتفك" });
       }
     } catch (err: any) {
-      toast({ title: "خطأ في الاتصال", description: err?.message || "تعذّر الاتصال بخدمة التحقق", variant: "destructive" });
+      toast({ title: "خطأ", description: err?.message || "تعذّر الاتصال بالخادم", variant: "destructive" });
     }
     setPhoneLoading(false);
   };
 
   const handleVerifyOtp = async () => {
     if (otpCode.length !== 6) {
-      toast({ title: "خطأ", description: "أدخل رمز التحقق المكون من 6 أرقام", variant: "destructive" });
+      toast({ title: "خطأ", description: "أدخل رمز التحقق المكوّن من 6 أرقام", variant: "destructive" });
       return;
     }
     setPhoneLoading(true);
@@ -145,7 +127,8 @@ const LoginPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone_number: fullPhone, code: otpCode }),
       });
-      const payload = await res.json();
+      let payload: any = {};
+      try { payload = await res.json(); } catch { /* non-JSON */ }
       if (!res.ok || payload.error) {
         toast({ title: "خطأ في التحقق", description: payload.error || "رمز غير صحيح", variant: "destructive", duration: 8000 });
         setPhoneLoading(false);
@@ -157,210 +140,176 @@ const LoginPage = () => {
           type: "email",
         });
         if (verifyError) {
-          toast({ title: "خطأ", description: "فشل في تسجيل الدخول. حاول مرة أخرى", variant: "destructive" });
+          toast({ title: "خطأ", description: "فشل تسجيل الدخول. حاول مرة أخرى", variant: "destructive" });
           setPhoneLoading(false);
           return;
         }
-        toast({ title: "تم تسجيل الدخول ✅", description: "جاري تحويلك..." });
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) await redirectByRole(session.user.id);
-        else navigate("/");
+        // AuthContext SIGNED_IN event will update user+role → useEffect handles redirect + T&C
       }
     } catch (err: any) {
-      toast({ title: "خطأ", description: err?.message || "فشل في التحقق", variant: "destructive" });
+      toast({ title: "خطأ", description: err?.message || "فشل التحقق", variant: "destructive" });
     }
     setPhoneLoading(false);
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <a href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-hero-gradient flex items-center justify-center">
-              <span className="text-2xl font-black text-white">و</span>
-            </div>
-            <div className="text-right">
-              <div className="text-xl font-black text-foreground">وصل</div>
-              <div className="text-xs text-muted-foreground">منصة التوصيل الذكي</div>
-            </div>
-          </a>
+  // ── OAuth callback loading screen ──
+  if (isOAuthCallback && authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30 gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-hero-gradient flex items-center justify-center shadow-lg">
+          <span className="text-3xl font-black text-white">و</span>
         </div>
+        <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">جاري تسجيل الدخول…</p>
+      </div>
+    );
+  }
 
-        <div className="bg-card rounded-2xl border border-border p-8 shadow-lg">
-          <h1 className="text-2xl font-black text-foreground text-center mb-2">تسجيل الدخول</h1>
-          <p className="text-sm text-muted-foreground text-center mb-6">أهلاً بعودتك! سجّل دخولك للمتابعة</p>
+  return (
+    <>
+      {showTerms && <TermsModal onAccept={handleTermsAccept} />}
 
-          {/* Google Login */}
-          <Button variant="outline" className="w-full mb-4 h-11" onClick={handleGoogleLogin} type="button">
-            <svg className="w-5 h-5 ml-2" viewBox="0 0 24 24">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-            </svg>
-            تسجيل الدخول بحساب Google
-          </Button>
-
-          <div className="relative mb-4">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">أو</span></div>
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-8">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <a href="/" className="inline-flex items-center gap-3 mb-2">
+              <div className="w-14 h-14 rounded-2xl bg-hero-gradient flex items-center justify-center shadow-md">
+                <span className="text-3xl font-black text-white">و</span>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-black text-foreground">وصال</div>
+                <div className="text-xs text-muted-foreground">منصة التوصيل الذكي</div>
+              </div>
+            </a>
           </div>
 
-          {/* Auth method tabs */}
-          <div className="flex rounded-lg border border-border overflow-hidden mb-5">
-            <button
-              onClick={() => setAuthMethod("email")}
-              className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${
-                authMethod === "email" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Mail className="w-4 h-4" />بريد إلكتروني
-            </button>
-            <button
-              onClick={() => setAuthMethod("phone")}
-              className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${
-                authMethod === "phone" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Phone className="w-4 h-4" />رقم الهاتف
-            </button>
-          </div>
+          <div className="bg-card rounded-2xl border border-border p-8 shadow-lg">
+            <h1 className="text-2xl font-black text-foreground text-center mb-1">تسجيل الدخول</h1>
+            <p className="text-sm text-muted-foreground text-center mb-7">أهلاً بعودتك! اختر طريقة تسجيل الدخول</p>
 
-          {/* ── Email form ── */}
-          {authMethod === "email" && (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <Label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني</Label>
-                <div className="relative mt-1">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                    placeholder="example@email.com" className="pr-10 h-11" required dir="ltr" />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
-                  <a href="/forgot-password" className="text-xs text-primary hover:underline">نسيت كلمة المرور؟</a>
-                </div>
-                <div className="relative mt-1">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="password" type={showPassword ? "text" : "password"} value={password}
-                    onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
-                    className="pr-10 pl-10 h-11" required dir="ltr" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <Button type="submit"
-                className="w-full h-11 font-bold text-base bg-primary text-primary-foreground hover:bg-primary/90"
-                disabled={loading}>
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    جاري الدخول...
-                  </span>
-                ) : "تسجيل الدخول"}
-              </Button>
-            </form>
-          )}
+            {/* Google Login */}
+            <Button variant="outline" className="w-full mb-6 h-12 text-base font-semibold" onClick={handleGoogleLogin} type="button">
+              <GoogleIcon />
+              تسجيل الدخول بـ Google
+            </Button>
 
-          {/* ── Phone OTP form ── */}
-          {authMethod === "phone" && (
-            <div className="space-y-4">
-              {!otpSent ? (
-                <>
-                  <div>
-                    <Label>رقم الهاتف</Label>
-                    <div className="flex gap-2 mt-1">
-                      <div className="flex items-center justify-center bg-muted rounded-md px-3 h-11 text-sm font-medium border border-input shrink-0" dir="ltr">
-                        +967
-                      </div>
-                      <div className="relative flex-1">
-                        <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          type="tel"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                          placeholder="7XX XXX XXX"
-                          className="pr-10 h-11"
-                          dir="ltr"
-                          maxLength={9}
-                        />
-                      </div>
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center text-xs"><span className="bg-card px-3 text-muted-foreground">أو عبر رقم الهاتف</span></div>
+            </div>
+
+            {/* Phone OTP */}
+            {!otpSent ? (
+              <div className="space-y-4">
+                <div>
+                  <Label>رقم الهاتف</Label>
+                  <div className="flex gap-2 mt-1.5">
+                    <div className="flex items-center justify-center bg-muted rounded-lg px-3 h-11 text-sm font-medium border border-input shrink-0" dir="ltr">
+                      +967
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">أدخل رقمك بدون رمز البلد (+967)</p>
+                    <div className="relative flex-1">
+                      <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                        placeholder="7XX XXX XXX"
+                        className="pr-10 h-11"
+                        dir="ltr"
+                        maxLength={9}
+                      />
+                    </div>
                   </div>
-                  <Button
-                    className="w-full h-11 bg-primary text-primary-foreground font-bold hover:bg-primary/90"
-                    onClick={handleSendOtp}
-                    disabled={phoneLoading || phoneNumber.length !== 9}
-                  >
-                    {phoneLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-                    {phoneLoading ? "جاري الإرسال..." : "إرسال رمز التحقق"}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => { setOtpSent(false); setOtpCode(""); }}
-                    className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-                    <ArrowLeft className="w-3 h-3" />تغيير الرقم
-                  </button>
-                  <p className="text-sm text-muted-foreground text-center">
-                    تم إرسال رمز التحقق إلى{" "}
-                    <span className="font-bold text-foreground" dir="ltr">{fullPhone}</span>
-                  </p>
-                  <div className="flex justify-center" dir="ltr">
-                    <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
-                  <Button
-                    className="w-full h-11 bg-primary text-primary-foreground font-bold hover:bg-primary/90"
-                    onClick={handleVerifyOtp}
-                    disabled={phoneLoading || otpCode.length !== 6}
-                  >
-                    {phoneLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-                    {phoneLoading ? "جاري التحقق..." : "تأكيد الرمز"}
-                  </Button>
-                  <div className="text-center">
-                    {countdown > 0 ? (
-                      <p className="text-xs text-muted-foreground">إعادة الإرسال بعد {countdown} ثانية</p>
-                    ) : (
-                      <button onClick={handleSendOtp} className="text-xs text-primary hover:underline" disabled={phoneLoading}>
-                        إعادة إرسال الرمز
-                      </button>
-                    )}
-                  </div>
-                </>
+                  <p className="text-xs text-muted-foreground mt-1">أدخل رقمك بدون رمز البلد (+967)</p>
+                </div>
+                <Button
+                  className="w-full h-11 font-bold"
+                  onClick={handleSendOtp}
+                  disabled={phoneLoading || phoneNumber.length !== 9}
+                >
+                  {phoneLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                  {phoneLoading ? "جاري الإرسال…" : "إرسال رمز التحقق"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <button
+                  onClick={() => { setOtpSent(false); setOtpCode(""); }}
+                  className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-3 h-3" />تغيير الرقم
+                </button>
+                <p className="text-sm text-muted-foreground text-center">
+                  تم إرسال رمز التحقق إلى{" "}
+                  <span className="font-bold text-foreground" dir="ltr">{fullPhone}</span>
+                </p>
+                <div className="flex justify-center" dir="ltr">
+                  <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
+                    <InputOTPGroup>
+                      {[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} />)}
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+                <Button
+                  className="w-full h-11 font-bold"
+                  onClick={handleVerifyOtp}
+                  disabled={phoneLoading || otpCode.length !== 6}
+                >
+                  {phoneLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                  {phoneLoading ? "جاري التحقق…" : "تأكيد الرمز"}
+                </Button>
+                <div className="text-center">
+                  {countdown > 0 ? (
+                    <p className="text-xs text-muted-foreground">إعادة الإرسال بعد {countdown} ثانية</p>
+                  ) : (
+                    <button onClick={handleSendOtp} className="text-xs text-primary hover:underline" disabled={phoneLoading}>
+                      إعادة إرسال الرمز
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Account recovery */}
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setShowRecovery(!showRecovery)}
+                className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                لا تستطيع الوصول لحسابك؟
+              </button>
+              {showRecovery && (
+                <div className="mt-3 p-4 bg-muted/50 rounded-xl text-right text-xs text-muted-foreground leading-6">
+                  <p className="font-semibold text-foreground mb-1">استعادة الحساب</p>
+                  <p>إذا فقدت الوصول لرقم هاتفك أو حسابك على Google، يمكنك:</p>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li>التواصل مع الدعم الفني عبر صفحة التواصل</li>
+                    <li>تقديم معلومات التحقق من الهوية</li>
+                    <li>سيتم استعادة جميع بياناتك وطلباتك السابقة</li>
+                  </ul>
+                  <a href="/contact" className="text-primary font-semibold mt-2 inline-block hover:underline">
+                    تواصل مع الدعم ←
+                  </a>
+                </div>
               )}
             </div>
-          )}
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            ليس لديك حساب؟{" "}
-            <a href="/register" className="text-primary font-semibold hover:underline">إنشاء حساب جديد</a>
-          </p>
-        </div>
+            <p className="text-center text-sm text-muted-foreground mt-5">
+              ليس لديك حساب؟{" "}
+              <a href="/register" className="text-primary font-semibold hover:underline">إنشاء حساب جديد</a>
+            </p>
+          </div>
 
-        <div className="text-center mt-4">
-          <a href="/" className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1">
-            <ArrowRight className="w-4 h-4" />
-            العودة للصفحة الرئيسية
-          </a>
+          <div className="text-center mt-4">
+            <a href="/" className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1">
+              <ArrowRight className="w-4 h-4" />العودة للصفحة الرئيسية
+            </a>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

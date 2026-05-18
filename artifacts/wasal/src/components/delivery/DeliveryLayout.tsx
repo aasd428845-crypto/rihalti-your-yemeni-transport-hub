@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DeliverySidebar from "./DeliverySidebar";
 import { Menu, Sun, Moon, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTheme } from "next-themes";
-import { usePartnerProfileCheck } from "@/hooks/usePartnerProfileCheck";
 import { supabase } from "@/integrations/supabase/client";
 
 const DeliveryLayout = () => {
   const { role, loading, user } = useAuth();
-  const { isComplete, checking } = usePartnerProfileCheck();
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -61,7 +59,8 @@ const DeliveryLayout = () => {
     };
   }, [user?.id]);
 
-  if (loading || checking) {
+  // Show spinner while auth is loading OR while user is known but role not yet resolved
+  if (loading || (user && role === null)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -71,11 +70,6 @@ const DeliveryLayout = () => {
 
   if (!user) return <Navigate to="/login" replace />;
   if (role !== "delivery_company") return <Navigate to="/" replace />;
-
-  const isOnProfilePage = location.pathname === "/delivery/profile";
-  if (!isComplete && !isOnProfilePage) {
-    return <Navigate to="/delivery/profile" replace />;
-  }
 
   return (
     <SidebarProvider>
@@ -115,11 +109,6 @@ const DeliveryLayout = () => {
             </Button>
           </header>
           <div className="flex-1 p-4 md:p-6 bg-background overflow-auto">
-            {!isComplete && isOnProfilePage && (
-              <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
-                يرجى إكمال ملفك الشخصي أولاً (الاسم، الهاتف، مناطق العمل) لتتمكن من استخدام لوحة التحكم
-              </div>
-            )}
             <Outlet />
           </div>
         </main>

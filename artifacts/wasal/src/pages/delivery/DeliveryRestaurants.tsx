@@ -84,15 +84,14 @@ const DeliveryRestaurants = () => {
     if (!user || !form.name_ar.trim()) {
       toast({ title: "يرجى إدخال اسم المطعم", variant: "destructive" }); return;
     }
-    if (!form.city) {
-      toast({ title: "يرجى تحديد مدينة المطعم", variant: "destructive" }); return;
-    }
     try {
       // Base payload without coverage_areas — handles case where migration not yet applied
       const basePayload = {
         name_ar: form.name_ar, name_en: form.name_en || null,
         description: form.description || null, phone: form.phone || null,
-        address: form.address || null, city: form.city,
+        address: form.address || null,
+        // city is stored in address text for now; the DB column may not exist yet.
+        // Run in Supabase SQL: ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS city text; NOTIFY pgrst, 'reload schema';
         commission_rate: form.commission_rate,
         min_order_amount: form.min_order_amount, estimated_delivery_time: form.estimated_delivery_time,
         is_featured: form.is_featured,
@@ -124,8 +123,9 @@ const DeliveryRestaurants = () => {
           savedId = created?.id;
         }
       } catch (coverageErr: any) {
+        const msg: string = coverageErr?.message || "";
         // If coverage_areas column doesn't exist yet, retry without it
-        if (coverageErr?.message?.includes("coverage_areas") || coverageErr?.code === "42703") {
+        if (msg.includes("coverage_areas") || (coverageErr?.code === "42703" && msg.includes("coverage_areas"))) {
           if (editItem) {
             await updateRestaurant(editItem.id, basePayload);
           } else {

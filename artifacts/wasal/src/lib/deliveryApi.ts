@@ -121,13 +121,27 @@ export const deleteRider = async (id: string) => {
 export const getDeliveryOrders = async (companyId: string, status?: string) => {
   let query = supabase
     .from("delivery_orders")
-    .select("*, restaurant:restaurants(*), rider:riders(*)")
+    .select("*, restaurant:restaurants(*)")
     .eq("delivery_company_id", companyId)
     .order("created_at", { ascending: false });
   if (status && status !== "all") query = query.eq("status", status);
   const { data, error } = await query;
   if (error) throw error;
-  return data;
+  if (!data?.length) return data;
+
+  // Enrich orders with rider data via a separate query (no FK in schema cache)
+  const riderIds = [...new Set(data.filter((o: any) => o.rider_id).map((o: any) => o.rider_id as string))];
+  if (riderIds.length > 0) {
+    const { data: riders } = await supabase
+      .from("riders")
+      .select("id, full_name, phone, vehicle_type, vehicle_plate")
+      .in("id", riderIds);
+    if (riders) {
+      const riderMap: Record<string, any> = Object.fromEntries(riders.map((r: any) => [r.id, r]));
+      return data.map((o: any) => ({ ...o, rider: o.rider_id ? (riderMap[o.rider_id] ?? null) : null }));
+    }
+  }
+  return data.map((o: any) => ({ ...o, rider: null }));
 };
 
 export const createDeliveryOrder = async (order: any) => {
@@ -145,7 +159,7 @@ export const updateDeliveryOrder = async (id: string, updates: any) => {
 export const assignRiderToOrder = async (orderId: string, riderId: string) => {
   // 1. Cancel any previously active cash collection for this order (re-assignment safety)
   try {
-    await (supabase.from as any)("rider_cash_collections")
+    await supabase.from("rider_cash_collections")
       .update({ status: "cancelled", notes: "تم إعادة تعيين مندوب آخر" })
       .eq("order_id", orderId)
       .in("status", ["pending_pickup", "collected"]);
@@ -166,7 +180,7 @@ export const assignRiderToOrder = async (orderId: string, riderId: string) => {
   // 4. If payment is cash → record outstanding cash on rider
   try {
     if (data && data.payment_method === "cash" && Number(data.total) > 0) {
-      await (supabase.from as any)("rider_cash_collections").insert({
+      await supabase.from("rider_cash_collections").insert({
         rider_id: riderId,
         delivery_company_id: data.delivery_company_id,
         order_id: orderId,
@@ -190,12 +204,12 @@ export const updateOrderStatus = async (orderId: string, status: string, note?: 
   // Sync rider cash collection status
   try {
     if (status === "delivered") {
-      await (supabase.from as any)("rider_cash_collections")
+      await supabase.from("rider_cash_collections")
         .update({ status: "collected", collected_at: new Date().toISOString() })
         .eq("order_id", orderId)
         .eq("status", "pending_pickup");
     } else if (status === "cancelled") {
-      await (supabase.from as any)("rider_cash_collections")
+      await supabase.from("rider_cash_collections")
         .update({ status: "cancelled", notes: "تم إلغاء الطلب" })
         .eq("order_id", orderId)
         .in("status", ["pending_pickup", "collected"]);
@@ -207,7 +221,7 @@ export const updateOrderStatus = async (orderId: string, status: string, note?: 
 
 // ===== Rider Cash Collections =====
 export const getRiderOutstandingCash = async (riderId: string): Promise<number> => {
-  const { data, error } = await (supabase.from as any)("rider_cash_collections")
+  const { data, error } = await supabase.from("rider_cash_collections")
     .select("amount, status")
     .eq("rider_id", riderId)
     .in("status", ["pending_pickup", "collected"]);
@@ -216,7 +230,7 @@ export const getRiderOutstandingCash = async (riderId: string): Promise<number> 
 };
 
 export const getRiderCashCollections = async (companyId: string, riderId?: string) => {
-  let q = (supabase.from as any)("rider_cash_collections")
+  let q = supabase.from("rider_cash_collections")
     .select("*, rider:riders(id, full_name, phone), order:delivery_orders(id, customer_name, customer_address, total, payment_method)")
     .eq("delivery_company_id", companyId)
     .order("created_at", { ascending: false });
@@ -227,7 +241,7 @@ export const getRiderCashCollections = async (companyId: string, riderId?: strin
 };
 
 export const settleRiderCash = async (collectionId: string, settledBy: string, notes?: string) => {
-  const { data, error } = await (supabase.from as any)("rider_cash_collections")
+  const { data, error } = await supabase.from("rider_cash_collections")
     .update({
       status: "settled",
       settled_at: new Date().toISOString(),

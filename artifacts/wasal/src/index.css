@@ -1,7 +1,6 @@
 /* Fonts loaded via index.html link tags to avoid render-blocking CSS imports */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.ts";
 
 @layer base {
   :root {
