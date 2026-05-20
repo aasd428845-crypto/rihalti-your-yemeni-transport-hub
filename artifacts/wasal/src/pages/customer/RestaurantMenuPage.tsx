@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Star, Clock, Truck, Plus, Minus, ShoppingCart, ArrowLeft, Flame, Search, ChevronLeft, Heart, Share2, Timer } from "lucide-react";
+import { Star, Clock, Truck, Plus, Minus, ShoppingCart, ArrowLeft, Flame, Search, ChevronLeft, Heart, Share2, Timer, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { getRestaurantById, getRestaurantMenu, getMenuItemOptions, upsertCart, getCart } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +77,53 @@ const getOpenStatus = (hours: any): { isOpen: boolean; subtext: string } => {
     return { isOpen: false, subtext: `يفتح اليوم ${formatTime12(today.from)}` };
   }
   return { isOpen: false, subtext: "مغلق الآن" };
+};
+
+// ── Working Hours Accordion ──────────────────────────────────────────────────
+const DAYS_AR: Record<string, string> = {
+  sunday: "الأحد", monday: "الاثنين", tuesday: "الثلاثاء",
+  wednesday: "الأربعاء", thursday: "الخميس", friday: "الجمعة", saturday: "السبت",
+};
+const DAYS_ORDER = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"];
+
+const WorkingHoursAccordion = ({ hours }: { hours: Record<string, any> }) => {
+  const [open, setOpen] = useState(false);
+  const todayKey = DAY_KEYS[new Date().getDay()];
+  return (
+    <div className="mt-2">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Clock className="w-3.5 h-3.5" />
+        <span>أوقات العمل</span>
+        {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+      </button>
+      {open && (
+        <div className="mt-2 rounded-xl border border-border/60 divide-y divide-border/40 overflow-hidden text-xs">
+          {DAYS_ORDER.map(day => {
+            const info = hours[day];
+            const isToday = day === todayKey;
+            const isOff = !info || info.open === false;
+            return (
+              <div key={day} className={`flex items-center justify-between px-3 py-1.5 ${isToday ? "bg-primary/5 font-bold" : ""}`}>
+                <span className={isToday ? "text-primary" : "text-foreground/70"}>
+                  {isToday ? "▶ " : ""}{DAYS_AR[day]}
+                </span>
+                {isOff ? (
+                  <span className="text-red-500">مغلق</span>
+                ) : (
+                  <span className={isToday ? "text-primary" : "text-muted-foreground"}>
+                    {formatTime12(info.from)} — {formatTime12(info.to)}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 };
 
 // Category icon emojis fallback map
@@ -328,6 +375,23 @@ const RestaurantMenuPage = () => {
               <span>الحد الأدنى: {restaurant.min_order_amount} ر.ي</span>
             )}
           </div>
+
+          {/* Location link */}
+          {(restaurant.location_lat || restaurant.latitude) && (
+            <a
+              href={`https://maps.google.com/?q=${restaurant.location_lat || restaurant.latitude},${restaurant.location_lng || restaurant.longitude}`}
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline mt-2"
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              {restaurant.address || restaurant.city || "موقع المطعم"} — فتح في الخريطة
+            </a>
+          )}
+
+          {/* Working hours accordion */}
+          {restaurant.opening_hours && typeof restaurant.opening_hours === "object" && Object.keys(restaurant.opening_hours).length > 0 && (
+            <WorkingHoursAccordion hours={restaurant.opening_hours} />
+          )}
         </div>
 
         {/* Search bar */}

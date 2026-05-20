@@ -26,14 +26,37 @@ const SuperAppHeader = () => {
   // Load user's first name + city for greeting
   useEffect(() => {
     if (!user) { setFirstName(""); setCity(""); setUnreadCount(0); return; }
+    // 1. Try profile city first
     supabase
       .from("profiles")
       .select("full_name, city")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (data?.full_name) setFirstName(data.full_name.split(" ")[0]);
-        if (data?.city) setCity(data.city);
+        if (data?.city) {
+          setCity(data.city);
+        } else {
+          // 2. Fallback: read city from default customer address
+          const { data: addr } = await supabase
+            .from("customer_addresses" as any)
+            .select("city")
+            .eq("customer_id", user.id)
+            .eq("is_default", true)
+            .maybeSingle();
+          if ((addr as any)?.city) setCity((addr as any).city);
+          else {
+            // 3. Fallback: read city from most recent address
+            const { data: latest } = await supabase
+              .from("customer_addresses" as any)
+              .select("city")
+              .eq("customer_id", user.id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if ((latest as any)?.city) setCity((latest as any).city);
+          }
+        }
       });
 
     // Fetch unread notification count

@@ -289,10 +289,12 @@ const InvitePage = () => {
         try {
           await supabase.auth.signInWithPassword({ email: inviteData.email, password });
           toast.success("تم إنشاء حسابك وتسجيل الدخول بنجاح");
+          // Use window.location.href to force a full page reload so the auth context
+          // picks up the new session and role correctly before rendering the dashboard.
           if (inviteData.role === "delivery_company") {
-            navigate("/delivery");
+            window.location.href = "/delivery";
           } else {
-            navigate("/delivery-driver");
+            window.location.href = "/delivery-driver";
           }
           return;
         } catch {

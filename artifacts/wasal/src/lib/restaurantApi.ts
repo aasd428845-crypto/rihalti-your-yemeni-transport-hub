@@ -34,15 +34,14 @@ export const getActiveRestaurants = async (
     .order("is_featured", { ascending: false })
     .order("rating", { ascending: false });
 
-  if (city && city !== "all") {
-    query = query.eq("city", city) as any;
-  }
-
   const { data, error } = await query;
   if (error) throw error;
   if (!data || data.length === 0) return [];
 
-  const activeRestaurants = data as any[];
+  // Filter by city client-side so restaurants with no city set still appear everywhere
+  const activeRestaurants = (city && city !== "all"
+    ? data.filter((r: any) => !r.city || r.city === "" || r.city === city)
+    : data) as any[];
 
   // If no customer area provided, return with 'full' coverage status
   if (!customerArea || customerArea.trim() === "") {
