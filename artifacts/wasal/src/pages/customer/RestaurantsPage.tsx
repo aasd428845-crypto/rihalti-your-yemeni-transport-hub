@@ -73,7 +73,7 @@ const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
   const heroSrc = r.cover_image || r.cover_image_url || r.logo_url || fallbackImg;
   const isOutOfRange = r.coverage_status === "out_of_range";
   const displayFee = r.computed_delivery_fee ?? r.delivery_fee ?? 0;
-  const status = getOpenStatus(r.opening_hours);
+  const status = getOpenStatus(r);
   const isOpen = r.is_active !== false && status.isOpen;
   const ratingNum = Number(r.rating || 0);
   const hasDiscount =
@@ -220,26 +220,32 @@ const RestaurantsPage = () => {
 
   // Fetch restaurants — try with city filter first, fallback to all if empty result
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     const cityArg = selectedCity && selectedCity !== "all" ? selectedCity : undefined;
-    getActiveRestaurants(cityArg, selectedArea || undefined)
-      .then(async (data) => {
-        if (data && data.length > 0) { setRestaurants(data); return; }
-        // If city filter returned nothing, fall back to all restaurants
-        if (cityArg) {
-          const all = await getActiveRestaurants(undefined, undefined).catch(() => []);
-          setRestaurants(all || []);
-        } else {
-          setRestaurants([]);
+
+    const run = async () => {
+      try {
+        let data = await getActiveRestaurants(cityArg, selectedArea || undefined);
+        if (!data || data.length === 0) {
+          // fallback: show all restaurants regardless of city
+          data = await getActiveRestaurants(undefined, undefined);
         }
-      })
-      .catch(() => {
-        // On error, try without any filter
-        getActiveRestaurants(undefined, undefined)
-          .then(data => setRestaurants(data || []))
-          .catch(() => setRestaurants([]));
-      })
-      .finally(() => setLoading(false));
+        if (!cancelled) setRestaurants(data || []);
+      } catch {
+        try {
+          const all = await getActiveRestaurants(undefined, undefined);
+          if (!cancelled) setRestaurants(all || []);
+        } catch {
+          if (!cancelled) setRestaurants([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
   }, [selectedCity, selectedArea]);
 
   // URL search & category query
@@ -277,7 +283,7 @@ const RestaurantsPage = () => {
 
   // Featured items appear inline in the list (marked with sparkle), no separate scroller
   const sortedList = [
-    ...filtered.filter(r => r.is_featured),
+    ...filtered.filter(r => r.is_featured === true),
     ...filtered.filter(r => !r.is_featured),
   ];
 

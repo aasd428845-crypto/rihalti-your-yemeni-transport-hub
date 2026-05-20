@@ -31,7 +31,6 @@ export const getActiveRestaurants = async (
     .from("restaurants")
     .select("*")
     .eq("is_active", true)
-    .order("is_featured", { ascending: false })
     .order("rating", { ascending: false });
 
   const { data, error } = await query;

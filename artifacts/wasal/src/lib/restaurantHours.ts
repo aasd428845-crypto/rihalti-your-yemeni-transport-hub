@@ -1,6 +1,6 @@
 const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
-const formatTime12 = (t: string) => {
+export const formatTime12 = (t: string) => {
   if (!t) return "";
   const [hStr, m] = t.split(":");
   const h = parseInt(hStr, 10);
@@ -15,8 +15,38 @@ export interface OpenStatus {
   subtext: string;
 }
 
-export const getOpenStatus = (hours: any): OpenStatus => {
-  if (!hours || typeof hours !== "object") return { isOpen: true, subtext: "مفتوح" };
+/**
+ * Supports both schemas:
+ * - New DB: opening_time/closing_time (simple strings "09:00")
+ * - Old DB: opening_hours JSONB { saturday: { open: true, from: "09:00", to: "23:00" }, ... }
+ */
+export const getOpenStatus = (restaurant: any): OpenStatus => {
+  const hours = restaurant?.opening_hours;
+  const openingTime = restaurant?.opening_time;
+  const closingTime = restaurant?.closing_time;
+
+  // New DB schema: simple opening_time / closing_time strings
+  if (!hours && (openingTime || closingTime)) {
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const parseMin = (t: string) => {
+      const [h, m] = (t || "").split(":").map(Number);
+      return isNaN(h) ? null : h * 60 + (m || 0);
+    };
+    const fromMin = parseMin(openingTime);
+    const toMin = parseMin(closingTime);
+    if (fromMin === null && toMin === null) return { isOpen: true, subtext: "مفتوح" };
+    const open = fromMin === null || toMin === null
+      ? true
+      : (toMin > fromMin ? nowMin >= fromMin && nowMin < toMin : nowMin >= fromMin || nowMin < toMin);
+    if (open) return { isOpen: true, subtext: closingTime ? `مفتوح حتى ${formatTime12(closingTime)}` : "مفتوح" };
+    return { isOpen: false, subtext: openingTime ? `يفتح ${formatTime12(openingTime)}` : "مغلق" };
+  }
+
+  // Old DB schema: opening_hours JSONB
+  if (!hours || typeof hours !== "object" || Object.keys(hours).length === 0) {
+    return { isOpen: true, subtext: "مفتوح" };
+  }
   const now = new Date();
   const todayKey = DAY_KEYS[now.getDay()];
   const today = hours[todayKey];

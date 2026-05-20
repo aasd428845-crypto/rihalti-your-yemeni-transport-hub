@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { getCategoryFallbackImage } from "@/components/customer/CategoryScroller";
 import { computeItemPromo, isPromoScheduleActive, getPromoCountdown } from "@/lib/promotionsApi";
+import { getOpenStatus, formatTime12 } from "@/lib/restaurantHours";
 
 interface CartItem {
   id: string;
@@ -34,50 +35,8 @@ interface OptionChoice {
   image_url?: string;
 }
 
-// ── Compute open/closed status from opening_hours JSONB ──
+// Day keys for working hours accordion
 const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-const formatTime12 = (t: string) => {
-  if (!t) return "";
-  const [hStr, m] = t.split(":");
-  const h = parseInt(hStr, 10);
-  if (isNaN(h)) return t;
-  const period = h >= 12 ? "م" : "ص";
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${h12}:${m || "00"} ${period}`;
-};
-const getOpenStatus = (hours: any): { isOpen: boolean; subtext: string } => {
-  if (!hours || typeof hours !== "object") return { isOpen: true, subtext: "" };
-  const now = new Date();
-  const todayKey = DAY_KEYS[now.getDay()];
-  const today = hours[todayKey];
-  if (!today || today.open === false) {
-    // Find next open day
-    for (let i = 1; i <= 7; i++) {
-      const next = hours[DAY_KEYS[(now.getDay() + i) % 7]];
-      if (next && next.open !== false && next.from) {
-        const dayLabels: Record<string, string> = {
-          sunday: "الأحد", monday: "الاثنين", tuesday: "الثلاثاء", wednesday: "الأربعاء",
-          thursday: "الخميس", friday: "الجمعة", saturday: "السبت",
-        };
-        const dayName = dayLabels[DAY_KEYS[(now.getDay() + i) % 7]];
-        return { isOpen: false, subtext: `يفتح ${i === 1 ? "غداً" : dayName} ${formatTime12(next.from)}` };
-      }
-    }
-    return { isOpen: false, subtext: "" };
-  }
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-  const [fH, fM] = (today.from || "00:00").split(":").map(Number);
-  const [tH, tM] = (today.to || "23:59").split(":").map(Number);
-  const fromMin = fH * 60 + (fM || 0);
-  const toMin = tH * 60 + (tM || 0);
-  if (nowMin >= fromMin && nowMin < toMin) {
-    return { isOpen: true, subtext: `مفتوح حتى ${formatTime12(today.to)}` };
-  }
-  if (nowMin < fromMin) {
-    return { isOpen: false, subtext: `يفتح اليوم ${formatTime12(today.from)}` };
-  }
-  return { isOpen: false, subtext: "مغلق الآن" };
-};
 
 // ── Working Hours Accordion ──────────────────────────────────────────────────
 const DAYS_AR: Record<string, string> = {
@@ -339,13 +298,13 @@ const RestaurantMenuPage = () => {
             </div>
             <div className="pb-1 flex-1 min-w-0">
               <h1 className="text-xl font-bold truncate">{restaurant.name_ar}</h1>
-              {restaurant.description && <p className="text-xs text-muted-foreground line-clamp-1">{restaurant.description}</p>}
+              {(restaurant.description || restaurant.description_ar) && <p className="text-xs text-muted-foreground line-clamp-1">{restaurant.description || restaurant.description_ar}</p>}
             </div>
           </div>
 
           {/* Open/Closed status */}
           {(() => {
-            const status = getOpenStatus(restaurant.opening_hours);
+            const status = getOpenStatus(restaurant);
             return (
               <div className="flex items-center gap-2 mb-2">
                 <span className={`inline-flex items-center gap-1.5 text-sm font-bold ${status.isOpen ? 'text-green-600' : 'text-red-600'}`}>
@@ -388,10 +347,15 @@ const RestaurantMenuPage = () => {
             </a>
           )}
 
-          {/* Working hours accordion */}
-          {restaurant.opening_hours && typeof restaurant.opening_hours === "object" && Object.keys(restaurant.opening_hours).length > 0 && (
+          {/* Working hours accordion — supports both opening_hours JSONB and opening_time/closing_time */}
+          {(restaurant.opening_hours && typeof restaurant.opening_hours === "object" && Object.keys(restaurant.opening_hours).length > 0) ? (
             <WorkingHoursAccordion hours={restaurant.opening_hours} />
-          )}
+          ) : restaurant.opening_time || restaurant.closing_time ? (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="w-3.5 h-3.5" />
+              <span>أوقات العمل: {formatTime12(restaurant.opening_time || "00:00")} — {formatTime12(restaurant.closing_time || "23:59")}</span>
+            </div>
+          ) : null}
         </div>
 
         {/* Search bar */}
