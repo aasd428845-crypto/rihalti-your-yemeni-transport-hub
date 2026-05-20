@@ -85,33 +85,34 @@ const DeliveryRestaurants = () => {
       toast({ title: "يرجى إدخال اسم المطعم", variant: "destructive" }); return;
     }
     try {
-      // Base payload — only columns guaranteed to exist in the new schema
-      const basePayload = {
+      // Base payload — only columns guaranteed to exist in the schema
+      const basePayload: Record<string, any> = {
         name_ar: form.name_ar, name_en: form.name_en || null,
         description: form.description || null, phone: form.phone || null,
         address: form.address || null,
         min_order_amount: form.min_order_amount, estimated_delivery_time: form.estimated_delivery_time,
         is_featured: form.is_featured,
         cuisine_type: form.cuisine_type.length > 0 ? form.cuisine_type : null,
-        cover_image: form.cover_image || null, logo_url: form.logo_url || null,
         opening_hours: form.opening_hours,
       };
 
       // Include lat/lng if provided
       if (form.latitude !== "" && form.latitude !== null) {
-        (basePayload as any).latitude = Number(form.latitude);
+        basePayload.latitude = Number(form.latitude);
       }
       if (form.longitude !== "" && form.longitude !== null) {
-        (basePayload as any).longitude = Number(form.longitude);
+        basePayload.longitude = Number(form.longitude);
       }
       if (form.price_per_km > 0) {
-        (basePayload as any).price_per_km = form.price_per_km;
+        basePayload.price_per_km = form.price_per_km;
       }
 
       // Build an extended payload that includes optional columns
       // These columns may not exist in all DB versions — handled via fallback below
       const payloadWithExtras = {
         ...basePayload,
+        cover_image: form.cover_image || null,
+        logo_url: form.logo_url || null,
         coverage_areas: form.coverage_areas,
         ...(form.commission_rate > 0 ? { commission_rate: form.commission_rate } : {}),
       };
