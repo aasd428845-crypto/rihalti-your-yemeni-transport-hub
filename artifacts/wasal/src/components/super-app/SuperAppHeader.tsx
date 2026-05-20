@@ -19,43 +19,38 @@ const SuperAppHeader = () => {
   const [search, setSearch] = useState("");
   const [firstName, setFirstName] = useState<string>("");
   const [city, setCity] = useState<string>("");
+  const [addressLabel, setAddressLabel] = useState<string>("");
   const [unreadCount, setUnreadCount] = useState(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const detail = isDetailPage(location.pathname);
 
   // Load user's first name + city for greeting
   useEffect(() => {
-    if (!user) { setFirstName(""); setCity(""); setUnreadCount(0); return; }
-    // 1. Try profile city first
+    if (!user) { setFirstName(""); setCity(""); setAddressLabel(""); setUnreadCount(0); return; }
+    // Load profile name
     supabase
       .from("profiles")
-      .select("full_name, city")
+      .select("full_name")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(async ({ data }) => {
+      .then(({ data }) => {
         if (data?.full_name) setFirstName(data.full_name.split(" ")[0]);
-        if (data?.city) {
-          setCity(data.city);
-        } else {
-          // 2. Fallback: read city from default customer address
-          const { data: addr } = await supabase
-            .from("customer_addresses" as any)
-            .select("city")
-            .eq("customer_id", user.id)
-            .eq("is_default", true)
-            .maybeSingle();
-          if ((addr as any)?.city) setCity((addr as any).city);
-          else {
-            // 3. Fallback: read city from most recent address
-            const { data: latest } = await supabase
-              .from("customer_addresses" as any)
-              .select("city")
-              .eq("customer_id", user.id)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            if ((latest as any)?.city) setCity((latest as any).city);
-          }
+      });
+    // Load best address label: try default address first, then latest
+    supabase
+      .from("customer_addresses" as any)
+      .select("address_name, city, district, full_address, is_default")
+      .eq("customer_id", user.id)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .then(({ data: addrs }: { data: any }) => {
+        const list: any[] = addrs || [];
+        const best = list.find((a: any) => a.is_default) || list[0];
+        if (best) {
+          // Show address_name (e.g. "المنزل") + city as sub-label
+          setAddressLabel(best.address_name || best.city || "");
+          setCity(best.district ? `${best.city}، ${best.district}` : (best.city || ""));
         }
       });
 
@@ -126,8 +121,11 @@ const SuperAppHeader = () => {
                     <p className="text-[11px] text-muted-foreground leading-tight">التوصيل إلى</p>
                   )}
                   <p className="text-sm font-bold text-foreground leading-tight truncate">
-                    {city || "حدد موقعك"}
+                    {addressLabel || city || "حدد موقعك"}
                   </p>
+                  {addressLabel && city && (
+                    <p className="text-[10px] text-muted-foreground leading-tight truncate">{city}</p>
+                  )}
                 </div>
               </button>
               <button

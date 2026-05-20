@@ -87,7 +87,7 @@ const DAYS_AR: Record<string, string> = {
 const DAYS_ORDER = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"];
 
 const WorkingHoursAccordion = ({ hours }: { hours: Record<string, any> }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const todayKey = DAY_KEYS[new Date().getDay()];
   return (
     <div className="mt-2">
@@ -377,14 +377,14 @@ const RestaurantMenuPage = () => {
           </div>
 
           {/* Location link */}
-          {(restaurant.location_lat || restaurant.latitude) && (
+          {(restaurant.location_lat || restaurant.latitude || restaurant.location_lng || restaurant.longitude) && (
             <a
-              href={`https://maps.google.com/?q=${restaurant.location_lat || restaurant.latitude},${restaurant.location_lng || restaurant.longitude}`}
+              href={`https://maps.google.com/?q=${restaurant.location_lat ?? restaurant.latitude ?? 0},${restaurant.location_lng ?? restaurant.longitude ?? 0}`}
               target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline mt-2"
             >
               <MapPin className="w-3.5 h-3.5" />
-              {restaurant.address || restaurant.city || "موقع المطعم"} — فتح في الخريطة
+              {restaurant.address ? restaurant.address : "عرض الموقع على الخريطة"}
             </a>
           )}
 

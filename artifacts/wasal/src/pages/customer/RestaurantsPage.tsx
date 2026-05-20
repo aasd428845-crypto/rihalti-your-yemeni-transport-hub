@@ -218,13 +218,28 @@ const RestaurantsPage = () => {
       }, () => {});
   }, [user?.id]);
 
-  // Fetch restaurants
+  // Fetch restaurants — try with city filter first, fallback to all if empty result
   useEffect(() => {
     setLoading(true);
-    getActiveRestaurants(
-      selectedCity && selectedCity !== "all" ? selectedCity : undefined,
-      selectedArea || undefined
-    ).then(data => setRestaurants(data || [])).catch(() => setRestaurants([])).finally(() => setLoading(false));
+    const cityArg = selectedCity && selectedCity !== "all" ? selectedCity : undefined;
+    getActiveRestaurants(cityArg, selectedArea || undefined)
+      .then(async (data) => {
+        if (data && data.length > 0) { setRestaurants(data); return; }
+        // If city filter returned nothing, fall back to all restaurants
+        if (cityArg) {
+          const all = await getActiveRestaurants(undefined, undefined).catch(() => []);
+          setRestaurants(all || []);
+        } else {
+          setRestaurants([]);
+        }
+      })
+      .catch(() => {
+        // On error, try without any filter
+        getActiveRestaurants(undefined, undefined)
+          .then(data => setRestaurants(data || []))
+          .catch(() => setRestaurants([]));
+      })
+      .finally(() => setLoading(false));
   }, [selectedCity, selectedArea]);
 
   // URL search & category query
