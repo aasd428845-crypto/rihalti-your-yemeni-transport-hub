@@ -32,7 +32,11 @@ const cuisineOptions = ["يمني", "مصري", "شامي", "إيطالي", "ص�
 
 const defaultHours = () => Object.fromEntries(DAYS.map(d => [d.key, { open: true, from: "09:00", to: "23:00" }]));
 
-const CITIES = ["صنعاء", "عدن", "تعز", "المكلا", "إب", "الحديدة", "ذمار", "سيئون"];
+const CITIES = [
+  "صنعاء", "عدن", "تعز", "المكلا", "إب", "الحديدة", "ذمار",
+  "سيئون", "يبعث", "القطن", "الشحر", "الغيل", "تريم", "شبام", "عينات", "رماه",
+  "مأرب", "حجة", "صعدة", "عمران", "البيضاء", "لحج", "أبين", "الضالع",
+];
 
 const emptyForm = () => ({
   name_ar: "", name_en: "", description: "", phone: "", address: "",
@@ -85,36 +89,40 @@ const DeliveryRestaurants = () => {
       toast({ title: "يرجى إدخال اسم المطعم", variant: "destructive" }); return;
     }
     try {
-      // Base payload — only columns guaranteed to exist in the schema
+      // Base payload — ONLY columns verified to exist in the live DB
+      // (name_ar, name_en, phone, address, min_order_amount, estimated_delivery_time,
+      //  cuisine_type, city, is_active, latitude, longitude, price_per_km,
+      //  delivery_fee, cover_image, logo_url, coverage_areas, commission_rate, cover_image_url)
       const basePayload: Record<string, any> = {
-        name_ar: form.name_ar, name_en: form.name_en || null,
-        description: form.description || null, phone: form.phone || null,
+        name_ar: form.name_ar,
+        name_en: form.name_en || null,
+        phone: form.phone || null,
         address: form.address || null,
-        min_order_amount: form.min_order_amount, estimated_delivery_time: form.estimated_delivery_time,
-        is_featured: form.is_featured,
+        city: form.city || null,
+        min_order_amount: form.min_order_amount,
+        estimated_delivery_time: form.estimated_delivery_time,
         cuisine_type: form.cuisine_type.length > 0 ? form.cuisine_type : null,
-        opening_hours: form.opening_hours,
+        cover_image: form.cover_image || null,
+        logo_url: form.logo_url || null,
+        coverage_areas: form.coverage_areas,
+        commission_rate: form.commission_rate,
+        price_per_km: form.price_per_km,
       };
 
-      // Include lat/lng if provided
       if (form.latitude !== "" && form.latitude !== null) {
         basePayload.latitude = Number(form.latitude);
       }
       if (form.longitude !== "" && form.longitude !== null) {
         basePayload.longitude = Number(form.longitude);
       }
-      if (form.price_per_km > 0) {
-        basePayload.price_per_km = form.price_per_km;
-      }
 
-      // Build an extended payload that includes optional columns
-      // These columns may not exist in all DB versions — handled via fallback below
+      // Extended payload adds columns that may be missing in some DB versions
       const payloadWithExtras = {
         ...basePayload,
-        cover_image: form.cover_image || null,
-        logo_url: form.logo_url || null,
-        coverage_areas: form.coverage_areas,
-        ...(form.commission_rate > 0 ? { commission_rate: form.commission_rate } : {}),
+        description: form.description || null,
+        is_featured: form.is_featured,
+        opening_hours: form.opening_hours,
+        cover_image_url: form.cover_image || null,
       };
 
       let savedId = editItem?.id;
