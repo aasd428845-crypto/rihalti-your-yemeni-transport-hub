@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Search, X, ArrowRight, Bell, MapPin } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,22 +19,42 @@ const SuperAppHeader = () => {
   const [search, setSearch] = useState("");
   const [firstName, setFirstName] = useState<string>("");
   const [city, setCity] = useState<string>("");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const detail = isDetailPage(location.pathname);
 
   // Load user's first name + city for greeting
   useEffect(() => {
-    if (!user) { setFirstName(""); setCity(""); return; }
+    if (!user) { setFirstName(""); setCity(""); setUnreadCount(0); return; }
     supabase
       .from("profiles")
       .select("full_name, city")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.full_name) {
-          setFirstName(data.full_name.split(" ")[0]);
-        }
+        if (data?.full_name) setFirstName(data.full_name.split(" ")[0]);
         if (data?.city) setCity(data.city);
       });
+
+    // Fetch unread notification count
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .is("read_at", null)
+      .then(({ count }) => setUnreadCount(count || 0));
+
+    // Realtime: listen for new notifications
+    if (channelRef.current) supabase.removeChannel(channelRef.current);
+    const ch = supabase
+      .channel(`header-notif-${user.id}`)
+      .on("postgres_changes", {
+        event: "INSERT", schema: "public", table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, () => setUnreadCount(c => c + 1))
+      .subscribe();
+    channelRef.current = ch;
+    return () => { if (channelRef.current) supabase.removeChannel(channelRef.current); };
   }, [user?.id]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -88,11 +108,19 @@ const SuperAppHeader = () => {
                 </div>
               </button>
               <button
-                onClick={() => navigate("/notifications")}
+                onClick={() => { setUnreadCount(0); navigate("/notifications"); }}
                 className="relative w-9 h-9 rounded-full bg-muted/60 hover:bg-muted flex items-center justify-center transition-colors shrink-0"
                 aria-label="الإشعارات"
               >
-                <Bell className="w-4.5 h-4.5 text-foreground" />
+                <Bell className={`w-4.5 h-4.5 ${unreadCount > 0 ? "text-primary" : "text-foreground"}`} />
+                {unreadCount > 0 && (
+                  <>
+                    <span className="absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center z-10 border-2 border-background">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                    <span className="absolute -top-1 -left-1 w-[18px] h-[18px] rounded-full bg-red-500 opacity-70 animate-ping" />
+                  </>
+                )}
               </button>
             </div>
 

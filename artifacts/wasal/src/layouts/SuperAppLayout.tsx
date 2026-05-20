@@ -3,7 +3,7 @@ import SuperAppHeader from "@/components/super-app/SuperAppHeader";
 import BottomNav from "@/components/super-app/BottomNav";
 
 // Pages that should render full-bleed (no app header, no top padding)
-const FULL_BLEED_ROUTES = ["/restaurants/:id"];
+const FULL_BLEED_ROUTES = ["/restaurants/:id", "/restaurants/:id/checkout"];
 
 // Detail pages render the header in compact "back + logo" mode (~70px tall).
 // All other pages render the full header with greeting + search bar (~120px).

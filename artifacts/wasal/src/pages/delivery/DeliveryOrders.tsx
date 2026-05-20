@@ -436,10 +436,10 @@ const DeliveryOrders = () => {
 
       {/* Order Details Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent dir="rtl" className="max-w-lg">
-          <DialogHeader><DialogTitle>تفاصيل الطلب</DialogTitle></DialogHeader>
+        <DialogContent dir="rtl" className="max-w-lg flex flex-col max-h-[90vh] p-0">
+          <DialogHeader className="px-4 pt-4 pb-2 border-b shrink-0"><DialogTitle>تفاصيل الطلب</DialogTitle></DialogHeader>
           {selectedOrder && (
-            <div className="space-y-4 text-sm">
+            <div className="space-y-4 text-sm overflow-y-auto flex-1 px-4 py-4">
               <div className="grid grid-cols-2 gap-2">
                 <div><span className="text-muted-foreground">العميل:</span> {selectedOrder.customer_name}</div>
                 <div><span className="text-muted-foreground">الهاتف:</span> {selectedOrder.customer_phone}</div>
@@ -509,34 +509,35 @@ const DeliveryOrders = () => {
                   {paymentTx?.transfer_receipt_url && (
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground font-medium">📎 صورة إيصال التحويل:</p>
+                      <Button
+                        size="sm"
+                        className="w-full gap-2 bg-primary text-white"
+                        onClick={() => window.open(paymentTx.transfer_receipt_url, "_blank")}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> فتح صورة الإيصال ↗
+                      </Button>
                       <div
-                        className="relative rounded-lg overflow-hidden border cursor-pointer group bg-white"
+                        className="relative rounded-lg overflow-hidden border cursor-pointer bg-muted/30"
                         onClick={() => window.open(paymentTx.transfer_receipt_url, "_blank")}
                       >
                         <img
                           src={paymentTx.transfer_receipt_url}
                           alt="إيصال التحويل"
-                          className="w-full max-h-48 object-contain bg-white group-hover:opacity-80 transition-opacity"
+                          className="w-full max-h-56 object-contain"
+                          referrerPolicy="no-referrer"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
-                            (e.target as HTMLImageElement).parentElement!.innerHTML =
-                              '<div class="p-4 text-center text-xs text-red-500">⚠️ تعذّر تحميل الصورة — انقر لفتح الرابط</div>';
+                            const img = e.target as HTMLImageElement;
+                            img.style.display = "none";
+                            const parent = img.parentElement;
+                            if (parent && !parent.querySelector(".receipt-fallback")) {
+                              const fb = document.createElement("div");
+                              fb.className = "receipt-fallback p-4 text-center text-xs text-muted-foreground";
+                              fb.textContent = "اضغط على الزر أعلاه لفتح صورة الإيصال";
+                              parent.appendChild(fb);
+                            }
                           }}
                         />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-opacity rounded-lg">
-                          <span className="text-white text-xs font-bold bg-black/60 px-3 py-1 rounded-full flex items-center gap-1">
-                            <ExternalLink className="w-3 h-3" /> فتح الصورة
-                          </span>
-                        </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full gap-2"
-                        onClick={() => window.open(paymentTx.transfer_receipt_url, "_blank")}
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" /> عرض صورة الإيصال بالكامل ↗
-                      </Button>
                     </div>
                   )}
                   {!paymentTx?.transfer_receipt_url && selectedOrder.payment_method === "bank_transfer" && (

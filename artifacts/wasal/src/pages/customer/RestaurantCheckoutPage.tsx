@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Phone, CreditCard, Minus, Plus, AlertTriangle, Navigation } from "lucide-react";
-import BackButton from "@/components/common/BackButton";
 import AddressSelector, { SelectedAddress } from "@/components/addresses/AddressSelector";
 import { getRestaurantById, getCart, createOrderFromCart } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
@@ -192,9 +191,14 @@ const RestaurantCheckoutPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="fixed inset-0 z-40 bg-background overflow-y-auto">
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
-          <div className="container mx-auto px-4 py-4 max-w-3xl flex items-center justify-between">
-            <h1 className="text-2xl font-bold">إتمام الطلب</h1>
-            <BackButton />
+          <div className="container mx-auto px-4 py-3 max-w-3xl flex items-center gap-3">
+            <button
+              onClick={() => window.history.length > 2 ? navigate(-1) : navigate(`/restaurants/${restaurantId}`)}
+              className="p-2 rounded-xl bg-muted/60 hover:bg-muted transition-colors shrink-0"
+            >
+              <span className="text-lg leading-none">›</span>
+            </button>
+            <h1 className="text-lg font-bold flex-1">إتمام الطلب</h1>
           </div>
         </div>
         <div className="container mx-auto px-4 py-6 max-w-3xl">
