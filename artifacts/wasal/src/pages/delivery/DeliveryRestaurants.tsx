@@ -39,16 +39,28 @@ const CITIES = [
 ];
 
 const emptyForm = () => ({
-  name_ar: "", name_en: "", description: "", phone: "", address: "",
+  name_ar: "", name_en: "", description_ar: "", phone: "", address: "",
   city: "",
   commission_rate: 0, price_per_km: 0, min_order_amount: 0,
   estimated_delivery_time: 30, is_featured: false, cuisine_type: [] as string[],
   cover_image: "", logo_url: "",
   coverage_areas: [] as string[],
   opening_hours: defaultHours() as Record<string, { open: boolean; from: string; to: string }>,
+  opening_time: "09:00",
+  closing_time: "23:00",
   latitude: "" as string | number,
   longitude: "" as string | number,
 });
+
+// Derive global opening_time / closing_time from the per-day opening_hours form
+const getGlobalHours = (hours: Record<string, { open: boolean; from: string; to: string }>) => {
+  const openDay = DAYS.find(d => hours[d.key]?.open !== false);
+  if (!openDay) return { opening_time: "09:00", closing_time: "23:00" };
+  return {
+    opening_time: hours[openDay.key]?.from || "09:00",
+    closing_time: hours[openDay.key]?.to || "23:00",
+  };
+};
 
 const DeliveryRestaurants = () => {
   const { user } = useAuth();
@@ -56,6 +68,7 @@ const DeliveryRestaurants = () => {
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
@@ -88,14 +101,16 @@ const DeliveryRestaurants = () => {
     if (!user || !form.name_ar.trim()) {
       toast({ title: "يرجى إدخال اسم المطعم", variant: "destructive" }); return;
     }
+    setSaving(true);
     try {
-      // Base payload — ONLY columns verified to exist in the live DB
-      // (name_ar, name_en, phone, address, min_order_amount, estimated_delivery_time,
-      //  cuisine_type, city, is_active, latitude, longitude, price_per_km,
-      //  delivery_fee, cover_image, logo_url, coverage_areas, commission_rate, cover_image_url)
-      const basePayload: Record<string, any> = {
+      // Derive global opening_time/closing_time from the per-day form
+      const { opening_time, closing_time } = getGlobalHours(form.opening_hours);
+
+      // Payload — only columns verified to exist in the live DB
+      const payload: Record<string, any> = {
         name_ar: form.name_ar,
         name_en: form.name_en || null,
+        description_ar: form.description_ar || null,
         phone: form.phone || null,
         address: form.address || null,
         city: form.city || null,
@@ -103,59 +118,37 @@ const DeliveryRestaurants = () => {
         estimated_delivery_time: form.estimated_delivery_time,
         cuisine_type: form.cuisine_type.length > 0 ? form.cuisine_type : null,
         cover_image: form.cover_image || null,
+        cover_image_url: form.cover_image || null,
         logo_url: form.logo_url || null,
         coverage_areas: form.coverage_areas,
         commission_rate: form.commission_rate,
         price_per_km: form.price_per_km,
+        opening_time,
+        closing_time,
       };
 
-      if (form.latitude !== "" && form.latitude !== null) {
-        basePayload.latitude = Number(form.latitude);
-      }
-      if (form.longitude !== "" && form.longitude !== null) {
-        basePayload.longitude = Number(form.longitude);
-      }
-
-      // Extended payload adds columns that may be missing in some DB versions
-      const payloadWithExtras = {
-        ...basePayload,
-        description: form.description || null,
-        is_featured: form.is_featured,
-        opening_hours: form.opening_hours,
-        cover_image_url: form.cover_image || null,
-      };
+      if (form.latitude !== "" && form.latitude !== null) payload.latitude = Number(form.latitude);
+      if (form.longitude !== "" && form.longitude !== null) payload.longitude = Number(form.longitude);
 
       let savedId = editItem?.id;
-      try {
-        if (editItem) {
-          await updateRestaurant(editItem.id, payloadWithExtras);
-        } else {
-          const created = await createRestaurant({ ...payloadWithExtras, delivery_company_id: user.id });
-          savedId = created?.id;
-        }
-      } catch (extrasErr: any) {
-        const msg: string = extrasErr?.message || "";
-        // If any optional column is missing in the DB schema, retry with base payload only
-        const isSchemaError = msg.includes("coverage_areas") || msg.includes("commission_rate") ||
-          msg.includes("schema cache") || extrasErr?.code === "42703";
-        if (isSchemaError) {
-          if (editItem) {
-            await updateRestaurant(editItem.id, basePayload);
-          } else {
-            const created = await createRestaurant({ ...basePayload, delivery_company_id: user.id });
-            savedId = created?.id;
-          }
-          toast({ title: editItem ? "تم التحديث بنجاح" : "تمت إضافة المطعم بنجاح" });
-          setShowAdd(false); setEditItem(null); setForm(emptyForm()); load();
-          return;
-        }
-        throw extrasErr;
+      if (editItem) {
+        await updateRestaurant(editItem.id, payload);
+      } else {
+        const created = await createRestaurant({ ...payload, delivery_company_id: user.id });
+        savedId = created?.id;
+      }
+
+      // Try to save is_featured separately — ignore error if column doesn't exist in this DB
+      if (savedId) {
+        await supabase.from("restaurants").update({ is_featured: form.is_featured } as any).eq("id", savedId);
       }
 
       toast({ title: editItem ? "تم التحديث بنجاح" : "تمت إضافة المطعم بنجاح" });
       setShowAdd(false); setEditItem(null); setForm(emptyForm()); load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -177,17 +170,25 @@ const DeliveryRestaurants = () => {
 
   const openEdit = (r: any) => {
     setEditItem(r);
-    const hours = r.opening_hours && typeof r.opening_hours === "object" ? r.opening_hours : defaultHours();
+    // Build opening_hours from stored opening_time/closing_time if no JSONB hours saved
+    const savedOpenTime = r.opening_time || "09:00";
+    const savedCloseTime = r.closing_time || "23:00";
+    const hours = r.opening_hours && typeof r.opening_hours === "object" && Object.keys(r.opening_hours).length > 0
+      ? r.opening_hours
+      : Object.fromEntries(DAYS.map(d => [d.key, { open: true, from: savedOpenTime, to: savedCloseTime }]));
     setForm({
-      name_ar: r.name_ar, name_en: r.name_en || "", description: r.description || "",
+      name_ar: r.name_ar, name_en: r.name_en || "",
+      description_ar: r.description_ar || r.description || "",
       phone: r.phone || "", address: r.address || "",
       city: r.city || profileCity || "",
       commission_rate: r.commission_rate || 0, price_per_km: r.price_per_km || 0,
       min_order_amount: r.min_order_amount || 0, estimated_delivery_time: r.estimated_delivery_time || 30,
       is_featured: r.is_featured || false, cuisine_type: r.cuisine_type || [],
-      cover_image: r.cover_image || "", logo_url: r.logo_url || "",
+      cover_image: r.cover_image || r.cover_image_url || "", logo_url: r.logo_url || "",
       coverage_areas: r.coverage_areas || [],
       opening_hours: hours,
+      opening_time: savedOpenTime,
+      closing_time: savedCloseTime,
       latitude: r.latitude ?? "",
       longitude: r.longitude ?? "",
     });
@@ -337,7 +338,7 @@ const DeliveryRestaurants = () => {
               </div>
               <div className="sm:col-span-2">
                 <Label>وصف المطعم</Label>
-                <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="وصف مختصر عن المطعم..." rows={2} />
+                <Textarea value={form.description_ar} onChange={e => setForm({...form, description_ar: e.target.value})} placeholder="وصف مختصر عن المطعم..." rows={2} />
               </div>
             </div>
 
@@ -491,8 +492,10 @@ const DeliveryRestaurants = () => {
           </div>
 
           <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setShowAdd(false)}>إلغاء</Button>
-            <Button onClick={handleSave}>{editItem ? "تحديث المطعم" : "إضافة المطعم"}</Button>
+            <Button variant="outline" onClick={() => setShowAdd(false)} disabled={saving}>إلغاء</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "جارٍ الحفظ..." : (editItem ? "تحديث المطعم" : "إضافة المطعم")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

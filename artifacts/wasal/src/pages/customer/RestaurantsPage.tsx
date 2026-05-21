@@ -139,19 +139,30 @@ const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
             </div>
           )}
 
-          {/* Bottom row: rating + time + fee */}
+          {/* Description */}
+          {r.description_ar && (
+            <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+              {r.description_ar}
+            </p>
+          )}
+
+          {/* Bottom row: hours + fee + rating */}
           <div className="mt-auto flex items-center gap-3 text-[11px] text-muted-foreground pt-1">
-            <span className="flex items-center gap-0.5 font-bold text-foreground">
+            {/* Working hours instead of delivery time */}
+            <span className={`flex items-center gap-0.5 font-bold ${status.isOpen ? "text-emerald-600" : "text-red-500"}`}>
               <Clock className="w-3 h-3" />
-              {r.estimated_delivery_time
-                ? `${r.estimated_delivery_time} د`
-                : "20-30 د"}
+              {status.subtext || (status.isOpen ? "مفتوح" : "مغلق")}
             </span>
+            {/* Delivery fee */}
             <span className="flex items-center gap-0.5">
               <Truck className="w-3 h-3" />
-              {displayFee === 0
-                ? <span className="text-emerald-600 font-bold">توصيل مجاني</span>
-                : <span className="font-medium">توصيل {displayFee} ر.ي</span>}
+              {r.price_per_km > 0
+                ? (displayFee > 0
+                    ? <span className="font-medium">{displayFee} ر.ي</span>
+                    : <span className="text-muted-foreground font-medium">يحسب بالمسافة</span>)
+                : (displayFee === 0
+                    ? <span className="text-emerald-600 font-bold">توصيل مجاني</span>
+                    : <span className="font-medium">{displayFee} ر.ي</span>)}
             </span>
             <span className="mr-auto inline-flex items-center gap-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-700 font-black rounded-md px-1.5 py-0.5">
               <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
