@@ -134,11 +134,24 @@ const DeliveryPromotions = () => {
     if (!form.title.trim()) { toast({ title: "أدخل عنوان العرض", variant: "destructive" }); return; }
     if (!form.restaurant_id) { toast({ title: "اختر المطعم", variant: "destructive" }); return; }
     try {
-      // Only send columns that exist in the new DB schema
       const payload: any = {
         restaurant_id: form.restaurant_id,
+        promo_type: form.promo_type,
         title: form.title,
         description: form.description || null,
+        promo_text: form.promo_text || null,
+        image_url: form.image_url || null,
+        badge_text: form.badge_text || null,
+        min_order_amount: form.promo_type === "free_delivery_min_order" ? (form.min_order_amount || null) : null,
+        discount_percent: form.promo_type === "discount_percent" ? (form.discount_percent || null) : null,
+        discount_amount: form.promo_type === "fixed_discount" ? (form.discount_amount || null) : null,
+        buy_quantity: form.promo_type === "buy_x_get_y" ? (form.buy_quantity || null) : null,
+        get_quantity: form.promo_type === "buy_x_get_y" ? (form.get_quantity || null) : null,
+        active_days: (form.active_days?.length) ? form.active_days : null,
+        start_time: form.start_time || null,
+        end_time: form.end_time || null,
+        starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
+        ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
         is_active: form.is_active,
         sort_order: form.sort_order || 0,
       };
