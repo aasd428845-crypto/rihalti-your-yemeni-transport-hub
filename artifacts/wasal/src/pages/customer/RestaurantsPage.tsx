@@ -338,7 +338,14 @@ const RestaurantsPage = () => {
             {offerBanners.map((offer) => (
               <button
                 key={offer.id}
-                onClick={() => offer.link_url && navigate(offer.link_url)}
+                onClick={() => {
+                  if (offer.tile_action === "request") { navigate("/delivery-request"); return; }
+                  if (offer.link_url) {
+                    // link_url may be a UUID (restaurant id) or a path
+                    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(offer.link_url);
+                    navigate(isUUID ? `/restaurants/${offer.link_url}` : offer.link_url);
+                  }
+                }}
                 className="relative shrink-0 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
                 style={{ width: 145, height: 88 }}
               >

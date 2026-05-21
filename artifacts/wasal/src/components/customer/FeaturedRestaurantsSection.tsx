@@ -10,11 +10,11 @@ const FeaturedRestaurantsSection = () => {
   const [restaurants, setRestaurants] = useState<any[]>([]);
 
   useEffect(() => {
+    // Show all active restaurants sorted by rating (is_featured column may not exist in new DB)
     supabase
       .from("restaurants")
-      .select("id, name_ar, cover_image, logo_url, rating, total_ratings, cuisine_type, opening_hours, min_order_amount")
+      .select("id, name_ar, cover_image, logo_url, rating, total_ratings, cuisine_type, opening_hours, opening_time, closing_time, min_order_amount")
       .eq("is_active", true)
-      .eq("is_featured", true)
       .order("rating", { ascending: false })
       .limit(10)
       .then(({ data }) => setRestaurants(data || []));
@@ -41,7 +41,7 @@ const FeaturedRestaurantsSection = () => {
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
         {restaurants.map((r) => {
           const ratingNum = Number(r.rating || 0);
-          const status = getOpenStatus(r.opening_hours);
+          const status = getOpenStatus(r);
           return (
             <div
               key={r.id}

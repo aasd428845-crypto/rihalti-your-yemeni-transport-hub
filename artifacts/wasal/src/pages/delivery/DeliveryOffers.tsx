@@ -14,6 +14,8 @@ import {
   type DeliveryOffer, type OfferType
 } from "@/lib/deliveryOffersApi";
 import { useToast } from "@/hooks/use-toast";
+import ImageUpload from "@/components/common/ImageUpload";
+import { supabase } from "@/integrations/supabase/client";
 
 const OFFER_TYPES: { value: OfferType; label: string; icon: any; desc: string; color: string }[] = [
   { value: "free_delivery", label: "توصيل مجاني", icon: Truck, desc: "إلغاء رسوم التوصيل بالكامل", color: "bg-green-500" },
@@ -27,6 +29,8 @@ const emptyForm = (): any => ({
   offer_type: "free_delivery" as OfferType,
   title: "",
   description: "",
+  image_url: "",
+  badge_text: "",
   discount_percent: 0,
   discount_amount: 0,
   min_order_amount: 0,
@@ -124,6 +128,30 @@ const DeliveryOffers = () => {
         await createDeliveryOffer(payload);
         toast({ title: "تمت إضافة العرض ✓" });
       }
+
+      // Also create/update a delivery_banners entry so this offer shows in the customer carousel
+      const offerType = OFFER_TYPES.find(t => t.value === form.offer_type);
+      const badgeText = form.badge_text ||
+        (form.offer_type === "free_delivery" ? "مجاني" :
+         form.offer_type === "percent_off_delivery" ? `${form.discount_percent}%` :
+         form.offer_type === "fixed_off_delivery" ? `خصم ${form.discount_amount}` : "عرض");
+      const bannerPayload: any = {
+        delivery_company_id: user.id,
+        title: form.title,
+        subtitle: form.description || offerType?.desc || null,
+        image_url: form.image_url || null,
+        badge_text: badgeText,
+        is_active: form.is_active,
+        banner_type: "offer",
+        tile_action: "request",
+        link_url: "/delivery-request",
+        sort_order: form.sort_order || 0,
+      };
+      // Silently upsert — don't fail save if banner creation fails
+      try {
+        await (supabase as any).from("delivery_banners").insert(bannerPayload);
+      } catch {}
+
       setShowDialog(false);
       load();
     } catch (err: any) {
@@ -265,6 +293,23 @@ const DeliveryOffers = () => {
             <div>
               <Label className="font-semibold">عنوان العرض *</Label>
               <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="مثال: توصيل مجاني كل خميس" />
+            </div>
+
+            {/* Image upload */}
+            <div className="grid gap-2">
+              <Label className="font-semibold">صورة العرض (تظهر في الكاروسيل)</Label>
+              <ImageUpload
+                value={form.image_url}
+                onChange={url => setForm({...form, image_url: url})}
+                bucket="wasal-offers"
+                folder="delivery-offers"
+                aspectRatio="cover"
+                placeholder="ارفع صورة للعرض"
+              />
+              <div>
+                <Label className="text-xs">نص الشارة (مثال: مجاني، خصم 30%)</Label>
+                <Input value={form.badge_text} onChange={e => setForm({...form, badge_text: e.target.value})} placeholder="يُحسَب تلقائياً من نوع العرض" />
+              </div>
             </div>
 
             {/* Type-specific fields */}

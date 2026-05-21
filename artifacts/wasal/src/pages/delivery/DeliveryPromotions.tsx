@@ -16,6 +16,8 @@ import {
   deleteRestaurantPromotion, notifyCustomersAboutPromo, type RestaurantPromotion, type PromoType
 } from "@/lib/promotionsApi";
 import { useToast } from "@/hooks/use-toast";
+import ImageUpload from "@/components/common/ImageUpload";
+import { supabase } from "@/integrations/supabase/client";
 
 const PROMO_TYPES: { value: PromoType; label: string; icon: any; group: string; desc: string }[] = [
   // Delivery
@@ -45,6 +47,8 @@ const emptyForm = (): any => ({
   title: "",
   description: "",
   promo_text: "",
+  image_url: "",
+  badge_text: "",
   min_order_amount: 0,
   discount_percent: 0,
   discount_amount: 0,
@@ -117,6 +121,8 @@ const DeliveryPromotions = () => {
     setForm({
       ...emptyForm(),
       ...p,
+      image_url: (p as any).image_url || "",
+      badge_text: (p as any).badge_text || "",
       active_days: p.active_days || [],
       starts_at: p.starts_at ? p.starts_at.slice(0, 16) : "",
       ends_at: p.ends_at ? p.ends_at.slice(0, 16) : "",
@@ -128,39 +134,49 @@ const DeliveryPromotions = () => {
     if (!form.title.trim()) { toast({ title: "أدخل عنوان العرض", variant: "destructive" }); return; }
     if (!form.restaurant_id) { toast({ title: "اختر المطعم", variant: "destructive" }); return; }
     try {
+      // Only send columns that exist in the new DB schema
       const payload: any = {
         restaurant_id: form.restaurant_id,
-        promo_type: form.promo_type,
         title: form.title,
         description: form.description || null,
-        promo_text: form.promo_text || null,
         is_active: form.is_active,
         sort_order: form.sort_order || 0,
-        min_order_amount: form.min_order_amount || null,
-        discount_percent: form.discount_percent || null,
-        discount_amount: form.discount_amount || null,
-        buy_quantity: form.buy_quantity || null,
-        get_quantity: form.get_quantity || null,
-        active_days: form.active_days?.length ? form.active_days : null,
-        start_time: form.start_time || null,
-        end_time: form.end_time || null,
-        starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
-        ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
       };
       const isNewlyActive = form.is_active && !(editItem?.is_active ?? false);
+      let savedPromo: RestaurantPromotion;
       if (editItem) {
-        await updateRestaurantPromotion(editItem.id, payload);
+        savedPromo = await updateRestaurantPromotion(editItem.id, payload);
         toast({ title: "تم تحديث العرض ✓" });
       } else {
-        await createRestaurantPromotion(payload);
+        savedPromo = await createRestaurantPromotion(payload);
         toast({ title: "تمت إضافة العرض ✓" });
       }
+
+      // Sync a delivery_banners entry so the offer shows in the customer carousel
+      const rest = restaurants.find(r => r.id === form.restaurant_id);
+      const bannerPayload: any = {
+        delivery_company_id: user!.id,
+        title: form.title,
+        subtitle: form.description || promoSummary(savedPromo),
+        image_url: form.image_url || rest?.cover_image || null,
+        badge_text: form.badge_text || promoTypeInfo(form.promo_type).group === "delivery" ? "مجاني" : "خصم",
+        is_active: form.is_active,
+        banner_type: "offer",
+        tile_action: "restaurants",
+        link_url: form.restaurant_id,
+        city: rest?.city || null,
+        sort_order: form.sort_order || 0,
+      };
+      // Try to upsert banner — link to promotion via link_url = restaurant_id
+      await supabase.from("delivery_banners" as any).upsert({
+        ...bannerPayload,
+        id: (editItem as any)?.banner_id || undefined,
+      }, { onConflict: "id" });
+
       setShowDialog(false);
       getRestaurantPromotions(selectedRestaurant).then(setPromotions).catch(() => {});
 
-      // Send push notification to all customers when promo is newly activated
       if (isNewlyActive) {
-        const rest = restaurants.find(r => r.id === form.restaurant_id);
         notifyCustomersAboutPromo(
           `عرض جديد 🎉 - ${rest?.name_ar || "مطعم"}`,
           form.title,
@@ -347,18 +363,16 @@ const DeliveryPromotions = () => {
           </DialogHeader>
           <div className="space-y-4">
 
-            {/* Restaurant selector in form */}
-            {restaurants.length > 1 && (
-              <div>
-                <Label className="font-semibold">المطعم <span className="text-destructive">*</span></Label>
-                <Select value={form.restaurant_id} onValueChange={v => setForm({...form, restaurant_id: v})}>
-                  <SelectTrigger><SelectValue placeholder="اختر المطعم" /></SelectTrigger>
-                  <SelectContent>
-                    {restaurants.map(r => <SelectItem key={r.id} value={r.id}>{r.name_ar}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            {/* Restaurant selector — always visible */}
+            <div>
+              <Label className="font-semibold">المطعم <span className="text-destructive">*</span></Label>
+              <Select value={form.restaurant_id} onValueChange={v => setForm({...form, restaurant_id: v})}>
+                <SelectTrigger><SelectValue placeholder="اختر المطعم" /></SelectTrigger>
+                <SelectContent>
+                  {restaurants.map(r => <SelectItem key={r.id} value={r.id}>{r.name_ar}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Promo type selector */}
             <div>
@@ -398,6 +412,25 @@ const DeliveryPromotions = () => {
               <div>
                 <Label>وصف العرض (اختياري)</Label>
                 <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="تفاصيل إضافية..." rows={2} />
+              </div>
+            </div>
+
+            {/* Image upload + badge text for carousel display */}
+            <div className="grid gap-3">
+              <div>
+                <Label className="font-semibold">صورة العرض (تظهر في كاروسيل العروض)</Label>
+                <ImageUpload
+                  value={form.image_url}
+                  onChange={url => setForm({...form, image_url: url})}
+                  bucket="wasal-offers"
+                  folder="promos"
+                  aspectRatio="cover"
+                  placeholder="ارفع صورة للعرض"
+                />
+              </div>
+              <div>
+                <Label>نص الشارة (مثال: مجاني، خصم 30%)</Label>
+                <Input value={form.badge_text} onChange={e => setForm({...form, badge_text: e.target.value})} placeholder="مثال: مجاني" />
               </div>
             </div>
 
