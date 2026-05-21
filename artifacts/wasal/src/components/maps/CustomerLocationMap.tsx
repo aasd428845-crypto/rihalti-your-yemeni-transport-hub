@@ -6,13 +6,16 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Fix default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
+
+const CARTO_TILE = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+const CARTO_ATTR =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 interface CustomerLocationMapProps {
   lat?: number;
@@ -26,15 +29,32 @@ const haversineDistance = (lat1: number, lng1: number, lat2: number, lng2: numbe
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-const CustomerLocationMap = ({ lat, lng, address, landmark, label = "موقع العميل" }: CustomerLocationMapProps) => {
-  const [open, setOpen] = useState(false);
-  const [myLat, setMyLat] = useState<number | null>(null);
-  const [myLng, setMyLng] = useState<number | null>(null);
-  const [distance, setDistance] = useState<number | null>(null);
+const myLocationIcon = L.divIcon({
+  className: "",
+  html: `<div style="width:14px;height:14px;background:#3b82f6;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
+  iconSize:   [14, 14],
+  iconAnchor: [7, 7],
+});
+
+const CustomerLocationMap = ({
+  lat,
+  lng,
+  address,
+  landmark,
+  label = "موقع العميل",
+}: CustomerLocationMapProps) => {
+  const [open, setOpen]           = useState(false);
+  const [myLat, setMyLat]         = useState<number | null>(null);
+  const [myLng, setMyLng]         = useState<number | null>(null);
+  const [distance, setDistance]   = useState<number | null>(null);
 
   useEffect(() => {
     if (open && lat && lng && navigator.geolocation) {
@@ -71,6 +91,7 @@ const CustomerLocationMap = ({ lat, lng, address, landmark, label = "موقع ا
               <MapPin className="w-5 h-5 text-primary" /> {label}
             </DialogTitle>
           </DialogHeader>
+
           <div className="space-y-3">
             <div className="rounded-lg overflow-hidden border border-border" style={{ height: "300px" }}>
               {open && (
@@ -81,21 +102,19 @@ const CustomerLocationMap = ({ lat, lng, address, landmark, label = "موقع ا
                   scrollWheelZoom={false}
                 >
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution={CARTO_ATTR}
+                    url={CARTO_TILE}
+                    subdomains="abcd"
+                    maxZoom={20}
                   />
                   <Marker position={[lat, lng]}>
-                    <Popup>{label}<br />{address}</Popup>
+                    <Popup>
+                      {label}
+                      {address && <><br />{address}</>}
+                    </Popup>
                   </Marker>
                   {myLat && myLng && (
-                    <Marker
-                      position={[myLat, myLng]}
-                      icon={L.divIcon({
-                        className: "bg-primary rounded-full border-2 border-white shadow-lg",
-                        iconSize: [14, 14],
-                        iconAnchor: [7, 7],
-                      })}
-                    >
+                    <Marker position={[myLat, myLng]} icon={myLocationIcon}>
                       <Popup>موقعي الحالي</Popup>
                     </Marker>
                   )}
@@ -123,19 +142,32 @@ const CustomerLocationMap = ({ lat, lng, address, landmark, label = "موقع ا
               <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-sm flex items-center gap-2">
                 <Navigation className="w-4 h-4 text-primary" />
                 <span className="text-foreground">
-                  المسافة من موقعك: <strong className="text-primary">{distance < 1 ? `${Math.round(distance * 1000)} متر` : `${distance.toFixed(1)} كم`}</strong>
+                  المسافة من موقعك:{" "}
+                  <strong className="text-primary">
+                    {distance < 1
+                      ? `${Math.round(distance * 1000)} متر`
+                      : `${distance.toFixed(1)} كم`}
+                  </strong>
                 </span>
               </div>
             )}
 
             <div className="flex gap-2">
               <Button variant="outline" size="sm" asChild className="flex-1">
-                <a href={`https://www.google.com/maps?q=${lat},${lng}`} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={`https://www.google.com/maps?q=${lat},${lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   فتح في خرائط جوجل
                 </a>
               </Button>
               <Button variant="outline" size="sm" asChild className="flex-1">
-                <a href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <Navigation className="w-3 h-3 ml-1" /> الاتجاهات
                 </a>
               </Button>

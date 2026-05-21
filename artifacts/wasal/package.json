@@ -69,7 +69,7 @@
     "react-dom": "catalog:",
     "react-hook-form": "^7.55.0",
     "react-icons": "^5.4.0",
-    "react-leaflet": "4.2.1",
+    "react-leaflet": "^5.0.0",
     "react-resizable-panels": "^2.1.7",
     "react-router-dom": "^6.30.1",
     "recharts": "^2.15.2",

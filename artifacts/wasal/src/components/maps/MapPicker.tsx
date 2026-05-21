@@ -4,13 +4,11 @@ import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
 import { LocateFixed } from "lucide-react";
 
-// Fix default marker icon
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
 interface MapPickerProps {
@@ -21,10 +19,10 @@ interface MapPickerProps {
 }
 
 const MapPicker = ({ lat, lng, onLocationSelect, height = "250px" }: MapPickerProps) => {
-  const mapElRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
-  const defaultCenter: [number, number] = [15.3694, 44.191]; // Sana'a
+  const mapElRef   = useRef<HTMLDivElement | null>(null);
+  const mapRef     = useRef<L.Map | null>(null);
+  const markerRef  = useRef<L.Marker | null>(null);
+  const defaultCenter: [number, number] = [15.3694, 44.191];
   const [locating, setLocating] = useState(false);
 
   useEffect(() => {
@@ -32,18 +30,23 @@ const MapPicker = ({ lat, lng, onLocationSelect, height = "250px" }: MapPickerPr
 
     const map = L.map(mapElRef.current, {
       center: lat && lng ? [lat, lng] : defaultCenter,
-      zoom: lat && lng ? 15 : 13,
+      zoom:   lat && lng ? 15 : 13,
       zoomControl: true,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 20,
+      }
+    ).addTo(map);
 
     map.on("click", (e: L.LeafletMouseEvent) => {
       const { lat: nextLat, lng: nextLng } = e.latlng;
       onLocationSelect(nextLat, nextLng);
-
       if (!markerRef.current) {
         markerRef.current = L.marker([nextLat, nextLng]).addTo(map);
       } else {
@@ -58,16 +61,14 @@ const MapPicker = ({ lat, lng, onLocationSelect, height = "250px" }: MapPickerPr
       mapRef.current = null;
       markerRef.current = null;
     };
-  }, [defaultCenter, lat, lng, onLocationSelect]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!mapRef.current || lat === undefined || lng === undefined) return;
-
-    const map = mapRef.current;
-    map.setView([lat, lng], 15);
-
+    mapRef.current.setView([lat, lng], 15);
     if (!markerRef.current) {
-      markerRef.current = L.marker([lat, lng]).addTo(map);
+      markerRef.current = L.marker([lat, lng]).addTo(mapRef.current);
     } else {
       markerRef.current.setLatLng([lat, lng]);
     }
@@ -75,13 +76,10 @@ const MapPicker = ({ lat, lng, onLocationSelect, height = "250px" }: MapPickerPr
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) return;
-
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const nextLat = pos.coords.latitude;
-        const nextLng = pos.coords.longitude;
-        onLocationSelect(nextLat, nextLng);
+        onLocationSelect(pos.coords.latitude, pos.coords.longitude);
         setLocating(false);
       },
       () => setLocating(false),
@@ -93,7 +91,14 @@ const MapPicker = ({ lat, lng, onLocationSelect, height = "250px" }: MapPickerPr
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">انقر على الخريطة لتحديد الموقع</p>
-        <Button type="button" variant="outline" size="sm" onClick={handleLocateMe} disabled={locating} className="gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleLocateMe}
+          disabled={locating}
+          className="gap-1"
+        >
           <LocateFixed className={`w-3 h-3 ${locating ? "animate-spin" : ""}`} />
           موقعي
         </Button>
