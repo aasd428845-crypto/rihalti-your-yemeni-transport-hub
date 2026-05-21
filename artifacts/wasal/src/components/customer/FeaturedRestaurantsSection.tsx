@@ -63,54 +63,41 @@ const FeaturedRestaurantsSection = () => {
               tabIndex={0}
               onClick={() => navigate(`/restaurants/${r.id}`)}
               onKeyDown={(e) => { if (e.key === "Enter") navigate(`/restaurants/${r.id}`); }}
-              className="min-w-[140px] w-[140px] bg-card rounded-xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0 cursor-pointer"
+              className="relative min-w-[140px] w-[140px] rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all shrink-0 cursor-pointer"
+              style={{ height: 160 }}
             >
-              <div className="relative w-full h-[90px] bg-muted">
-                {r.cover_image || r.logo_url ? (
-                  <img
-                    src={r.cover_image || r.logo_url}
-                    alt={r.name_ar}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-2xl">🏪</div>
-                )}
-                {/* Favorite heart top-right */}
-                <div className="absolute top-1.5 right-1.5">
-                  <FavoriteHeart entityType="restaurant" entityId={r.id} size="sm" />
-                </div>
-                {/* Rating bottom-left pill — always shown */}
-                <div className="absolute bottom-1.5 left-1.5 bg-amber-500 text-white text-[10px] font-bold rounded-md px-1.5 py-0.5 shadow inline-flex items-center gap-0.5">
-                  <Star className="w-2.5 h-2.5 fill-white text-white" />
-                  {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
-                </div>
-                {/* Open/closed status bottom-right (replaces time pill) */}
-                <div
-                  className={`absolute bottom-1.5 right-1.5 text-white text-[10px] font-bold rounded-md px-1.5 py-0.5 shadow ${
-                    status.isOpen ? "bg-emerald-600" : "bg-red-500"
-                  }`}
-                >
-                  {status.isOpen ? "مفتوح" : "مغلق"}
-                </div>
+              {/* Full image */}
+              {r.cover_image || r.logo_url ? (
+                <img src={r.cover_image || r.logo_url} alt={r.name_ar} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              ) : (
+                <div className="absolute inset-0 bg-muted flex items-center justify-center text-4xl">🏪</div>
+              )}
+              {/* Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+
+              {/* Favorite heart */}
+              <div className="absolute top-1.5 right-1.5">
+                <FavoriteHeart entityType="restaurant" entityId={r.id} size="sm" />
               </div>
-              <div className="p-2">
-                <p className="font-bold text-[12px] text-foreground leading-tight line-clamp-1">
+
+              {/* Text overlay */}
+              <div className="absolute bottom-0 right-0 left-0 p-2 text-right">
+                <p className="font-bold text-[12px] text-white leading-tight line-clamp-1 drop-shadow">
                   {r.name_ar}
                 </p>
                 {Array.isArray(r.cuisine_type) && r.cuisine_type.length > 0 && (
-                  <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                  <p className="text-[10px] text-white/75 line-clamp-1 mt-0.5">
                     {r.cuisine_type.join(" • ")}
                   </p>
                 )}
                 <div className="flex items-center justify-between mt-1">
-                  {r.min_order_amount > 0 ? (
-                    <span className="text-primary font-black text-[12px]">
-                      من {Number(r.min_order_amount).toLocaleString("ar-YE")} ر.ي
-                    </span>
-                  ) : (
-                    <span className="text-primary font-black text-[12px]">توصيل سريع</span>
-                  )}
+                  <span className="inline-flex items-center gap-0.5 bg-amber-500/90 text-white text-[9px] font-bold rounded-md px-1.5 py-0.5">
+                    <Star className="w-2 h-2 fill-white text-white" />
+                    {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+                  </span>
+                  <span className={`text-white text-[9px] font-bold rounded-md px-1.5 py-0.5 ${status.isOpen ? "bg-emerald-600/90" : "bg-red-500/90"}`}>
+                    {status.isOpen ? "مفتوح" : "مغلق"}
+                  </span>
                 </div>
               </div>
             </div>

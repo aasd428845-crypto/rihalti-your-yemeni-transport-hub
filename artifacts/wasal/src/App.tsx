@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import React, { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -137,13 +137,33 @@ import { InstallPWAButton } from "./components/InstallPWAButton";
 import { UpdateNotification } from "./components/UpdateNotification";
 import RealtimeToastListener from "./components/notifications/RealtimeToastListener";
 const CoverageGate = lazy(() => import("./components/coverage/CoverageGate"));
+import SplashScreen from "./components/common/SplashScreen";
+
+const SPLASH_KEY = "wasal_splash_shown";
 
 const queryClient = new QueryClient();
+
+const AppWithSplash = ({ children }: { children: React.ReactNode }) => {
+  const [splashDone, setSplashDone] = React.useState(() => {
+    return !!sessionStorage.getItem(SPLASH_KEY);
+  });
+  const handleDone = React.useCallback(() => {
+    sessionStorage.setItem(SPLASH_KEY, "1");
+    setSplashDone(true);
+  }, []);
+  return (
+    <>
+      {!splashDone && <SplashScreen onDone={handleDone} />}
+      {children}
+    </>
+  );
+};
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="wasl-theme">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <AppWithSplash>
         <Toaster />
         <Sonner position="top-center" dir="rtl" richColors closeButton />
         <BrowserRouter>
@@ -293,6 +313,7 @@ const App = () => (
             <RealtimeToastListener />
           </AuthProvider>
         </BrowserRouter>
+        </AppWithSplash>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>

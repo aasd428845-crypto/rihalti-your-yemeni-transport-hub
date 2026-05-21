@@ -295,47 +295,43 @@ const RestaurantCard = ({ r }: { r: any }) => {
   return (
     <button
       onClick={() => navigate(`/restaurants/${r.id}`)}
-      className="bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right w-full"
+      className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right w-full"
+      style={{ height: 150 }}
     >
-      <div className="relative w-full h-[120px] bg-muted">
-        {r.cover_image || r.logo_url ? (
-          <img
-            src={r.cover_image || r.logo_url}
-            alt={r.name_ar}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl">
-            🏪
-          </div>
-        )}
-        {r.is_featured && (
-          <Badge className="absolute top-2 left-2 bg-amber-500 hover:bg-amber-500 text-white text-[10px] font-bold border-0 shadow">
-            ⭐ مميز
-          </Badge>
-        )}
-      </div>
-      <div className="p-3">
-        <p className="font-bold text-sm text-foreground leading-tight line-clamp-1 mb-1">
+      {/* Full image */}
+      {r.cover_image || r.logo_url ? (
+        <img src={r.cover_image || r.logo_url} alt={r.name_ar} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+      ) : (
+        <div className="absolute inset-0 bg-muted flex items-center justify-center text-4xl">🏪</div>
+      )}
+      {/* Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
+
+      {/* Featured badge */}
+      {r.is_featured && (
+        <Badge className="absolute top-2 right-2 bg-amber-500 hover:bg-amber-500 text-white text-[10px] font-bold border-0 shadow">
+          ⭐ مميز
+        </Badge>
+      )}
+
+      {/* Text overlay */}
+      <div className="absolute bottom-0 right-0 left-0 p-3 text-right">
+        <p className="font-bold text-sm text-white leading-tight line-clamp-1 drop-shadow mb-1">
           {r.name_ar}
         </p>
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-            {(r.rating ?? 0).toFixed(1)}
-            {r.total_ratings ? ` (${r.total_ratings})` : ""}
-          </span>
-          <span className="flex items-center gap-1">
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-[11px] text-white/80">
             <Clock className="w-3 h-3" />
             {r.estimated_delivery_time || 30} د
           </span>
-        </div>
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-[11px] text-muted-foreground">
-            توصيل: {r.delivery_fee ? `${Number(r.delivery_fee).toLocaleString("ar-YE")} ر.ي` : "مجاني"}
+          <span className="flex items-center gap-1 text-[11px] font-bold text-white">
+            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+            {(r.rating ?? 0).toFixed(1)}
           </span>
         </div>
+        <p className="text-[10px] text-white/70 mt-0.5">
+          توصيل: {r.delivery_fee ? `${Number(r.delivery_fee).toLocaleString("ar-YE")} ر.ي` : "مجاني"}
+        </p>
       </div>
     </button>
   );

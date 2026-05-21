@@ -59,61 +59,52 @@ const FEATURES = [
 const ItemCard = ({ item }: { item: any }) => {
   const navigate = useNavigate();
   const price = item.discounted_price ?? item.price;
-  const hasDiscount =
-    item.discounted_price && item.discounted_price < item.price;
+  const hasDiscount = item.discounted_price && item.discounted_price < item.price;
   const ratingNum = Number(item.rating || 0);
 
   return (
     <div
       onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="min-w-[140px] w-[140px] bg-card rounded-xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right shrink-0 cursor-pointer"
+      className="relative min-w-[140px] w-[140px] rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all shrink-0 cursor-pointer"
+      style={{ height: 160 }}
     >
-      <div className="relative w-full h-[90px] bg-muted">
-        {item.image_url ? (
-          <img
-            src={item.image_url}
-            alt={item.name_ar}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-2xl">
-            🍔
-          </div>
-        )}
-        {/* Favorite heart top-right */}
-        <div className="absolute top-1.5 right-1.5">
-          <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
-        </div>
-        {/* Rating bottom-right pill (replaces time pill) — always shown */}
-        <div className="absolute bottom-1.5 right-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-md px-1.5 py-0.5 shadow inline-flex items-center gap-0.5">
-          <Star className="w-2.5 h-2.5 fill-yellow-300 text-yellow-300" />
-          {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
-        </div>
-        {hasDiscount && (
-          <Badge className="absolute bottom-1.5 left-1.5 bg-red-500 hover:bg-red-500 text-white text-[9px] font-bold border-0 shadow px-1.5 py-0">
-            خصم
-          </Badge>
-        )}
+      {/* Full image */}
+      {item.image_url ? (
+        <img src={item.image_url} alt={item.name_ar} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+      ) : (
+        <div className="absolute inset-0 bg-muted flex items-center justify-center text-4xl">🍔</div>
+      )}
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+
+      {/* Top badges */}
+      <div className="absolute top-1.5 right-1.5">
+        <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
       </div>
-      <div className="p-2">
-        <p className="font-bold text-[12px] text-foreground leading-tight line-clamp-1">
+      {hasDiscount && (
+        <Badge className="absolute top-1.5 left-1.5 bg-red-500 hover:bg-red-500 text-white text-[9px] font-bold border-0 shadow px-1.5 py-0">
+          خصم
+        </Badge>
+      )}
+
+      {/* Text overlay at bottom */}
+      <div className="absolute bottom-0 right-0 left-0 p-2 text-right">
+        <p className="font-bold text-[12px] text-white leading-tight line-clamp-1 drop-shadow">
           {item.name_ar}
         </p>
         {item.restaurants?.name_ar && (
-          <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+          <p className="text-[10px] text-white/75 line-clamp-1 mt-0.5">
             {item.restaurants.name_ar}
           </p>
         )}
         <div className="flex items-center justify-between mt-1">
-          <span className="text-primary font-black text-[12px]">
+          <span className="text-[11px] font-black text-white drop-shadow">
             {Number(price).toLocaleString("ar-YE")} ر.ي
           </span>
-          {hasDiscount && (
-            <span className="text-[10px] text-muted-foreground line-through">
-              {Number(item.price).toLocaleString("ar-YE")}
-            </span>
-          )}
+          <span className="inline-flex items-center gap-0.5 bg-emerald-600/90 text-white text-[9px] font-bold rounded-md px-1.5 py-0.5">
+            <Star className="w-2 h-2 fill-yellow-300 text-yellow-300" />
+            {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+          </span>
         </div>
       </div>
     </div>
