@@ -136,6 +136,7 @@ const InstallPage = lazy(() => import("./pages/InstallPage"));
 import { InstallPWAButton } from "./components/InstallPWAButton";
 import { UpdateNotification } from "./components/UpdateNotification";
 import RealtimeToastListener from "./components/notifications/RealtimeToastListener";
+const CoverageGate = lazy(() => import("./components/coverage/CoverageGate"));
 
 const queryClient = new QueryClient();
 
@@ -150,7 +151,7 @@ const App = () => (
             <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Pages with SuperAppLayout (Super App UX) */}
-              <Route element={<SuperAppLayout />}>
+              <Route element={<CoverageGate><SuperAppLayout /></CoverageGate>}>
                 <Route path="/" element={<DeliveryHubPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />

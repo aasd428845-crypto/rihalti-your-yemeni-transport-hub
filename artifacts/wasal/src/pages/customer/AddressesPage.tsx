@@ -1,22 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAddresses, createAddress, deleteAddress, updateAddress } from "@/lib/customerApi";
+import {
+  fetchActiveCoverageZones,
+  findZoneForLocation,
+  SELECTED_CITY_KEY,
+  type CoverageZone,
+} from "@/lib/coverageApi";
 
 import BackButton from "@/components/common/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Plus, Trash2, Star, Phone, Navigation, Building2, Map, Pencil } from "lucide-react";
+import {
+  MapPin, Plus, Trash2, Star, Phone, Navigation,
+  Building2, Map, Pencil, Loader2, WifiOff,
+} from "lucide-react";
 import { getPhoneError, formatYemeniPhone } from "@/lib/phoneValidation";
 import MapPicker from "@/components/maps/MapPicker";
-
-const YEMEN_CITIES = ["سيئون"];
 
 const AddressesPage = () => {
   const { user, profile, loading: authLoading } = useAuth();
@@ -24,25 +30,31 @@ const AddressesPage = () => {
   const [searchParams] = useSearchParams();
   const isWelcome = searchParams.get("welcome") === "1";
   const { toast } = useToast();
-  const [addresses, setAddresses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [addresses, setAddresses]         = useState<any[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [showForm, setShowForm]           = useState(false);
+  const [saving, setSaving]               = useState(false);
+  const [editingId, setEditingId]         = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Coverage zones
+  const [coverageZones, setCoverageZones]   = useState<CoverageZone[]>([]);
+  const [zonesLoading, setZonesLoading]     = useState(true);
+  const [outsideZone, setOutsideZone]       = useState(false);
 
   // Form state
-  const [formName, setFormName] = useState("");
-  const [formCity, setFormCity] = useState("");
+  const [formName, setFormName]         = useState("");
+  const [formCity, setFormCity]         = useState("");
   const [formDistrict, setFormDistrict] = useState("");
-  const [formStreet, setFormStreet] = useState("");
+  const [formStreet, setFormStreet]     = useState("");
   const [formBuilding, setFormBuilding] = useState("");
   const [formLandmark, setFormLandmark] = useState("");
-  const [formDefault, setFormDefault] = useState(false);
-  const [formPhone, setFormPhone] = useState("");
-  const [phoneSource, setPhoneSource] = useState("primary");
-  const [formLat, setFormLat] = useState<number | undefined>();
-  const [formLng, setFormLng] = useState<number | undefined>();
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [formDefault, setFormDefault]   = useState(false);
+  const [formPhone, setFormPhone]       = useState("");
+  const [phoneSource, setPhoneSource]   = useState("primary");
+  const [formLat, setFormLat]           = useState<number | undefined>();
+  const [formLng, setFormLng]           = useState<number | undefined>();
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
@@ -57,15 +69,41 @@ const AddressesPage = () => {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user?.id]);
+  const loadZones = useCallback(async () => {
+    setZonesLoading(true);
+    const z = await fetchActiveCoverageZones();
+    setCoverageZones(z);
+    setZonesLoading(false);
+    return z;
+  }, []);
 
-  // Auto-open the add-address form for new users
+  useEffect(() => { load(); }, [user?.id]);
+  useEffect(() => { loadZones(); }, []);
+
   useEffect(() => {
     if (isWelcome && !loading) {
       resetForm();
       setShowForm(true);
     }
   }, [isWelcome, loading]);
+
+  // When map pin changes → auto-detect zone
+  const handleLocationSelect = useCallback((lat: number, lng: number) => {
+    setFormLat(lat);
+    setFormLng(lng);
+
+    const hasGeo = coverageZones.some((z) => z.center_lat != null);
+    if (!hasGeo) { setOutsideZone(false); return; }
+
+    const found = findZoneForLocation(lat, lng, coverageZones);
+    if (found) {
+      setFormCity(found.zone_name);
+      setOutsideZone(false);
+      toast({ title: `📍 تم تحديد المدينة تلقائياً: ${found.zone_name}` });
+    } else {
+      setOutsideZone(true);
+    }
+  }, [coverageZones, toast]);
 
   const handlePhoneSourceChange = (val: string) => {
     setPhoneSource(val);
@@ -79,7 +117,7 @@ const AddressesPage = () => {
     setFormBuilding(""); setFormLandmark(""); setFormDefault(false);
     setFormPhone(""); setPhoneSource("primary");
     setFormLat(undefined); setFormLng(undefined);
-    setEditingId(null);
+    setEditingId(null); setOutsideZone(false);
   };
 
   const openEdit = (addr: any) => {
@@ -95,12 +133,13 @@ const AddressesPage = () => {
     setPhoneSource(addr.phone ? "custom" : "primary");
     setFormLat(addr.latitude ?? undefined);
     setFormLng(addr.longitude ?? undefined);
+    setOutsideZone(false);
     setShowForm(true);
   };
 
-  const buildFullAddress = () => {
-    return [formCity, formDistrict, formStreet, formBuilding && `مبنى ${formBuilding}`].filter(Boolean).join("، ");
-  };
+  const buildFullAddress = () =>
+    [formCity, formDistrict, formStreet, formBuilding && `مبنى ${formBuilding}`]
+      .filter(Boolean).join("، ");
 
   const handleAdd = async () => {
     if (!user || !formName.trim() || !formCity.trim()) {
@@ -115,41 +154,39 @@ const AddressesPage = () => {
     try {
       if (editingId) {
         await updateAddress(editingId, user.id, {
-          address_name: formName,
-          full_address: buildFullAddress(),
-          city: formCity,
-          district: formDistrict || null,
-          street: formStreet || null,
+          address_name:    formName,
+          full_address:    buildFullAddress(),
+          city:            formCity,
+          district:        formDistrict || null,
+          street:          formStreet || null,
           building_number: formBuilding || null,
-          landmark: formLandmark || null,
-          is_default: formDefault,
-          phone: formPhone || null,
-          latitude: formLat ?? null,
-          longitude: formLng ?? null,
+          landmark:        formLandmark || null,
+          is_default:      formDefault,
+          phone:           formPhone || null,
+          latitude:        formLat ?? null,
+          longitude:       formLng ?? null,
         });
         toast({ title: "✅ تم تحديث العنوان بنجاح" });
       } else {
         await createAddress({
-          customer_id: user.id,
-          address_name: formName,
-          full_address: buildFullAddress(),
-          city: formCity,
-          district: formDistrict || undefined,
-          street: formStreet || undefined,
+          customer_id:     user.id,
+          address_name:    formName,
+          full_address:    buildFullAddress(),
+          city:            formCity,
+          district:        formDistrict || undefined,
+          street:          formStreet || undefined,
           building_number: formBuilding || undefined,
-          landmark: formLandmark || undefined,
-          is_default: formDefault,
-          phone: formPhone || undefined,
-          latitude: formLat,
-          longitude: formLng,
+          landmark:        formLandmark || undefined,
+          is_default:      formDefault,
+          phone:           formPhone || undefined,
+          latitude:        formLat,
+          longitude:       formLng,
         });
         toast({ title: "✅ تم إضافة العنوان بنجاح" });
       }
       setShowForm(false);
       resetForm();
-      // Always sync location to localStorage so restaurant filter updates immediately
-      if (formCity) localStorage.setItem("wasal_selected_city", formCity);
-      localStorage.setItem("wasal_selected_area", formDistrict || "");
+      if (formCity) localStorage.setItem(SELECTED_CITY_KEY, formCity);
       if (isWelcome) {
         toast({ title: "مرحباً بك في وصل! 🎉", description: "يمكنك الآن البدء بالطلب" });
         navigate("/");
@@ -174,12 +211,14 @@ const AddressesPage = () => {
     }
   };
 
+  // Cities list: from active zones, fallback to empty
+  const cityOptions = coverageZones.map((z) => z.zone_name);
+
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         {!isWelcome && <BackButton />}
 
-        {/* Welcome Banner for new users */}
         {isWelcome && (
           <div className="mb-6 rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-white shadow-lg">
             <div className="flex items-center gap-3 mb-2">
@@ -204,12 +243,16 @@ const AddressesPage = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
+          <div className="flex justify-center py-12">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+          </div>
         ) : addresses.length === 0 ? (
-          <Card><CardContent className="p-8 text-center text-muted-foreground">
-            <MapPin className="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
-            لا توجد عناوين محفوظة
-          </CardContent></Card>
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">
+              <MapPin className="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
+              لا توجد عناوين محفوظة
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-3">
             {addresses.map((addr) => (
@@ -222,11 +265,19 @@ const AddressesPage = () => {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-foreground flex items-center gap-1.5">
                         {addr.address_name}
-                        {addr.is_default && <span className="inline-flex items-center gap-0.5 text-xs bg-secondary/20 text-secondary px-1.5 py-0.5 rounded-full"><Star className="w-3 h-3 fill-secondary" /> افتراضي</span>}
+                        {addr.is_default && (
+                          <span className="inline-flex items-center gap-0.5 text-xs bg-secondary/20 text-secondary px-1.5 py-0.5 rounded-full">
+                            <Star className="w-3 h-3 fill-secondary" /> افتراضي
+                          </span>
+                        )}
                       </p>
                       <p className="text-sm text-muted-foreground mt-0.5">{addr.full_address}</p>
                       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
-                        {addr.city && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Building2 className="w-3 h-3" />{addr.city}</span>}
+                        {addr.city && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                            <Building2 className="w-3 h-3" />{addr.city}
+                          </span>
+                        )}
                         {addr.district && <span className="text-xs text-muted-foreground">{addr.district}</span>}
                       </div>
                       {addr.phone && (
@@ -242,10 +293,18 @@ const AddressesPage = () => {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(addr)} className="text-primary hover:text-primary hover:bg-primary/10" aria-label="تعديل">
+                    <Button
+                      variant="ghost" size="icon"
+                      onClick={() => openEdit(addr)}
+                      className="text-primary hover:text-primary hover:bg-primary/10"
+                    >
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(addr.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10" aria-label="حذف">
+                    <Button
+                      variant="ghost" size="icon"
+                      onClick={() => setDeleteConfirm(addr.id)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -255,8 +314,11 @@ const AddressesPage = () => {
           </div>
         )}
 
-        {/* Add Address Dialog */}
-        <Dialog open={showForm} onOpenChange={isWelcome ? undefined : (v) => { setShowForm(v); if (!v) resetForm(); }}>
+        {/* Add / Edit Dialog */}
+        <Dialog
+          open={showForm}
+          onOpenChange={isWelcome ? undefined : (v) => { setShowForm(v); if (!v) resetForm(); }}
+        >
           <DialogContent
             dir="rtl"
             className="max-h-[90vh] overflow-y-auto sm:max-w-lg"
@@ -268,25 +330,52 @@ const AddressesPage = () => {
                 {editingId ? <Pencil className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-primary" />}
                 {isWelcome ? "أضف عنوانك الأول للمتابعة" : editingId ? "تعديل العنوان" : "إضافة عنوان جديد"}
               </DialogTitle>
-              {isWelcome && (
-                <p className="text-sm text-muted-foreground mt-1">هذه الخطوة مطلوبة لتتمكن من استخدام التطبيق</p>
-              )}
             </DialogHeader>
+
             <div className="space-y-4">
+              {/* Name */}
               <div>
                 <Label>اسم العنوان <span className="text-destructive">*</span></Label>
-                <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="المنزل، العمل، بيت العائلة..." className="mt-1" />
+                <Input
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="المنزل، العمل، بيت العائلة..."
+                  className="mt-1"
+                />
               </div>
 
-              {/* City */}
+              {/* City — dynamic from coverage zones */}
               <div>
                 <Label>المدينة <span className="text-destructive">*</span></Label>
-                <Select value={formCity} onValueChange={setFormCity}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
-                  <SelectContent>
-                    {YEMEN_CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                {zonesLoading ? (
+                  <div className="flex items-center gap-2 mt-1 h-10 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" /> جاري تحميل المناطق...
+                  </div>
+                ) : cityOptions.length > 0 ? (
+                  <Select value={formCity} onValueChange={setFormCity}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="اختر المدينة / المنطقة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cityOptions.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={formCity}
+                    onChange={(e) => setFormCity(e.target.value)}
+                    placeholder="أدخل اسم المدينة"
+                    className="mt-1"
+                  />
+                )}
+                {outsideZone && (
+                  <div className="flex items-center gap-1.5 mt-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 rounded-lg">
+                    <WifiOff className="w-3.5 h-3.5 shrink-0" />
+                    الموقع خارج مناطق التغطية الحالية — يمكنك اختيار أقرب منطقة يدوياً
+                  </div>
+                )}
               </div>
 
               {/* District */}
@@ -301,7 +390,7 @@ const AddressesPage = () => {
                 <Input value={formStreet} onChange={(e) => setFormStreet(e.target.value)} placeholder="اسم أو رقم الشارع" className="mt-1" />
               </div>
 
-              {/* Building number */}
+              {/* Building */}
               <div>
                 <Label className="flex items-center gap-1"><Building2 className="w-3 h-3 text-primary" /> رقم المبنى</Label>
                 <Input value={formBuilding} onChange={(e) => setFormBuilding(e.target.value)} placeholder="رقم المبنى أو الشقة" className="mt-1" />
@@ -312,8 +401,8 @@ const AddressesPage = () => {
                 <Label className="flex items-center gap-1"><Navigation className="w-3 h-3 text-primary" /> أقرب معلم</Label>
                 <Input value={formLandmark} onChange={(e) => setFormLandmark(e.target.value)} placeholder="بجوار مسجد..., مقابل..." className="mt-1" />
               </div>
-              
-              {/* Phone selector */}
+
+              {/* Phone */}
               <div>
                 <Label className="flex items-center gap-1"><Phone className="w-3 h-3 text-primary" /> رقم الهاتف للعنوان</Label>
                 <Select value={phoneSource} onValueChange={handlePhoneSourceChange}>
@@ -336,41 +425,76 @@ const AddressesPage = () => {
                     />
                   </div>
                 )}
-                {formPhone && getPhoneError(formPhone) && <p className="text-xs text-destructive mt-1">{getPhoneError(formPhone)}</p>}
+                {formPhone && getPhoneError(formPhone) && (
+                  <p className="text-xs text-destructive mt-1">{getPhoneError(formPhone)}</p>
+                )}
               </div>
 
-              {/* Map */}
+              {/* Map — auto-detects city on pin */}
               <div>
-                <Label className="flex items-center gap-1"><Map className="w-3 h-3 text-primary" /> الموقع على الخريطة</Label>
+                <Label className="flex items-center gap-1">
+                  <Map className="w-3 h-3 text-primary" /> الموقع على الخريطة
+                  <span className="text-xs text-muted-foreground font-normal mr-1">
+                    (يُملأ حقل المدينة تلقائياً)
+                  </span>
+                </Label>
                 <div className="mt-1">
-                  <MapPicker lat={formLat} lng={formLng} onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }} height="200px" />
+                  <MapPicker
+                    lat={formLat}
+                    lng={formLng}
+                    onLocationSelect={handleLocationSelect}
+                    height="200px"
+                  />
                 </div>
               </div>
 
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={formDefault} onChange={(e) => setFormDefault(e.target.checked)} className="accent-primary w-4 h-4" />
+                <input
+                  type="checkbox"
+                  checked={formDefault}
+                  onChange={(e) => setFormDefault(e.target.checked)}
+                  className="accent-primary w-4 h-4"
+                />
                 <Star className="w-4 h-4 text-secondary" /> تعيين كعنوان افتراضي
               </label>
             </div>
+
             <DialogFooter className="gap-2">
               {!isWelcome && (
                 <Button variant="outline" onClick={() => { setShowForm(false); resetForm(); }}>إلغاء</Button>
               )}
-              <Button onClick={handleAdd} disabled={saving} className={`gap-1 ${isWelcome ? "w-full" : ""}`}>
-                <MapPin className="w-4 h-4" /> {saving ? "جاري الحفظ..." : isWelcome ? "حفظ والمتابعة →" : editingId ? "تحديث العنوان" : "حفظ العنوان"}
+              <Button
+                onClick={handleAdd}
+                disabled={saving}
+                className={`gap-1 ${isWelcome ? "w-full" : ""}`}
+              >
+                {saving
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> جاري الحفظ...</>
+                  : <><MapPin className="w-4 h-4" /> {isWelcome ? "حفظ والمتابعة →" : editingId ? "تحديث العنوان" : "حفظ العنوان"}</>
+                }
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirm Dialog */}
+        {/* Delete Confirm */}
         <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
           <DialogContent dir="rtl">
-            <DialogHeader><DialogTitle className="text-destructive flex items-center gap-2"><Trash2 className="w-5 h-5" /> تأكيد الحذف</DialogTitle></DialogHeader>
-            <p className="text-muted-foreground">هل أنت متأكد من حذف هذا العنوان؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            <DialogHeader>
+              <DialogTitle className="text-destructive flex items-center gap-2">
+                <Trash2 className="w-5 h-5" /> تأكيد الحذف
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-muted-foreground">هل أنت متأكد من حذف هذا العنوان؟</p>
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => setDeleteConfirm(null)}>إلغاء</Button>
-              <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm)} className="gap-1"><Trash2 className="w-4 h-4" /> حذف</Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
+                className="gap-1"
+              >
+                <Trash2 className="w-4 h-4" /> حذف
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
