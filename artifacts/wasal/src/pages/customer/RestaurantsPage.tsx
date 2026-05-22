@@ -90,7 +90,7 @@ const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
     >
       <div className="flex items-stretch gap-3 p-2.5">
         {/* Image RIGHT */}
-        <div className="relative w-[88px] h-[88px] rounded-xl overflow-hidden bg-muted shrink-0">
+        <div className="relative w-[100px] h-[100px] rounded-xl overflow-hidden bg-muted shrink-0">
           <img
             src={heroSrc}
             alt={r.name_ar}
@@ -179,7 +179,7 @@ const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
 const SkeletonCard = () => (
   <div className="bg-card rounded-2xl border border-border/40 p-2.5 animate-pulse">
     <div className="flex gap-3">
-      <div className="w-[88px] h-[88px] rounded-xl bg-muted shrink-0" />
+      <div className="w-[100px] h-[100px] rounded-xl bg-muted shrink-0" />
       <div className="flex-1 space-y-2 py-1">
         <div className="h-4 bg-muted rounded w-3/4" />
         <div className="h-3 bg-muted rounded w-1/2" />
@@ -347,16 +347,16 @@ const RestaurantsPage = () => {
                   }
                 }}
                 className="relative shrink-0 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
-                style={{ width: 145, height: 88 }}
+                style={{ width: 190, height: 115 }}
               >
                 <img src={offer.image_url} alt={offer.title || ""} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                 {offer.badge_text && (
                   <Badge className="absolute top-2 right-2 bg-red-500 text-white border-0 shadow text-[10px] font-bold px-1.5 py-0.5">{offer.badge_text}</Badge>
                 )}
-                <div className="absolute bottom-0 right-0 left-0 p-2 text-white text-right">
-                  {offer.title && <p className="font-black text-xs leading-tight drop-shadow">{offer.title}</p>}
-                  {offer.subtitle && <p className="text-[10px] text-white/80 mt-0.5 drop-shadow">{offer.subtitle}</p>}
+                <div className="absolute bottom-0 right-0 left-0 p-2.5 text-white text-right">
+                  {offer.title && <p className="font-black text-[13px] leading-snug drop-shadow">{offer.title}</p>}
+                  {offer.subtitle && <p className="text-[11px] text-white/85 mt-1 drop-shadow leading-tight">{offer.subtitle}</p>}
                 </div>
               </button>
             ))}

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Search, Edit, Trash2, Award, Link2, Copy, ExternalLink, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getRiders, createRider, updateRider, deleteRider, createRiderReward } from "@/lib/deliveryApi";
+import { getRiders, updateRider, deleteRider, createRiderReward } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import type { Rider } from "@/types/delivery.types";
 
@@ -23,7 +23,6 @@ const DeliveryRiders = () => {
   const [editItem, setEditItem] = useState<Rider | null>(null);
   const [showReward, setShowReward] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [rewardRider, setRewardRider] = useState("");
   const [rewardForm, setRewardForm] = useState({ amount: 0, description: "", type: "bonus" });
@@ -31,6 +30,7 @@ const DeliveryRiders = () => {
     full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "",
     commission_type: "percentage", commission_value: 10,
   });
+  const [newRiderEmail, setNewRiderEmail] = useState("");
 
   const load = async () => {
     if (!user) return;
@@ -45,30 +45,27 @@ const DeliveryRiders = () => {
   useEffect(() => { load(); }, [user]);
 
   const handleSave = async () => {
-    if (!user || !form.full_name.trim() || !form.phone.trim()) return;
+    if (!user) return;
     try {
       if (editItem) {
+        // Edit mode — update existing rider details
         await updateRider(editItem.id, form);
         toast({ title: "تم التحديث" });
         setShowAdd(false); setEditItem(null);
         setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 });
         load();
       } else {
-        if (!form.email.trim()) {
-          toast({ title: "البريد الإلكتروني مطلوب", description: "نحتاج البريد لإنشاء رابط دعوة يربط المندوب بشركتك عند تسجيل الدخول.", variant: "destructive" });
+        // New rider — only email is needed; generate invite link
+        const email = newRiderEmail.trim();
+        if (!email || !email.includes("@")) {
+          toast({ title: "البريد الإلكتروني غير صالح", description: "أدخل بريد إلكتروني صحيح للمندوب.", variant: "destructive" });
           return;
         }
-        // 1. Create the rider placeholder row
-        await createRider({ ...form, delivery_company_id: user.id, is_approved: false } as any);
-
-        // 2. Create an invitation token tied to that email so when the
-        //    driver signs up via the link, InvitePage links them back to
-        //    this rider row (matched on company_id + email).
         const token = crypto.randomUUID();
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7);
         const { error: tokErr } = await supabase.from("invitation_tokens").insert({
-          email: form.email.trim(),
+          email,
           role: "delivery_driver",
           token,
           created_by: user.id,
@@ -77,12 +74,12 @@ const DeliveryRiders = () => {
         if (tokErr) throw tokErr;
 
         const link = `${window.location.origin}/invite/${token}`;
-        setShowAdd(false); setEditItem(null);
-        setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 });
+        setShowAdd(false);
+        setNewRiderEmail("");
         setInviteLink(link);
         setCopied(false);
         try { await navigator.clipboard?.writeText(link); setCopied(true); } catch { /* ignore */ }
-        toast({ title: "تمت إضافة المندوب", description: "أرسل رابط الدعوة للمندوب لإكمال تسجيله." });
+        toast({ title: "تم إنشاء رابط الدعوة", description: "أرسل الرابط للمندوب لإكمال تسجيله." });
         load();
       }
     } catch (err: any) {
@@ -109,36 +106,6 @@ const DeliveryRiders = () => {
       setShowReward(false);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const handleGenerateInvite = async () => {
-    if (!user || generating) return;
-    setGenerating(true);
-    setCopied(false);
-    try {
-      const token = crypto.randomUUID();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-      const { error } = await supabase.from("invitation_tokens").insert({
-        email: `rider-${Date.now()}@invite.local`,
-        role: "delivery_driver",
-        token,
-        created_by: user.id,
-        expires_at: expiresAt.toISOString(),
-      });
-      if (error) throw error;
-      const link = `${window.location.origin}/invite/${token}`;
-      setInviteLink(link);
-      // Try to copy automatically (best-effort; may fail on non-https/iframe)
-      try {
-        await navigator.clipboard?.writeText(link);
-        setCopied(true);
-      } catch { /* ignore – user can copy manually from the dialog */ }
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      setGenerating(false);
     }
   };
 
@@ -169,10 +136,7 @@ const DeliveryRiders = () => {
         <h2 className="text-xl md:text-2xl font-bold">إدارة المندوبين</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowReward(true)} className="min-h-[44px]"><Award className="w-4 h-4 ml-1" /> مكافأة</Button>
-          <Button size="sm" variant="outline" onClick={handleGenerateInvite} disabled={generating} className="min-h-[44px]">
-            <Link2 className="w-4 h-4 ml-1" /> {generating ? "جاري الإنشاء..." : "رابط دعوة مندوب"}
-          </Button>
-          <Button size="sm" onClick={() => { setEditItem(null); setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 }); setShowAdd(true); }} className="min-h-[44px]">
+          <Button size="sm" onClick={() => { setEditItem(null); setNewRiderEmail(""); setForm({ full_name: "", phone: "", email: "", vehicle_type: "motorcycle", vehicle_plate: "", id_number: "", commission_type: "percentage", commission_value: 10 }); setShowAdd(true); }} className="min-h-[44px]">
             <Plus className="w-4 h-4 ml-1" /> إضافة مندوب
           </Button>
         </div>
@@ -261,37 +225,61 @@ const DeliveryRiders = () => {
       <Dialog open={showAdd} onOpenChange={v => { setShowAdd(v); if (!v) setEditItem(null); }}>
         <DialogContent dir="rtl">
           <DialogHeader><DialogTitle>{editItem ? "تعديل مندوب" : "إضافة مندوب جديد"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>الاسم الكامل *</Label><Input value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} /></div>
-            <div><Label>رقم الهاتف *</Label><Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></div>
-            <div><Label>البريد الإلكتروني</Label><Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
-            <div><Label>نوع المركبة</Label>
-              <Select value={form.vehicle_type} onValueChange={v => setForm({...form, vehicle_type: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="motorcycle">دراجة نارية</SelectItem>
-                  <SelectItem value="bicycle">دراجة</SelectItem>
-                  <SelectItem value="car">سيارة</SelectItem>
-                  <SelectItem value="foot">مشي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label>رقم اللوحة</Label><Input value={form.vehicle_plate} onChange={e => setForm({...form, vehicle_plate: e.target.value})} /></div>
-            <div><Label>رقم الهوية</Label><Input value={form.id_number} onChange={e => setForm({...form, id_number: e.target.value})} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>نوع العمولة</Label>
-                <Select value={form.commission_type} onValueChange={v => setForm({...form, commission_type: v})}>
+
+          {editItem ? (
+            /* ── Edit mode: full fields ── */
+            <div className="space-y-3">
+              <div><Label>الاسم الكامل *</Label><Input value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} /></div>
+              <div><Label>رقم الهاتف *</Label><Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></div>
+              <div><Label>البريد الإلكتروني</Label><Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
+              <div><Label>نوع المركبة</Label>
+                <Select value={form.vehicle_type} onValueChange={v => setForm({...form, vehicle_type: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="percentage">نسبة %</SelectItem>
-                    <SelectItem value="fixed">مبلغ ثابت</SelectItem>
+                    <SelectItem value="motorcycle">دراجة نارية</SelectItem>
+                    <SelectItem value="bicycle">دراجة</SelectItem>
+                    <SelectItem value="car">سيارة</SelectItem>
+                    <SelectItem value="foot">مشي</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>قيمة العمولة</Label><Input type="number" value={form.commission_value} onChange={e => setForm({...form, commission_value: Number(e.target.value)})} /></div>
+              <div><Label>رقم اللوحة</Label><Input value={form.vehicle_plate} onChange={e => setForm({...form, vehicle_plate: e.target.value})} /></div>
+              <div><Label>رقم الهوية</Label><Input value={form.id_number} onChange={e => setForm({...form, id_number: e.target.value})} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>نوع العمولة</Label>
+                  <Select value={form.commission_type} onValueChange={v => setForm({...form, commission_type: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">نسبة %</SelectItem>
+                      <SelectItem value="fixed">مبلغ ثابت</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>قيمة العمولة</Label><Input type="number" value={form.commission_value} onChange={e => setForm({...form, commission_value: Number(e.target.value)})} /></div>
+              </div>
             </div>
-          </div>
-          <DialogFooter><Button onClick={handleSave} className="min-h-[44px]">{editItem ? "تحديث" : "إضافة"}</Button></DialogFooter>
+          ) : (
+            /* ── Add mode: email only — invite link will be sent ── */
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                أدخل البريد الإلكتروني للمندوب. سيُنشأ رابط دعوة يُرسَل له لإكمال تسجيله وربطه بشركتك تلقائياً.
+              </p>
+              <div>
+                <Label>البريد الإلكتروني للمندوب <span className="text-destructive">*</span></Label>
+                <Input
+                  type="email"
+                  dir="ltr"
+                  className="mt-1 h-11"
+                  placeholder="example@email.com"
+                  value={newRiderEmail}
+                  onChange={e => setNewRiderEmail(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter><Button onClick={handleSave} className="min-h-[44px]">{editItem ? "تحديث" : "إنشاء رابط الدعوة"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
