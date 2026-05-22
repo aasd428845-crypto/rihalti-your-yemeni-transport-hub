@@ -29,7 +29,7 @@ export async function fetchActiveCoverageZones(): Promise<CoverageZone[]> {
     .select("id, zone_name, delivery_fee, estimated_time, is_active, center_lat, center_lng, radius_km")
     .eq("is_active", true)
     .order("zone_name");
-  return (data || []) as CoverageZone[];
+  return (data || []) as unknown as CoverageZone[];
 }
 
 export function findZoneForLocation(

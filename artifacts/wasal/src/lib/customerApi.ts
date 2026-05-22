@@ -24,6 +24,7 @@ export const fetchAddresses = async (customerId: string) => {
 
 export const createAddress = async (address: {
   customer_id: string;
+  customer_name?: string;
   address_name: string;
   full_address: string;
   latitude?: number;
@@ -42,7 +43,7 @@ export const createAddress = async (address: {
       .update({ is_default: false })
       .eq("customer_id", address.customer_id);
   }
-  const { data, error } = await supabase.from("customer_addresses").insert(address).select().single();
+  const { data, error } = await supabase.from("customer_addresses").insert(address as any).select().single();
   if (error) throw error;
   return data;
 };
@@ -56,6 +57,7 @@ export const updateAddress = async (
   id: string,
   customerId: string,
   updates: {
+    customer_name?: string;
     address_name?: string;
     full_address?: string;
     latitude?: number | null;
@@ -78,7 +80,7 @@ export const updateAddress = async (
   }
   const { data, error } = await supabase
     .from("customer_addresses")
-    .update(updates)
+    .update(updates as any)
     .eq("id", id)
     .select()
     .single();

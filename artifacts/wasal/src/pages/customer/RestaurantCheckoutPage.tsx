@@ -149,7 +149,7 @@ const RestaurantCheckoutPage = () => {
         customer_id: user.id,
         restaurant_id: restaurantId,
         delivery_company_id: restaurant.delivery_company_id,
-        customer_name: profile?.full_name || "عميل",
+        customer_name: (selectedAddress as any)?.customer_name || profile?.full_name || "عميل",
         customer_phone: phone,
         customer_address: fullAddress,
         items: cart,
