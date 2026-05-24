@@ -289,49 +289,46 @@ const BannerCarousel = () => {
   );
 };
 
-// ─── Restaurant Card ─────────────────────────────────────────────────────────
+// ─── Restaurant Card (horizontal, matches RestaurantsPage style) ──────────────
 const RestaurantCard = ({ r }: { r: any }) => {
   const navigate = useNavigate();
+  const heroSrc = r.cover_image || r.logo_url;
+  const ratingNum = Number(r.rating || 0);
   return (
     <button
       onClick={() => navigate(`/restaurants/${r.id}`)}
-      className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-right w-full"
-      style={{ height: 150 }}
+      className="w-full bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:border-primary/30 transition-all text-right active:scale-[0.99]"
     >
-      {/* Full image */}
-      {r.cover_image || r.logo_url ? (
-        <img src={r.cover_image || r.logo_url} alt={r.name_ar} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-      ) : (
-        <div className="absolute inset-0 bg-muted flex items-center justify-center text-4xl">🏪</div>
-      )}
-      {/* Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
-
-      {/* Featured badge */}
-      {r.is_featured && (
-        <Badge className="absolute top-2 right-2 bg-amber-500 hover:bg-amber-500 text-white text-[10px] font-bold border-0 shadow">
-          ⭐ مميز
-        </Badge>
-      )}
-
-      {/* Text overlay */}
-      <div className="absolute bottom-0 right-0 left-0 p-3 text-right">
-        <p className="font-bold text-sm text-white leading-tight line-clamp-1 drop-shadow mb-1">
-          {r.name_ar}
-        </p>
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1 text-[11px] text-white/80">
-            <Clock className="w-3 h-3" />
-            {r.estimated_delivery_time || 30} د
-          </span>
-          <span className="flex items-center gap-1 text-[11px] font-bold text-white">
-            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-            {(r.rating ?? 0).toFixed(1)}
-          </span>
+      <div className="flex items-stretch gap-3 p-2.5">
+        {/* Image */}
+        <div className="relative w-[88px] h-[88px] rounded-xl overflow-hidden bg-muted shrink-0">
+          {heroSrc ? (
+            <img src={heroSrc} alt={r.name_ar} className="w-full h-full object-cover" loading="lazy" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-3xl bg-muted">🏪</div>
+          )}
+          {r.is_featured && (
+            <span className="absolute top-1 right-1 bg-amber-500 text-white text-[9px] font-black rounded-md px-1 py-0.5 shadow">مميز</span>
+          )}
         </div>
-        <p className="text-[10px] text-white/70 mt-0.5">
-          توصيل: {r.delivery_fee ? `${Number(r.delivery_fee).toLocaleString("ar-YE")} ر.ي` : "مجاني"}
-        </p>
+        {/* Info */}
+        <div className="flex-1 min-w-0 flex flex-col py-0.5">
+          <p className="font-black text-[14px] leading-tight text-foreground line-clamp-1">{r.name_ar}</p>
+          <div className="mt-auto flex items-center gap-3 text-[11px] text-muted-foreground pt-2">
+            <span className="flex items-center gap-0.5">
+              <Clock className="w-3 h-3" />
+              {r.estimated_delivery_time || 30} د
+            </span>
+            <span className="flex items-center gap-0.5">
+              <Tag className="w-3 h-3" />
+              {r.delivery_fee ? `${Number(r.delivery_fee).toLocaleString("ar-YE")} ر.ي` : <span className="text-emerald-600 font-bold">مجاني</span>}
+            </span>
+            <span className="mr-auto inline-flex items-center gap-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-700 font-black rounded-md px-1.5 py-0.5">
+              <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+              {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+            </span>
+          </div>
+        </div>
       </div>
     </button>
   );
@@ -364,7 +361,7 @@ const NearbyRestaurants = ({ city }: { city: string }) => {
         title="مطاعم بالقرب منك"
         onMore={() => navigate("/restaurants?tab=restaurants")}
       />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="flex flex-col gap-2.5">
         {list.map((r) => (
           <RestaurantCard key={r.id} r={r} />
         ))}
@@ -374,73 +371,85 @@ const NearbyRestaurants = ({ city }: { city: string }) => {
 };
 
 // ─── Offers section ──────────────────────────────────────────────────────────
+const FALLBACK_OFFERS = [
+  { id: "fo1", title: "خصم 20% على أول طلب", description: "لعملاء وصل الجدد", discount_value: 20, discount_type: "percentage", promo_code: "WASAL20", restaurant_id: null },
+  { id: "fo2", title: "توصيل مجاني", description: "عند الطلب فوق 2000 ر.ي", discount_value: null, discount_type: null, promo_code: null, restaurant_id: null },
+  { id: "fo3", title: "وجبتك بنصف السعر", description: "على الطلب الثاني في اليوم", discount_value: 50, discount_type: "percentage", promo_code: null, restaurant_id: null },
+];
+
+const palette = [
+  "from-emerald-500 to-teal-600",
+  "from-orange-500 to-rose-500",
+  "from-violet-500 to-fuchsia-600",
+  "from-blue-500 to-cyan-500",
+  "from-amber-500 to-orange-500",
+  "from-pink-500 to-rose-500",
+];
+
 const OffersSection = () => {
   const navigate = useNavigate();
-  const [offers, setOffers] = useState<any[]>([]);
+  const [offers, setOffers] = useState<any[] | null>(null);
 
   useEffect(() => {
     const today = new Date().toISOString();
     supabase
       .from("promotions")
-      .select(
-        "id, title, description, discount_value, discount_type, promo_code, restaurant_id, end_date",
-      )
+      .select("id, title, description, discount_value, discount_type, promo_code, restaurant_id, end_date")
       .eq("is_active", true)
       .or(`end_date.is.null,end_date.gte.${today}`)
       .order("created_at", { ascending: false })
       .limit(6)
-      .then(({ data }) => setOffers(data || []));
+      .then(({ data }) => setOffers(data && data.length > 0 ? data : FALLBACK_OFFERS));
   }, []);
 
-  if (offers.length === 0) return null;
-
-  const palette = [
-    "from-emerald-500 to-emerald-600",
-    "from-orange-500 to-rose-500",
-    "from-violet-500 to-fuchsia-500",
-    "from-blue-500 to-cyan-500",
-    "from-amber-500 to-orange-500",
-    "from-pink-500 to-rose-500",
-  ];
+  const list = offers ?? [];
+  if (list.length === 0) return null;
 
   return (
     <div className="mb-6">
-      <SectionHeader title="عروض وخصومات" icon={Tag} />
+      <SectionHeader title="عروض وخصومات" icon={Tag} onMore={() => navigate("/restaurants")} />
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-        {offers.map((o, i) => (
-          <button
-            key={o.id}
-            onClick={() =>
-              o.restaurant_id
-                ? navigate(`/restaurants/${o.restaurant_id}`)
-                : navigate("/restaurants")
-            }
-            className={`relative min-w-[260px] w-[260px] rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-right shrink-0 bg-gradient-to-br ${palette[i % palette.length]} text-white p-4`}
-            style={{ minHeight: 110 }}
-          >
-            <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full bg-white/15" />
-            <div className="absolute -bottom-8 -right-2 w-20 h-20 rounded-full bg-white/10" />
-            <Badge className="bg-white/25 text-white border-0 text-[10px] font-bold px-2 py-0.5 mb-2 backdrop-blur-sm">
-              عرض خاص
-            </Badge>
-            <p className="font-black text-base leading-tight line-clamp-1 mb-1 drop-shadow">
-              {o.title}
-            </p>
-            {o.description && (
-              <p className="text-[11px] opacity-90 line-clamp-2 mb-2">
-                {o.description}
-              </p>
-            )}
-            {o.discount_value ? (
-              <p className="text-xs font-bold">
-                {o.discount_type === "percentage"
-                  ? `خصم ${o.discount_value}%`
-                  : `خصم ${Number(o.discount_value).toLocaleString("ar-YE")} ر.ي`}
-                {o.promo_code ? ` • كود: ${o.promo_code}` : ""}
-              </p>
-            ) : null}
-          </button>
-        ))}
+        {list.map((o, i) => {
+          const discountLabel = o.discount_value
+            ? (o.discount_type === "percentage"
+                ? `خصم ${o.discount_value}%`
+                : `خصم ${Number(o.discount_value).toLocaleString("ar-YE")} ر.ي`)
+            : null;
+          return (
+            <button
+              key={o.id}
+              onClick={() => o.restaurant_id ? navigate(`/restaurants/${o.restaurant_id}`) : navigate("/restaurants")}
+              className={`relative min-w-[230px] w-[230px] rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-right shrink-0 bg-gradient-to-br ${palette[i % palette.length]} text-white p-4 flex flex-col justify-between`}
+              style={{ minHeight: 105 }}
+            >
+              <div className="absolute -top-5 -left-5 w-20 h-20 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -bottom-6 -right-3 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
+              <div className="relative z-10 space-y-1">
+                <Badge className="bg-white/25 text-white border-0 text-[10px] font-bold px-2 py-0.5 backdrop-blur-sm w-fit">
+                  عرض خاص
+                </Badge>
+                <p className="font-black text-[15px] leading-snug line-clamp-1 drop-shadow">{o.title}</p>
+                {o.description && (
+                  <p className="text-[11px] text-white/90 line-clamp-1">{o.description}</p>
+                )}
+              </div>
+              {(discountLabel || o.promo_code) && (
+                <div className="relative z-10 mt-2 flex items-center gap-2 flex-wrap">
+                  {discountLabel && (
+                    <span className="bg-white/20 text-white text-[11px] font-black px-2.5 py-0.5 rounded-full backdrop-blur-sm">
+                      {discountLabel}
+                    </span>
+                  )}
+                  {o.promo_code && (
+                    <span className="bg-white/15 text-white text-[10px] font-mono px-2 py-0.5 rounded-full border border-white/30 tracking-wide">
+                      {o.promo_code}
+                    </span>
+                  )}
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
