@@ -443,18 +443,20 @@ const RestaurantMenuPage = () => {
                   <button
                     key={`pop-${item.id}`}
                     onClick={() => openItemDetail(item)}
-                    className="min-w-[130px] w-[130px] bg-card rounded-xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md transition shrink-0 text-right"
+                    className="w-[110px] shrink-0 hover:-translate-y-0.5 transition-all text-center"
                   >
-                    <div className="relative w-full h-[88px] bg-muted">
+                    {/* صورة مدورة */}
+                    <div className="relative w-full h-[90px] rounded-xl bg-muted overflow-hidden shadow-sm">
                       {item.image_url
                         ? <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover" loading="lazy" />
                         : <div className="w-full h-full flex items-center justify-center text-2xl">🍽️</div>}
                     </div>
-                    <div className="p-2 space-y-1">
-                      <p className="font-bold text-[12px] leading-tight line-clamp-1">{item.name_ar}</p>
-                      <div className="flex items-center justify-between">
+                    {/* نص ممركز بدون خلفية */}
+                    <div className="pt-1.5 pb-1 space-y-0.5">
+                      <p className="font-bold text-[11px] leading-tight line-clamp-1">{item.name_ar}</p>
+                      <div className="flex items-center justify-center gap-2">
                         <span className="text-primary font-black text-[12px]">{popPrice} ر.ي</span>
-                        <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow">
+                        <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow shrink-0">
                           <Plus className="w-3.5 h-3.5" />
                         </span>
                       </div>
@@ -814,11 +816,11 @@ const MenuItemCard = ({
 
   return (
     <div
-      className="flex flex-col bg-card rounded-2xl overflow-hidden border border-border/30 shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer"
+      className="flex flex-col rounded-2xl overflow-hidden hover:shadow-md transition-all active:scale-[0.98] cursor-pointer"
       onClick={onOpen}
     >
-      {/* ── صورة مربعة ── */}
-      <div className="relative w-full aspect-square bg-muted overflow-hidden">
+      {/* ── صورة مربعة مدورة الحواف ── */}
+      <div className="relative w-full aspect-square bg-muted overflow-hidden rounded-2xl shadow-sm">
         {item.image_url
           ? <img src={item.image_url} alt={item.name_ar} loading="lazy" className="w-full h-full object-cover" />
           : <div className="w-full h-full flex items-center justify-center text-4xl">🍽️</div>}
@@ -834,25 +836,25 @@ const MenuItemCard = ({
           </span>
         )}
         {countdown && (
-          <span className="absolute bottom-2 left-2 inline-flex items-center gap-0.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-0.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm whitespace-nowrap">
             <Timer className="w-2 h-2 text-orange-300" />{countdown}
           </span>
         )}
       </div>
 
-      {/* ── معلومات الوجبة ── */}
-      <div className="p-2.5 flex flex-col flex-1 gap-1">
+      {/* ── معلومات الوجبة — نص ممركز بدون خلفية ── */}
+      <div className="pt-2 pb-1 flex flex-col flex-1 gap-1 text-center">
         <h3 className="font-bold text-[12px] leading-snug line-clamp-2 text-foreground">{item.name_ar}</h3>
 
         {promoScheduleActive && promoLabel && !hasDiscount && (
-          <span className="self-start text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
+          <span className="self-center text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
             🎁 {promoLabel}
           </span>
         )}
 
         {/* سعر + زر الإضافة */}
-        <div className="mt-auto pt-1 flex items-center justify-between gap-1">
-          <div className="flex flex-col leading-none">
+        <div className="mt-auto pt-1 flex items-center justify-center gap-2">
+          <div className="flex flex-col items-center leading-none">
             <span className="font-extrabold text-primary text-[13px]">{finalPrice} ر.ي</span>
             {hasDiscount && (
               <span className="text-[9px] text-muted-foreground line-through">{originalPrice} ر.ي</span>

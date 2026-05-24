@@ -112,16 +112,12 @@ const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
         </div>
 
         {/* ── معلومات المطعم ── */}
-        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+
           {/* الاسم */}
-          <div className="flex items-center gap-1.5">
-            <h3 className="flex-1 font-black text-[16px] leading-tight text-foreground line-clamp-1">
-              {r.name_ar}
-            </h3>
-            {r.is_featured && (
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            )}
-          </div>
+          <h3 className="font-black text-[15px] leading-tight text-foreground line-clamp-1">
+            {r.name_ar}
+          </h3>
 
           {/* التصنيف */}
           {Array.isArray(r.cuisine_type) && r.cuisine_type.length > 0 && (
@@ -130,32 +126,41 @@ const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
             </p>
           )}
 
-          {/* تحذيرات التغطية */}
+          {/* تحذير التغطية */}
           {isOutOfRange && (
             <div className="flex items-center gap-1 text-[10px] text-red-600 font-medium">
               <AlertTriangle className="w-2.5 h-2.5" />لا يوصل لمنطقتك
             </div>
           )}
 
-          {/* سطر: تقييم + وقت + توصيل */}
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 font-black rounded-lg px-1.5 py-0.5 shrink-0">
+          {/* سطر: تقييم + وقت التوصيل + رسوم */}
+          <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+            {/* تقييم */}
+            <span className="inline-flex items-center gap-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 font-black rounded-lg px-1.5 py-0.5 text-[11px] shrink-0">
               <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
               {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
             </span>
 
-            <span className={`flex items-center gap-0.5 font-semibold shrink-0 ${status.isOpen ? "text-emerald-600" : "text-red-500"}`}>
-              <Clock className="w-3 h-3" />
-              {status.subtext || (status.isOpen ? "مفتوح" : "مغلق")}
+            {/* وقت التوصيل */}
+            {r.estimated_delivery_time && (
+              <span className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground shrink-0">
+                <Clock className="w-3 h-3" />{r.estimated_delivery_time} د
+              </span>
+            )}
+
+            {/* رسوم التوصيل */}
+            <span className="inline-flex items-center gap-0.5 text-[11px] shrink-0">
+              <Truck className="w-3 h-3 text-muted-foreground" />
+              {r.price_per_km > 0
+                ? <span className="text-muted-foreground">{displayFee > 0 ? `${displayFee} ر.ي` : "بالمسافة"}</span>
+                : displayFee === 0
+                  ? <span className="text-emerald-600 font-bold">مجاني</span>
+                  : <span className="text-muted-foreground">{displayFee} ر.ي</span>}
             </span>
 
-            <span className="flex items-center gap-0.5 shrink-0">
-              <Truck className="w-3 h-3" />
-              {r.price_per_km > 0
-                ? (displayFee > 0 ? `${displayFee} ر.ي` : "يحسب بالمسافة")
-                : (displayFee === 0
-                    ? <span className="text-emerald-600 font-bold">مجاني</span>
-                    : `${displayFee} ر.ي`)}
+            {/* حالة الفتح */}
+            <span className={`text-[10px] font-bold shrink-0 ${isOpen ? "text-emerald-600" : "text-red-500"}`}>
+              {isOpen ? "مفتوح" : "مغلق"}
             </span>
           </div>
         </div>

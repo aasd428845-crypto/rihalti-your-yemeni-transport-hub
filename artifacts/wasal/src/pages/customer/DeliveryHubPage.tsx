@@ -56,7 +56,7 @@ const FEATURES = [
   { icon: TrendingUp, label: "أسعار تنافسية", color: "text-blue-500" },
 ];
 
-// ─── Item Card (وجبة رأسية للهوم) ────────────────────────────────────────────
+// ─── Item Card (وجبة رأسية للهوم — نصوص ممركزة بدون خلفية) ──────────────────
 const ItemCard = ({ item }: { item: any }) => {
   const navigate = useNavigate();
   const price = item.discounted_price ?? item.price;
@@ -67,46 +67,45 @@ const ItemCard = ({ item }: { item: any }) => {
   return (
     <div
       onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="relative w-[155px] shrink-0 rounded-2xl overflow-hidden bg-card border border-border/30 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
+      className="w-[120px] shrink-0 cursor-pointer hover:-translate-y-0.5 transition-all"
     >
-      {/* ── صورة الوجبة ── */}
-      <div className="relative w-full h-[125px] bg-muted overflow-hidden">
+      {/* ── صورة مع badges ── */}
+      <div className="relative w-full h-[110px] rounded-xl bg-muted overflow-hidden shadow-sm">
         {item.image_url ? (
           <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover" loading="lazy" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl bg-muted">🍔</div>
+          <div className="w-full h-full flex items-center justify-center text-4xl">🍔</div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
         {/* قلب المفضلة */}
-        <div className="absolute top-2 right-2 z-10">
+        <div className="absolute top-1.5 right-1.5">
           <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
         </div>
 
         {/* شارة خصم */}
         {hasDiscount && (
-          <span className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-black rounded-md px-1.5 py-0.5 shadow z-10">خصم</span>
+          <span className="absolute top-1.5 left-1.5 bg-red-500 text-white text-[8px] font-black rounded-md px-1 py-0.5 shadow">خصم</span>
         )}
 
-        {/* وقت التوصيل — أسفل يمين */}
-        {deliveryTime && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center gap-0.5 bg-black/65 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-            <Clock className="w-2.5 h-2.5" />{deliveryTime} د
+        {/* وقت + تقييم — أسفل الصورة */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-1.5 pb-1.5 gap-1">
+          {deliveryTime ? (
+            <span className="inline-flex items-center gap-0.5 bg-black/65 backdrop-blur-sm text-white text-[9px] font-bold px-1 py-0.5 rounded-md">
+              <Clock className="w-2 h-2" />{deliveryTime}
+            </span>
+          ) : <span />}
+          <span className="inline-flex items-center gap-0.5 bg-black/65 backdrop-blur-sm text-white text-[9px] font-bold px-1 py-0.5 rounded-md">
+            <Star className="w-2 h-2 fill-amber-400 text-amber-400" />
+            {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
           </span>
-        )}
-
-        {/* التقييم — أسفل يسار */}
-        <span className="absolute bottom-2 left-2 inline-flex items-center gap-0.5 bg-black/65 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-          <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-          {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
-        </span>
+        </div>
       </div>
 
-      {/* ── معلومات الوجبة ── */}
-      <div className="p-2.5 space-y-0.5">
-        <p className="font-black text-[13px] text-foreground leading-tight line-clamp-1">{item.name_ar}</p>
+      {/* ── نصوص ممركزة — بدون خلفية ── */}
+      <div className="pt-1.5 pb-1 px-0.5 text-center space-y-0.5">
+        <p className="font-bold text-[11px] text-foreground leading-tight line-clamp-2">{item.name_ar}</p>
         {item.restaurants?.name_ar && (
-          <p className="text-[10px] text-muted-foreground line-clamp-1">{item.restaurants.name_ar}</p>
+          <p className="text-[9px] text-muted-foreground line-clamp-1">{item.restaurants.name_ar}</p>
         )}
         <p className="text-[12px] font-extrabold text-primary">{Number(price).toLocaleString()} ر.ي</p>
       </div>
@@ -315,7 +314,7 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
   if (!banners.length) return null;
 
   return (
-    <div className="relative w-full overflow-hidden rounded-xl shadow-md" style={{ aspectRatio: "16/8", minHeight: 130, maxHeight: 200 }}>
+    <div className="relative w-full overflow-hidden rounded-xl shadow-md" style={{ aspectRatio: "16/7", minHeight: 100, maxHeight: 148 }}>
       {banners.map((banner, i) => (
         <div
           key={banner.id}
@@ -352,7 +351,7 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
 
 // CategoryScroller is now the shared SharedCategoryScroller imported above.
 
-// ─── Offers / Deals Horizontal Scroll ─────────────────────────────────────────
+// ─── Offers / Deals Horizontal Scroll — نص خارج الصورة ──────────────────────
 const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url: string) => void }) => {
   if (!offers.length) return null;
   return (
@@ -363,7 +362,7 @@ const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url
         </div>
         <h2 className="text-[15px] font-black text-foreground">عروض وخصومات</h2>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
+      <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
         {offers.map((offer) => (
           <button
             key={offer.id}
@@ -372,17 +371,31 @@ const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url
               if (dest === "/shipment-request") dest = "/delivery-request";
               onNavigate(dest);
             }}
-            className="relative shrink-0 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer"
-            style={{ width: 130, height: 72 }}
+            className="shrink-0 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-card border border-border/30 flex"
+            style={{ width: 185, height: 66 }}
           >
-            <img src={offer.image_url} alt={offer.title || ""} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-            {offer.badge_text && (
-              <Badge className="absolute top-2 right-2 bg-red-500 text-white border-0 shadow text-[10px] font-bold px-1.5 py-0.5">{offer.badge_text}</Badge>
-            )}
-            <div className="absolute bottom-0 right-0 left-0 p-2 text-white text-right">
-              {offer.title && <p className="font-black text-xs leading-tight drop-shadow">{offer.title}</p>}
-              {offer.subtitle && <p className="text-[10px] text-white/80 mt-0.5 drop-shadow leading-tight">{offer.subtitle}</p>}
+            {/* صورة على يمين البطاقة (RTL = يسار الـ flex) */}
+            <div className="w-[66px] h-full shrink-0 overflow-hidden">
+              <img
+                src={offer.image_url}
+                alt={offer.title || ""}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
+            {/* نص على يسار البطاقة (RTL = يمين الـ flex) */}
+            <div className="flex-1 px-2.5 py-2 flex flex-col justify-center text-right">
+              {offer.badge_text && (
+                <span className="inline-block self-end bg-primary text-primary-foreground text-[8px] font-black rounded-md px-1.5 py-0.5 mb-1 leading-none">
+                  {offer.badge_text}
+                </span>
+              )}
+              {offer.title && (
+                <p className="font-black text-[11px] text-foreground leading-tight line-clamp-1">{offer.title}</p>
+              )}
+              {offer.subtitle && (
+                <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight line-clamp-2">{offer.subtitle}</p>
+              )}
             </div>
           </button>
         ))}
