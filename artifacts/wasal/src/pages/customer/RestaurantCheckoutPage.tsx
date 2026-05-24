@@ -46,10 +46,9 @@ const RestaurantCheckoutPage = () => {
 
   useEffect(() => {
     if (!restaurantId) return;
-    const coverageStatus = localStorage.getItem("wasal_coverage_status");
-    if (!user || coverageStatus === "guest") {
-      toast({ title: "يجب تسجيل الدخول أولاً", description: "الزوار لا يمكنهم إتمام الطلب. يرجى تسجيل الدخول أو إنشاء حساب.", variant: "destructive" });
-      navigate("/addresses?from=checkout");
+    if (!user) {
+      toast({ title: "يجب تسجيل الدخول أولاً", description: "يرجى تسجيل الدخول أو إنشاء حساب لإتمام الطلب.", variant: "destructive" });
+      navigate(`/login`);
       return;
     }
     const load = async () => {

@@ -83,6 +83,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // TOKEN_REFRESHED / USER_UPDATED must NOT reset the role — that
           // would cause an unnecessary loading flicker and navigation loops.
           if (event === "SIGNED_IN") {
+            // عند تسجيل الدخول، يُعتبر المستخدم ضمن التغطية تلقائياً
+            // (يمسح حالة "guest" حتى لا يُمنع من الطلب)
+            const prevCoverage = localStorage.getItem("wasal_coverage_status");
+            if (prevCoverage === "guest" || prevCoverage === null) {
+              localStorage.setItem("wasal_coverage_status", "covered");
+            }
             setLoading(true);
             setRole(null);
             // Use setTimeout to avoid Supabase client deadlock inside the callback.
