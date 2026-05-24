@@ -66,7 +66,7 @@ const CoverageBadge = ({ status }: { status: CoverageStatus }) => {
   );
 };
 
-// ─── Restaurant Card (HungerStation-style horizontal card) ────────────────────
+// ─── Restaurant Card ──────────────────────────────────────────────────────────
 const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
   const primaryCuisine = r.cuisine_type?.[0] || "";
   const fallbackImg = CUISINE_IMAGES[primaryCuisine] || CUISINE_IMAGES["default"];
@@ -84,13 +84,14 @@ const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
   return (
     <button
       onClick={onClick}
-      className={`w-full bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:border-primary/30 transition-all text-right active:scale-[0.99] ${
+      className={`w-full bg-card rounded-2xl border border-border/30 shadow-sm hover:shadow-md transition-all text-right active:scale-[0.99] ${
         isOutOfRange ? "opacity-60" : ""
       }`}
     >
-      <div className="flex items-stretch gap-3 p-2.5">
-        {/* Image RIGHT */}
-        <div className="relative w-[100px] h-[100px] rounded-xl overflow-hidden bg-muted shrink-0">
+      <div className="flex items-center gap-3 p-3">
+
+        {/* ── صورة المطعم ── */}
+        <div className="relative w-[112px] h-[112px] rounded-xl overflow-hidden bg-muted shrink-0">
           <img
             src={heroSrc}
             alt={r.name_ar}
@@ -99,7 +100,7 @@ const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
             onError={(e) => { (e.target as HTMLImageElement).src = CUISINE_IMAGES["default"]; }}
           />
           {hasDiscount && (
-            <span className="absolute top-1 right-1 bg-emerald-600 text-white text-[9px] font-black rounded-md px-1.5 py-0.5 shadow">
+            <span className="absolute top-1.5 right-1.5 bg-emerald-600 text-white text-[9px] font-black rounded-md px-1.5 py-0.5 shadow-sm">
               خصم {discountPct}%
             </span>
           )}
@@ -110,63 +111,51 @@ const RestaurantCard = ({ r, onClick }: { r: any; onClick: () => void }) => {
           )}
         </div>
 
-        {/* Info LEFT (which is actually right side because rtl, text-right) */}
-        <div className="flex-1 min-w-0 flex flex-col py-0.5">
-          <div className="flex items-start gap-2">
-            <h3 className="flex-1 font-black text-[15px] leading-tight text-foreground line-clamp-1">
+        {/* ── معلومات المطعم ── */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+          {/* الاسم */}
+          <div className="flex items-center gap-1.5">
+            <h3 className="flex-1 font-black text-[16px] leading-tight text-foreground line-clamp-1">
               {r.name_ar}
             </h3>
             {r.is_featured && (
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
             )}
           </div>
 
+          {/* التصنيف */}
           {Array.isArray(r.cuisine_type) && r.cuisine_type.length > 0 && (
-            <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
-              {r.cuisine_type.slice(0, 3).join(" - ")}
+            <p className="text-[11px] text-muted-foreground line-clamp-1">
+              {r.cuisine_type.slice(0, 3).join(" • ")}
             </p>
           )}
 
-          {/* Coverage warnings */}
+          {/* تحذيرات التغطية */}
           {isOutOfRange && (
-            <div className="mt-1 flex items-center gap-1 text-[10px] text-red-600 font-medium">
+            <div className="flex items-center gap-1 text-[10px] text-red-600 font-medium">
               <AlertTriangle className="w-2.5 h-2.5" />لا يوصل لمنطقتك
             </div>
           )}
-          {r.coverage_status === "extra_fee" && (
-            <div className="mt-1 flex items-center gap-1 text-[10px] text-amber-700 font-medium">
-              <Info className="w-2.5 h-2.5" />رسوم إضافية
-            </div>
-          )}
 
-          {/* Description */}
-          {r.description_ar && (
-            <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
-              {r.description_ar}
-            </p>
-          )}
+          {/* سطر: تقييم + وقت + توصيل */}
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 font-black rounded-lg px-1.5 py-0.5 shrink-0">
+              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+              {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+            </span>
 
-          {/* Bottom row: hours + fee + rating */}
-          <div className="mt-auto flex items-center gap-3 text-[11px] text-muted-foreground pt-1">
-            {/* Working hours instead of delivery time */}
-            <span className={`flex items-center gap-0.5 font-bold ${status.isOpen ? "text-emerald-600" : "text-red-500"}`}>
+            <span className={`flex items-center gap-0.5 font-semibold shrink-0 ${status.isOpen ? "text-emerald-600" : "text-red-500"}`}>
               <Clock className="w-3 h-3" />
               {status.subtext || (status.isOpen ? "مفتوح" : "مغلق")}
             </span>
-            {/* Delivery fee */}
-            <span className="flex items-center gap-0.5">
+
+            <span className="flex items-center gap-0.5 shrink-0">
               <Truck className="w-3 h-3" />
               {r.price_per_km > 0
-                ? (displayFee > 0
-                    ? <span className="font-medium">{displayFee} ر.ي</span>
-                    : <span className="text-muted-foreground font-medium">يحسب بالمسافة</span>)
+                ? (displayFee > 0 ? `${displayFee} ر.ي` : "يحسب بالمسافة")
                 : (displayFee === 0
-                    ? <span className="text-emerald-600 font-bold">توصيل مجاني</span>
-                    : <span className="font-medium">{displayFee} ر.ي</span>)}
-            </span>
-            <span className="mr-auto inline-flex items-center gap-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-700 font-black rounded-md px-1.5 py-0.5">
-              <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
-              {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+                    ? <span className="text-emerald-600 font-bold">مجاني</span>
+                    : `${displayFee} ر.ي`)}
             </span>
           </div>
         </div>

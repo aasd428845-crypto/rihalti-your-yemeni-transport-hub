@@ -11,6 +11,7 @@ import {
   Shield,
   Star,
   TrendingUp,
+  Clock,
   ChevronLeft as ArrowLeftIcon,
 } from "lucide-react";
 import { getRestaurantCuisines } from "@/lib/restaurantApi";
@@ -55,57 +56,59 @@ const FEATURES = [
   { icon: TrendingUp, label: "أسعار تنافسية", color: "text-blue-500" },
 ];
 
-// ─── Item Card (used by Most-rated & Featured) ───────────────────────────────
+// ─── Item Card (وجبة رأسية للهوم) ────────────────────────────────────────────
 const ItemCard = ({ item }: { item: any }) => {
   const navigate = useNavigate();
   const price = item.discounted_price ?? item.price;
   const hasDiscount = item.discounted_price && item.discounted_price < item.price;
   const ratingNum = Number(item.rating || 0);
+  const deliveryTime = item.restaurants?.estimated_delivery_time;
 
   return (
     <div
       onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="relative min-w-[140px] w-[140px] rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all shrink-0 cursor-pointer"
-      style={{ height: 160 }}
+      className="relative w-[155px] shrink-0 rounded-2xl overflow-hidden bg-card border border-border/30 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
     >
-      {/* Full image */}
-      {item.image_url ? (
-        <img src={item.image_url} alt={item.name_ar} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-      ) : (
-        <div className="absolute inset-0 bg-muted flex items-center justify-center text-4xl">🍔</div>
-      )}
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-
-      {/* Top badges */}
-      <div className="absolute top-1.5 right-1.5">
-        <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
-      </div>
-      {hasDiscount && (
-        <Badge className="absolute top-1.5 left-1.5 bg-red-500 hover:bg-red-500 text-white text-[9px] font-bold border-0 shadow px-1.5 py-0">
-          خصم
-        </Badge>
-      )}
-
-      {/* Text overlay at bottom */}
-      <div className="absolute bottom-0 right-0 left-0 p-2 text-right">
-        <p className="font-bold text-[12px] text-white leading-tight line-clamp-1 drop-shadow">
-          {item.name_ar}
-        </p>
-        {item.restaurants?.name_ar && (
-          <p className="text-[10px] text-white/75 line-clamp-1 mt-0.5">
-            {item.restaurants.name_ar}
-          </p>
+      {/* ── صورة الوجبة ── */}
+      <div className="relative w-full h-[125px] bg-muted overflow-hidden">
+        {item.image_url ? (
+          <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-4xl bg-muted">🍔</div>
         )}
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-[11px] font-black text-white drop-shadow">
-            {Number(price).toLocaleString("ar-YE")} ر.ي
-          </span>
-          <span className="inline-flex items-center gap-0.5 bg-emerald-600/90 text-white text-[9px] font-bold rounded-md px-1.5 py-0.5">
-            <Star className="w-2 h-2 fill-yellow-300 text-yellow-300" />
-            {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
-          </span>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+
+        {/* قلب المفضلة */}
+        <div className="absolute top-2 right-2 z-10">
+          <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
         </div>
+
+        {/* شارة خصم */}
+        {hasDiscount && (
+          <span className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-black rounded-md px-1.5 py-0.5 shadow z-10">خصم</span>
+        )}
+
+        {/* وقت التوصيل — أسفل يمين */}
+        {deliveryTime && (
+          <span className="absolute bottom-2 right-2 inline-flex items-center gap-0.5 bg-black/65 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+            <Clock className="w-2.5 h-2.5" />{deliveryTime} د
+          </span>
+        )}
+
+        {/* التقييم — أسفل يسار */}
+        <span className="absolute bottom-2 left-2 inline-flex items-center gap-0.5 bg-black/65 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+          <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+          {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+        </span>
+      </div>
+
+      {/* ── معلومات الوجبة ── */}
+      <div className="p-2.5 space-y-0.5">
+        <p className="font-black text-[13px] text-foreground leading-tight line-clamp-1">{item.name_ar}</p>
+        {item.restaurants?.name_ar && (
+          <p className="text-[10px] text-muted-foreground line-clamp-1">{item.restaurants.name_ar}</p>
+        )}
+        <p className="text-[12px] font-extrabold text-primary">{Number(price).toLocaleString()} ر.ي</p>
       </div>
     </div>
   );

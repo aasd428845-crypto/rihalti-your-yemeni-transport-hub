@@ -505,7 +505,7 @@ const RestaurantMenuPage = () => {
                   </div>
                   {/* Items */}
                   <div className="px-4">
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                       {catItems.map(item => (
                         <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
                           onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
@@ -525,7 +525,7 @@ const RestaurantMenuPage = () => {
                   <h2 className="text-base font-bold">أصناف أخرى</h2>
                 </div>
                 <div className="px-4">
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {(itemsByCategory["__other__"] || []).map(item => (
                       <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
                         onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
@@ -796,7 +796,6 @@ const MenuItemCard = ({
   item: any; cartItem?: CartItem; onOpen: () => void; onAdd: () => void;
   onUpdateQty: (id: string, delta: number) => void;
 }) => {
-  // Countdown ticker — refresh every 60 s so badge stays accurate
   const [, setTick] = useState(0);
   useEffect(() => {
     if (!item.promo_ends_at) return;
@@ -815,83 +814,74 @@ const MenuItemCard = ({
 
   return (
     <div
-      className="flex flex-col w-full bg-background rounded-xl overflow-hidden shadow-sm border border-border/60 hover:shadow-md transition-all active:scale-[0.99] cursor-pointer"
+      className="flex flex-col bg-card rounded-2xl overflow-hidden border border-border/30 shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer"
       onClick={onOpen}
     >
-      {/* Image (top) — compact */}
-      <div className="relative w-full h-40 bg-muted overflow-hidden">
+      {/* ── صورة مربعة ── */}
+      <div className="relative w-full aspect-square bg-muted overflow-hidden">
         {item.image_url
           ? <img src={item.image_url} alt={item.name_ar} loading="lazy" className="w-full h-full object-cover" />
           : <div className="w-full h-full flex items-center justify-center text-4xl">🍽️</div>}
+
         {item.is_popular && (
-          <div className="absolute top-2 right-2">
-            <Badge className="text-[10px] px-1.5 py-0 bg-amber-500 text-white border-0 gap-0.5 h-5 shadow">
-              <Flame className="w-2.5 h-2.5" />شائع
-            </Badge>
-          </div>
+          <span className="absolute top-2 right-2 inline-flex items-center gap-0.5 bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow">
+            <Flame className="w-2.5 h-2.5" />شائع
+          </span>
         )}
-        {/* Countdown badge — bottom-left of image */}
+        {promoScheduleActive && hasDiscount && (
+          <span className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow">
+            {discountPct}%
+          </span>
+        )}
         {countdown && (
-          <div className="absolute bottom-2 left-2">
-            <span className="inline-flex items-center gap-1 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
-              <Timer className="w-2.5 h-2.5 text-orange-300" />{countdown}
-            </span>
-          </div>
+          <span className="absolute bottom-2 left-2 inline-flex items-center gap-0.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+            <Timer className="w-2 h-2 text-orange-300" />{countdown}
+          </span>
         )}
       </div>
 
-      {/* Content (bottom) — compact */}
-      <div className="p-3 flex flex-col flex-1 gap-1.5">
-        <h3 className="font-bold text-sm leading-snug line-clamp-1">{item.name_ar}</h3>
-        {item.description && (
-          <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{item.description}</p>
-        )}
-        {/* Promo badge: discount % or custom label */}
-        {promoScheduleActive && hasDiscount && (
-          <div className="inline-flex items-center gap-1 self-start bg-red-50 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-red-200">
-            <Flame className="w-2.5 h-2.5" />
-            <span>خصم {discountPct}%</span>
-          </div>
-        )}
+      {/* ── معلومات الوجبة ── */}
+      <div className="p-2.5 flex flex-col flex-1 gap-1">
+        <h3 className="font-bold text-[12px] leading-snug line-clamp-2 text-foreground">{item.name_ar}</h3>
+
         {promoScheduleActive && promoLabel && !hasDiscount && (
-          <div className="inline-flex items-center gap-1 self-start bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-primary/20">
-            <span>🎁 {promoLabel}</span>
-          </div>
+          <span className="self-start text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
+            🎁 {promoLabel}
+          </span>
         )}
 
-        {/* Price + Add button row */}
-        <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-          <div className="flex flex-col leading-tight">
-            <span className="font-extrabold text-primary text-base">{finalPrice} ر.ي</span>
+        {/* سعر + زر الإضافة */}
+        <div className="mt-auto pt-1 flex items-center justify-between gap-1">
+          <div className="flex flex-col leading-none">
+            <span className="font-extrabold text-primary text-[13px]">{finalPrice} ر.ي</span>
             {hasDiscount && (
-              <span className="text-[10px] text-muted-foreground line-through">{originalPrice} ر.ي</span>
+              <span className="text-[9px] text-muted-foreground line-through">{originalPrice} ر.ي</span>
             )}
           </div>
 
           {cartItem ? (
-            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
               <button
-                className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
+                className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
                 onClick={() => onUpdateQty(item.id, -1)}
               >
-                <Minus className="w-3.5 h-3.5 text-primary" />
+                <Minus className="w-3 h-3 text-primary" />
               </button>
-              <span className="text-sm font-bold min-w-[20px] text-center">{cartItem.quantity}</span>
+              <span className="text-xs font-black min-w-[16px] text-center">{cartItem.quantity}</span>
               <button
-                className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
                 onClick={() => onUpdateQty(item.id, 1)}
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3 h-3" />
               </button>
             </div>
           ) : (
             <button
-              className="h-9 px-3.5 rounded-full bg-primary text-primary-foreground flex items-center gap-1 font-bold text-xs shadow-md hover:bg-primary/90 active:scale-95 transition-all shrink-0"
+              className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 active:scale-95 transition-all shrink-0"
               onClick={e => { e.stopPropagation(); onAdd(); }}
               aria-label="أضف للسلة"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>إضافة</span>
+              <Plus className="w-4 h-4" />
             </button>
           )}
         </div>
