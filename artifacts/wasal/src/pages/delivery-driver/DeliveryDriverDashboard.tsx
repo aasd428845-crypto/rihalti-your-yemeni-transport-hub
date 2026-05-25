@@ -22,8 +22,9 @@ const DeliveryDriverDashboard = () => {
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
+      // البحث في جدول riders (المستخدَم لمندوبي شركات التوصيل)
       const { data } = await supabase
-        .from("delivery_drivers")
+        .from("riders")
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
@@ -64,13 +65,13 @@ const DeliveryDriverDashboard = () => {
 
   // GPS tracking when online
   useEffect(() => {
-    if (!isOnline || !user) return;
+    if (!isOnline || !user || !driverData?.id) return;
     let watchId: number;
     const updateLoc = async (lat: number, lng: number) => {
       await supabase
-        .from("delivery_drivers")
-        .update({ current_lat: lat, current_lng: lng, updated_at: new Date().toISOString() })
-        .eq("user_id", user.id);
+        .from("riders")
+        .update({ current_lat: lat, current_lng: lng, updated_at: new Date().toISOString() } as any)
+        .eq("id", driverData.id);
     };
     if ("geolocation" in navigator) {
       watchId = navigator.geolocation.watchPosition(
@@ -80,15 +81,15 @@ const DeliveryDriverDashboard = () => {
       );
     }
     return () => { if (watchId) navigator.geolocation.clearWatch(watchId); };
-  }, [isOnline, user]);
+  }, [isOnline, user, driverData]);
 
   const toggleOnline = async () => {
     if (!driverData) return;
     setTogglingOnline(true);
     const newStatus = !isOnline;
     const { error } = await supabase
-      .from("delivery_drivers")
-      .update({ is_online: newStatus, updated_at: new Date().toISOString() })
+      .from("riders")
+      .update({ is_online: newStatus, updated_at: new Date().toISOString() } as any)
       .eq("id", driverData.id);
     if (!error) {
       setIsOnline(newStatus);
@@ -111,19 +112,22 @@ const DeliveryDriverDashboard = () => {
 
   if (!driverData) {
     return (
-      <div className="text-center py-20 space-y-4">
+      <div className="text-center py-20 space-y-4" dir="rtl">
         <div className="w-20 h-20 mx-auto rounded-full bg-accent flex items-center justify-center">
           <span className="text-4xl">⚠️</span>
         </div>
         <h2 className="text-xl font-bold text-foreground">لم يتم العثور على حسابك</h2>
-        <p className="text-muted-foreground max-w-md mx-auto">يرجى التواصل مع شركة التوصيل لتفعيل حسابك.</p>
+        <p className="text-muted-foreground max-w-md mx-auto">
+          لم يتم ربط حسابك بشركة توصيل بعد. يرجى التأكد من أنك استخدمت رابط الدعوة الصحيح الذي أرسلته لك الشركة، أو تواصل معهم لإعادة إرسال الرابط.
+        </p>
+        <Button variant="outline" onClick={() => window.location.reload()}>إعادة المحاولة</Button>
       </div>
     );
   }
 
   if (!driverData.is_approved) {
     return (
-      <div className="text-center py-20 space-y-4">
+      <div className="text-center py-20 space-y-4" dir="rtl">
         <div className="w-20 h-20 mx-auto rounded-full bg-accent flex items-center justify-center">
           <span className="text-4xl">⏳</span>
         </div>
@@ -135,16 +139,16 @@ const DeliveryDriverDashboard = () => {
 
   const stats = [
     { title: "إجمالي التوصيلات", value: driverData.total_deliveries || 0, icon: Package },
-    { title: "إجمالي الأرباح", value: `${driverData.total_earnings || 0} ر.ي`, icon: DollarSign },
+    { title: "إجمالي الأرباح", value: `${Number(driverData.earnings || 0).toLocaleString()} ر.ي`, icon: DollarSign },
     { title: "التقييم", value: driverData.rating || "0.0", icon: Star },
     { title: "الحالة", value: isOnline ? "متصل" : "غير متصل", icon: MapPin },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">مرحباً، {profile?.full_name || "مندوب"}</h1>
+          <h1 className="text-2xl font-bold text-foreground">مرحباً، {profile?.full_name || driverData.full_name || "مندوب"}</h1>
           <p className="text-muted-foreground text-sm">لوحة تحكم مندوب التوصيل</p>
         </div>
         <div className="flex items-center gap-3 bg-card border border-border rounded-xl p-3">

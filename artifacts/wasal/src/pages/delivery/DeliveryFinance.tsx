@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DollarSign, TrendingUp, TrendingDown, Wallet, CheckCircle, XCircle,
-  Clock, Eye, ExternalLink, X, Phone, User, Hash, Calendar, Image
+  Clock, X, Phone, User, Hash, Calendar, Image, Store, Share2, MessageCircle,
+  FileText, ChevronDown, ChevronUp
 } from "lucide-react";
 import { getDeliveryOrders, getRiders } from "@/lib/deliveryApi";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,24 +32,56 @@ const statusColors: Record<string, string> = {
   rejected: "bg-red-100 text-red-800 border-red-200",
 };
 
+// حساب الفترة الزمنية
+const getPeriodStart = (period: string): Date => {
+  const now = new Date();
+  if (period === "daily") {
+    const d = new Date(now); d.setHours(0, 0, 0, 0); return d;
+  }
+  if (period === "weekly") {
+    const d = new Date(now); d.setDate(d.getDate() - d.getDay()); d.setHours(0, 0, 0, 0); return d;
+  }
+  // monthly
+  const d = new Date(now.getFullYear(), now.getMonth(), 1); return d;
+};
+
+const shareViaWhatsApp = (text: string) => {
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+};
+
+const copyToClipboard = async (text: string, toastFn: any) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    toastFn({ title: "تم النسخ ✅", description: "يمكنك لصق النص في أي تطبيق" });
+  } catch {
+    const el = document.createElement("textarea");
+    el.value = text; document.body.appendChild(el); el.select();
+    document.execCommand("copy"); document.body.removeChild(el);
+    toastFn({ title: "تم النسخ ✅" });
+  }
+};
+
 const DeliveryFinance = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [riders, setRiders] = useState<any[]>([]);
+  const [restaurants, setRestaurants] = useState<any[]>([]);
   const [paymentTxns, setPaymentTxns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTx, setSelectedTx] = useState<any>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [showImage, setShowImage] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
+
+  // Restaurant stats
+  const [restaurantPeriod, setRestaurantPeriod] = useState<"daily" | "weekly" | "monthly">("monthly");
+  const [expandedRestaurant, setExpandedRestaurant] = useState<string | null>(null);
 
   const loadData = async () => {
     if (!user) return;
     try {
-      const [o, r, txRes] = await Promise.all([
+      const [o, r, txRes, restRes] = await Promise.all([
         getDeliveryOrders(user.id),
         getRiders(user.id),
         supabase
@@ -56,10 +90,17 @@ const DeliveryFinance = () => {
           .eq("partner_id", user.id)
           .order("created_at", { ascending: false })
           .limit(100),
+        supabase
+          .from("restaurants")
+          .select("id, name_ar, name_en, logo_url, is_active")
+          .eq("delivery_company_id", user.id)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false }),
       ]);
       setOrders(o || []);
       setRiders(r || []);
       setPaymentTxns(txRes.data || []);
+      setRestaurants(restRes.data || []);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally { setLoading(false); }
@@ -83,30 +124,24 @@ const DeliveryFinance = () => {
         .from("payment_transactions")
         .update({ status: "verified", verified_by: user!.id, verified_at: new Date().toISOString() })
         .eq("id", tx.id);
-
       await supabase
         .from("financial_transactions")
         .update({ payment_status: "paid", paid_at: new Date().toISOString() } as any)
         .eq("payment_transaction_id", tx.id);
-
       if (tx.related_entity_id) {
         if (tx.entity_type === "delivery") {
           await supabase.from("delivery_orders").update({ payment_status: "confirmed" } as any).eq("id", tx.related_entity_id);
         } else if (tx.entity_type === "booking") {
           await supabase.from("bookings").update({ status: "confirmed" } as any).eq("id", tx.related_entity_id);
-        } else if (tx.entity_type === "shipment") {
-          await supabase.from("shipment_requests").update({ status: "approved" } as any).eq("id", tx.related_entity_id);
         }
       }
-
       await supabase.from("notifications").insert({
         user_id: tx.user_id,
         title: "تمت الموافقة على دفعتك ✅",
-        body: `تم قبول دفعتك بقيمة ${Number(tx.amount).toLocaleString()} ر.ي. شكراً لثقتك.`,
+        body: `تم قبول دفعتك بقيمة ${Number(tx.amount).toLocaleString()} ر.ي.`,
         data: { type: "payment_verified" } as any,
       });
-
-      toast({ title: "تمت الموافقة", description: "تم قبول الدفعة وتحديث حالة الطلب" });
+      toast({ title: "تمت الموافقة" });
       setSelectedTx(null);
       loadData();
     } catch (err: any) {
@@ -122,14 +157,12 @@ const DeliveryFinance = () => {
         .from("payment_transactions")
         .update({ status: "rejected", verified_by: user!.id, verified_at: new Date().toISOString(), notes: rejectReason } as any)
         .eq("id", selectedTx.id);
-
       await supabase.from("notifications").insert({
         user_id: selectedTx.user_id,
         title: "تم رفض الدفعة ❌",
-        body: rejectReason || "تم رفض الدفعة. يرجى التواصل مع الدعم.",
+        body: rejectReason || "تم رفض الدفعة.",
         data: { type: "payment_rejected" } as any,
       });
-
       toast({ title: "تم الرفض" });
       setShowRejectDialog(false);
       setSelectedTx(null);
@@ -140,11 +173,55 @@ const DeliveryFinance = () => {
     } finally { setProcessing(false); }
   };
 
+  // ── حساب إيرادات التوصيل (delivery_fee فقط) ──
   const deliveredOrders = orders.filter(o => o.status === "delivered");
-  const totalRevenue = deliveredOrders.reduce((s, o) => s + Number(o.total), 0);
-  const totalDeliveryFees = deliveredOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
-  const totalRiderEarnings = riders.reduce((s, r) => s + Number(r.earnings), 0);
+  const totalDeliveryRevenue = deliveredOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
+  const totalRiderEarnings = riders.reduce((s, r) => s + Number(r.earnings || 0), 0);
   const pendingTx = paymentTxns.filter(t => t.status === "pending");
+
+  // ── إحصائيات المطاعم ──
+  const restaurantStats = useMemo(() => {
+    const periodStart = getPeriodStart(restaurantPeriod);
+    return restaurants.map(rest => {
+      const restOrders = deliveredOrders.filter(o => o.restaurant_id === rest.id);
+      const periodOrders = restOrders.filter(o => new Date(o.created_at) >= periodStart);
+
+      const totalRevenue = restOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
+      const periodRevenue = periodOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
+
+      return {
+        ...rest,
+        totalOrders: restOrders.length,
+        periodOrders: periodOrders.length,
+        totalRevenue,
+        periodRevenue,
+        recentOrders: restOrders.slice(0, 15),
+      };
+    }).sort((a, b) => b.totalRevenue - a.totalRevenue);
+  }, [restaurants, deliveredOrders, restaurantPeriod]);
+
+  const buildRestaurantShareText = (r: typeof restaurantStats[0]) => {
+    const periodLabel = restaurantPeriod === "daily" ? "اليوم" : restaurantPeriod === "weekly" ? "هذا الأسبوع" : "هذا الشهر";
+    const lines = [
+      `📊 إحصائيات ${r.name_ar}`,
+      ``,
+      `🗓 ${periodLabel}:`,
+      `  • الطلبات: ${r.periodOrders}`,
+      `  • الإيرادات: ${r.periodRevenue.toLocaleString()} ر.ي`,
+      ``,
+      `📈 إجمالي كلي:`,
+      `  • الطلبات: ${r.totalOrders}`,
+      `  • الإيرادات: ${r.totalRevenue.toLocaleString()} ر.ي`,
+    ];
+    if (r.recentOrders.length > 0) {
+      lines.push(``, `🧾 آخر ${Math.min(r.recentOrders.length, 5)} طلبات:`);
+      r.recentOrders.slice(0, 5).forEach((o: any) => {
+        const fee = Number(o.total || 0) - Number(o.delivery_fee || 0);
+        lines.push(`  • ${o.customer_name || "—"} — ${fee.toLocaleString()} ر.ي — ${new Date(o.created_at).toLocaleDateString("ar")}`);
+      });
+    }
+    return lines.join("\n");
+  };
 
   const COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#ef4444"];
   const statusData = [
@@ -163,20 +240,41 @@ const DeliveryFinance = () => {
     <div className="space-y-6" dir="rtl">
       <h2 className="text-2xl font-bold">الإدارة المالية</h2>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { title: "إجمالي الإيرادات", value: `${totalRevenue.toLocaleString()} ر.ي`, icon: DollarSign, color: "text-green-600" },
-          { title: "رسوم التوصيل", value: `${totalDeliveryFees.toLocaleString()} ر.ي`, icon: TrendingUp, color: "text-blue-600" },
-          { title: "أرباح المندوبين", value: `${totalRiderEarnings.toLocaleString()} ر.ي`, icon: TrendingDown, color: "text-orange-600" },
-          { title: "معاملات معلقة", value: `${pendingTx.length}`, icon: Clock, color: "text-amber-600" },
+          {
+            title: "إيرادات التوصيل",
+            value: `${totalDeliveryRevenue.toLocaleString()} ر.ي`,
+            sub: "رسوم التوصيل فقط",
+            icon: DollarSign, color: "text-green-600"
+          },
+          {
+            title: "رسوم التوصيل",
+            value: `${totalDeliveryRevenue.toLocaleString()} ر.ي`,
+            sub: `من ${deliveredOrders.length} طلب`,
+            icon: TrendingUp, color: "text-blue-600"
+          },
+          {
+            title: "أرباح المندوبين",
+            value: `${totalRiderEarnings.toLocaleString()} ر.ي`,
+            sub: `${riders.length} مندوب`,
+            icon: TrendingDown, color: "text-orange-600"
+          },
+          {
+            title: "معاملات معلقة",
+            value: `${pendingTx.length}`,
+            sub: "تحتاج موافقة",
+            icon: Clock, color: "text-amber-600"
+          },
         ].map((c, i) => (
           <Card key={i}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className={`p-2 rounded-lg bg-muted ${c.color}`}><c.icon className="w-5 h-5" /></div>
-              <div>
-                <p className="text-xs text-muted-foreground">{c.title}</p>
-                <p className="text-lg font-bold">{c.value}</p>
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className={`p-2 rounded-lg bg-muted ${c.color} shrink-0`}><c.icon className="w-5 h-5" /></div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">{c.title}</p>
+                <p className="text-base md:text-lg font-bold leading-tight">{c.value}</p>
+                {c.sub && <p className="text-[10px] text-muted-foreground">{c.sub}</p>}
               </div>
             </CardContent>
           </Card>
@@ -184,12 +282,15 @@ const DeliveryFinance = () => {
       </div>
 
       <Tabs defaultValue="transactions">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="transactions">
             المعاملات
             {pendingTx.length > 0 && (
-              <Badge className="mr-2 bg-destructive text-destructive-foreground text-xs">{pendingTx.length}</Badge>
+              <Badge className="mr-1.5 bg-destructive text-destructive-foreground text-xs px-1.5 py-0">{pendingTx.length}</Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="restaurants">
+            <Store className="w-3.5 h-3.5 ml-1" /> إيرادات المطاعم
           </TabsTrigger>
           <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
           <TabsTrigger value="riders">أرباح المندوبين</TabsTrigger>
@@ -247,16 +348,10 @@ const DeliveryFinance = () => {
                       </thead>
                       <tbody>
                         {paymentTxns.map(tx => (
-                          <tr
-                            key={tx.id}
-                            className="border-b hover:bg-muted/30 cursor-pointer"
-                            onClick={() => setSelectedTx(tx)}
-                          >
+                          <tr key={tx.id} className="border-b hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedTx(tx)}>
                             <td className="p-3">
-                              <div>
-                                <p className="font-medium text-sm">{tx.profiles?.full_name || "—"}</p>
-                                <p className="text-xs text-muted-foreground">{tx.profiles?.phone || ""}</p>
-                              </div>
+                              <p className="font-medium">{tx.profiles?.full_name || "—"}</p>
+                              <p className="text-xs text-muted-foreground">{tx.profiles?.phone || ""}</p>
                             </td>
                             <td className="p-3 font-bold">{Number(tx.amount).toLocaleString()} ر.ي</td>
                             <td className="p-3 font-mono text-xs">{tx.transfer_reference || "—"}</td>
@@ -266,7 +361,7 @@ const DeliveryFinance = () => {
                               </Badge>
                             </td>
                             <td className="p-3">
-                              <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[tx.status] || "bg-muted text-muted-foreground"}`}>
+                              <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[tx.status] || "bg-muted"}`}>
                                 {statusLabels[tx.status] || tx.status}
                               </span>
                             </td>
@@ -294,6 +389,159 @@ const DeliveryFinance = () => {
           </Card>
         </TabsContent>
 
+        {/* ── Restaurant Revenue Tab ── */}
+        <TabsContent value="restaurants">
+          <div className="space-y-4">
+            {/* Period selector */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <Store className="w-4 h-4 text-primary" />
+                إيرادات المطاعم ({restaurants.length} مطعم)
+              </h3>
+              <Select value={restaurantPeriod} onValueChange={(v: any) => setRestaurantPeriod(v)}>
+                <SelectTrigger className="w-36 h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">اليوم</SelectItem>
+                  <SelectItem value="weekly">هذا الأسبوع</SelectItem>
+                  <SelectItem value="monthly">هذا الشهر</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {restaurantStats.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <Store className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  لا توجد مطاعم مضافة بعد
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {restaurantStats.map(rest => (
+                  <Card key={rest.id} className="overflow-hidden">
+                    {/* Restaurant Header */}
+                    <div
+                      className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                      onClick={() => setExpandedRestaurant(expandedRestaurant === rest.id ? null : rest.id)}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {rest.logo_url ? (
+                            <img src={rest.logo_url} alt={rest.name_ar} className="w-10 h-10 rounded-lg object-cover shrink-0 border" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <Store className="w-5 h-5 text-primary" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-bold truncate">{rest.name_ar}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {rest.periodOrders} طلب · {rest.periodRevenue.toLocaleString()} ر.ي
+                              <span className="text-[10px] opacity-60">
+                                {" "}({restaurantPeriod === "daily" ? "اليوم" : restaurantPeriod === "weekly" ? "الأسبوع" : "الشهر"})
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="text-left">
+                            <p className="text-lg font-black text-primary">{rest.totalRevenue.toLocaleString()}</p>
+                            <p className="text-[9px] text-muted-foreground">إجمالي ر.ي</p>
+                          </div>
+                          {expandedRestaurant === rest.id
+                            ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                            : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          }
+                        </div>
+                      </div>
+
+                      {/* Summary stats row */}
+                      <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t">
+                        {[
+                          { label: "إجمالي الطلبات", val: rest.totalOrders },
+                          { label: "طلبات الفترة", val: rest.periodOrders },
+                          { label: "صافي الإيرادات", val: `${rest.periodRevenue.toLocaleString()} ر.ي` },
+                        ].map((s, i) => (
+                          <div key={i} className="text-center">
+                            <p className="text-sm font-bold">{s.val}</p>
+                            <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Expanded: Order History */}
+                    {expandedRestaurant === rest.id && (
+                      <div className="border-t bg-muted/20">
+                        {/* Share buttons */}
+                        <div className="flex gap-2 p-3 border-b flex-wrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 border-green-500 text-green-600 hover:bg-green-50 text-xs"
+                            onClick={() => shareViaWhatsApp(buildRestaurantShareText(rest))}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" /> واتساب
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-xs"
+                            onClick={() => copyToClipboard(buildRestaurantShareText(rest), toast)}
+                          >
+                            <FileText className="w-3.5 h-3.5" /> نسخ للمذكرة
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-xs border-pink-400 text-pink-500 hover:bg-pink-50"
+                            onClick={() => copyToClipboard(buildRestaurantShareText(rest), toast)}
+                          >
+                            <Share2 className="w-3.5 h-3.5" /> انستغرام
+                          </Button>
+                        </div>
+
+                        {/* Order list */}
+                        {rest.recentOrders.length === 0 ? (
+                          <p className="text-center text-muted-foreground py-6 text-sm">لا توجد طلبات مكتملة</p>
+                        ) : (
+                          <div className="divide-y max-h-72 overflow-y-auto">
+                            <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] font-bold text-muted-foreground bg-muted/50">
+                              <span>العميل</span>
+                              <span>نوع الوجبة</span>
+                              <span className="text-center">المبلغ</span>
+                              <span className="text-left">التاريخ</span>
+                            </div>
+                            {rest.recentOrders.map((order: any) => {
+                              const items: any[] = order.items || [];
+                              const itemNames = items.map((it: any) => it.name_ar || it.name || "—").join("، ");
+                              const foodRevenue = Number(order.total || 0) - Number(order.delivery_fee || 0);
+                              return (
+                                <div key={order.id} className="grid grid-cols-4 gap-2 px-4 py-2.5 text-xs hover:bg-muted/30 items-center">
+                                  <span className="truncate font-medium">{order.customer_name || "—"}</span>
+                                  <span className="truncate text-muted-foreground" title={itemNames}>{itemNames || "—"}</span>
+                                  <span className="text-center font-bold text-primary">{foodRevenue.toLocaleString()} ر.ي</span>
+                                  <span className="text-left text-muted-foreground text-[10px]">
+                                    {new Date(order.created_at).toLocaleDateString("ar", { month: "short", day: "numeric" })}
+                                    {" "}
+                                    {new Date(order.created_at).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
         {/* ── Overview Tab ── */}
         <TabsContent value="overview">
           <div className="grid md:grid-cols-2 gap-6">
@@ -314,13 +562,13 @@ const DeliveryFinance = () => {
               <CardHeader><CardTitle className="text-base">ملخص مالي</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {[
-                  { label: "إجمالي الإيرادات", value: `${totalRevenue.toLocaleString()} ر.ي`, cls: "" },
-                  { label: "رسوم التوصيل", value: `${totalDeliveryFees.toLocaleString()} ر.ي`, cls: "" },
+                  { label: "إيرادات التوصيل (رسوم فقط)", value: `${totalDeliveryRevenue.toLocaleString()} ر.ي`, cls: "" },
+                  { label: "إيرادات المطاعم (قيمة الوجبات)", value: `${deliveredOrders.reduce((s, o) => s + Math.max(0, Number(o.total || 0) - Number(o.delivery_fee || 0)), 0).toLocaleString()} ر.ي`, cls: "" },
                   { label: "أرباح المندوبين", value: `${totalRiderEarnings.toLocaleString()} ر.ي`, cls: "text-orange-600" },
-                  { label: "صافي الربح", value: `${(totalRevenue - totalRiderEarnings).toLocaleString()} ر.ي`, cls: "text-primary font-bold" },
+                  { label: "صافي ربح التوصيل", value: `${(totalDeliveryRevenue - totalRiderEarnings).toLocaleString()} ر.ي`, cls: "text-primary font-bold" },
                 ].map((row, i) => (
                   <div key={i} className={`flex justify-between p-3 rounded-lg ${i === 3 ? "bg-primary/10 border border-primary/20" : "bg-muted/50"}`}>
-                    <span className={i === 3 ? "font-semibold" : "text-muted-foreground"}>{row.label}</span>
+                    <span className={i === 3 ? "font-semibold" : "text-muted-foreground text-sm"}>{row.label}</span>
                     <span className={row.cls || "font-bold"}>{row.value}</span>
                   </div>
                 ))}
@@ -342,9 +590,9 @@ const DeliveryFinance = () => {
                       <div key={r.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30">
                         <div>
                           <span className="font-medium">{r.full_name}</span>
-                          <span className="text-xs text-muted-foreground mr-2">({r.total_deliveries} توصيلة)</span>
+                          <span className="text-xs text-muted-foreground mr-2">({r.total_deliveries || 0} توصيلة)</span>
                         </div>
-                        <Badge variant="outline">{Number(r.earnings).toLocaleString()} ر.ي</Badge>
+                        <Badge variant="outline">{Number(r.earnings || 0).toLocaleString()} ر.ي</Badge>
                       </div>
                     ))}
                   </div>
@@ -364,27 +612,22 @@ const DeliveryFinance = () => {
           >
             <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-card rounded-t-2xl">
               <h2 className="text-lg font-bold">تفاصيل المعاملة</h2>
-              <button onClick={() => setSelectedTx(null)} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+              <button onClick={() => setSelectedTx(null)} className="p-1.5 hover:bg-muted rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <div className="p-5 space-y-4">
-              {/* Receipt image */}
               {selectedTx.transfer_receipt_url && (
                 <div>
                   <p className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Image className="w-4 h-4" /> صورة الحوالة</p>
                   <img
                     src={selectedTx.transfer_receipt_url}
                     alt="الحوالة"
-                    className="w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity border border-border"
+                    className="w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity border"
                     onClick={() => window.open(selectedTx.transfer_receipt_url, "_blank")}
                   />
-                  <p className="text-xs text-muted-foreground mt-1 text-center">اضغط للتكبير</p>
                 </div>
               )}
-
-              {/* Details grid */}
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { label: "العميل", value: selectedTx.profiles?.full_name || "—", icon: User },
@@ -400,31 +643,18 @@ const DeliveryFinance = () => {
                   </div>
                 ))}
               </div>
-
-              {/* Status */}
               <div className="flex items-center gap-2 p-3 bg-muted/40 rounded-xl">
                 <span className="text-sm text-muted-foreground">الحالة:</span>
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[selectedTx.status] || "bg-muted"}`}>
                   {statusLabels[selectedTx.status] || selectedTx.status}
                 </span>
               </div>
-
-              {/* Actions */}
               {selectedTx.status === "pending" && (
                 <div className="flex gap-3 pt-2">
-                  <Button
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white gap-2"
-                    onClick={() => handleApprove(selectedTx)}
-                    disabled={processing}
-                  >
+                  <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white gap-2" onClick={() => handleApprove(selectedTx)} disabled={processing}>
                     <CheckCircle className="w-4 h-4" />موافقة
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10 gap-2"
-                    onClick={() => setShowRejectDialog(true)}
-                    disabled={processing}
-                  >
+                  <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10 gap-2" onClick={() => setShowRejectDialog(true)} disabled={processing}>
                     <XCircle className="w-4 h-4" />رفض
                   </Button>
                 </div>
@@ -434,10 +664,10 @@ const DeliveryFinance = () => {
         </div>
       )}
 
-      {/* ── Reject Reason Dialog ── */}
+      {/* ── Reject Dialog ── */}
       {showRejectDialog && selectedTx && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-5 shadow-2xl" dir="rtl">
+          <div className="bg-card border rounded-2xl w-full max-w-sm p-5 shadow-2xl" dir="rtl">
             <h3 className="text-lg font-bold mb-3">سبب الرفض</h3>
             <Textarea
               placeholder="اكتب سبب رفض الدفعة..."
@@ -447,16 +677,10 @@ const DeliveryFinance = () => {
               rows={3}
             />
             <div className="flex gap-3">
-              <Button
-                className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                onClick={handleReject}
-                disabled={processing}
-              >
+              <Button className="flex-1 bg-destructive hover:bg-destructive/90" onClick={handleReject} disabled={processing}>
                 <XCircle className="w-4 h-4 ml-1" />تأكيد الرفض
               </Button>
-              <Button variant="outline" className="flex-1" onClick={() => { setShowRejectDialog(false); setRejectReason(""); }}>
-                إلغاء
-              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => { setShowRejectDialog(false); setRejectReason(""); }}>إلغاء</Button>
             </div>
           </div>
         </div>
