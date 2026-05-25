@@ -26,10 +26,41 @@ const DeliveryDriverDashboard = () => {
       const { data } = await supabase
         .from("riders")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id" as any, user.id)
         .maybeSingle();
-      setDriverData(data);
-      setIsOnline(data?.is_online || false);
+
+      if (data) {
+        setDriverData(data);
+        setIsOnline(data.is_online || false);
+        setLoading(false);
+        return;
+      }
+
+      // Fallback: البحث بالبريد الإلكتروني وربط الحساب (في حالة فشل الربط الأولي)
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser?.email) {
+        const { data: byEmail } = await supabase
+          .from("riders")
+          .select("*")
+          .ilike("email", authUser.email)
+          .is("user_id" as never, null)
+          .maybeSingle();
+
+        if (byEmail) {
+          // ربط الحساب تلقائياً
+          await supabase
+            .from("riders")
+            .update({ user_id: user.id, is_active: true, is_approved: true } as any)
+            .eq("id", byEmail.id);
+          const linked = { ...byEmail, user_id: user.id, is_active: true, is_approved: true };
+          setDriverData(linked);
+          setIsOnline(linked.is_online || false);
+          setLoading(false);
+          return;
+        }
+      }
+
+      setDriverData(null);
       setLoading(false);
     };
     fetch();

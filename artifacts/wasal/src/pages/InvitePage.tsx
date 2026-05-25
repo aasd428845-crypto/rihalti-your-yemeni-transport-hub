@@ -231,35 +231,57 @@ const InvitePage = () => {
           .select("created_by")
           .eq("token", inviteData.token)
           .single();
-        if (tokenData?.created_by) {
-          const companyId = tokenData.created_by;
-          const { data: existingRider } = await supabase
+
+        const companyId = tokenData?.created_by ?? null;
+
+        const riderPayload: Record<string, any> = {
+          user_id: userId,
+          full_name: fullName,
+          phone,
+          email: inviteData.email,
+          vehicle_type: vehicleType,
+          vehicle_plate: vehiclePlate,
+          is_active: true,
+          is_approved: true,
+        };
+
+        if (companyId) {
+          // First try: find placeholder row by company + email (case-insensitive)
+          const { data: existingByEmail } = await supabase
             .from("riders")
             .select("id")
             .eq("delivery_company_id", companyId)
-            .eq("email", inviteData.email)
+            .ilike("email", inviteData.email)
             .is("user_id" as any, null)
             .maybeSingle();
 
-          const riderPayload: Record<string, any> = {
-            user_id: userId,
-            full_name: fullName,
-            phone,
-            vehicle_type: vehicleType,
-            vehicle_plate: vehiclePlate,
-            is_active: true,
-            is_approved: true,
-          };
-
-          if (existingRider?.id) {
-            await supabase.from("riders").update(riderPayload as any).eq("id", existingRider.id);
+          if (existingByEmail?.id) {
+            await supabase.from("riders").update(riderPayload as any).eq("id", existingByEmail.id);
           } else {
-            await supabase.from("riders").insert({
-              ...riderPayload,
-              email: inviteData.email,
-              delivery_company_id: companyId,
-            } as any);
+            // Second try: find any unlinked row in this company (in case email wasn't stored)
+            const { data: existingAny } = await supabase
+              .from("riders")
+              .select("id")
+              .eq("delivery_company_id", companyId)
+              .is("user_id" as any, null)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (existingAny?.id) {
+              await supabase.from("riders").update(riderPayload as any).eq("id", existingAny.id);
+            } else {
+              // No placeholder found — create a fresh linked row
+              await supabase.from("riders").insert({
+                ...riderPayload,
+                delivery_company_id: companyId,
+              } as any);
+            }
           }
+        } else {
+          // No company id in token — still create a rider row so the driver can log in
+          // (admins can link them to a company later)
+          await supabase.from("riders").insert(riderPayload as any);
         }
       }
 

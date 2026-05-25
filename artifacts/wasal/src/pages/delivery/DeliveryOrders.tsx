@@ -735,15 +735,17 @@ const DeliveryOrders = () => {
             <Select value={selectedRider} onValueChange={setSelectedRider}>
               <SelectTrigger><SelectValue placeholder="اختر مندوب..." /></SelectTrigger>
               <SelectContent>
-                {riders.filter(r => r.is_active).map(r => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.full_name} {r.is_online ? "🟢" : "🔴"} - {r.vehicle_type}
-                  </SelectItem>
-                ))}
+                {riders
+                  .filter(r => r.is_active || r.user_id)
+                  .map(r => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.full_name} {r.is_online ? "🟢" : "🔴"} - {r.vehicle_type || "—"}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
 
-            {/* Financial info preview */}
+            {/* WhatsApp / Telegram quick-send — shown as soon as a rider is picked */}
             {selectedRider && (() => {
               const order = orders.find(o => o.id === assignOrderId);
               const rider = riders.find(r => r.id === selectedRider);
@@ -751,35 +753,38 @@ const DeliveryOrders = () => {
               const amount = Number(order.total || 0);
               return (
                 <div className="space-y-2">
-                  {/* Payment info */}
-                  <div className={`text-xs rounded-lg px-3 py-2 ${
-                    order.payment_method === "cash" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400" :
-                    "bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400"
-                  }`}>
-                    {order.payment_method === "cash" && amount > 0
-                      ? `💵 سيتلقى المندوب إشعاراً بتحصيل ${amount.toLocaleString()} ر.ي نقداً وسيُسجَّل المبلغ على حسابه`
-                      : order.payment_method === "bank_transfer"
-                      ? "✅ سيتلقى المندوب إشعاراً بأن الدفع تم مسبقاً (لن يُسجَّل أي مبلغ على حسابه)"
-                      : ""}
-                    {order && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {rider?.phone && (
-                          <button
-                            onClick={() => window.open(buildRiderWhatsApp(order, rider.phone), "_blank")}
-                            className="flex items-center gap-1.5 text-green-600 hover:underline font-medium text-xs"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" /> إرسال واتساب
-                          </button>
-                        )}
-                        <button
-                          onClick={() => window.open(buildRiderTelegram(order), "_blank")}
-                          className="flex items-center gap-1.5 text-blue-500 hover:underline font-medium text-xs"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" /> إرسال تلغرام
-                        </button>
-                      </div>
+                  {/* Notify rider buttons */}
+                  <div className="flex flex-wrap gap-2 border rounded-lg px-3 py-2 bg-muted/40">
+                    <span className="text-xs text-muted-foreground w-full font-medium mb-1">إرسال تفاصيل الطلب للمندوب:</span>
+                    {rider?.phone ? (
+                      <button
+                        onClick={() => window.open(buildRiderWhatsApp(order, rider.phone), "_blank")}
+                        className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" /> واتساب
+                      </button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">لا يوجد رقم هاتف للمندوب</span>
                     )}
+                    <button
+                      onClick={() => window.open(buildRiderTelegram(order), "_blank")}
+                      className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" /> تلغرام
+                    </button>
                   </div>
+
+                  {/* Payment info */}
+                  {(order.payment_method === "cash" || order.payment_method === "bank_transfer") && (
+                    <div className={`text-xs rounded-lg px-3 py-2 ${
+                      order.payment_method === "cash" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400" :
+                      "bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400"
+                    }`}>
+                      {order.payment_method === "cash" && amount > 0
+                        ? `💵 سيتلقى المندوب إشعاراً بتحصيل ${amount.toLocaleString()} ر.ي نقداً وسيُسجَّل المبلغ على حسابه`
+                        : "✅ سيتلقى المندوب إشعاراً بأن الدفع تم مسبقاً (لن يُسجَّل أي مبلغ على حسابه)"}
+                    </div>
+                  )}
 
                   {/* Rider current outstanding cash balance */}
                   {riderOutstanding > 0 && (

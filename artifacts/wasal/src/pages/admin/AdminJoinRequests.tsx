@@ -6,8 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Eye, User, Building2, Truck, Car, Phone, Mail, CreditCard, Calendar, Loader2, Image } from "lucide-react";
+import { CheckCircle, XCircle, Eye, User, Building2, Truck, Car, Phone, Mail, CreditCard, Calendar, Loader2, Image, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { createAuditLog } from "@/lib/adminApi";
@@ -58,6 +59,8 @@ const AdminJoinRequests = () => {
   const [processing, setProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [autoApproveDrivers, setAutoApproveDrivers] = useState(false);
+  const [autoApproving, setAutoApproving] = useState(false);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -144,6 +147,36 @@ const AdminJoinRequests = () => {
     fetchRequests();
   };
 
+  const handleAutoApproveDeliveryDrivers = async () => {
+    if (!user) return;
+    const pendingDrivers = requests.filter((r) => r.role === "delivery_driver");
+    if (pendingDrivers.length === 0) {
+      toast.info("لا يوجد مندوبو توصيل معلقون حالياً");
+      return;
+    }
+    setAutoApproving(true);
+    let approved = 0;
+    for (const driver of pendingDrivers) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ account_status: "active", is_verified: true, rejection_reason: null })
+        .eq("user_id", driver.user_id);
+      if (!error) {
+        await supabase.from("notifications").insert({
+          user_id: driver.user_id,
+          title: "تمت الموافقة على حسابك! 🎉",
+          body: "مرحباً بك. يمكنك الآن البدء في استقبال طلبات التوصيل.",
+        });
+        createAuditLog(user.id, "موافقة تلقائية على مندوب توصيل", "profile", driver.user_id, { role: "delivery_driver" });
+        approved++;
+      }
+    }
+    toast.success(`تمت الموافقة تلقائياً على ${approved} مندوب توصيل`);
+    setAutoApproving(false);
+    setAutoApproveDrivers(false);
+    fetchRequests();
+  };
+
   const filtered = activeTab === "all" ? requests : requests.filter((r) => r.role === activeTab);
 
   const ImageCard = ({ src, label }: { src: string | null; label: string }) => {
@@ -166,7 +199,23 @@ const AdminJoinRequests = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold">طلبات الانضمام</h2>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-xl font-bold">طلبات الانضمام</h2>
+        {/* Auto-approve delivery drivers toggle */}
+        <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-2">
+          <Zap className="w-4 h-4 text-amber-500" />
+          <span className="text-sm font-medium">موافقة تلقائية على مندوبي التوصيل</span>
+          <Switch
+            checked={autoApproveDrivers}
+            onCheckedChange={(checked) => {
+              setAutoApproveDrivers(checked);
+              if (checked) handleAutoApproveDeliveryDrivers();
+            }}
+            disabled={autoApproving}
+          />
+          {autoApproving && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+        </div>
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
