@@ -10,7 +10,7 @@ import { Bus, Mail, Lock, User, Phone, Eye, EyeOff, Upload, Camera, Car, CreditC
 import { toast } from "sonner";
 import BackButton from "@/components/common/BackButton";
 
-type InviteData = { email: string; role: string; token: string };
+type InviteData = { email: string; role: string; token: string; created_by: string | null };
 
 const VEHICLE_TYPES = [
   { value: "سيارة", label: "سيارة" },
@@ -74,16 +74,17 @@ const InvitePage = () => {
 
   const validateToken = async () => {
     if (!token) { setStatus("invalid"); return; }
+    // Include created_by here — before auth — to avoid RLS issues after signUp
     const { data, error } = await supabase
       .from("invitation_tokens")
-      .select("email, role, token")
+      .select("email, role, token, created_by")
       .eq("token", token)
       .is("used_at", null)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
 
     if (error || !data) { setStatus("invalid"); return; }
-    setInviteData(data);
+    setInviteData(data as InviteData);
     setStatus("valid");
   };
 
@@ -225,14 +226,10 @@ const InvitePage = () => {
       // 4. If delivery_driver, link to delivery company via riders table.
       //    If the delivery company pre-created a rider row (via "إضافة مندوب"),
       //    update that row with the new auth user_id; otherwise insert a new row.
+      //    NOTE: created_by was fetched during token validation (before auth) to
+      //    avoid RLS issues that arise when querying tokens post-signUp.
       if (inviteData.role === "delivery_driver") {
-        const { data: tokenData } = await supabase
-          .from("invitation_tokens")
-          .select("created_by")
-          .eq("token", inviteData.token)
-          .single();
-
-        const companyId = tokenData?.created_by ?? null;
+        const companyId = inviteData.created_by ?? null;
 
         const riderPayload: Record<string, any> = {
           user_id: userId,

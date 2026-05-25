@@ -199,7 +199,11 @@ const DeliveryRiders = () => {
                         </p>
                       )}
                     </div>
-                    <Badge variant={r.is_online ? "default" : "secondary"}>{r.is_online ? "متصل 🟢" : "غير متصل"}</Badge>
+                    {!(r as any).user_id ? (
+                      <Badge variant="outline" className="border-amber-400 text-amber-600 bg-amber-50">⏳ ينتظر التسجيل</Badge>
+                    ) : (
+                      <Badge variant={r.is_online ? "default" : "secondary"}>{r.is_online ? "متصل 🟢" : "غير متصل"}</Badge>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div><span className="text-muted-foreground">المركبة:</span> <span className="font-medium">{vehicleLabels[r.vehicle_type || ""] || r.vehicle_type || "—"}</span></div>
@@ -244,7 +248,11 @@ const DeliveryRiders = () => {
                     <td className="p-3">{r.phone}</td>
                     <td className="p-3">{vehicleLabels[r.vehicle_type || ""] || r.vehicle_type || "—"}</td>
                     <td className="p-3">
-                      <Badge variant={r.is_online ? "default" : "secondary"}>{r.is_online ? "متصل 🟢" : "غير متصل"}</Badge>
+                      {!(r as any).user_id ? (
+                        <Badge variant="outline" className="border-amber-400 text-amber-600 bg-amber-50">⏳ ينتظر التسجيل</Badge>
+                      ) : (
+                        <Badge variant={r.is_online ? "default" : "secondary"}>{r.is_online ? "متصل 🟢" : "غير متصل"}</Badge>
+                      )}
                     </td>
                     <td className="p-3 font-bold text-primary">{r.total_deliveries}</td>
                     <td className="p-3">⭐ {r.rating}</td>
