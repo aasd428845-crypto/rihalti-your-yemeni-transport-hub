@@ -229,56 +229,29 @@ const InvitePage = () => {
       //    NOTE: created_by was fetched during token validation (before auth) to
       //    avoid RLS issues that arise when querying tokens post-signUp.
       if (inviteData.role === "delivery_driver") {
-        const companyId = inviteData.created_by ?? null;
-
-        const riderPayload: Record<string, any> = {
-          user_id: userId,
-          full_name: fullName,
-          phone,
-          email: inviteData.email,
-          vehicle_type: vehicleType,
-          vehicle_plate: vehiclePlate,
-          is_active: true,
-          is_approved: true,
-        };
-
-        if (companyId) {
-          // First try: find placeholder row by company + email (case-insensitive)
-          const { data: existingByEmail } = await supabase
-            .from("riders")
-            .select("id")
-            .eq("delivery_company_id", companyId)
-            .ilike("email", inviteData.email)
-            .is("user_id" as any, null)
-            .maybeSingle();
-
-          if (existingByEmail?.id) {
-            await supabase.from("riders").update(riderPayload as any).eq("id", existingByEmail.id);
-          } else {
-            // Second try: find any unlinked row in this company (in case email wasn't stored)
-            const { data: existingAny } = await supabase
-              .from("riders")
-              .select("id")
-              .eq("delivery_company_id", companyId)
-              .is("user_id" as any, null)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-
-            if (existingAny?.id) {
-              await supabase.from("riders").update(riderPayload as any).eq("id", existingAny.id);
-            } else {
-              // No placeholder found — create a fresh linked row
-              await supabase.from("riders").insert({
-                ...riderPayload,
-                delivery_company_id: companyId,
-              } as any);
-            }
+        // Use the API server (which has service-role key) to bypass RLS on the riders table.
+        // Direct Supabase updates from a freshly-signed-up user fail because the RLS
+        // UPDATE policy only allows the delivery company to modify rider rows.
+        try {
+          const linkRes = await fetch("/api/riders/link", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: inviteData.email,
+              userId,
+              fullName,
+              phone,
+              vehicleType,
+              vehiclePlate,
+              companyId: inviteData.created_by ?? undefined,
+            }),
+          });
+          if (!linkRes.ok) {
+            const err = await linkRes.json().catch(() => ({}));
+            console.error("Rider link API error:", err);
           }
-        } else {
-          // No company id in token — still create a rider row so the driver can log in
-          // (admins can link them to a company later)
-          await supabase.from("riders").insert(riderPayload as any);
+        } catch (linkErr) {
+          console.error("Rider link fetch error:", linkErr);
         }
       }
 

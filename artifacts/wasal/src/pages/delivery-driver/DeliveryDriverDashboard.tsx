@@ -21,7 +21,7 @@ const DeliveryDriverDashboard = () => {
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
+    const loadDriverData = async () => {
       // البحث في جدول riders (المستخدَم لمندوبي شركات التوصيل)
       const { data } = await supabase
         .from("riders")
@@ -36,34 +36,32 @@ const DeliveryDriverDashboard = () => {
         return;
       }
 
-      // Fallback: البحث بالبريد الإلكتروني وربط الحساب (في حالة فشل الربط الأولي)
+      // Fallback: ربط الحساب عبر API server (service role — يتجاوز RLS)
+      // هذا يعالج الحالات التي يفشل فيها الربط أثناء التسجيل بسبب سياسات RLS
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser?.email) {
-        const { data: byEmail } = await supabase
-          .from("riders")
-          .select("*")
-          .ilike("email", authUser.email)
-          .is("user_id" as never, null)
-          .maybeSingle();
-
-        if (byEmail) {
-          // ربط الحساب تلقائياً
-          await supabase
-            .from("riders")
-            .update({ user_id: user.id, is_active: true, is_approved: true } as any)
-            .eq("id", byEmail.id);
-          const linked = { ...byEmail, user_id: user.id, is_active: true, is_approved: true };
-          setDriverData(linked);
-          setIsOnline(linked.is_online || false);
-          setLoading(false);
-          return;
-        }
+        try {
+          const linkRes = await window.fetch("/api/riders/link", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: authUser.email, userId: user.id }),
+          });
+          if (linkRes.ok) {
+            const { rider } = await linkRes.json();
+            if (rider) {
+              setDriverData(rider);
+              setIsOnline(rider.is_online || false);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (_) {}
       }
 
       setDriverData(null);
       setLoading(false);
     };
-    fetch();
+    loadDriverData();
   }, [user]);
 
   const fetchPendingOrders = useCallback(async () => {
