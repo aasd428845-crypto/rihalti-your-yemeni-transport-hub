@@ -322,6 +322,61 @@ export const updatePartnerRequest = async (id: string, updates: any) => {
   return data;
 };
 
+// ===== Rider Statistics =====
+export const getRiderStats = async (riderId: string) => {
+  const today = new Date().toISOString().split("T")[0];
+
+  const [riderRes, allOrdersRes, todayOrdersRes, cashRes] = await Promise.all([
+    supabase.from("riders").select("*").eq("id", riderId).maybeSingle(),
+    supabase
+      .from("delivery_orders")
+      .select("id, total, delivery_fee, status, created_at, customer_name, customer_phone, payment_method")
+      .eq("rider_id", riderId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("delivery_orders")
+      .select("id, total, delivery_fee, status, payment_method")
+      .eq("rider_id", riderId)
+      .gte("created_at", today),
+    supabase
+      .from("rider_cash_collections")
+      .select("*, order:delivery_orders(id, customer_name, total, created_at)")
+      .eq("rider_id", riderId)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const allOrders = allOrdersRes.data || [];
+  const todayOrders = todayOrdersRes.data || [];
+  const cash = cashRes.data || [];
+
+  const deliveredOrders = allOrders.filter((o: any) => o.status === "delivered");
+  const todayDelivered = todayOrders.filter((o: any) => o.status === "delivered");
+
+  return {
+    rider: riderRes.data,
+    totalOrders: allOrders.length,
+    deliveredOrders: deliveredOrders.length,
+    totalCashValue: deliveredOrders
+      .filter((o: any) => o.payment_method === "cash")
+      .reduce((s: number, o: any) => s + Number(o.total || 0), 0),
+    totalDeliveryFees: deliveredOrders
+      .reduce((s: number, o: any) => s + Number(o.delivery_fee || 0), 0),
+    todayOrders: todayOrders.length,
+    todayDelivered: todayDelivered.length,
+    todayCashValue: todayDelivered
+      .filter((o: any) => o.payment_method === "cash")
+      .reduce((s: number, o: any) => s + Number(o.total || 0), 0),
+    pendingCash: cash
+      .filter((c: any) => ["pending_pickup", "collected"].includes(c.status))
+      .reduce((s: number, c: any) => s + Number(c.amount || 0), 0),
+    settledCash: cash
+      .filter((c: any) => c.status === "settled")
+      .reduce((s: number, c: any) => s + Number(c.amount || 0), 0),
+    recentOrders: allOrders.slice(0, 30),
+    cashCollections: cash.slice(0, 20),
+  };
+};
+
 // ===== Dashboard Stats =====
 export const getDeliveryStats = async (companyId: string) => {
   const today = new Date().toISOString().split("T")[0];

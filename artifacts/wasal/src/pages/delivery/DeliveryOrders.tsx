@@ -43,8 +43,8 @@ const getDeliveryRequestInfo = (order: any) => {
   };
 };
 
-// ─── Build WhatsApp message for rider ────────────────────────────────────────
-const buildRiderWhatsApp = (order: any, riderPhone: string): string => {
+// ─── Build order message text for rider ──────────────────────────────────────
+const buildRiderMessageText = (order: any): string => {
   const isReq = isDeliveryRequest(order);
   const info = isReq ? getDeliveryRequestInfo(order) : null;
 
@@ -83,9 +83,20 @@ const buildRiderWhatsApp = (order: any, riderPhone: string): string => {
     paymentLine,
   ].filter((l): l is string => l !== null);
 
-  const text = lines.join("\n");
+  return lines.join("\n");
+};
+
+// ─── Build WhatsApp link for rider ───────────────────────────────────────────
+const buildRiderWhatsApp = (order: any, riderPhone: string): string => {
+  const text = buildRiderMessageText(order);
   const phone = riderPhone.replace(/\D/g, "");
   return phone ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+};
+
+// ─── Build Telegram link for rider ───────────────────────────────────────────
+const buildRiderTelegram = (order: any): string => {
+  const text = buildRiderMessageText(order);
+  return `https://t.me/share/url?text=${encodeURIComponent(text)}`;
 };
 
 const DeliveryOrders = () => {
@@ -301,17 +312,30 @@ const DeliveryOrders = () => {
           <UserCheck className="w-3 h-3 ml-1" /> تعيين
         </Button>
       )}
-      {/* Quick WhatsApp button — only when a rider is already assigned and has a phone */}
-      {order.rider_id && order.rider?.phone && !["cancelled"].includes(order.status) && (
-        <Button
-          size="sm"
-          variant="outline"
-          className="min-h-[44px] md:min-h-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
-          onClick={() => window.open(buildRiderWhatsApp(order, order.rider.phone), "_blank")}
-          title="إرسال تفاصيل الطلب للمندوب عبر واتساب"
-        >
-          <MessageCircle className="w-3 h-3" />
-        </Button>
+      {/* WhatsApp + Telegram buttons — only when a rider is assigned */}
+      {order.rider_id && !["cancelled"].includes(order.status) && (
+        <>
+          {order.rider?.phone && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="min-h-[44px] md:min-h-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+              onClick={() => window.open(buildRiderWhatsApp(order, order.rider.phone), "_blank")}
+              title="إرسال تفاصيل الطلب للمندوب عبر واتساب"
+            >
+              <MessageCircle className="w-3 h-3" />
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="min-h-[44px] md:min-h-0 border-blue-400 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+            onClick={() => window.open(buildRiderTelegram(order), "_blank")}
+            title="إرسال تفاصيل الطلب للمندوب عبر تلغرام"
+          >
+            <ExternalLink className="w-3 h-3" />
+          </Button>
+        </>
       )}
       {order.status === "assigned" && (
         <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(order.id, "picked_up")} className="min-h-[44px] md:min-h-0">تم الاستلام</Button>
@@ -737,15 +761,21 @@ const DeliveryOrders = () => {
                       : order.payment_method === "bank_transfer"
                       ? "✅ سيتلقى المندوب إشعاراً بأن الدفع تم مسبقاً (لن يُسجَّل أي مبلغ على حسابه)"
                       : ""}
-                    {rider?.phone && (
-                      <div className="mt-2">
+                    {order && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {rider?.phone && (
+                          <button
+                            onClick={() => window.open(buildRiderWhatsApp(order, rider.phone), "_blank")}
+                            className="flex items-center gap-1.5 text-green-600 hover:underline font-medium text-xs"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" /> إرسال واتساب
+                          </button>
+                        )}
                         <button
-                          onClick={() => {
-                            if (order) window.open(buildRiderWhatsApp(order, rider.phone), "_blank");
-                          }}
-                          className="flex items-center gap-1.5 text-green-600 hover:underline font-medium"
+                          onClick={() => window.open(buildRiderTelegram(order), "_blank")}
+                          className="flex items-center gap-1.5 text-blue-500 hover:underline font-medium text-xs"
                         >
-                          <MessageCircle className="w-3.5 h-3.5" /> إرسال تفاصيل الطلب للمندوب عبر واتساب
+                          <ExternalLink className="w-3.5 h-3.5" /> إرسال تلغرام
                         </button>
                       </div>
                     )}
