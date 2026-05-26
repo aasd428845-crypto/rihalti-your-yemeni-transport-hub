@@ -43,6 +43,40 @@ const getDeliveryRequestInfo = (order: any) => {
   };
 };
 
+// ─── Format restaurant order items for rider message ────────────────────────
+const formatItemsForMessage = (items: any[]): string => {
+  if (!items?.length) return "";
+  const lines: string[] = [];
+  for (const item of items) {
+    if (item.order_type === "delivery_request") continue; // handled separately
+    const name = item.name_ar || item.name || "صنف";
+    const qty  = item.quantity || 1;
+    const price = item.price ? ` (${Number(item.price).toLocaleString()} ر.ي)` : "";
+    lines.push(`   • ${qty}x ${name}${price}`);
+    // Extras / options
+    const opts: any[] = item.options || item.selected_options || [];
+    for (const opt of opts) {
+      const optName = opt.name_ar || opt.name || "";
+      // Option group with selected items
+      const optItems: any[] = opt.items || opt.selected || [];
+      if (optItems.length) {
+        for (const oi of optItems) {
+          const oiName = oi.name_ar || oi.name || "";
+          const oiPrice = oi.price ? ` (+${Number(oi.price).toLocaleString()})` : "";
+          lines.push(`      ➕ ${oiName}${oiPrice}`);
+        }
+      } else if (optName) {
+        // Simple extra
+        const optPrice = opt.price ? ` (+${Number(opt.price).toLocaleString()})` : "";
+        lines.push(`      ➕ ${optName}${optPrice}`);
+      }
+    }
+    // item-level notes
+    if (item.notes) lines.push(`      📌 ${item.notes}`);
+  }
+  return lines.join("\n");
+};
+
 // ─── Build order message text for rider ──────────────────────────────────────
 const buildRiderMessageText = (order: any): string => {
   const isReq = isDeliveryRequest(order);
@@ -52,34 +86,62 @@ const buildRiderMessageText = (order: any): string => {
   const dropoffMapLink = order.delivery_lat ? `https://maps.google.com/?q=${order.delivery_lat},${order.delivery_lng}` : null;
 
   const svcLabel = info?.serviceType === "shopping" ? "تسوق" : info?.serviceType === "meal" ? "توصيل وجبة" : "نقل طرد";
+
+  // Payment line — always show the amount for cash orders
+  const totalAmt = Number(order.total || 0);
+  const deliveryFee = Number(order.delivery_fee || 0);
   const paymentLine =
     order.payment_method === "cash"
-      ? `💵 *الدفع: نقداً عند الاستلام — يرجى تحصيل ${Number(order.total).toLocaleString()} ر.ي*`
+      ? `💵 *الدفع: نقداً عند الاستلام*\n   ┗ يرجى تحصيل *${totalAmt.toLocaleString()} ر.ي* من العميل`
       : order.payment_method === "bank_transfer"
-      ? `✅ *الدفع: تم الدفع مسبقاً عبر تحويل بنكي — لا يلزم تحصيل أي مبلغ*`
-      : `💳 *الدفع: ${order.payment_method}*`;
+      ? `✅ *الدفع: تم مسبقاً (تحويل بنكي) — لا يلزم تحصيل أي مبلغ*`
+      : order.payment_method === "online"
+      ? `✅ *الدفع: تم مسبقاً إلكترونياً — لا يلزم تحصيل أي مبلغ*`
+      : `💳 *الدفع: ${order.payment_method || "—"}*`;
+
+  // Items block (for restaurant orders)
+  const itemsText = !isReq ? formatItemsForMessage(order.items || []) : "";
 
   const lines = [
-    `🚚 *مهمة توصيل جديدة — وصل*`,
-    ``,
+    `🚚 *مهمة توصيل جديدة — وصال*`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    // Restaurant info
+    order.restaurant?.name_ar ? `🏪 *المطعم/المتجر:* ${order.restaurant.name_ar}` : null,
+    order.restaurant?.address ? `   📌 عنوان المطعم: ${order.restaurant.address}` : null,
+    order.restaurant?.phone   ? `   📞 هاتف المطعم: ${order.restaurant.phone}` : null,
+    // Service type (delivery requests)
     isReq ? `📦 *نوع الخدمة:* ${svcLabel}` : null,
     ``,
-    `📍 *من (نقطة الاستلام):*`,
-    `   ${info?.pickupAddress || order.customer_address || "—"}`,
+    // Items list (restaurant orders only)
+    itemsText ? `🍽️ *الأصناف المطلوبة:*\n${itemsText}` : null,
+    itemsText ? `` : null,
+    // Pricing
+    itemsText && deliveryFee > 0 ? `💰 *المجموع:* ${(totalAmt - deliveryFee).toLocaleString()} ر.ي + رسوم توصيل ${deliveryFee.toLocaleString()} ر.ي = *${totalAmt.toLocaleString()} ر.ي*` : null,
+    itemsText && deliveryFee === 0 ? `💰 *إجمالي الطلب:* ${totalAmt.toLocaleString()} ر.ي` : null,
+    itemsText ? `` : null,
+    // Pickup point
+    `📍 *نقطة الاستلام (من):*`,
+    `   ${info?.pickupAddress || order.restaurant?.address || order.customer_address || "—"}`,
     info?.pickupLandmark ? `   المعلم: ${info.pickupLandmark}` : null,
     pickupMapLink ? `   🗺️ ${pickupMapLink}` : null,
     ``,
-    `📍 *إلى (نقطة التسليم):*`,
+    // Delivery point
+    `📍 *نقطة التسليم (إلى):*`,
     `   ${order.customer_address || "—"}`,
     info?.deliveryLandmark ? `   المعلم: ${info.deliveryLandmark}` : null,
     dropoffMapLink ? `   🗺️ ${dropoffMapLink}` : null,
     ``,
-    info?.senderName ? `👤 *المرسِل:* ${info.senderName} — ${info.senderPhone}` : `👤 *العميل:* ${order.customer_name} — ${order.customer_phone}`,
-    info?.recipientName ? `👤 *المستلِم:* ${info.recipientName} — ${info.recipientPhone}` : null,
+    // Customer / sender / recipient
+    info?.senderName
+      ? `👤 *المرسِل:* ${info.senderName}${info.senderPhone ? ` — ${info.senderPhone}` : ""}`
+      : `👤 *العميل:* ${order.customer_name || "—"}${order.customer_phone ? ` — ${order.customer_phone}` : ""}`,
+    info?.recipientName ? `👤 *المستلِم:* ${info.recipientName}${info.recipientPhone ? ` — ${info.recipientPhone}` : ""}` : null,
     ``,
+    // Parcel description
     info?.itemDescription ? `📝 *وصف الطرد:* ${info.itemDescription}` : null,
-    info?.notes ? `📌 *ملاحظات:* ${info.notes}` : null,
-    ``,
+    (info?.notes || order.notes) ? `📌 *ملاحظات:* ${info?.notes || order.notes}` : null,
+    // Payment
+    `━━━━━━━━━━━━━━━━━━━━`,
     paymentLine,
   ].filter((l): l is string => l !== null);
 

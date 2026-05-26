@@ -4,10 +4,58 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Package, DollarSign, Star, MapPin, Navigation, Clock } from "lucide-react";
+import { Package, DollarSign, Star, MapPin, Navigation, Clock, CheckCircle2, Truck, PhoneCall } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { updateOrderStatus } from "@/lib/deliveryApi";
+
+// ── Status helpers ────────────────────────────────────────────────────────────
+const STATUS_LABEL: Record<string, string> = {
+  pending:    "في الانتظار",
+  confirmed:  "مؤكد",
+  accepted:   "مقبول",
+  preparing:  "قيد التحضير",
+  ready:      "جاهز",
+  assigned:   "معيّن لك ✅",
+  picked_up:  "استلمته 📦",
+  on_the_way: "في الطريق 🚗",
+  delivered:  "تم التوصيل ✔️",
+  cancelled:  "ملغي",
+  returned:   "مرتجع",
+};
+const STATUS_COLOR: Record<string, string> = {
+  assigned:   "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  picked_up:  "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
+  on_the_way: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
+  delivered:  "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  cancelled:  "bg-red-100 text-red-800",
+};
+
+// ── Payment method label ──────────────────────────────────────────────────────
+const paymentLabel = (order: any) => {
+  if (order.payment_method === "cash")
+    return `💵 نقداً — حصّل ${Number(order.total || 0).toLocaleString()} ر.ي`;
+  if (order.payment_method === "bank_transfer") return "✅ مدفوع (تحويل بنكي)";
+  if (order.payment_method === "online")        return "✅ مدفوع إلكترونياً";
+  return order.payment_method || "—";
+};
+
+// ── Format items list ─────────────────────────────────────────────────────────
+const formatItems = (items: any[]): string => {
+  if (!items?.length) return "";
+  return items
+    .filter((i: any) => i.order_type !== "delivery_request")
+    .map((i: any) => {
+      const base = `${i.quantity || 1}x ${i.name_ar || i.name || "صنف"}`;
+      const extras = (i.options || i.selected_options || [])
+        .flatMap((o: any) =>
+          (o.items || o.selected || []).map((oi: any) => `+${oi.name_ar || oi.name}`)
+        );
+      return extras.length ? `${base} (${extras.join(", ")})` : base;
+    })
+    .join(" | ");
+};
 
 const DeliveryDriverDashboard = () => {
   const { user, profile } = useAuth();
@@ -18,11 +66,13 @@ const DeliveryDriverDashboard = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [myOrders, setMyOrders] = useState<any[]>([]);
+  const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
 
+  // ── Load driver data ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     const loadDriverData = async () => {
-      // البحث في جدول riders (المستخدَم لمندوبي شركات التوصيل)
       const { data } = await supabase
         .from("riders")
         .select("*")
@@ -37,7 +87,6 @@ const DeliveryDriverDashboard = () => {
       }
 
       // Fallback: ربط الحساب عبر API server (service role — يتجاوز RLS)
-      // هذا يعالج الحالات التي يفشل فيها الربط أثناء التسجيل بسبب سياسات RLS
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser?.email) {
         try {
@@ -64,11 +113,12 @@ const DeliveryDriverDashboard = () => {
     loadDriverData();
   }, [user]);
 
+  // ── Fetch available (unassigned) orders ────────────────────────────────────
   const fetchPendingOrders = useCallback(async () => {
     if (!driverData?.is_approved || !driverData?.delivery_company_id) return;
     const { data } = await supabase
       .from("delivery_orders")
-      .select("*")
+      .select("*, restaurant:restaurants(name_ar, address, phone)")
       .eq("delivery_company_id", driverData.delivery_company_id)
       .eq("status", "pending")
       .is("rider_id", null)
@@ -77,22 +127,40 @@ const DeliveryDriverDashboard = () => {
     setPendingOrders(data || []);
   }, [driverData]);
 
-  useEffect(() => {
-    if (driverData?.is_approved) fetchPendingOrders();
-  }, [driverData, fetchPendingOrders]);
+  // ── Fetch MY assigned orders ────────────────────────────────────────────────
+  const fetchMyOrders = useCallback(async () => {
+    if (!driverData?.id) return;
+    const { data } = await supabase
+      .from("delivery_orders")
+      .select("*, restaurant:restaurants(name_ar, address, phone)")
+      .eq("rider_id" as any, driverData.id)
+      .not("status", "in", '("delivered","cancelled","returned")')
+      .order("assigned_at", { ascending: false })
+      .limit(30);
+    setMyOrders(data || []);
+  }, [driverData]);
 
+  useEffect(() => {
+    if (driverData?.is_approved) {
+      fetchPendingOrders();
+      fetchMyOrders();
+    }
+  }, [driverData, fetchPendingOrders, fetchMyOrders]);
+
+  // ── Realtime updates ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!driverData?.is_approved) return;
     const channel = supabase
       .channel("dd-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "delivery_orders" }, () => {
         fetchPendingOrders();
+        fetchMyOrders();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [driverData, fetchPendingOrders]);
+  }, [driverData, fetchPendingOrders, fetchMyOrders]);
 
-  // GPS tracking when online
+  // ── GPS tracking when online ────────────────────────────────────────────────
   useEffect(() => {
     if (!isOnline || !user || !driverData?.id) return;
     let watchId: number;
@@ -112,6 +180,7 @@ const DeliveryDriverDashboard = () => {
     return () => { if (watchId) navigator.geolocation.clearWatch(watchId); };
   }, [isOnline, user, driverData]);
 
+  // ── Toggle online status ────────────────────────────────────────────────────
   const toggleOnline = async () => {
     if (!driverData) return;
     setTogglingOnline(true);
@@ -131,6 +200,67 @@ const DeliveryDriverDashboard = () => {
     setTogglingOnline(false);
   };
 
+  // ── Update order status (by rider) ─────────────────────────────────────────
+  const handleOrderStatus = async (orderId: string, newStatus: string, label: string) => {
+    setUpdatingOrder(orderId);
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      toast({ title: `✅ ${label}`, description: "تم تحديث حالة الطلب" });
+      fetchMyOrders();
+      fetchPendingOrders();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setUpdatingOrder(null);
+    }
+  };
+
+  // ── Render status action buttons for an order ───────────────────────────────
+  const renderStatusActions = (order: any) => {
+    const busy = updatingOrder === order.id;
+    if (order.status === "assigned" || order.status === "ready") {
+      return (
+        <Button
+          size="sm"
+          className="w-full gap-2 bg-cyan-600 hover:bg-cyan-700 text-white"
+          disabled={busy}
+          onClick={() => handleOrderStatus(order.id, "picked_up", "استلمت الطلب")}
+        >
+          <Package className="w-4 h-4" />
+          {busy ? "جاري..." : "استلمت الطلب 📦"}
+        </Button>
+      );
+    }
+    if (order.status === "picked_up") {
+      return (
+        <Button
+          size="sm"
+          className="w-full gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+          disabled={busy}
+          onClick={() => handleOrderStatus(order.id, "on_the_way", "في الطريق")}
+        >
+          <Truck className="w-4 h-4" />
+          {busy ? "جاري..." : "في الطريق 🚗"}
+        </Button>
+      );
+    }
+    if (order.status === "on_the_way") {
+      return (
+        <Button
+          size="sm"
+          className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
+          disabled={busy}
+          onClick={() => handleOrderStatus(order.id, "delivered", "تم التوصيل")}
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          {busy ? "جاري..." : "تم التوصيل ✔️"}
+        </Button>
+      );
+    }
+    return null;
+  };
+
+  // ── Loading ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -139,6 +269,7 @@ const DeliveryDriverDashboard = () => {
     );
   }
 
+  // ── Not linked ──────────────────────────────────────────────────────────────
   if (!driverData) {
     return (
       <div className="text-center py-20 space-y-4" dir="rtl">
@@ -154,6 +285,7 @@ const DeliveryDriverDashboard = () => {
     );
   }
 
+  // ── Pending approval ────────────────────────────────────────────────────────
   if (!driverData.is_approved) {
     return (
       <div className="text-center py-20 space-y-4" dir="rtl">
@@ -167,17 +299,20 @@ const DeliveryDriverDashboard = () => {
   }
 
   const stats = [
-    { title: "إجمالي التوصيلات", value: driverData.total_deliveries || 0, icon: Package },
-    { title: "إجمالي الأرباح", value: `${Number(driverData.earnings || 0).toLocaleString()} ر.ي`, icon: DollarSign },
-    { title: "التقييم", value: driverData.rating || "0.0", icon: Star },
-    { title: "الحالة", value: isOnline ? "متصل" : "غير متصل", icon: MapPin },
+    { title: "إجمالي التوصيلات", value: driverData.total_deliveries || 0,                             icon: Package  },
+    { title: "إجمالي الأرباح",    value: `${Number(driverData.earnings || 0).toLocaleString()} ر.ي`,  icon: DollarSign },
+    { title: "التقييم",           value: driverData.rating || "0.0",                                  icon: Star     },
+    { title: "الحالة",            value: isOnline ? "متصل" : "غير متصل",                              icon: MapPin   },
   ];
 
   return (
     <div className="space-y-6" dir="rtl">
+      {/* ── Header + Online Toggle ───────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">مرحباً، {profile?.full_name || driverData.full_name || "مندوب"}</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            مرحباً، {profile?.full_name || driverData.full_name || "مندوب"}
+          </h1>
           <p className="text-muted-foreground text-sm">لوحة تحكم مندوب التوصيل</p>
         </div>
         <div className="flex items-center gap-3 bg-card border border-border rounded-xl p-3">
@@ -187,6 +322,7 @@ const DeliveryDriverDashboard = () => {
         </div>
       </div>
 
+      {/* ── Stats ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <Card key={stat.title}>
@@ -203,6 +339,104 @@ const DeliveryDriverDashboard = () => {
         ))}
       </div>
 
+      {/* ── MY ASSIGNED ORDERS ──────────────────────────────────────────── */}
+      {myOrders.length > 0 && (
+        <Card className="border-2 border-primary/40">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Truck className="w-5 h-5 text-primary" />
+              طلباتي الحالية
+              <Badge className="bg-primary text-white text-xs">{myOrders.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {myOrders.map((order: any) => {
+              const isCash = order.payment_method === "cash";
+              const itemsStr = formatItems(order.items || []);
+              return (
+                <div
+                  key={order.id}
+                  className="border rounded-xl p-4 space-y-3 bg-primary/5 border-primary/20"
+                >
+                  {/* Status badge */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <Badge
+                      variant="outline"
+                      className={STATUS_COLOR[order.status] || "bg-gray-100 text-gray-800"}
+                    >
+                      {STATUS_LABEL[order.status] || order.status}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground font-mono">
+                      #{order.id.slice(0, 8)}
+                    </span>
+                  </div>
+
+                  {/* Restaurant */}
+                  {order.restaurant?.name_ar && (
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <span>🏪</span> {order.restaurant.name_ar}
+                    </div>
+                  )}
+
+                  {/* Items */}
+                  {itemsStr && (
+                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                      🍽️ {itemsStr}
+                    </p>
+                  )}
+
+                  {/* Addresses */}
+                  <div className="space-y-1 text-sm">
+                    {order.restaurant?.address && (
+                      <div className="flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0" />
+                        <span className="text-muted-foreground">{order.restaurant.address}</span>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-2">
+                      <span className="w-2 h-2 rounded-full bg-red-500 mt-1.5 shrink-0" />
+                      <span className="text-foreground font-medium">{order.customer_address}</span>
+                    </div>
+                  </div>
+
+                  {/* Customer */}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">👤 {order.customer_name}</span>
+                    {order.customer_phone && (
+                      <a
+                        href={`tel:${order.customer_phone}`}
+                        className="flex items-center gap-1 text-primary font-medium"
+                      >
+                        <PhoneCall className="w-4 h-4" />
+                        {order.customer_phone}
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Payment */}
+                  <div className={`text-sm font-semibold rounded-lg px-3 py-2 ${
+                    isCash
+                      ? "bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 border border-amber-200"
+                      : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200"
+                  }`}>
+                    {paymentLabel(order)}
+                  </div>
+
+                  {/* Notes */}
+                  {order.notes && (
+                    <p className="text-xs text-muted-foreground">📌 {order.notes}</p>
+                  )}
+
+                  {/* Action buttons */}
+                  {renderStatusActions(order)}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── AVAILABLE ORDERS (unassigned, for rider to pick up) ─────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -226,26 +460,38 @@ const DeliveryDriverDashboard = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {pendingOrders.map((order) => (
-                <div key={order.id} className="flex items-start justify-between gap-4 p-3 bg-muted/50 rounded-lg">
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-foreground">{order.customer_name}</p>
-                    <p className="text-xs text-muted-foreground">{order.customer_address}</p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-xs">
-                        <DollarSign className="w-3 h-3 ml-1" />{order.total} ر.ي
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        <Clock className="w-3 h-3 ml-1" />
-                        {new Date(order.created_at).toLocaleTimeString("ar-YE", { hour: "2-digit", minute: "2-digit" })}
-                      </Badge>
+              {pendingOrders.map((order: any) => {
+                const itemsStr = formatItems(order.items || []);
+                return (
+                  <div key={order.id} className="flex items-start justify-between gap-4 p-3 bg-muted/50 rounded-lg">
+                    <div className="flex-1 space-y-1 min-w-0">
+                      {order.restaurant?.name_ar && (
+                        <p className="text-xs font-bold text-primary truncate">🏪 {order.restaurant.name_ar}</p>
+                      )}
+                      <p className="text-sm font-medium text-foreground">{order.customer_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{order.customer_address}</p>
+                      {itemsStr && (
+                        <p className="text-xs text-muted-foreground truncate">🍽️ {itemsStr}</p>
+                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-xs">
+                          <DollarSign className="w-3 h-3 ml-1" />{order.total} ر.ي
+                        </Badge>
+                        <Badge variant="outline" className={`text-xs ${order.payment_method === "cash" ? "border-amber-400 text-amber-700" : "border-green-400 text-green-700"}`}>
+                          {order.payment_method === "cash" ? "💵 نقداً" : "✅ مدفوع"}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          <Clock className="w-3 h-3 ml-1" />
+                          {new Date(order.created_at).toLocaleTimeString("ar-YE", { hour: "2-digit", minute: "2-digit" })}
+                        </Badge>
+                      </div>
                     </div>
+                    <Button size="sm" onClick={() => navigate(`/delivery-driver/orders/${order.id}`)}>
+                      قبول
+                    </Button>
                   </div>
-                  <Button size="sm" onClick={() => navigate(`/delivery-driver/orders/${order.id}`)}>
-                    قبول
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
