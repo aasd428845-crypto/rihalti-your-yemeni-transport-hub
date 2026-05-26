@@ -20,15 +20,17 @@ import {
   User,
   History,
   Home,
+  Bell,
 } from "lucide-react";
 
 const menuItems = [
-  { title: "لوحة التحكم", url: "/delivery-driver", icon: LayoutDashboard },
-  { title: "الطلبات", url: "/delivery-driver/orders", icon: Package },
-  { title: "السجل", url: "/delivery-driver/history", icon: History },
-  { title: "الأرباح", url: "/delivery-driver/earnings", icon: DollarSign },
-  { title: "الملف الشخصي", url: "/delivery-driver/profile", icon: User },
-  { title: "الإعدادات", url: "/delivery-driver/settings", icon: Settings },
+  { title: "لوحة التحكم",    url: "/delivery-driver",               icon: LayoutDashboard },
+  { title: "الطلبات",        url: "/delivery-driver/orders",        icon: Package         },
+  { title: "الإشعارات",     url: "/delivery-driver/notifications", icon: Bell            },
+  { title: "السجل",          url: "/delivery-driver/history",       icon: History         },
+  { title: "الأرباح",        url: "/delivery-driver/earnings",      icon: DollarSign      },
+  { title: "الملف الشخصي",  url: "/delivery-driver/profile",       icon: User            },
+  { title: "الإعدادات",     url: "/delivery-driver/settings",      icon: Settings        },
 ];
 
 const DeliveryDriverSidebar = () => {

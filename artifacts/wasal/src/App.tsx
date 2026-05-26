@@ -131,6 +131,9 @@ const DeliveryDriverProfile = lazy(() => import("./pages/delivery-driver/Deliver
 const DeliveryDriverSettings = lazy(() => import("./pages/delivery-driver/DeliveryDriverSettings"));
 const DeliveryDriverOrderDetails = lazy(() => import("./pages/delivery-driver/DeliveryDriverOrderDetails"));
 const DeliveryDriverHistory = lazy(() => import("./pages/delivery-driver/DeliveryDriverHistory"));
+const DriverNotificationsPage = lazy(() => import("./pages/delivery-driver/DriverNotificationsPage"));
+const DeliveryNotificationsPage = lazy(() => import("./pages/delivery/DeliveryNotificationsPage"));
+const AdminNotificationsPage = lazy(() => import("./pages/admin/AdminNotificationsPage"));
 const MorePage = lazy(() => import("./pages/MorePage"));
 const InstallPage = lazy(() => import("./pages/InstallPage"));
 import { InstallPWAButton } from "./components/InstallPWAButton";
@@ -248,6 +251,7 @@ const App = () => (
                 <Route path="partner-profile/:id" element={<AdminPartnerProfile />} />
                 <Route path="monitoring" element={<AdminMonitoring />} />
                 <Route path="restaurants" element={<AdminRestaurants />} />
+                <Route path="notifications" element={<AdminNotificationsPage />} />
               </Route>
               {/* Supplier */}
               <Route path="/supplier" element={<SupplierLayout />}>
@@ -283,6 +287,7 @@ const App = () => (
                 <Route path="integrations" element={<DeliveryIntegrations />} />
                 <Route path="profile" element={<PartnerProfilePage />} />
                 <Route path="payment-settings" element={<PartnerPaymentSettings />} />
+                <Route path="notifications" element={<DeliveryNotificationsPage />} />
               </Route>
               {/* Driver */}
               <Route path="/driver" element={<DriverLayout />}>
@@ -303,6 +308,7 @@ const App = () => (
                 <Route path="earnings" element={<DeliveryDriverEarnings />} />
                 <Route path="profile" element={<DeliveryDriverProfile />} />
                 <Route path="settings" element={<DeliveryDriverSettings />} />
+                <Route path="notifications" element={<DriverNotificationsPage />} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

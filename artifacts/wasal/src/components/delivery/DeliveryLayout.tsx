@@ -1,65 +1,16 @@
-import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DeliverySidebar from "./DeliverySidebar";
-import { Menu, Sun, Moon, Bell } from "lucide-react";
+import { Menu, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useTheme } from "next-themes";
-import { supabase } from "@/integrations/supabase/client";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 const DeliveryLayout = () => {
   const { role, loading, user } = useAuth();
   const { theme, setTheme } = useTheme();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [unreadCount, setUnreadCount] = useState(0);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-
-    // Fetch initial unread count
-    supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .is("read_at", null)
-      .then(({ count }) => setUnreadCount(count || 0));
-
-    // Single realtime channel for delivery dashboard bell
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-
-    const channel = supabase
-      .channel(`delivery-bell-${user.id}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      }, () => setUnreadCount(c => c + 1))
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "delivery_orders",
-        filter: `delivery_company_id=eq.${user.id}`,
-      }, () => setUnreadCount(c => c + 1))
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [user?.id]);
-
-  // Show spinner while auth is loading OR while user is known but role not yet resolved
   if (loading || (user && role === null)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -81,29 +32,7 @@ const DeliveryLayout = () => {
               <Menu className="w-5 h-5" />
             </SidebarTrigger>
             <h1 className="text-sm font-bold text-foreground flex-1">لوحة تحكم شركة التوصيل</h1>
-
-            {/* Notification Bell */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative"
-              onClick={() => {
-                setUnreadCount(0);
-                navigate("/notifications");
-              }}
-              title="الإشعارات"
-            >
-              <Bell className={`w-5 h-5 ${unreadCount > 0 ? "animate-bounce text-primary" : ""}`} />
-              {unreadCount > 0 && (
-                <>
-                  <Badge className="absolute -top-1 -left-1 h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold border-2 border-card flex items-center justify-center z-10">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </Badge>
-                  <span className="absolute -top-1 -left-1 h-5 w-5 rounded-full bg-red-500 opacity-75 animate-ping" />
-                </>
-              )}
-            </Button>
-
+            <NotificationBell notificationsPath="/delivery/notifications" />
             <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
