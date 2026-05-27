@@ -76,12 +76,12 @@ const DeliveryRiders = () => {
       // Notify the rider that their cash has been received
       await supabase.from("notifications").insert({
         user_id: (statsRider as any).user_id,
-        type: "cash_settled",
+        notification_type: "cash_settled",
         title: "✅ تم تسليم المبلغ",
-        message: "تم استلام مبلغ التحصيل من قِبل الإدارة — ذمّتك بريئة.",
+        body: "تم استلام مبلغ التحصيل من قِبل الإدارة — ذمّتك بريئة.",
         data: { collection_id: collectionId, settled_by: user.id },
-        is_read: false,
-      } as any);
+        sent_by: user.id,
+      });
       toast({ title: "✅ تم التسجيل", description: "تم تسجيل استلام المبلغ وإشعار المندوب." });
       // Refresh stats
       const fresh = await getRiderStats(statsRider.id);
