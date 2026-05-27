@@ -32,29 +32,56 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled:  "bg-red-100 text-red-800",
 };
 
-// ── Payment method label ──────────────────────────────────────────────────────
-const paymentLabel = (order: any) => {
-  if (order.payment_method === "cash")
-    return `💵 نقداً — حصّل ${Number(order.total || 0).toLocaleString()} ر.ي`;
-  if (order.payment_method === "bank_transfer") return "✅ مدفوع (تحويل بنكي)";
-  if (order.payment_method === "online")        return "✅ مدفوع إلكترونياً";
-  return order.payment_method || "—";
+// ── Cash notice (status-aware) ────────────────────────────────────────────────
+const cashNotice = (order: any): { text: string; cls: string } | null => {
+  const amount = Number(order.total || 0);
+  if (order.payment_method === "cash" && amount > 0) {
+    if (order.status === "delivered") {
+      return {
+        text: `📋 تم تسجيل ${amount.toLocaleString()} ر.ي عليك — يجب تسليم المبلغ للإدارة`,
+        cls: "bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
+      };
+    }
+    return {
+      text: `💵 عليك تحصيل: ${amount.toLocaleString()} ر.ي`,
+      cls: "bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
+    };
+  }
+  if (order.payment_method === "bank_transfer" || order.payment_method === "online") {
+    return {
+      text: "✅ مدفوع مسبقاً — لا يلزم تحصيل أي مبلغ",
+      cls: "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800",
+    };
+  }
+  return null;
 };
 
-// ── Format items list ─────────────────────────────────────────────────────────
-const formatItems = (items: any[]): string => {
-  if (!items?.length) return "";
+// ── Format items with add-ons ─────────────────────────────────────────────────
+const getItemsWithAddons = (items: any[]): { base: string; addons: string[] }[] => {
+  if (!items?.length) return [];
   return items
     .filter((i: any) => i.order_type !== "delivery_request")
     .map((i: any) => {
-      const base = `${i.quantity || 1}x ${i.name_ar || i.name || "صنف"}`;
-      const extras = (i.options || i.selected_options || [])
-        .flatMap((o: any) =>
-          (o.items || o.selected || []).map((oi: any) => `+${oi.name_ar || oi.name}`)
-        );
-      return extras.length ? `${base} (${extras.join(", ")})` : base;
-    })
-    .join(" | ");
+      const base = `${i.quantity || 1}× ${i.name_ar || i.name || "صنف"}`;
+      const addons: string[] = [];
+      // selectedOptions is an object { groupId: [{ name_ar, price }] }
+      const opts = i.selectedOptions || i.selected_options;
+      if (opts && typeof opts === "object" && !Array.isArray(opts)) {
+        Object.values(opts).forEach((v: any) => {
+          if (Array.isArray(v)) v.forEach((c: any) => c?.name_ar && addons.push(c.name_ar));
+          else if (v?.name_ar) addons.push(v.name_ar);
+        });
+      } else if (Array.isArray(opts)) {
+        opts.flatMap((o: any) => o.items || o.selected || [])
+          .forEach((oi: any) => oi?.name_ar && addons.push(oi.name_ar));
+      }
+      // fallback: options array
+      if (!addons.length && Array.isArray(i.options)) {
+        i.options.flatMap((o: any) => o.items || o.selected || [])
+          .forEach((oi: any) => oi?.name_ar && addons.push(oi.name_ar));
+      }
+      return { base, addons };
+    });
 };
 
 const DeliveryDriverDashboard = () => {
@@ -361,14 +388,14 @@ const DeliveryDriverDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {myOrders.map((order: any) => {
-              const isCash = order.payment_method === "cash";
-              const itemsStr = formatItems(order.items || []);
+              const itemRows = getItemsWithAddons(order.items || []);
+              const notice = cashNotice(order);
               return (
                 <div
                   key={order.id}
                   className="border rounded-xl p-4 space-y-3 bg-primary/5 border-primary/20"
                 >
-                  {/* Status badge */}
+                  {/* Status + order ID */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <Badge
                       variant="outline"
@@ -376,9 +403,7 @@ const DeliveryDriverDashboard = () => {
                     >
                       {STATUS_LABEL[order.status] || order.status}
                     </Badge>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      #{order.id.slice(0, 8)}
-                    </span>
+                    <span className="text-xs text-muted-foreground font-mono">#{order.id.slice(0, 8)}</span>
                   </div>
 
                   {/* Restaurant */}
@@ -388,11 +413,20 @@ const DeliveryDriverDashboard = () => {
                     </div>
                   )}
 
-                  {/* Items */}
-                  {itemsStr && (
-                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-                      🍽️ {itemsStr}
-                    </p>
+                  {/* Items with add-ons */}
+                  {itemRows.length > 0 && (
+                    <div className="bg-muted/50 rounded-lg px-3 py-2 space-y-1">
+                      {itemRows.map((item, idx) => (
+                        <div key={idx}>
+                          <p className="text-xs font-medium text-foreground">🍽️ {item.base}</p>
+                          {item.addons.length > 0 && (
+                            <p className="text-[11px] text-muted-foreground pr-4">
+                              + {item.addons.join("، ")}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
 
                   {/* Addresses */}
@@ -409,7 +443,19 @@ const DeliveryDriverDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Customer */}
+                  {/* GPS link */}
+                  {order.delivery_lat && order.delivery_lng && (
+                    <a
+                      href={`https://www.google.com/maps?q=${order.delivery_lat},${order.delivery_lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-primary text-xs font-medium hover:underline"
+                    >
+                      <MapPin className="w-3.5 h-3.5" /> 📍 فتح موقع العميل في الخريطة
+                    </a>
+                  )}
+
+                  {/* Customer + phone */}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">👤 {order.customer_name}</span>
                     {order.customer_phone && (
@@ -423,14 +469,12 @@ const DeliveryDriverDashboard = () => {
                     )}
                   </div>
 
-                  {/* Payment */}
-                  <div className={`text-sm font-semibold rounded-lg px-3 py-2 ${
-                    isCash
-                      ? "bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 border border-amber-200"
-                      : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200"
-                  }`}>
-                    {paymentLabel(order)}
-                  </div>
+                  {/* Cash notice (status-aware) */}
+                  {notice && (
+                    <div className={`text-sm font-semibold rounded-lg px-3 py-2 ${notice.cls}`}>
+                      {notice.text}
+                    </div>
+                  )}
 
                   {/* Notes */}
                   {order.notes && (
@@ -471,7 +515,7 @@ const DeliveryDriverDashboard = () => {
           ) : (
             <div className="space-y-3">
               {pendingOrders.map((order: any) => {
-                const itemsStr = formatItems(order.items || []);
+                const itemRows = getItemsWithAddons(order.items || []);
                 return (
                   <div key={order.id} className="flex items-start justify-between gap-4 p-3 bg-muted/50 rounded-lg">
                     <div className="flex-1 space-y-1 min-w-0">
@@ -480,8 +524,10 @@ const DeliveryDriverDashboard = () => {
                       )}
                       <p className="text-sm font-medium text-foreground">{order.customer_name}</p>
                       <p className="text-xs text-muted-foreground truncate">{order.customer_address}</p>
-                      {itemsStr && (
-                        <p className="text-xs text-muted-foreground truncate">🍽️ {itemsStr}</p>
+                      {itemRows.length > 0 && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          🍽️ {itemRows.map(r => r.addons.length ? `${r.base} (+${r.addons.join("، ")})` : r.base).join(" | ")}
+                        </p>
                       )}
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="outline" className="text-xs">

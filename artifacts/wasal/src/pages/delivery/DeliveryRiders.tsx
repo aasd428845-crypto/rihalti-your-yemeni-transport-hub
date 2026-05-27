@@ -12,7 +12,7 @@ import {
   BarChart2, Calendar, Package, DollarSign, Truck, Clock, TrendingUp, User, Phone, Bike
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getRiders, updateRider, deleteRider, createRiderReward, getRiderStats } from "@/lib/deliveryApi";
+import { getRiders, updateRider, deleteRider, createRiderReward, getRiderStats, settleRiderCash } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import { ORDER_STATUS_MAP } from "@/types/delivery.types";
 import type { Rider } from "@/types/delivery.types";
@@ -40,6 +40,7 @@ const DeliveryRiders = () => {
   const [statsRider, setStatsRider] = useState<Rider | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [settlingCash, setSettlingCash] = useState<string | null>(null);
 
   const load = async () => {
     if (!user) return;
@@ -64,6 +65,31 @@ const DeliveryRiders = () => {
       toast({ title: "خطأ في جلب الإحصائيات", description: err.message, variant: "destructive" });
     } finally {
       setStatsLoading(false);
+    }
+  };
+
+  const handleSettleCash = async (collectionId: string) => {
+    if (!user || !statsRider) return;
+    setSettlingCash(collectionId);
+    try {
+      await settleRiderCash(collectionId, user.id);
+      // Notify the rider that their cash has been received
+      await supabase.from("notifications").insert({
+        user_id: (statsRider as any).user_id,
+        type: "cash_settled",
+        title: "✅ تم تسليم المبلغ",
+        message: "تم استلام مبلغ التحصيل من قِبل الإدارة — ذمّتك بريئة.",
+        data: { collection_id: collectionId, settled_by: user.id },
+        is_read: false,
+      } as any);
+      toast({ title: "✅ تم التسجيل", description: "تم تسجيل استلام المبلغ وإشعار المندوب." });
+      // Refresh stats
+      const fresh = await getRiderStats(statsRider.id);
+      setStats(fresh);
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setSettlingCash(null);
     }
   };
 
@@ -480,13 +506,14 @@ const DeliveryRiders = () => {
                   </div>
                 </div>
 
-                {/* ── رصيد النقد المستحق ── */}
-                {(stats.pendingCash > 0 || stats.settledCash > 0) && (
+                {/* ── سجل التحصيلات النقدية (مع زر تم الاستلام) ── */}
+                {stats.cashCollections?.length > 0 && (
                   <div>
                     <h3 className="text-sm font-bold text-muted-foreground mb-2 flex items-center gap-1.5">
-                      <DollarSign className="w-4 h-4" /> رصيد النقد
+                      <DollarSign className="w-4 h-4" /> سجل التحصيلات النقدية ({stats.cashCollections.length})
                     </h3>
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* Summary row */}
+                    <div className="grid grid-cols-2 gap-2 mb-3">
                       {stats.pendingCash > 0 && (
                         <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl p-3">
                           <p className="text-xs text-muted-foreground mb-1">💵 مستحق التسليم</p>
@@ -499,6 +526,56 @@ const DeliveryRiders = () => {
                           <p className="text-lg font-black text-green-600">{stats.settledCash.toLocaleString()} ر.ي</p>
                         </div>
                       )}
+                    </div>
+                    {/* Individual collection entries */}
+                    <div className="space-y-2">
+                      {stats.cashCollections.map((col: any) => {
+                        const isPending = ["pending_pickup", "collected"].includes(col.status);
+                        const isSettled = col.status === "settled";
+                        const orderId = (col.order?.id || col.order_id || "").slice(0, 8);
+                        return (
+                          <div
+                            key={col.id}
+                            className={`border rounded-lg px-3 py-2.5 text-sm bg-card ${isPending ? "border-amber-300 dark:border-amber-800" : "border-border"}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0 space-y-0.5">
+                                <p className="font-semibold text-foreground">
+                                  {Number(col.amount).toLocaleString()} ر.ي
+                                  {isSettled && <span className="text-[10px] text-green-600 mr-2">✅ تم التسليم</span>}
+                                  {isPending && <span className="text-[10px] text-amber-600 mr-2">⏳ مستحق</span>}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {col.order?.customer_name || "—"}
+                                  {orderId && <span className="font-mono mr-2 text-primary">#{orderId}</span>}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                  <Calendar className="w-2.5 h-2.5" />
+                                  {new Date(col.collected_at || col.created_at).toLocaleString("ar", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                  {isSettled && col.settled_at && (
+                                    <span className="mr-2">
+                                      · سُوِّي: {new Date(col.settled_at).toLocaleString("ar", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              {isPending && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="shrink-0 text-xs border-green-500 text-green-600 hover:bg-green-50 h-8 px-2"
+                                  disabled={settlingCash === col.id}
+                                  onClick={() => handleSettleCash(col.id)}
+                                >
+                                  {settlingCash === col.id ? (
+                                    <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                                  ) : "تم الاستلام ✓"}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -514,10 +591,13 @@ const DeliveryRiders = () => {
                         <div key={order.id} className="flex items-center justify-between border rounded-lg px-3 py-2 text-sm bg-card hover:bg-muted/30 transition">
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">{order.customer_name || "—"}</p>
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <Calendar className="w-2.5 h-2.5" />
-                              {new Date(order.created_at).toLocaleDateString("ar", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="font-mono text-[10px] text-primary">#{order.id.slice(0, 8)}</span>
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                <Calendar className="w-2.5 h-2.5" />
+                                {new Date(order.created_at).toLocaleDateString("ar", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0 mr-2">
                             {order.payment_method === "cash" && (
