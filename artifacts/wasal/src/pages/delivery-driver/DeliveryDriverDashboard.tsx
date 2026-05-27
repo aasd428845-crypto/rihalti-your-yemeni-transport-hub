@@ -323,7 +323,7 @@ const DeliveryDriverDashboard = () => {
           <h1 className="text-2xl font-bold text-foreground">
             مرحباً، {profile?.full_name || driverData.full_name || "مندوب"}
           </h1>
-          <p className="text-muted-foreground text-sm">لوحة تحكم مندوب التوصيل</p>
+          <p className="text-muted-foreground text-sm">مرحباً بك في منصة وصل للتوصيل</p>
         </div>
         <div className="flex items-center gap-3 bg-card border border-border rounded-xl p-3">
           <span className="text-sm font-medium text-foreground">{isOnline ? "متصل" : "غير متصل"}</span>

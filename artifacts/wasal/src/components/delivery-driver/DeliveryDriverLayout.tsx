@@ -42,7 +42,7 @@ const DeliveryDriverLayout = () => {
             <SidebarTrigger>
               <Menu className="w-5 h-5" />
             </SidebarTrigger>
-            <h1 className="text-sm font-bold text-foreground flex-1">تطبيق مندوب التوصيل</h1>
+            <h1 className="text-sm font-bold text-foreground flex-1">وصل — مندوبو التوصيل</h1>
             <NotificationBell notificationsPath="/delivery-driver/notifications" />
             <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
