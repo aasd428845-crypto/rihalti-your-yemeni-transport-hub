@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const router = Router();
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://hhqhoqwpebnmfuhwhllw.supabase.co";
+const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://xugjqhxfdjlndljogvru.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
 function adminClient() {

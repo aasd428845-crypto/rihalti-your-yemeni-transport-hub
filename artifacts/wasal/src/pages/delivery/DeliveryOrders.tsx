@@ -176,6 +176,7 @@ const DeliveryOrders = () => {
   const [tracking, setTracking] = useState<any[]>([]);
   const [paymentTx, setPaymentTx] = useState<any>(null);
   const [riderOutstanding, setRiderOutstanding] = useState<number>(0);
+  const [assigning, setAssigning] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -221,7 +222,8 @@ const DeliveryOrders = () => {
   };
 
   const handleAssign = async () => {
-    if (!selectedRider) return;
+    if (!selectedRider || assigning) return;
+    setAssigning(true);
     try {
       await assignRiderToOrder(assignOrderId, selectedRider);
 
@@ -277,9 +279,12 @@ const DeliveryOrders = () => {
 
       toast({ title: "تم تعيين المندوب بنجاح", description: "تم إرسال إشعار للمندوب بتفاصيل الدفع" });
       setShowAssign(false);
+      setSelectedRider("");
       load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -789,7 +794,7 @@ const DeliveryOrders = () => {
       </Dialog>
 
       {/* Assign Rider Dialog */}
-      <Dialog open={showAssign} onOpenChange={setShowAssign}>
+      <Dialog open={showAssign} onOpenChange={(open) => { setShowAssign(open); if (!open) { setSelectedRider(""); setRiderOutstanding(0); } }}>
         <DialogContent dir="rtl">
           <DialogHeader><DialogTitle>تعيين مندوب</DialogTitle></DialogHeader>
           <div className="space-y-3">
@@ -868,8 +873,12 @@ const DeliveryOrders = () => {
             })()}
           </div>
           <DialogFooter>
-            <Button onClick={handleAssign} disabled={!selectedRider} className="min-h-[44px]">
-              <Truck className="w-4 h-4 ml-1" /> تعيين وإرسال إشعار
+            <Button onClick={handleAssign} disabled={!selectedRider || assigning} className="min-h-[44px]">
+              {assigning ? (
+                <><div className="w-4 h-4 ml-1 border-2 border-white border-t-transparent rounded-full animate-spin" /> جارٍ التعيين...</>
+              ) : (
+                <><Truck className="w-4 h-4 ml-1" /> تعيين وإرسال إشعار</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

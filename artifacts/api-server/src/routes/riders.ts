@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const router = Router();
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://hhqhoqwpebnmfuhwhllw.supabase.co";
+const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://xugjqhxfdjlndljogvru.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
 function adminClient() {
@@ -129,6 +129,47 @@ router.get("/riders/by-user/:userId", async (req, res) => {
   }
 
   return res.json({ rider: data });
+});
+
+// ─── GET /api/riders/orders/:userId ──────────────────────────────────────────
+// Fetches active delivery_orders assigned to a rider, bypassing RLS.
+// Used by DeliveryDriverDashboard and DeliveryDriverOrders.
+router.get("/riders/orders/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { completed } = req.query;
+
+  if (!SERVICE_ROLE_KEY) {
+    return res.status(503).json({ error: "الخدمة غير مهيأة (SUPABASE_SERVICE_ROLE_KEY مفقود)" });
+  }
+
+  const supabase = adminClient();
+
+  // 1. Find rider row for this auth user
+  const { data: rider, error: riderErr } = await supabase
+    .from("riders")
+    .select("id, delivery_company_id, is_approved")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (riderErr) return res.status(500).json({ error: riderErr.message });
+  if (!rider)   return res.json({ orders: [], rider: null });
+
+  // 2. Fetch their orders
+  let query = supabase
+    .from("delivery_orders")
+    .select("*, restaurant:restaurants(name_ar, address, phone)")
+    .eq("rider_id", rider.id);
+
+  if (completed === "true") {
+    query = query.in("status", ["delivered", "cancelled", "returned"]).order("delivered_at", { ascending: false }).limit(50);
+  } else {
+    query = query.not("status", "in", '("delivered","cancelled","returned")').order("assigned_at", { ascending: false }).limit(30);
+  }
+
+  const { data: orders, error: ordersErr } = await query;
+  if (ordersErr) return res.status(500).json({ error: ordersErr.message });
+
+  return res.json({ orders: orders || [], rider });
 });
 
 export default router;

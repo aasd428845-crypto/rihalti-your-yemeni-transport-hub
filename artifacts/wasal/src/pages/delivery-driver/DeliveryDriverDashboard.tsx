@@ -127,8 +127,18 @@ const DeliveryDriverDashboard = () => {
     setPendingOrders(data || []);
   }, [driverData]);
 
-  // ── Fetch MY assigned orders ────────────────────────────────────────────────
+  // ── Fetch MY assigned orders (via API server to bypass RLS) ─────────────────
   const fetchMyOrders = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await window.fetch(`/api/riders/orders/${user.id}`);
+      if (res.ok) {
+        const json = await res.json();
+        setMyOrders(json.orders || []);
+        return;
+      }
+    } catch (_) {}
+    // Fallback: direct query (works if RLS allows)
     if (!driverData?.id) return;
     const { data } = await supabase
       .from("delivery_orders")
@@ -138,7 +148,7 @@ const DeliveryDriverDashboard = () => {
       .order("assigned_at", { ascending: false })
       .limit(30);
     setMyOrders(data || []);
-  }, [driverData]);
+  }, [user, driverData]);
 
   useEffect(() => {
     if (driverData?.is_approved) {

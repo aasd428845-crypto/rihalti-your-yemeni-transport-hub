@@ -20,11 +20,32 @@ const DeliveryDriverOrders = () => {
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
+    const loadOrders = async () => {
+      try {
+        // Use API server to bypass RLS — fetches active + completed in parallel
+        const [activeRes, completedRes] = await Promise.all([
+          window.fetch(`/api/riders/orders/${user.id}`),
+          window.fetch(`/api/riders/orders/${user.id}?completed=true`),
+        ]);
+
+        if (activeRes.ok && completedRes.ok) {
+          const [activeJson, completedJson] = await Promise.all([
+            activeRes.json(),
+            completedRes.json(),
+          ]);
+          setDriverData(activeJson.rider || completedJson.rider || null);
+          setActiveOrders(activeJson.orders || []);
+          setCompletedOrders(completedJson.orders || []);
+          setLoading(false);
+          return;
+        }
+      } catch (_) {}
+
+      // Fallback: query riders table directly
       const { data: dd } = await supabase
-        .from("delivery_drivers")
+        .from("riders")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id" as any, user.id)
         .maybeSingle();
       setDriverData(dd);
 
@@ -33,13 +54,13 @@ const DeliveryDriverOrders = () => {
           supabase
             .from("delivery_orders")
             .select("*")
-            .eq("rider_id", dd.id)
+            .eq("rider_id" as any, dd.id)
             .in("status", ["assigned", "picked_up", "on_the_way", "in_transit"])
             .order("created_at", { ascending: false }),
           supabase
             .from("delivery_orders")
             .select("*")
-            .eq("rider_id", dd.id)
+            .eq("rider_id" as any, dd.id)
             .eq("status", "delivered")
             .order("delivered_at", { ascending: false })
             .limit(50),
@@ -49,7 +70,7 @@ const DeliveryDriverOrders = () => {
       }
       setLoading(false);
     };
-    fetch();
+    loadOrders();
   }, [user]);
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
