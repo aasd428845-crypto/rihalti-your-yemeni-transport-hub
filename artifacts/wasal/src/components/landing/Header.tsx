@@ -33,17 +33,29 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-    const fetchUnread = async () => {
-      const { count } = await supabase
+    if (!user) { setUnreadCount(0); return; }
+    const fetchUnread = () =>
+      supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
-        .is("read_at", null);
-      setUnreadCount(count || 0);
-    };
+        .is("read_at", null)
+        .then(({ count }) => setUnreadCount(count || 0));
     fetchUnread();
-  }, [user]);
+    // Realtime: increment on new, refresh on read
+    const ch = supabase
+      .channel(`header-main-notif-${user.id}`)
+      .on("postgres_changes", {
+        event: "INSERT", schema: "public", table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, () => setUnreadCount(c => c + 1))
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, () => fetchUnread())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     await signOut();

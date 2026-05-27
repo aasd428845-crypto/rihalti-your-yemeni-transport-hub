@@ -55,14 +55,16 @@ const SuperAppHeader = () => {
       });
 
     // Fetch unread notification count
-    supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .is("read_at", null)
-      .then(({ count }) => setUnreadCount(count || 0));
+    const fetchUnread = () =>
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .is("read_at", null)
+        .then(({ count }) => setUnreadCount(count || 0));
+    fetchUnread();
 
-    // Realtime: listen for new notifications
+    // Realtime: INSERT → +1, UPDATE (read_at set) → refresh count
     if (channelRef.current) supabase.removeChannel(channelRef.current);
     const ch = supabase
       .channel(`header-notif-${user.id}`)
@@ -70,6 +72,10 @@ const SuperAppHeader = () => {
         event: "INSERT", schema: "public", table: "notifications",
         filter: `user_id=eq.${user.id}`,
       }, () => setUnreadCount(c => c + 1))
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, () => fetchUnread())
       .subscribe();
     channelRef.current = ch;
     return () => { if (channelRef.current) supabase.removeChannel(channelRef.current); };

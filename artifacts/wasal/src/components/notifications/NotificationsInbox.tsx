@@ -29,13 +29,15 @@ const timeAgo = (dateStr: string) => {
 
 const notifIcon = (type?: string) => {
   if (!type) return "🔔";
-  if (type.includes("order") || type.includes("rider")) return "📦";
+  if (type === "cash_settled" || type.includes("cash")) return "💰";
+  if (type.includes("order") || type.includes("rider") || type.includes("assign")) return "📦";
   if (type.includes("payment")) return "💳";
   if (type.includes("support")) return "💬";
   if (type.includes("join") || type.includes("company")) return "🏢";
   if (type.includes("invoice")) return "🧾";
-  if (type.includes("trip")) return "🚌";
+  if (type.includes("trip") || type.includes("booking")) return "🚌";
   if (type.includes("promo")) return "🎁";
+  if (type.includes("delivery") || type.includes("shipment")) return "🚚";
   return "🔔";
 };
 
