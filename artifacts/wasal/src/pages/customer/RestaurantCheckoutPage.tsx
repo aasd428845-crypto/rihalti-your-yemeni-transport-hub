@@ -80,8 +80,8 @@ const RestaurantCheckoutPage = () => {
               setPricePerKm(Number((settingsRes.data as any).price_per_km ?? 0));
             }
           }
-          // Check for active delivery offers
-          const offerResult = await getActiveOffersForCompany(r.delivery_company_id);
+          // Check for active delivery offers (restaurant-specific first, then company-wide)
+          const offerResult = await getActiveOffersForCompany(r.delivery_company_id, restaurantId);
           if (offerResult) setActiveOffer(offerResult);
         }
       } catch (err: any) {
@@ -262,31 +262,38 @@ const RestaurantCheckoutPage = () => {
               )}
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between"><span>المجموع الفرعي</span><span>{subtotal} ر.ي</span></div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="flex items-center gap-1">
                     رسوم التوصيل
-                    {distanceKm !== null && (
+                    {distanceKm !== null && !offerApplies && (
                       <Badge variant="outline" className="text-[10px] gap-0.5">
                         <Navigation className="w-2.5 h-2.5" />
                         {distanceKm.toFixed(1)} كم
                       </Badge>
                     )}
-                    {activeOffer && baseFee > computedDeliveryFee && (
-                      <Badge className="text-[10px] bg-green-500 text-white border-0">
-                        <span className="line-through ml-1 opacity-70">{baseFee}</span>
-                      </Badge>
-                    )}
                   </span>
-                  <span className={activeOffer && deliveryDiscount > 0 ? "text-green-600 font-bold" : ""}>
-                    {distanceFee !== null ? (
-                      <>{computedDeliveryFee.toLocaleString()} ر.ي{computedDeliveryFee === 0 && <span className="text-xs mr-1 text-green-600">(مجاني!)</span>}</>
-                    ) : (
+                  <span>
+                    {distanceFee === null ? (
                       <span className="text-muted-foreground text-xs">يُحسب بعد اختيار العنوان</span>
+                    ) : offerApplies && computedDeliveryFee === 0 ? (
+                      // Free delivery offer — show "مجاني" with original price struck through
+                      <span className="flex items-center gap-1">
+                        <span className="line-through text-muted-foreground text-xs">{baseFee.toLocaleString()} ر.ي</span>
+                        <span className="text-green-600 font-bold">مجاني</span>
+                      </span>
+                    ) : offerApplies && deliveryDiscount > 0 ? (
+                      // Partial discount
+                      <span className="flex items-center gap-1">
+                        <span className="line-through text-muted-foreground text-xs">{baseFee.toLocaleString()}</span>
+                        <span className="text-green-600 font-bold">{computedDeliveryFee.toLocaleString()} ر.ي</span>
+                      </span>
+                    ) : (
+                      <span>{computedDeliveryFee.toLocaleString()} ر.ي</span>
                     )}
                   </span>
                 </div>
                 <Separator />
-                <div className="flex justify-between font-bold text-base"><span>الإجمالي</span><span className="text-primary">{total} ر.ي</span></div>
+                <div className="flex justify-between font-bold text-base"><span>الإجمالي</span><span className="text-primary">{total.toLocaleString()} ر.ي</span></div>
               </div>
             </CardContent>
           </Card>

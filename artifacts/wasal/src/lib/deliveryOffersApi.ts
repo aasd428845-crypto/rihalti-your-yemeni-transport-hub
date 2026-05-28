@@ -118,12 +118,14 @@ export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
 };
 
 /**
- * Fetch active offers for a specific delivery company — used at checkout.
+ * Fetch active offers for a specific delivery company + restaurant — used at checkout.
+ * Priority: restaurant-specific offer first, then company-wide offers.
  * Returns the first time-valid offer with its full data (so the caller can
  * check min_order_amount against the current cart subtotal).
  */
 export const getActiveOffersForCompany = async (
-  companyId: string
+  companyId: string,
+  restaurantId?: string
 ): Promise<{ offer: DeliveryOffer; appliedFeeDiscount: (fee: number) => number } | null> => {
   try {
     const { data, error } = await supabase
@@ -133,10 +135,18 @@ export const getActiveOffersForCompany = async (
       .eq("is_active", true);
     if (error || !data?.length) return null;
 
-    for (const raw of (data as unknown as DeliveryOffer[])) {
-      if (!isOfferCurrentlyActive(raw)) continue;
-      return { offer: raw, appliedFeeDiscount: buildFeeDiscount(raw) };
+    const allOffers = (data as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
+
+    // 1. Try restaurant-specific offer first (restaurant_id matches)
+    if (restaurantId) {
+      const specific = allOffers.find(o => (o as any).restaurant_id === restaurantId);
+      if (specific) return { offer: specific, appliedFeeDiscount: buildFeeDiscount(specific) };
     }
+
+    // 2. Fall back to company-wide offer (restaurant_id is null/undefined)
+    const companyWide = allOffers.find(o => !(o as any).restaurant_id);
+    if (companyWide) return { offer: companyWide, appliedFeeDiscount: buildFeeDiscount(companyWide) };
+
     return null;
   } catch {
     return null;
