@@ -116,6 +116,7 @@ const PaymentSuccessPage = lazy(() => import("./pages/customer/PaymentSuccessPag
 // Driver (lazy loaded)
 const DriverLayout = lazy(() => import("./components/driver/DriverLayout"));
 const DriverDashboard = lazy(() => import("./pages/driver/DriverDashboard"));
+const RideDriverNotificationsPage = lazy(() => import("./pages/driver/DriverNotificationsPage"));
 const DriverRideDetails = lazy(() => import("./pages/driver/DriverRideDetails"));
 const DriverActiveRide = lazy(() => import("./pages/driver/DriverActiveRide"));
 const DriverProfile = lazy(() => import("./pages/driver/DriverProfile"));
@@ -298,6 +299,7 @@ const App = () => (
                 <Route path="earnings" element={<DriverEarnings />} />
                 <Route path="profile" element={<DriverProfile />} />
                 <Route path="settings" element={<DriverSettings />} />
+                <Route path="notifications" element={<RideDriverNotificationsPage />} />
               </Route>
               {/* Delivery Driver */}
               <Route path="/delivery-driver" element={<DeliveryDriverLayout />}>
