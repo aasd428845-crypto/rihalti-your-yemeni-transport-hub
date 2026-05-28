@@ -34,27 +34,31 @@ const Header = () => {
 
   useEffect(() => {
     if (!user) { setUnreadCount(0); return; }
-    const fetchUnread = () =>
-      supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .is("read_at", null)
-        .then(({ count }) => setUnreadCount(count || 0));
-    fetchUnread();
-    // Realtime: increment on new, refresh on read
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .is("read_at", null)
+      .then(({ count }) => setUnreadCount(count || 0));
+
+    const onRead = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.all) setUnreadCount(0);
+      else setUnreadCount(c => Math.max(0, c - 1));
+    };
+    window.addEventListener("notification-read", onRead);
+
     const ch = supabase
       .channel(`header-main-notif-${user.id}`)
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "notifications",
         filter: `user_id=eq.${user.id}`,
       }, () => setUnreadCount(c => c + 1))
-      .on("postgres_changes", {
-        event: "UPDATE", schema: "public", table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      }, () => fetchUnread())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      window.removeEventListener("notification-read", onRead);
+      supabase.removeChannel(ch);
+    };
   }, [user?.id]);
 
   const handleSignOut = async () => {

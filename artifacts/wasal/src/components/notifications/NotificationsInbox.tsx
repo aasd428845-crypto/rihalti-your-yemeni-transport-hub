@@ -96,14 +96,19 @@ const NotificationsInbox = ({
       if (dest) navigate(dest);
       return;
     }
-    // Mark read first
-    await supabase
-      .from("notifications")
-      .update({ read_at: new Date().toISOString() })
-      .eq("id", notif.id);
+    // Update local state immediately
+    const now = new Date().toISOString();
     setNotifications(prev =>
-      prev.map(n => n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n)
+      prev.map(n => n.id === notif.id ? { ...n, read_at: now } : n)
     );
+    // Notify bells across all layouts via custom event
+    window.dispatchEvent(new CustomEvent("notification-read", { detail: { id: notif.id } }));
+    // Persist to DB (fire-and-forget, non-blocking)
+    supabase
+      .from("notifications")
+      .update({ read_at: now })
+      .eq("id", notif.id)
+      .then();
     // Navigate
     const dest = resolveNav(notif.data, notif.notification_type || notif.data?.type);
     if (dest) navigate(dest);
@@ -111,14 +116,19 @@ const NotificationsInbox = ({
 
   const markAllAsRead = async () => {
     if (!user) return;
-    await supabase
-      .from("notifications")
-      .update({ read_at: new Date().toISOString() })
-      .eq("user_id", user.id)
-      .is("read_at", null);
+    const now = new Date().toISOString();
     setNotifications(prev =>
-      prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
+      prev.map(n => ({ ...n, read_at: n.read_at || now }))
     );
+    // Notify all bells immediately
+    window.dispatchEvent(new CustomEvent("notification-read", { detail: { all: true } }));
+    // Persist to DB
+    supabase
+      .from("notifications")
+      .update({ read_at: now })
+      .eq("user_id", user.id)
+      .is("read_at", null)
+      .then();
   };
 
   if (!user) { navigate("/login"); return null; }

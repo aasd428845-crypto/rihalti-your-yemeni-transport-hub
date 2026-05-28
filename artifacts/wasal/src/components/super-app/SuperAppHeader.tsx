@@ -55,16 +55,22 @@ const SuperAppHeader = () => {
       });
 
     // Fetch unread notification count
-    const fetchUnread = () =>
-      supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .is("read_at", null)
-        .then(({ count }) => setUnreadCount(count || 0));
-    fetchUnread();
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .is("read_at", null)
+      .then(({ count }) => setUnreadCount(count || 0));
 
-    // Realtime: INSERT → +1, UPDATE (read_at set) → refresh count
+    // Custom event: fired by NotificationsInbox when user reads
+    const onRead = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.all) setUnreadCount(0);
+      else setUnreadCount(c => Math.max(0, c - 1));
+    };
+    window.addEventListener("notification-read", onRead);
+
+    // Realtime: INSERT only (no UPDATE filter — avoids 400 REPLICA IDENTITY error)
     if (channelRef.current) supabase.removeChannel(channelRef.current);
     const ch = supabase
       .channel(`header-notif-${user.id}`)
@@ -72,13 +78,12 @@ const SuperAppHeader = () => {
         event: "INSERT", schema: "public", table: "notifications",
         filter: `user_id=eq.${user.id}`,
       }, () => setUnreadCount(c => c + 1))
-      .on("postgres_changes", {
-        event: "UPDATE", schema: "public", table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      }, () => fetchUnread())
       .subscribe();
     channelRef.current = ch;
-    return () => { if (channelRef.current) supabase.removeChannel(channelRef.current); };
+    return () => {
+      window.removeEventListener("notification-read", onRead);
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+    };
   }, [user?.id]);
 
   const handleSearch = (e: React.FormEvent) => {

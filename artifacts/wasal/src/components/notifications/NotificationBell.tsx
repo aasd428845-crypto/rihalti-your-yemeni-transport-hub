@@ -17,51 +17,57 @@ const NotificationBell = ({ notificationsPath, className = "" }: NotificationBel
   const [unreadCount, setUnreadCount] = useState(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
+  const fetchCount = async (uid: string) => {
+    const { count } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", uid)
+      .is("read_at", null);
+    setUnreadCount(count || 0);
+  };
+
   useEffect(() => {
     if (!user) { setUnreadCount(0); return; }
 
-    supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .is("read_at", null)
-      .then(({ count }) => setUnreadCount(count || 0));
+    fetchCount(user.id);
 
+    // Listen to custom event fired by NotificationsInbox when user reads
+    const onRead = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.all) {
+        setUnreadCount(0);
+      } else {
+        setUnreadCount(c => Math.max(0, c - 1));
+      }
+    };
+    window.addEventListener("notification-read", onRead);
+
+    // Realtime: only INSERT (no filter on UPDATE — avoids the 400 REPLICA IDENTITY error)
     if (channelRef.current) supabase.removeChannel(channelRef.current);
-
     const ch = supabase
       .channel(`notif-bell-${user.id}-${notificationsPath}`)
       .on("postgres_changes", {
-        event: "INSERT", schema: "public", table: "notifications",
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
         filter: `user_id=eq.${user.id}`,
       }, () => setUnreadCount(c => c + 1))
-      .on("postgres_changes", {
-        event: "UPDATE", schema: "public", table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      }, () => {
-        supabase
-          .from("notifications")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .is("read_at", null)
-          .then(({ count }) => setUnreadCount(count || 0));
-      })
       .subscribe();
 
     channelRef.current = ch;
-    return () => { if (channelRef.current) supabase.removeChannel(channelRef.current); };
-  }, [user?.id, notificationsPath]);
 
-  const handleClick = () => {
-    navigate(notificationsPath);
-  };
+    return () => {
+      window.removeEventListener("notification-read", onRead);
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+    };
+  }, [user?.id, notificationsPath]);
 
   return (
     <Button
       variant="ghost"
       size="icon"
       className={`relative ${className}`}
-      onClick={handleClick}
+      onClick={() => navigate(notificationsPath)}
       title="الإشعارات"
     >
       <Bell className={`w-5 h-5 ${unreadCount > 0 ? "text-primary animate-bounce" : ""}`} />
