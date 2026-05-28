@@ -173,9 +173,12 @@ const DeliveryFinance = () => {
     } finally { setProcessing(false); }
   };
 
-  // ── حساب إيرادات التوصيل (delivery_fee فقط) ──
+  // ── حساب إيرادات التوصيل ──
+  // delivery_fee = ما دفعه العميل، restaurant_delivery_subsidy = ما يتحمّله المطعم من عروض التوصيل المجاني
   const deliveredOrders = orders.filter(o => o.status === "delivered");
-  const totalDeliveryRevenue = deliveredOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
+  const totalCustomerDeliveryFees = deliveredOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
+  const totalRestaurantSubsidies = deliveredOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
+  const totalDeliveryRevenue = totalCustomerDeliveryFees + totalRestaurantSubsidies;
   const totalRiderEarnings = riders.reduce((s, r) => s + Number(r.earnings || 0), 0);
   const pendingTx = paymentTxns.filter(t => t.status === "pending");
 
@@ -186,13 +189,26 @@ const DeliveryFinance = () => {
       const restOrders = deliveredOrders.filter(o => o.restaurant_id === rest.id);
       const periodOrders = restOrders.filter(o => new Date(o.created_at) >= periodStart);
 
-      const totalRevenue = restOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
-      const periodRevenue = periodOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
+      // إيرادات الطعام (ما يحصل عليه المطعم من قيمة الوجبات)
+      const totalFoodRevenue = restOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
+      const periodFoodRevenue = periodOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
+
+      // مديونية التوصيل (رسوم التوصيل المتحمَّلة من المطعم بسبب عروض التوصيل المجاني)
+      const totalSubsidy = restOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
+      const periodSubsidy = periodOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
+
+      // صافي إيرادات المطعم = إيرادات الطعام - مديونية التوصيل
+      const totalRevenue = totalFoodRevenue - totalSubsidy;
+      const periodRevenue = periodFoodRevenue - periodSubsidy;
 
       return {
         ...rest,
         totalOrders: restOrders.length,
         periodOrders: periodOrders.length,
+        totalFoodRevenue,
+        periodFoodRevenue,
+        totalSubsidy,
+        periodSubsidy,
         totalRevenue,
         periodRevenue,
         recentOrders: restOrders.slice(0, 15),
@@ -470,6 +486,12 @@ const DeliveryFinance = () => {
                           </div>
                         ))}
                       </div>
+                      {rest.totalSubsidy > 0 && (
+                        <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs">
+                          <span className="text-destructive font-medium">مديونية التوصيل (عروض مجانية)</span>
+                          <span className="font-bold text-destructive">- {rest.totalSubsidy.toLocaleString()} ر.ي</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Expanded: Order History */}
@@ -518,16 +540,25 @@ const DeliveryFinance = () => {
                               const items: any[] = order.items || [];
                               const itemNames = items.map((it: any) => it.name_ar || it.name || "—").join("، ");
                               const foodRevenue = Number(order.total || 0) - Number(order.delivery_fee || 0);
+                              const subsidy = Number(order.restaurant_delivery_subsidy || 0);
+                              const netRevenue = foodRevenue - subsidy;
                               return (
-                                <div key={order.id} className="grid grid-cols-4 gap-2 px-4 py-2.5 text-xs hover:bg-muted/30 items-center">
-                                  <span className="truncate font-medium">{order.customer_name || "—"}</span>
-                                  <span className="truncate text-muted-foreground" title={itemNames}>{itemNames || "—"}</span>
-                                  <span className="text-center font-bold text-primary">{foodRevenue.toLocaleString()} ر.ي</span>
-                                  <span className="text-left text-muted-foreground text-[10px]">
-                                    {new Date(order.created_at).toLocaleDateString("ar", { month: "short", day: "numeric" })}
-                                    {" "}
-                                    {new Date(order.created_at).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
-                                  </span>
+                                <div key={order.id} className="px-4 py-2.5 text-xs hover:bg-muted/30">
+                                  <div className="grid grid-cols-4 gap-2 items-center">
+                                    <span className="truncate font-medium">{order.customer_name || "—"}</span>
+                                    <span className="truncate text-muted-foreground" title={itemNames}>{itemNames || "—"}</span>
+                                    <span className="text-center font-bold text-primary">{netRevenue.toLocaleString()} ر.ي</span>
+                                    <span className="text-left text-muted-foreground text-[10px]">
+                                      {new Date(order.created_at).toLocaleDateString("ar", { month: "short", day: "numeric" })}
+                                      {" "}
+                                      {new Date(order.created_at).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
+                                    </span>
+                                  </div>
+                                  {subsidy > 0 && (
+                                    <div className="mt-0.5 text-destructive text-[10px]">
+                                      مديونية توصيل: {subsidy.toLocaleString()} ر.ي
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -562,13 +593,15 @@ const DeliveryFinance = () => {
               <CardHeader><CardTitle className="text-base">ملخص مالي</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {[
-                  { label: "إيرادات التوصيل (رسوم فقط)", value: `${totalDeliveryRevenue.toLocaleString()} ر.ي`, cls: "" },
-                  { label: "إيرادات المطاعم (قيمة الوجبات)", value: `${deliveredOrders.reduce((s, o) => s + Math.max(0, Number(o.total || 0) - Number(o.delivery_fee || 0)), 0).toLocaleString()} ر.ي`, cls: "" },
+                  { label: "رسوم التوصيل (من العملاء)", value: `${totalCustomerDeliveryFees.toLocaleString()} ر.ي`, cls: "" },
+                  { label: "رسوم التوصيل (على المطاعم - عروض مجانية)", value: `${totalRestaurantSubsidies.toLocaleString()} ر.ي`, cls: "text-destructive" },
+                  { label: "إجمالي إيرادات التوصيل", value: `${totalDeliveryRevenue.toLocaleString()} ر.ي`, cls: "" },
+                  { label: "إيرادات المطاعم (قيمة الوجبات صافية)", value: `${restaurantStats.reduce((s, r) => s + r.totalRevenue, 0).toLocaleString()} ر.ي`, cls: "" },
                   { label: "أرباح المندوبين", value: `${totalRiderEarnings.toLocaleString()} ر.ي`, cls: "text-orange-600" },
                   { label: "صافي ربح التوصيل", value: `${(totalDeliveryRevenue - totalRiderEarnings).toLocaleString()} ر.ي`, cls: "text-primary font-bold" },
                 ].map((row, i) => (
-                  <div key={i} className={`flex justify-between p-3 rounded-lg ${i === 3 ? "bg-primary/10 border border-primary/20" : "bg-muted/50"}`}>
-                    <span className={i === 3 ? "font-semibold" : "text-muted-foreground text-sm"}>{row.label}</span>
+                  <div key={i} className={`flex justify-between p-3 rounded-lg ${i === 5 ? "bg-primary/10 border border-primary/20" : "bg-muted/50"}`}>
+                    <span className={i === 5 ? "font-semibold" : "text-muted-foreground text-sm"}>{row.label}</span>
                     <span className={row.cls || "font-bold"}>{row.value}</span>
                   </div>
                 ))}

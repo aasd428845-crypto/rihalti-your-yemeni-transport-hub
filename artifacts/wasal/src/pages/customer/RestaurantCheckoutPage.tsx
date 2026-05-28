@@ -155,6 +155,11 @@ const RestaurantCheckoutPage = () => {
 
     setSubmitting(true);
     try {
+      // When an offer grants free/discounted delivery, the customer pays
+      // computedDeliveryFee (≤ baseFee). The difference is charged to the
+      // restaurant as a delivery subsidy.
+      const restaurantSubsidy = offerApplies ? baseFee - computedDeliveryFee : 0;
+
       const order = await createOrderFromCart({
         customer_id: user.id,
         restaurant_id: restaurantId,
@@ -163,11 +168,15 @@ const RestaurantCheckoutPage = () => {
         customer_phone: phone,
         customer_address: fullAddress,
         items: cart,
-        subtotal, delivery_fee: computedDeliveryFee, tax, total,
+        subtotal,
+        delivery_fee: computedDeliveryFee,
+        tax,
+        total,
         payment_method: "pending",
         notes: form.notes || undefined,
         delivery_lat: selectedAddress.latitude,
         delivery_lng: selectedAddress.longitude,
+        restaurant_delivery_subsidy: restaurantSubsidy,
       });
       try {
         await supabase.functions.invoke("send-push-notification", {

@@ -231,6 +231,8 @@ export const createOrderFromCart = async (params: {
   total: number;
   payment_method: string;
   notes?: string;
+  /** Delivery fee charged to the restaurant when an offer grants free delivery */
+  restaurant_delivery_subsidy?: number;
 }) => {
   const insertData: any = {
     customer_id: params.customer_id,
@@ -250,6 +252,7 @@ export const createOrderFromCart = async (params: {
     status: "pending",
     payment_status: "pending",
     order_type: "restaurant",
+    restaurant_delivery_subsidy: params.restaurant_delivery_subsidy ?? 0,
   };
   // Only include notes if provided (optional field)
   if (params.notes) {
