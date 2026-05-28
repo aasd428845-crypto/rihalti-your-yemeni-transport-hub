@@ -368,13 +368,18 @@ const OffersSection = ({
 }) => {
   if (!offers.length) return null;
 
+  const VALID_PATHS = ["/food", "/delivery-request", "/restaurants", "/shipments", "/deliveries", "/history", "/trips"];
+  const isSafePath = (p: string) => VALID_PATHS.some(v => p === v || p.startsWith(v + "/") || p.startsWith(v + "?"));
+
   const handleOfferClick = (offer: DeliveryOffer & { link_url?: string }) => {
     if (offer.restaurant_id) {
       onNavigate(`/restaurants/${offer.restaurant_id}`);
-    } else {
-      const dest = (offer as any).link_url || "/food";
-      onNavigate(dest === "/shipment-request" ? "/delivery-request" : dest);
+      return;
     }
+    let dest = (offer as any).link_url as string | undefined;
+    if (!dest) { onNavigate("/food"); return; }
+    if (dest === "/shipment-request" || dest === "/shipments") dest = "/delivery-request";
+    onNavigate(isSafePath(dest) ? dest : "/food");
   };
 
   return (

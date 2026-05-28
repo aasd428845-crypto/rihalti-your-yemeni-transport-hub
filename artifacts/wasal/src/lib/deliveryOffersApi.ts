@@ -86,16 +86,31 @@ export function buildFeeDiscount(offer: DeliveryOffer): (fee: number) => number 
 /**
  * Fetch ALL currently-active customer-facing offers (all companies),
  * joined with restaurant info for display and navigation.
+ * Falls back to a basic select if the restaurant_id column doesn't exist yet.
  */
 export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
   try {
+    // Try with restaurant join first (requires migration 008 to be applied)
     const { data, error } = await supabase
       .from(TABLE)
       .select("*, restaurant:restaurant_id(id, name_ar, logo_url)")
       .eq("is_active", true)
       .order("sort_order")
       .order("created_at", { ascending: false });
-    if (error || !data) return [];
+
+    if (error) {
+      // Column may not exist yet — fall back to plain select
+      const { data: fallback, error: fallbackErr } = await supabase
+        .from(TABLE)
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("created_at", { ascending: false });
+      if (fallbackErr || !fallback) return [];
+      return (fallback as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
+    }
+
+    if (!data) return [];
     return (data as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
   } catch {
     return [];
