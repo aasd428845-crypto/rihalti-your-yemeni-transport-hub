@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { getRestaurantCuisines } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
+import { getCustomerActiveOffers, type DeliveryOffer } from "@/lib/deliveryOffersApi";
 import FavoriteHeart from "@/components/customer/FavoriteHeart";
 import DeliveryRequestBanner from "@/components/customer/DeliveryRequestBanner";
 import FeaturedRestaurantsSection from "@/components/customer/FeaturedRestaurantsSection";
@@ -352,8 +353,30 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
 // CategoryScroller is now the shared SharedCategoryScroller imported above.
 
 // ─── Offers / Deals Horizontal Scroll — نص خارج الصورة ──────────────────────
-const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url: string) => void }) => {
+const OFFER_PLACEHOLDER_IMAGES: Record<string, string> = {
+  free_delivery: "https://images.unsplash.com/photo-1519984388953-d2406bc725e1?w=400&q=80&fit=crop",
+  percent_off_delivery: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80&fit=crop",
+  fixed_off_delivery: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80&fit=crop",
+};
+
+const OffersSection = ({
+  offers,
+  onNavigate,
+}: {
+  offers: (DeliveryOffer & { link_url?: string; subtitle?: string })[];
+  onNavigate: (url: string) => void;
+}) => {
   if (!offers.length) return null;
+
+  const handleOfferClick = (offer: DeliveryOffer & { link_url?: string }) => {
+    if (offer.restaurant_id) {
+      onNavigate(`/restaurants/${offer.restaurant_id}`);
+    } else {
+      const dest = (offer as any).link_url || "/food";
+      onNavigate(dest === "/shipment-request" ? "/delivery-request" : dest);
+    }
+  };
+
   return (
     <section>
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -363,42 +386,44 @@ const OffersSection = ({ offers, onNavigate }: { offers: any[]; onNavigate: (url
         <h2 className="text-[15px] font-black text-foreground">عروض وخصومات</h2>
       </div>
       <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
-        {offers.map((offer) => (
-          <button
-            key={offer.id}
-            onClick={() => {
-              let dest = offer.link_url || "/food";
-              if (dest === "/shipment-request") dest = "/delivery-request";
-              onNavigate(dest);
-            }}
-            className="shrink-0 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-card border border-border/30 flex"
-            style={{ width: 185, height: 66 }}
-          >
-            {/* صورة على يمين البطاقة (RTL = يسار الـ flex) */}
-            <div className="w-[66px] h-full shrink-0 overflow-hidden">
-              <img
-                src={offer.image_url}
-                alt={offer.title || ""}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-            {/* نص على يسار البطاقة (RTL = يمين الـ flex) */}
-            <div className="flex-1 px-2.5 py-2 flex flex-col justify-center text-right">
-              {offer.badge_text && (
-                <span className="inline-block self-end bg-primary text-primary-foreground text-[8px] font-black rounded-md px-1.5 py-0.5 mb-1 leading-none">
-                  {offer.badge_text}
-                </span>
-              )}
-              {offer.title && (
-                <p className="font-black text-[11px] text-foreground leading-tight line-clamp-1">{offer.title}</p>
-              )}
-              {offer.subtitle && (
-                <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight line-clamp-2">{offer.subtitle}</p>
-              )}
-            </div>
-          </button>
-        ))}
+        {offers.map((offer) => {
+          const imgSrc =
+            offer.image_url ||
+            OFFER_PLACEHOLDER_IMAGES[(offer as any).offer_type as string] ||
+            OFFER_PLACEHOLDER_IMAGES.free_delivery;
+          const subtitle = (offer as any).subtitle || offer.description || null;
+          const badge = offer.badge_text || (offer as any).badge_text;
+          return (
+            <button
+              key={offer.id}
+              onClick={() => handleOfferClick(offer)}
+              className="shrink-0 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-card border border-border/30 flex"
+              style={{ width: 185, height: 66 }}
+            >
+              <div className="w-[66px] h-full shrink-0 overflow-hidden">
+                <img src={imgSrc} alt={offer.title || ""} className="w-full h-full object-cover" loading="lazy" />
+              </div>
+              <div className="flex-1 px-2.5 py-2 flex flex-col justify-center text-right">
+                {badge && (
+                  <span className="inline-block self-end bg-primary text-primary-foreground text-[8px] font-black rounded-md px-1.5 py-0.5 mb-1 leading-none">
+                    {badge}
+                  </span>
+                )}
+                {offer.title && (
+                  <p className="font-black text-[11px] text-foreground leading-tight line-clamp-1">{offer.title}</p>
+                )}
+                {subtitle && (
+                  <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight line-clamp-2">{subtitle}</p>
+                )}
+                {offer.restaurant && (
+                  <p className="text-[9px] text-primary/70 mt-0.5 font-semibold line-clamp-1">
+                    {offer.restaurant.name_ar}
+                  </p>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
@@ -409,34 +434,40 @@ const DeliveryHubPage = () => {
   const navigate = useNavigate();
   const [carouselBanners, setCarouselBanners] = useState<any[] | null>(null);
   const [offerBanners, setOfferBanners] = useState<any[] | null>(null);
+  const [liveOffers, setLiveOffers] = useState<DeliveryOffer[]>([]);
   const [serviceTiles, setServiceTiles] = useState<any[]>([]);
   const [bannersLoaded, setBannersLoaded] = useState(false);
-  // Whether any banner row exists in the DB.
   const [companyManaged, setCompanyManaged] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("delivery_banners" as any)
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order")
-      .then(({ data }) => {
-        const bannersData = data || [];
-        const carousel = bannersData.filter((b: any) => !b.banner_type || b.banner_type === "carousel");
-        const offers = bannersData.filter((b: any) => b.banner_type === "offer");
-        const tiles = bannersData.filter((b: any) => b.banner_type === "service_tile");
-        setCompanyManaged(bannersData.length > 0);
-        setCarouselBanners(carousel.length > 0 ? carousel : DEFAULT_BANNERS);
-        setOfferBanners(offers.length > 0 ? offers : DEFAULT_OFFERS);
-        setServiceTiles(tiles);
-        setBannersLoaded(true);
-      }, () => {
-        setCompanyManaged(false);
-        setCarouselBanners(DEFAULT_BANNERS);
-        setOfferBanners(DEFAULT_OFFERS);
-        setServiceTiles([]);
-        setBannersLoaded(true);
-      });
+    // Fetch banners (carousel + tiles) and live delivery offers in parallel
+    Promise.all([
+      supabase
+        .from("delivery_banners" as any)
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order"),
+      getCustomerActiveOffers(),
+    ]).then(([bannersRes, liveOffersData]) => {
+      const bannersData = bannersRes.data || [];
+      const carousel = bannersData.filter((b: any) => !b.banner_type || b.banner_type === "carousel");
+      const bannerOffers = bannersData.filter((b: any) => b.banner_type === "offer");
+      const tiles = bannersData.filter((b: any) => b.banner_type === "service_tile");
+      setCompanyManaged(bannersData.length > 0);
+      setCarouselBanners(carousel.length > 0 ? carousel : DEFAULT_BANNERS);
+      setLiveOffers(liveOffersData);
+      // Fall back to banner offers only if no live offers from delivery_company_offers
+      setOfferBanners(liveOffersData.length > 0 ? [] : (bannerOffers.length > 0 ? bannerOffers : DEFAULT_OFFERS));
+      setServiceTiles(tiles);
+      setBannersLoaded(true);
+    }).catch(() => {
+      setCompanyManaged(false);
+      setCarouselBanners(DEFAULT_BANNERS);
+      setLiveOffers([]);
+      setOfferBanners(DEFAULT_OFFERS);
+      setServiceTiles([]);
+      setBannersLoaded(true);
+    });
   }, []);
 
   // Tile click handler
@@ -510,7 +541,12 @@ const DeliveryHubPage = () => {
           : <BannerCarousel banners={carouselBanners!} onNavigate={navigate} />}
 
         {/* ── 3. Offers / Deals Section ── */}
-        {bannersLoaded && <OffersSection offers={offerBanners!} onNavigate={navigate} />}
+        {bannersLoaded && (
+          <OffersSection
+            offers={liveOffers.length > 0 ? liveOffers : offerBanners!}
+            onNavigate={navigate}
+          />
+        )}
 
         {/* ── 4. Categories (circular scroller) ── */}
         <SharedCategoryScroller />

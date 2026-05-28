@@ -13,9 +13,10 @@ import {
   getDeliveryOffers, createDeliveryOffer, updateDeliveryOffer, deleteDeliveryOffer,
   type DeliveryOffer, type OfferType
 } from "@/lib/deliveryOffersApi";
+import { getRestaurants } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/common/ImageUpload";
-import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const OFFER_TYPES: { value: OfferType; label: string; icon: any; desc: string; color: string }[] = [
   { value: "free_delivery", label: "توصيل مجاني", icon: Truck, desc: "إلغاء رسوم التوصيل بالكامل", color: "bg-green-500" },
@@ -31,6 +32,7 @@ const emptyForm = (): any => ({
   description: "",
   image_url: "",
   badge_text: "",
+  restaurant_id: "",
   discount_percent: 0,
   discount_amount: 0,
   min_order_amount: 0,
@@ -73,6 +75,7 @@ const DeliveryOffers = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [offers, setOffers] = useState<DeliveryOffer[]>([]);
+  const [restaurants, setRestaurants] = useState<{ id: string; name_ar: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editItem, setEditItem] = useState<DeliveryOffer | null>(null);
@@ -81,8 +84,14 @@ const DeliveryOffers = () => {
   const load = () => {
     if (!user) return;
     setLoading(true);
-    getDeliveryOffers(user.id)
-      .then(setOffers)
+    Promise.all([
+      getDeliveryOffers(user.id),
+      getRestaurants(user.id),
+    ])
+      .then(([offersData, restaurantsData]) => {
+        setOffers(offersData);
+        setRestaurants(restaurantsData || []);
+      })
       .catch(err => toast({ title: "خطأ", description: err.message, variant: "destructive" }))
       .finally(() => setLoading(false));
   };
@@ -105,11 +114,19 @@ const DeliveryOffers = () => {
     if (!form.title.trim()) { toast({ title: "أدخل عنوان العرض", variant: "destructive" }); return; }
     if (!user) return;
     try {
+      const autobadge = form.badge_text ||
+        (form.offer_type === "free_delivery" ? "مجاني" :
+         form.offer_type === "percent_off_delivery" ? `خصم ${form.discount_percent}%` :
+         form.offer_type === "fixed_off_delivery" ? `خصم ${form.discount_amount} ر.ي` : "عرض");
+
       const payload: any = {
         delivery_company_id: user.id,
         offer_type: form.offer_type,
         title: form.title,
         description: form.description || null,
+        image_url: form.image_url || null,
+        badge_text: autobadge,
+        restaurant_id: form.restaurant_id || null,
         discount_percent: form.offer_type === "percent_off_delivery" ? (form.discount_percent || null) : null,
         discount_amount: form.offer_type === "fixed_off_delivery" ? (form.discount_amount || null) : null,
         min_order_amount: form.min_order_amount || null,
@@ -128,29 +145,6 @@ const DeliveryOffers = () => {
         await createDeliveryOffer(payload);
         toast({ title: "تمت إضافة العرض ✓" });
       }
-
-      // Also create/update a delivery_banners entry so this offer shows in the customer carousel
-      const offerType = OFFER_TYPES.find(t => t.value === form.offer_type);
-      const badgeText = form.badge_text ||
-        (form.offer_type === "free_delivery" ? "مجاني" :
-         form.offer_type === "percent_off_delivery" ? `${form.discount_percent}%` :
-         form.offer_type === "fixed_off_delivery" ? `خصم ${form.discount_amount}` : "عرض");
-      const bannerPayload: any = {
-        delivery_company_id: user.id,
-        title: form.title,
-        subtitle: form.description || offerType?.desc || null,
-        image_url: form.image_url || null,
-        badge_text: badgeText,
-        is_active: form.is_active,
-        banner_type: "offer",
-        tile_action: "request",
-        link_url: "/delivery-request",
-        sort_order: form.sort_order || 0,
-      };
-      // Silently upsert — don't fail save if banner creation fails
-      try {
-        await (supabase as any).from("delivery_banners").insert(bannerPayload);
-      } catch {}
 
       setShowDialog(false);
       load();
@@ -294,6 +288,27 @@ const DeliveryOffers = () => {
               <Label className="font-semibold">عنوان العرض *</Label>
               <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="مثال: توصيل مجاني كل خميس" />
             </div>
+
+            {/* Restaurant link */}
+            {restaurants.length > 0 && (
+              <div>
+                <Label className="font-semibold">ربط بمطعم <span className="text-xs text-muted-foreground font-normal">— عند الضغط على العرض ينتقل العميل لمنيو المطعم</span></Label>
+                <Select
+                  value={form.restaurant_id || "none"}
+                  onValueChange={v => setForm({ ...form, restaurant_id: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="اختر مطعماً (اختياري)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون ربط بمطعم</SelectItem>
+                    {restaurants.map(r => (
+                      <SelectItem key={r.id} value={r.id}>{r.name_ar}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Image upload */}
             <div className="grid gap-2">
