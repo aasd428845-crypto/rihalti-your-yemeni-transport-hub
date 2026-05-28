@@ -1,41 +1,43 @@
 /**
  * Notification sound utility using Web Audio API.
- * Works in all modern browsers. No audio files needed.
+ * Keeps AudioContext alive across tab switches and mobile suspensions.
  */
 
 let audioCtx: AudioContext | null = null;
-let userInteracted = false;
 
-// Track first user interaction to pre-warm AudioContext
-if (typeof window !== "undefined") {
-  const warmup = () => {
-    userInteracted = true;
+function getOrCreateCtx(): AudioContext | null {
+  try {
     if (!audioCtx) {
-      try {
-        audioCtx = new AudioContext();
-      } catch {}
+      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
-    window.removeEventListener("click", warmup);
-    window.removeEventListener("touchstart", warmup);
-    window.removeEventListener("keydown", warmup);
-  };
-  window.addEventListener("click", warmup, { once: true });
-  window.addEventListener("touchstart", warmup, { once: true });
-  window.addEventListener("keydown", warmup, { once: true });
+    return audioCtx;
+  } catch {
+    return null;
+  }
+}
+
+// Resume suspended context — called on every user gesture
+function tryResume() {
+  const ctx = getOrCreateCtx();
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+}
+
+// Keep AudioContext alive by resuming on every interaction
+if (typeof window !== "undefined") {
+  ["click", "touchstart", "touchend", "keydown", "pointerdown"].forEach((evt) => {
+    window.addEventListener(evt, tryResume, { passive: true, capture: true });
+  });
 }
 
 function getCtx(): AudioContext | null {
-  if (!audioCtx) {
-    try {
-      audioCtx = new AudioContext();
-    } catch {
-      return null;
-    }
+  const ctx = getOrCreateCtx();
+  if (!ctx) return null;
+  if (ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
   }
-  if (audioCtx.state === "suspended") {
-    audioCtx.resume().catch(() => {});
-  }
-  return audioCtx;
+  return ctx;
 }
 
 function beep(
@@ -45,7 +47,7 @@ function beep(
   type: OscillatorType = "sine"
 ) {
   const ctx = getCtx();
-  if (!ctx) return;
+  if (!ctx || ctx.state === "suspended") return;
 
   try {
     const totalDuration = frequencies.length * stepDuration;
