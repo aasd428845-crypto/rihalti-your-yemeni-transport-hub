@@ -546,8 +546,55 @@ const DeliveryOrders = () => {
                 )}
               </div>
 
-              {/* ── Payment Proof Section ── */}
-              {(paymentTx || selectedOrder.payment_method === "bank_transfer") && (
+              {/* ── Payment Details Section ── */}
+              {selectedOrder.payment_method === "cash" ? (
+                /* ── Cash on Delivery (COD) ── */
+                <div className="border rounded-xl p-3 space-y-2 bg-amber-50/60 dark:bg-amber-950/20 border-amber-300/60">
+                  <h4 className="font-bold flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                    <CreditCard className="w-4 h-4" />
+                    تفاصيل الدفع — عند الاستلام
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">طريقة الدفع: </span>
+                      <span className="font-semibold">💵 نقداً عند التسليم</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">حالة التحصيل: </span>
+                      <Badge variant="outline" className={
+                        selectedOrder.status === "delivered"
+                          ? "border-green-500 text-green-600"
+                          : "border-amber-500 text-amber-600"
+                      }>
+                        {selectedOrder.status === "delivered" ? "✅ تم التحصيل" : "⏳ سيُحصَّل عند التسليم"}
+                      </Badge>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">المبلغ المطلوب تحصيله من العميل: </span>
+                      <span className="font-bold text-lg text-amber-700 dark:text-amber-300">
+                        {Number(selectedOrder.total).toLocaleString()} ر.ي
+                      </span>
+                    </div>
+                    {selectedOrder.rider && (
+                      <div className="col-span-2 bg-amber-100/80 dark:bg-amber-900/30 rounded-lg p-2 border border-amber-200">
+                        <p className="font-semibold text-amber-900 dark:text-amber-200 mb-0.5">
+                          📋 المندوب المسؤول عن التحصيل
+                        </p>
+                        <p className="font-bold">{selectedOrder.rider.full_name}</p>
+                        <p className="text-muted-foreground mt-0.5">
+                          سيُسجَّل مبلغ <span className="font-bold text-amber-700 dark:text-amber-300">{Number(selectedOrder.total).toLocaleString()} ر.ي</span> على ذمة المندوب عند التسليم
+                        </p>
+                      </div>
+                    )}
+                    {!selectedOrder.rider && (
+                      <div className="col-span-2 text-amber-600 text-xs bg-amber-100/60 rounded-lg p-2">
+                        ⚠️ لم يُعيَّن مندوب بعد — سيُسجَّل المبلغ على المندوب عند تعيينه
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (paymentTx || selectedOrder.payment_method === "bank_transfer") && (
+                /* ── Bank Transfer / Online Payment ── */
                 <div className="border rounded-xl p-3 space-y-2 bg-muted/30">
                   <h4 className="font-bold flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-primary" />
@@ -557,7 +604,7 @@ const DeliveryOrders = () => {
                     <div>
                       <span className="text-muted-foreground">طريقة الدفع: </span>
                       <span className="font-semibold">
-                        {selectedOrder.payment_method === "cash" ? "💵 نقداً" : selectedOrder.payment_method === "bank_transfer" ? "🏦 تحويل بنكي" : selectedOrder.payment_method}
+                        {selectedOrder.payment_method === "bank_transfer" ? "🏦 تحويل بنكي" : selectedOrder.payment_method}
                       </span>
                     </div>
                     <div>
@@ -574,7 +621,7 @@ const DeliveryOrders = () => {
                     </div>
                     {paymentTx?.amount && (
                       <div>
-                        <span className="text-muted-foreground">المبلغ المحوّل: </span>
+                        <span className="text-muted-foreground">المبلغ المحوَّل: </span>
                         <span className="font-bold text-primary">{Number(paymentTx.amount).toLocaleString()} ر.ي</span>
                       </div>
                     )}
