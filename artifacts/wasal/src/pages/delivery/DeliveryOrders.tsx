@@ -295,8 +295,10 @@ const DeliveryOrders = () => {
       // 1. Update order status → confirmed
       await updateOrderStatus(order.id, "confirmed");
 
-      // 2. If payment transaction is pending → mark verified
-      if (paymentTx?.id && paymentTx.status === "pending") {
+      // 2. For bank transfer payments only: mark the transaction as verified.
+      // For cash/COD: payment is NOT verified here — the cash hasn't been collected
+      // yet. It will be tracked via rider_cash_collections when the rider delivers.
+      if (paymentTx?.id && paymentTx.status === "pending" && order.payment_method !== "cash") {
         await supabase
           .from("payment_transactions")
           .update({ status: "verified", verified_by: user.id, verified_at: new Date().toISOString() })
@@ -537,7 +539,7 @@ const DeliveryOrders = () => {
                 <div className="col-span-2"><span className="text-muted-foreground">العنوان:</span> {selectedOrder.customer_address}</div>
                 <div><span className="text-muted-foreground">المبلغ:</span> {Number(selectedOrder.total).toLocaleString()} ر.ي</div>
                 <div><span className="text-muted-foreground">التوصيل:</span> {Number(selectedOrder.delivery_fee).toLocaleString()} ر.ي</div>
-                <div><span className="text-muted-foreground">الدفع:</span> {selectedOrder.payment_method === "cash" ? "نقداً" : selectedOrder.payment_method === "bank_transfer" ? "تحويل بنكي" : selectedOrder.payment_method || "معلق"}</div>
+                <div><span className="text-muted-foreground">الدفع:</span> {selectedOrder.payment_method === "cash" ? "نقداً عند الاستلام" : selectedOrder.payment_method === "bank_transfer" ? "تحويل بنكي" : selectedOrder.payment_method || "معلق"}</div>
                 {selectedOrder.restaurant && (
                   <div className="col-span-2"><span className="text-muted-foreground">المطعم:</span> <span className="font-medium">{selectedOrder.restaurant.name_ar}</span></div>
                 )}

@@ -176,7 +176,20 @@ const DeliveryFinance = () => {
   // ── حساب إيرادات التوصيل ──
   // delivery_fee = ما دفعه العميل، restaurant_delivery_subsidy = ما يتحمّله المطعم من عروض التوصيل المجاني
   const deliveredOrders = orders.filter(o => o.status === "delivered");
-  const totalCustomerDeliveryFees = deliveredOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
+
+  // طلبات الكاش عند الاستلام النشطة (لم تُسلَّم بعد) — الإيراد الغذائي فيها معلّق حتى التوصيل
+  const activeCodOrders = orders.filter(o =>
+    o.payment_method === "cash" &&
+    !["delivered", "cancelled"].includes(o.status)
+  );
+
+  // إيرادات التوصيل: نفصل بين المحصّل فعلياً (تحويل بنكي) والمع المناديب (كاش)
+  const bankDeliveredOrders = deliveredOrders.filter(o => o.payment_method !== "cash");
+  const codDeliveredOrders = deliveredOrders.filter(o => o.payment_method === "cash");
+
+  const totalBankDeliveryFees = bankDeliveredOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
+  const totalCodDeliveryFees = codDeliveredOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
+  const totalCustomerDeliveryFees = totalBankDeliveryFees + totalCodDeliveryFees;
   const totalRestaurantSubsidies = deliveredOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
   const totalDeliveryRevenue = totalCustomerDeliveryFees + totalRestaurantSubsidies;
   const totalRiderEarnings = riders.reduce((s, r) => s + Number(r.earnings || 0), 0);
@@ -186,35 +199,47 @@ const DeliveryFinance = () => {
   const restaurantStats = useMemo(() => {
     const periodStart = getPeriodStart(restaurantPeriod);
     return restaurants.map(rest => {
+      // الطلبات الموصلة (مكتملة) لهذا المطعم
       const restOrders = deliveredOrders.filter(o => o.restaurant_id === rest.id);
+      // طلبات الكاش النشطة لهذا المطعم (في الطريق / لم تُسلَّم بعد)
+      const restActiveCod = activeCodOrders.filter(o => o.restaurant_id === rest.id);
       const periodOrders = restOrders.filter(o => new Date(o.created_at) >= periodStart);
 
-      // إيرادات الطعام (ما يحصل عليه المطعم من قيمة الوجبات)
+      // إيرادات الطعام المكتملة (طلبات موصلة)
       const totalFoodRevenue = restOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
       const periodFoodRevenue = periodOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
+
+      // إيرادات الطعام المعلقة — طلبات كاش نشطة سيُسجَّل مبلغ وجباتها عند التوصيل
+      const pendingCodFoodRevenue = restActiveCod.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
 
       // مديونية التوصيل (رسوم التوصيل المتحمَّلة من المطعم بسبب عروض التوصيل المجاني)
       const totalSubsidy = restOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
       const periodSubsidy = periodOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
 
-      // صافي إيرادات المطعم = إيرادات الطعام - مديونية التوصيل
+      // صافي إيرادات المطعم = إيرادات الطعام المكتملة - مديونية التوصيل
       const totalRevenue = totalFoodRevenue - totalSubsidy;
       const periodRevenue = periodFoodRevenue - periodSubsidy;
+
+      // جميع الطلبات ذات الصلة = موصلة + كاش نشطة
+      const allRelevantOrders = [...restOrders, ...restActiveCod]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       return {
         ...rest,
         totalOrders: restOrders.length,
+        pendingCodCount: restActiveCod.length,
         periodOrders: periodOrders.length,
         totalFoodRevenue,
         periodFoodRevenue,
+        pendingCodFoodRevenue,
         totalSubsidy,
         periodSubsidy,
         totalRevenue,
         periodRevenue,
-        recentOrders: restOrders.slice(0, 15),
+        recentOrders: allRelevantOrders.slice(0, 15),
       };
     }).sort((a, b) => b.totalRevenue - a.totalRevenue);
-  }, [restaurants, deliveredOrders, restaurantPeriod]);
+  }, [restaurants, deliveredOrders, activeCodOrders, restaurantPeriod]);
 
   const buildRestaurantShareText = (r: typeof restaurantStats[0]) => {
     const periodLabel = restaurantPeriod === "daily" ? "اليوم" : restaurantPeriod === "weekly" ? "هذا الأسبوع" : "هذا الشهر";
@@ -476,9 +501,9 @@ const DeliveryFinance = () => {
                       {/* Summary stats row */}
                       <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t">
                         {[
-                          { label: "إجمالي الطلبات", val: rest.totalOrders },
+                          { label: "طلبات مكتملة", val: rest.totalOrders },
                           { label: "طلبات الفترة", val: rest.periodOrders },
-                          { label: "صافي الإيرادات", val: `${rest.periodRevenue.toLocaleString()} ر.ي` },
+                          { label: "صافي الإيرادات", val: `${rest.totalRevenue.toLocaleString()} ر.ي` },
                         ].map((s, i) => (
                           <div key={i} className="text-center">
                             <p className="text-sm font-bold">{s.val}</p>
@@ -486,6 +511,17 @@ const DeliveryFinance = () => {
                           </div>
                         ))}
                       </div>
+                      {/* Pending COD orders indicator — food revenue not yet finalized */}
+                      {rest.pendingCodCount > 0 && (
+                        <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs bg-amber-50 dark:bg-amber-950/20 rounded-lg px-2 py-1.5">
+                          <span className="text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                            ⏳ كاش في الطريق ({rest.pendingCodCount} طلب)
+                          </span>
+                          <span className="font-bold text-amber-700 dark:text-amber-400">
+                            + {rest.pendingCodFoodRevenue.toLocaleString()} ر.ي
+                          </span>
+                        </div>
+                      )}
                       {rest.totalSubsidy > 0 && (
                         <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs">
                           <span className="text-destructive font-medium">مديونية التوصيل (عروض مجانية)</span>
@@ -527,7 +563,7 @@ const DeliveryFinance = () => {
 
                         {/* Order list */}
                         {rest.recentOrders.length === 0 ? (
-                          <p className="text-center text-muted-foreground py-6 text-sm">لا توجد طلبات مكتملة</p>
+                          <p className="text-center text-muted-foreground py-6 text-sm">لا توجد طلبات بعد</p>
                         ) : (
                           <div className="divide-y max-h-72 overflow-y-auto">
                             <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] font-bold text-muted-foreground bg-muted/50">
@@ -542,18 +578,27 @@ const DeliveryFinance = () => {
                               const foodRevenue = Number(order.total || 0) - Number(order.delivery_fee || 0);
                               const subsidy = Number(order.restaurant_delivery_subsidy || 0);
                               const netRevenue = foodRevenue - subsidy;
+                              const isDelivered = order.status === "delivered";
+                              const isCodActive = order.payment_method === "cash" && !isDelivered;
                               return (
-                                <div key={order.id} className="px-4 py-2.5 text-xs hover:bg-muted/30">
+                                <div key={order.id} className={`px-4 py-2.5 text-xs hover:bg-muted/30 ${isCodActive ? "bg-amber-50/40 dark:bg-amber-950/10" : ""}`}>
                                   <div className="grid grid-cols-4 gap-2 items-center">
                                     <span className="truncate font-medium">{order.customer_name || "—"}</span>
                                     <span className="truncate text-muted-foreground" title={itemNames}>{itemNames || "—"}</span>
-                                    <span className="text-center font-bold text-primary">{netRevenue.toLocaleString()} ر.ي</span>
+                                    <span className={`text-center font-bold ${isCodActive ? "text-amber-600 dark:text-amber-400" : "text-primary"}`}>
+                                      {isCodActive ? "⏳ " : ""}{netRevenue.toLocaleString()} ر.ي
+                                    </span>
                                     <span className="text-left text-muted-foreground text-[10px]">
                                       {new Date(order.created_at).toLocaleDateString("ar", { month: "short", day: "numeric" })}
                                       {" "}
                                       {new Date(order.created_at).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
                                     </span>
                                   </div>
+                                  {isCodActive && (
+                                    <div className="mt-0.5 text-amber-600 dark:text-amber-400 text-[10px]">
+                                      💵 نقداً عند الاستلام — في الطريق، سيُسجَّل عند التوصيل
+                                    </div>
+                                  )}
                                   {subsidy > 0 && (
                                     <div className="mt-0.5 text-destructive text-[10px]">
                                       مديونية توصيل: {subsidy.toLocaleString()} ر.ي
@@ -593,15 +638,17 @@ const DeliveryFinance = () => {
               <CardHeader><CardTitle className="text-base">ملخص مالي</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {[
-                  { label: "رسوم التوصيل (من العملاء)", value: `${totalCustomerDeliveryFees.toLocaleString()} ر.ي`, cls: "" },
+                  { label: "رسوم التوصيل — تحويل بنكي (محصّل)", value: `${totalBankDeliveryFees.toLocaleString()} ر.ي`, cls: "text-green-600" },
+                  { label: "رسوم التوصيل — كاش مع المناديب (موصّل)", value: `${totalCodDeliveryFees.toLocaleString()} ر.ي`, cls: "text-amber-600" },
                   { label: "رسوم التوصيل (على المطاعم - عروض مجانية)", value: `${totalRestaurantSubsidies.toLocaleString()} ر.ي`, cls: "text-destructive" },
                   { label: "إجمالي إيرادات التوصيل", value: `${totalDeliveryRevenue.toLocaleString()} ر.ي`, cls: "" },
-                  { label: "إيرادات المطاعم (قيمة الوجبات صافية)", value: `${restaurantStats.reduce((s, r) => s + r.totalRevenue, 0).toLocaleString()} ر.ي`, cls: "" },
-                  { label: "أرباح المندوبين", value: `${totalRiderEarnings.toLocaleString()} ر.ي`, cls: "text-orange-600" },
+                  { label: "إيرادات المطاعم (وجبات موصّلة، صافية)", value: `${restaurantStats.reduce((s, r) => s + r.totalRevenue, 0).toLocaleString()} ر.ي`, cls: "" },
+                  { label: "وجبات كاش في الطريق (متوقعة)", value: `${restaurantStats.reduce((s, r) => s + r.pendingCodFoodRevenue, 0).toLocaleString()} ر.ي`, cls: "text-amber-600" },
+                  { label: "أرباح المناديب", value: `${totalRiderEarnings.toLocaleString()} ر.ي`, cls: "text-orange-600" },
                   { label: "صافي ربح التوصيل", value: `${(totalDeliveryRevenue - totalRiderEarnings).toLocaleString()} ر.ي`, cls: "text-primary font-bold" },
                 ].map((row, i) => (
-                  <div key={i} className={`flex justify-between p-3 rounded-lg ${i === 5 ? "bg-primary/10 border border-primary/20" : "bg-muted/50"}`}>
-                    <span className={i === 5 ? "font-semibold" : "text-muted-foreground text-sm"}>{row.label}</span>
+                  <div key={i} className={`flex justify-between p-3 rounded-lg ${i === 7 ? "bg-primary/10 border border-primary/20" : "bg-muted/50"}`}>
+                    <span className={i === 7 ? "font-semibold" : "text-muted-foreground text-sm"}>{row.label}</span>
                     <span className={row.cls || "font-bold"}>{row.value}</span>
                   </div>
                 ))}
