@@ -1,6 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type OfferType = "free_delivery" | "percent_off_delivery" | "fixed_off_delivery";
+export type OfferType =
+  | "free_delivery"
+  | "percent_off_delivery"
+  | "fixed_off_delivery"
+  | "percent_off_order"
+  | "fixed_off_order"
+  | "buy_x_get_y"
+  | "custom";
 
 export interface DeliveryOffer {
   id: string;
@@ -68,7 +75,7 @@ export function isOfferCurrentlyActive(offer: DeliveryOffer): boolean {
   return true;
 }
 
-// ─── Shared: build discount function from offer ─────────────────────────
+// ─── Shared: delivery fee discount (for delivery-type offers) ──────────
 export function buildFeeDiscount(offer: DeliveryOffer): (fee: number) => number {
   return (originalFee: number): number => {
     if (offer.offer_type === "free_delivery") return 0;
@@ -79,7 +86,23 @@ export function buildFeeDiscount(offer: DeliveryOffer): (fee: number) => number 
     if (offer.offer_type === "fixed_off_delivery") {
       return Math.max(0, originalFee - (offer.discount_amount || 0));
     }
+    // Order-level or combo/custom offers don't affect the delivery fee
     return originalFee;
+  };
+}
+
+// ─── Shared: order subtotal discount (for order-type offers) ────────────
+export function buildOrderDiscount(offer: DeliveryOffer): (subtotal: number) => number {
+  return (originalSubtotal: number): number => {
+    if (offer.offer_type === "percent_off_order") {
+      const pct = offer.discount_percent || 0;
+      return Math.max(0, Math.round(originalSubtotal * (1 - pct / 100)));
+    }
+    if (offer.offer_type === "fixed_off_order") {
+      return Math.max(0, originalSubtotal - (offer.discount_amount || 0));
+    }
+    // Delivery or combo/custom offers don't affect the subtotal
+    return originalSubtotal;
   };
 }
 
@@ -132,7 +155,11 @@ export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
 export const getActiveOffersForCompany = async (
   companyId: string,
   restaurantId?: string
-): Promise<{ offer: DeliveryOffer; appliedFeeDiscount: (fee: number) => number } | null> => {
+): Promise<{
+  offer: DeliveryOffer;
+  appliedFeeDiscount: (fee: number) => number;
+  appliedOrderDiscount: (subtotal: number) => number;
+} | null> => {
   try {
     // Fetch all active offers using the same query that works for customers,
     // then filter by company ID in JavaScript to avoid RLS blocking.
@@ -150,15 +177,21 @@ export const getActiveOffersForCompany = async (
 
     if (!companyOffers.length) return null;
 
+    const wrap = (o: DeliveryOffer) => ({
+      offer: o,
+      appliedFeeDiscount: buildFeeDiscount(o),
+      appliedOrderDiscount: buildOrderDiscount(o),
+    });
+
     // 1. Try restaurant-specific offer first (restaurant_id matches)
     if (restaurantId) {
       const specific = companyOffers.find(o => o.restaurant_id === restaurantId);
-      if (specific) return { offer: specific, appliedFeeDiscount: buildFeeDiscount(specific) };
+      if (specific) return wrap(specific);
     }
 
     // 2. Fall back to company-wide offer (restaurant_id is null/undefined)
     const companyWide = companyOffers.find(o => !o.restaurant_id);
-    if (companyWide) return { offer: companyWide, appliedFeeDiscount: buildFeeDiscount(companyWide) };
+    if (companyWide) return wrap(companyWide);
 
     return null;
   } catch {

@@ -41,10 +41,11 @@ const RestaurantCheckoutPage = () => {
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [distanceFee, setDistanceFee] = useState<number | null>(null);
 
-  // Active delivery offer (company-level promotion)
+  // Active offer (company-level promotion — may affect delivery fee or order subtotal)
   const [activeOffer, setActiveOffer] = useState<{
     offer: import("@/lib/deliveryOffersApi").DeliveryOffer;
     appliedFeeDiscount: (fee: number) => number;
+    appliedOrderDiscount: (subtotal: number) => number;
   } | null>(null);
 
   useEffect(() => {
@@ -123,15 +124,28 @@ const RestaurantCheckoutPage = () => {
 
   const subtotal = useMemo(() => cart.reduce((s, c) => s + c.price * c.quantity, 0), [cart]);
 
-  // Fee = distance × price_per_km (apply offer only when min_order_amount is met)
+  // Offer applicability: check min_order_amount against raw subtotal
   const baseFee = distanceFee ?? 0;
   const offerMinOrder = activeOffer?.offer.min_order_amount ?? 0;
   const offerApplies = !!activeOffer && subtotal >= offerMinOrder;
-  const computedDeliveryFee = offerApplies ? activeOffer!.appliedFeeDiscount(baseFee) : baseFee;
+
+  // Delivery offers → reduce delivery fee
+  const DELIVERY_OFFER_TYPES = ["free_delivery", "percent_off_delivery", "fixed_off_delivery"];
+  const isDeliveryOffer = DELIVERY_OFFER_TYPES.includes(activeOffer?.offer.offer_type ?? "");
+
+  // Order discount offers → reduce subtotal
+  const ORDER_OFFER_TYPES = ["percent_off_order", "fixed_off_order"];
+  const isOrderOffer = ORDER_OFFER_TYPES.includes(activeOffer?.offer.offer_type ?? "");
+
+  const computedDeliveryFee = offerApplies && isDeliveryOffer ? activeOffer!.appliedFeeDiscount(baseFee) : baseFee;
   const deliveryDiscount = baseFee - computedDeliveryFee;
+
+  const computedSubtotal = offerApplies && isOrderOffer ? activeOffer!.appliedOrderDiscount(subtotal) : subtotal;
+  const orderDiscount = subtotal - computedSubtotal;
+
   const remainingForOffer = offerMinOrder > 0 && !offerApplies ? offerMinOrder - subtotal : 0;
   const tax = 0;
-  const total = subtotal + computedDeliveryFee + tax;
+  const total = computedSubtotal + computedDeliveryFee + tax;
   const canOrder = !!selectedAddress;
 
   const handleSubmit = async () => {
@@ -155,10 +169,8 @@ const RestaurantCheckoutPage = () => {
 
     setSubmitting(true);
     try {
-      // When an offer grants free/discounted delivery, the customer pays
-      // computedDeliveryFee (≤ baseFee). The difference is charged to the
-      // restaurant as a delivery subsidy.
-      const restaurantSubsidy = offerApplies ? baseFee - computedDeliveryFee : 0;
+      // Delivery subsidy: difference charged to restaurant when delivery offer applies
+      const restaurantSubsidy = offerApplies && isDeliveryOffer ? baseFee - computedDeliveryFee : 0;
 
       const order = await createOrderFromCart({
         customer_id: user.id,
@@ -168,7 +180,7 @@ const RestaurantCheckoutPage = () => {
         customer_phone: phone,
         customer_address: fullAddress,
         items: cart,
-        subtotal,
+        subtotal: computedSubtotal,
         delivery_fee: computedDeliveryFee,
         tax,
         total,
@@ -241,13 +253,14 @@ const RestaurantCheckoutPage = () => {
                 </div>
               ))}
               <Separator />
-              {/* Active delivery offer banner */}
+              {/* Active offer banner */}
               {activeOffer && offerApplies && (
                 <div className="bg-green-50 dark:bg-green-950/20 border border-green-300 rounded-lg p-2.5 flex items-center gap-2 text-sm text-green-800 dark:text-green-300">
                   <span className="text-lg">🎉</span>
                   <div>
                     <span className="font-bold">{activeOffer.offer.title}</span>
-                    {deliveryDiscount > 0 && <span className="text-green-600 text-xs mr-1">— وفّر {deliveryDiscount.toLocaleString()} ر.ي</span>}
+                    {deliveryDiscount > 0 && <span className="text-green-600 text-xs mr-1">— وفّر {deliveryDiscount.toLocaleString()} ر.ي على التوصيل</span>}
+                    {orderDiscount > 0 && <span className="text-green-600 text-xs mr-1">— وفّر {orderDiscount.toLocaleString()} ر.ي على طلبك</span>}
                   </div>
                 </div>
               )}
@@ -261,7 +274,19 @@ const RestaurantCheckoutPage = () => {
                 </div>
               )}
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span>المجموع الفرعي</span><span>{subtotal} ر.ي</span></div>
+                <div className="flex justify-between"><span>المجموع الفرعي</span><span>{subtotal.toLocaleString()} ر.ي</span></div>
+                {offerApplies && orderDiscount > 0 && (
+                  <div className="flex justify-between text-green-600 font-medium">
+                    <span>خصم الطلب ({activeOffer!.offer.title})</span>
+                    <span>- {orderDiscount.toLocaleString()} ر.ي</span>
+                  </div>
+                )}
+                {offerApplies && orderDiscount > 0 && (
+                  <div className="flex justify-between text-muted-foreground text-xs">
+                    <span>بعد الخصم</span>
+                    <span className="font-semibold text-foreground">{computedSubtotal.toLocaleString()} ر.ي</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
                   <span className="flex items-center gap-1">
                     رسوم التوصيل

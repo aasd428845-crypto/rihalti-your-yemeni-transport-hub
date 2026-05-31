@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Truck, Percent, Minus, CalendarDays, Clock, Gift } from "lucide-react";
+import { Plus, Pencil, Trash2, Truck, Percent, Minus, CalendarDays, Clock, Gift, Tag, ShoppingBag } from "lucide-react";
 import {
   getDeliveryOffers, createDeliveryOffer, updateDeliveryOffer, deleteDeliveryOffer,
   type DeliveryOffer, type OfferType
@@ -18,11 +18,26 @@ import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/common/ImageUpload";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const OFFER_TYPES: { value: OfferType; label: string; icon: any; desc: string; color: string }[] = [
-  { value: "free_delivery", label: "توصيل مجاني", icon: Truck, desc: "إلغاء رسوم التوصيل بالكامل", color: "bg-green-500" },
-  { value: "percent_off_delivery", label: "خصم نسبي على التوصيل", icon: Percent, desc: "مثال: خصم 50% على رسوم التوصيل", color: "bg-blue-500" },
-  { value: "fixed_off_delivery", label: "خصم بمبلغ ثابت على التوصيل", icon: Minus, desc: "مثال: خصم 500 ر.ي من رسوم التوصيل", color: "bg-purple-500" },
+const OFFER_TYPES: { value: OfferType; label: string; icon: any; desc: string; color: string; category: string }[] = [
+  // Delivery offers
+  { value: "free_delivery",        label: "توصيل مجاني",                  icon: Truck,       desc: "إلغاء رسوم التوصيل بالكامل",                color: "bg-green-500",  category: "delivery" },
+  { value: "percent_off_delivery", label: "خصم نسبي على التوصيل",         icon: Percent,     desc: "مثال: خصم 50% على رسوم التوصيل",             color: "bg-blue-500",   category: "delivery" },
+  { value: "fixed_off_delivery",   label: "خصم بمبلغ ثابت على التوصيل",   icon: Minus,       desc: "مثال: خصم 500 ر.ي من رسوم التوصيل",          color: "bg-purple-500", category: "delivery" },
+  // Order discounts
+  { value: "percent_off_order",    label: "خصم نسبي على الطلب",            icon: ShoppingBag, desc: "مثال: خصم 15% على إجمالي قيمة الطلب",        color: "bg-orange-500", category: "order" },
+  { value: "fixed_off_order",      label: "خصم بمبلغ ثابت على الطلب",     icon: Tag,         desc: "مثال: خصم 500 ر.ي على كل طلب",              color: "bg-red-500",    category: "order" },
+  // Combo
+  { value: "buy_x_get_y",          label: "اطلب X وادفع ثمن Y (كومبو)",   icon: Gift,        desc: "مثال: اطلب 3 وادفع ثمن 2",                  color: "bg-yellow-600", category: "combo" },
+  // Custom
+  { value: "custom",               label: "عرض مخصص بنص حر",              icon: Tag,         desc: "أي عرض تريد كتابة شروطه بشكل مخصص",         color: "bg-gray-500",   category: "custom" },
 ];
+
+const OFFER_CATEGORY_LABELS: Record<string, string> = {
+  delivery: "🚚 عروض التوصيل",
+  order:    "🏷️ عروض الخصومات",
+  combo:    "🎁 عروض الكومبو",
+  custom:   "✏️ عروض مخصصة",
+};
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
@@ -47,9 +62,13 @@ const emptyForm = (): any => ({
 
 const offerSummary = (o: DeliveryOffer): string => {
   const parts: string[] = [];
-  if (o.offer_type === "free_delivery") parts.push("توصيل مجاني");
+  if (o.offer_type === "free_delivery")        parts.push("توصيل مجاني");
   if (o.offer_type === "percent_off_delivery") parts.push(`خصم ${o.discount_percent}% من التوصيل`);
-  if (o.offer_type === "fixed_off_delivery") parts.push(`خصم ${o.discount_amount} ر.ي من التوصيل`);
+  if (o.offer_type === "fixed_off_delivery")   parts.push(`خصم ${o.discount_amount} ر.ي من التوصيل`);
+  if (o.offer_type === "percent_off_order")    parts.push(`خصم ${o.discount_percent}% على الطلب`);
+  if (o.offer_type === "fixed_off_order")      parts.push(`خصم ${o.discount_amount} ر.ي على الطلب`);
+  if (o.offer_type === "buy_x_get_y")          parts.push("عرض كومبو");
+  if (o.offer_type === "custom")               parts.push("عرض مخصص");
   if (o.min_order_amount) parts.push(`بحد أدنى للطلب ${o.min_order_amount} ر.ي`);
   if (o.active_days?.length) parts.push(`أيام: ${o.active_days.join("، ")}`);
   if (o.start_time && o.end_time) parts.push(`من ${o.start_time} حتى ${o.end_time}`);
@@ -115,9 +134,15 @@ const DeliveryOffers = () => {
     if (!user) return;
     try {
       const autobadge = form.badge_text ||
-        (form.offer_type === "free_delivery" ? "مجاني" :
+        (form.offer_type === "free_delivery"        ? "مجاني" :
          form.offer_type === "percent_off_delivery" ? `خصم ${form.discount_percent}%` :
-         form.offer_type === "fixed_off_delivery" ? `خصم ${form.discount_amount} ر.ي` : "عرض");
+         form.offer_type === "fixed_off_delivery"   ? `خصم ${form.discount_amount} ر.ي` :
+         form.offer_type === "percent_off_order"    ? `خصم ${form.discount_percent}%` :
+         form.offer_type === "fixed_off_order"      ? `خصم ${form.discount_amount} ر.ي` :
+         form.offer_type === "buy_x_get_y"          ? "كومبو" : "عرض");
+
+      const hasPercentField = ["percent_off_delivery", "percent_off_order"].includes(form.offer_type);
+      const hasAmountField  = ["fixed_off_delivery",  "fixed_off_order"].includes(form.offer_type);
 
       const payload: any = {
         delivery_company_id: user.id,
@@ -127,8 +152,8 @@ const DeliveryOffers = () => {
         image_url: form.image_url || null,
         badge_text: autobadge,
         restaurant_id: form.restaurant_id || null,
-        discount_percent: form.offer_type === "percent_off_delivery" ? (form.discount_percent || null) : null,
-        discount_amount: form.offer_type === "fixed_off_delivery" ? (form.discount_amount || null) : null,
+        discount_percent: hasPercentField ? (form.discount_percent || null) : null,
+        discount_amount:  hasAmountField  ? (form.discount_amount  || null) : null,
         min_order_amount: form.min_order_amount || null,
         active_days: form.active_days?.length ? form.active_days : null,
         start_time: form.start_time || null,
@@ -180,8 +205,8 @@ const DeliveryOffers = () => {
     <div className="space-y-6" dir="rtl">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold">عروض التوصيل</h2>
-          <p className="text-sm text-muted-foreground">خصومات على رسوم التوصيل بأوقات وأيام محددة — تُطبَّق تلقائياً على طلبات العملاء</p>
+          <h2 className="text-2xl font-bold">عروض المطاعم</h2>
+          <p className="text-sm text-muted-foreground">عروض التوصيل والخصومات — تُطبَّق تلقائياً في سلة الطلب عند استيفاء الشروط</p>
         </div>
         <Button onClick={openNew}><Plus className="w-4 h-4 ml-1" />إضافة عرض</Button>
       </div>
@@ -265,20 +290,27 @@ const DeliveryOffers = () => {
             {/* Offer type */}
             <div>
               <Label className="font-semibold mb-2 block">نوع العرض *</Label>
-              <div className="grid gap-2">
-                {OFFER_TYPES.map(t => (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => setForm({...form, offer_type: t.value})}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-right transition-all ${form.offer_type === t.value ? "bg-primary/10 border-primary font-semibold" : "bg-muted/50 border-border hover:border-primary/40"}`}
-                  >
-                    <div className={`p-1.5 rounded-lg ${t.color}`}><t.icon className="w-4 h-4 text-white" /></div>
-                    <div>
-                      <p className="text-sm font-semibold">{t.label}</p>
-                      <p className="text-xs text-muted-foreground">{t.desc}</p>
+              <div className="space-y-3">
+                {(["delivery", "order", "combo", "custom"] as const).map(cat => (
+                  <div key={cat}>
+                    <p className="text-xs font-bold text-muted-foreground mb-1.5 px-1">{OFFER_CATEGORY_LABELS[cat]}</p>
+                    <div className="grid gap-1.5">
+                      {OFFER_TYPES.filter(t => t.category === cat).map(t => (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => setForm({...form, offer_type: t.value})}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-right transition-all ${form.offer_type === t.value ? "bg-primary/10 border-primary font-semibold" : "bg-muted/50 border-border hover:border-primary/40"}`}
+                        >
+                          <div className={`p-1.5 rounded-lg ${t.color} shrink-0`}><t.icon className="w-4 h-4 text-white" /></div>
+                          <div>
+                            <p className="text-sm font-semibold">{t.label}</p>
+                            <p className="text-xs text-muted-foreground">{t.desc}</p>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -338,6 +370,25 @@ const DeliveryOffers = () => {
               <div>
                 <Label className="font-semibold">مبلغ الخصم من التوصيل (ر.ي)</Label>
                 <Input type="number" min={0} value={form.discount_amount} onChange={e => setForm({...form, discount_amount: Number(e.target.value)})} placeholder="500" />
+              </div>
+            )}
+            {form.offer_type === "percent_off_order" && (
+              <div>
+                <Label className="font-semibold">نسبة الخصم على الطلب (%)</Label>
+                <Input type="number" min={1} max={100} value={form.discount_percent} onChange={e => setForm({...form, discount_percent: Number(e.target.value)})} placeholder="15" />
+                <p className="text-xs text-muted-foreground mt-1">يُطبَّق على إجمالي قيمة الوجبات (قبل رسوم التوصيل)</p>
+              </div>
+            )}
+            {form.offer_type === "fixed_off_order" && (
+              <div>
+                <Label className="font-semibold">مبلغ الخصم على الطلب (ر.ي)</Label>
+                <Input type="number" min={0} value={form.discount_amount} onChange={e => setForm({...form, discount_amount: Number(e.target.value)})} placeholder="500" />
+                <p className="text-xs text-muted-foreground mt-1">يُخصَم من إجمالي قيمة الوجبات مباشرةً</p>
+              </div>
+            )}
+            {form.offer_type === "buy_x_get_y" && (
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-300">
+                💡 اكتب تفاصيل الكومبو في عنوان العرض ووصفه (مثال: عنوان "اطلب 3 برغر وادفع ثمن 2" ووصف الشروط)
               </div>
             )}
 
