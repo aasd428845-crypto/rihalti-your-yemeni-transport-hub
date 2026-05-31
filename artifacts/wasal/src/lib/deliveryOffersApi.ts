@@ -122,29 +122,42 @@ export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
  * Priority: restaurant-specific offer first, then company-wide offers.
  * Returns the first time-valid offer with its full data (so the caller can
  * check min_order_amount against the current cart subtotal).
+ *
+ * NOTE: We intentionally do NOT filter by delivery_company_id in the Supabase query
+ * because RLS policies on this table only allow customers to read rows without
+ * a company-scoped filter. We fetch all active offers and filter in JS instead.
+ * This mirrors the approach used by getCustomerActiveOffers() which already works
+ * for all user roles.
  */
 export const getActiveOffersForCompany = async (
   companyId: string,
   restaurantId?: string
 ): Promise<{ offer: DeliveryOffer; appliedFeeDiscount: (fee: number) => number } | null> => {
   try {
+    // Fetch all active offers using the same query that works for customers,
+    // then filter by company ID in JavaScript to avoid RLS blocking.
     const { data, error } = await supabase
       .from(TABLE)
       .select("*")
-      .eq("delivery_company_id", companyId)
       .eq("is_active", true);
+
     if (error || !data?.length) return null;
 
-    const allOffers = (data as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
+    // Filter by company and time validity in JS
+    const companyOffers = (data as unknown as DeliveryOffer[])
+      .filter(o => o.delivery_company_id === companyId)
+      .filter(isOfferCurrentlyActive);
+
+    if (!companyOffers.length) return null;
 
     // 1. Try restaurant-specific offer first (restaurant_id matches)
     if (restaurantId) {
-      const specific = allOffers.find(o => (o as any).restaurant_id === restaurantId);
+      const specific = companyOffers.find(o => o.restaurant_id === restaurantId);
       if (specific) return { offer: specific, appliedFeeDiscount: buildFeeDiscount(specific) };
     }
 
     // 2. Fall back to company-wide offer (restaurant_id is null/undefined)
-    const companyWide = allOffers.find(o => !(o as any).restaurant_id);
+    const companyWide = companyOffers.find(o => !o.restaurant_id);
     if (companyWide) return { offer: companyWide, appliedFeeDiscount: buildFeeDiscount(companyWide) };
 
     return null;
