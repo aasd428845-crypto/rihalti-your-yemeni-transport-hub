@@ -78,3 +78,7 @@ externalPort = 8081
 VITE_SUPABASE_URL = "https://hhqhoqwpebnmfuhwhllw.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_muPrRQdPNSwY0pCK8OJ7eQ_cdCTXJHa"
 VITE_SUPABASE_PROJECT_ID = "hhqhoqwpebnmfuhwhllw"
+SUPABASE_URL = "https://hhqhoqwpebnmfuhwhllw.supabase.co"
+
+[nix]
+channel = "stable-25_05"
