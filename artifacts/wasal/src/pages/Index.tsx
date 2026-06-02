@@ -431,8 +431,6 @@ const HERO_FALLBACK_IMGS = [
 const OffersSection = () => {
   const navigate = useNavigate();
   const [offers, setOffers] = useState<any[] | null>(null);
-  const [idx, setIdx] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const today = new Date().toISOString();
@@ -447,128 +445,69 @@ const OffersSection = () => {
   }, []);
 
   const list = offers ?? [];
-
-  useEffect(() => {
-    if (list.length <= 1) return;
-    timerRef.current = setInterval(() => setIdx(i => (i + 1) % list.length), 4200);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [list.length]);
-
   if (list.length === 0) return null;
+
+  const getBadge = (o: any): { text: string; color: string } => {
+    if (o.discount_type === "percentage" && o.discount_value) return { text: "تخفيض", color: "#E53935" };
+    if (o.discount_type === "fixed" && o.discount_value) return { text: "تخفيض", color: "#E53935" };
+    if (!o.discount_value && !o.promo_code) return { text: "مجاني", color: "#1B9E6E" };
+    if (o.promo_code) return { text: "كود خصم", color: "#F59E0B" };
+    return { text: "عرض خاص", color: "#1B4332" };
+  };
 
   return (
     <div className="mb-6">
       <SectionHeader title="عروض وخصومات" icon={Tag} onMore={() => navigate("/restaurants")} />
-
-      {/* Hero banner carousel */}
-      <div
-        className="relative overflow-hidden"
-        style={{ borderRadius: 20, height: 160 }}
-      >
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
         {list.map((o, i) => {
-          const discountLabel = o.discount_value
-            ? o.discount_type === "percentage"
-              ? `${o.discount_value}%`
-              : `${Number(o.discount_value).toLocaleString("ar-YE")} ر.ي`
-            : null;
           const imgSrc = o.image_url || HERO_FALLBACK_IMGS[i % HERO_FALLBACK_IMGS.length];
+          const badge = getBadge(o);
+          const titleText = o.discount_value && o.discount_type === "percentage"
+            ? `خصم ${o.discount_value}% ${o.title || ""}`
+            : o.title || "";
 
           return (
-            <div
+            <button
               key={o.id}
-              className={`absolute inset-0 transition-opacity duration-500 cursor-pointer ${i === idx ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-              style={{ backgroundColor: "#1B4332", direction: "rtl" }}
-              onClick={() => i === idx && (o.restaurant_id ? navigate(`/restaurants/${o.restaurant_id}`) : navigate("/restaurants"))}
+              onClick={() => o.restaurant_id ? navigate(`/restaurants/${o.restaurant_id}`) : navigate("/restaurants")}
+              className="relative shrink-0 overflow-hidden text-right hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
+              style={{ width: 175, height: 112, borderRadius: 14 }}
             >
-              {/* Left: food image bleeding to edge */}
-              <div className="absolute left-0 top-0 bottom-0 overflow-hidden" style={{ width: "52%" }}>
-                <img
-                  src={imgSrc}
-                  alt={o.title || ""}
-                  className="w-full h-full object-cover"
-                  style={{ filter: "brightness(0.88)" }}
-                  loading="lazy"
-                />
-                <div
-                  className="absolute inset-0"
-                  style={{ background: "linear-gradient(to left, transparent 20%, #1B4332 82%)" }}
-                />
-              </div>
+              {/* Background food image */}
+              <img
+                src={imgSrc}
+                alt={titleText}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ filter: "brightness(0.52)" }}
+                loading="lazy"
+              />
 
-              {/* Right: text */}
-              <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center px-4 py-3 gap-1.5" style={{ width: "56%" }}>
-                <span
-                  className="self-start text-[9px] font-black px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: "#52B788", color: "#fff" }}
-                >
-                  عرض خاص ✨
-                </span>
+              {/* Badge — top right */}
+              <span
+                className="absolute top-2.5 right-2.5 z-10 text-white font-black text-[10px] px-2.5 py-1 shadow-md"
+                style={{ backgroundColor: badge.color, borderRadius: 99 }}
+              >
+                {badge.text}
+              </span>
 
-                {discountLabel && (
-                  <p className="text-white font-black leading-none" style={{ fontSize: 32 }}>
-                    {discountLabel}
-                    <span className="text-white/75 font-medium" style={{ fontSize: 11 }}> خصم</span>
+              {/* Text — bottom */}
+              <div className="absolute bottom-0 right-0 left-0 px-2.5 pb-2.5 pt-6 z-10"
+                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.65) 60%, transparent)" }}
+              >
+                {titleText && (
+                  <p className="text-white font-black leading-tight line-clamp-2" style={{ fontSize: 12 }}>
+                    {titleText}
                   </p>
                 )}
-
-                {o.title && (
-                  <p className="text-white/90 font-semibold line-clamp-1 leading-tight" style={{ fontSize: 11 }}>
-                    {o.title}
-                  </p>
-                )}
-
                 {o.description && (
-                  <p className="text-white/65 line-clamp-1 leading-tight" style={{ fontSize: 10 }}>
+                  <p className="text-white/80 leading-tight line-clamp-1 mt-0.5" style={{ fontSize: 10 }}>
                     {o.description}
                   </p>
                 )}
-
-                {o.promo_code && (
-                  <span
-                    className="self-start text-[9px] font-mono font-bold px-2.5 py-1 tracking-wider"
-                    style={{
-                      border: "1.5px dashed rgba(255,255,255,0.5)",
-                      borderRadius: 6,
-                      color: "#fff",
-                    }}
-                  >
-                    الكود: {o.promo_code}
-                  </span>
-                )}
-
-                <button
-                  className="self-start mt-0.5 flex items-center gap-1 px-3 py-1.5 rounded-full font-black text-[11px] shadow-md transition-transform active:scale-95"
-                  style={{ backgroundColor: "#fff", color: "#1B4332" }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    o.restaurant_id ? navigate(`/restaurants/${o.restaurant_id}`) : navigate("/restaurants");
-                  }}
-                >
-                  <ChevronLeft className="w-3 h-3" />
-                  اطلب الآن
-                </button>
               </div>
-            </div>
+            </button>
           );
         })}
-
-        {/* Pagination dots */}
-        {list.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-            {list.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setIdx(i)}
-                className="rounded-full transition-all duration-300"
-                style={{
-                  width: i === idx ? 20 : 6,
-                  height: 6,
-                  backgroundColor: i === idx ? "#fff" : "rgba(255,255,255,0.4)",
-                }}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

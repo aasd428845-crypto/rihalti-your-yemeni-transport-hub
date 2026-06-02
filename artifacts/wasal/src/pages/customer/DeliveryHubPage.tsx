@@ -110,15 +110,6 @@ const OffersSection = ({
   offers: (DeliveryOffer & { link_url?: string; subtitle?: string })[];
   onNavigate: (url: string) => void;
 }) => {
-  const [idx, setIdx] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (offers.length <= 1) return;
-    timerRef.current = setInterval(() => setIdx(i => (i + 1) % offers.length), 4000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [offers.length]);
-
   if (!offers.length) return null;
 
   const VALID_PATHS = ["/food", "/delivery-request", "/restaurants", "/shipments", "/deliveries", "/history", "/trips"];
@@ -132,110 +123,69 @@ const OffersSection = ({
     onNavigate(isSafePath(dest) ? dest : "/food");
   };
 
+  const getBadge = (offer: DeliveryOffer): { text: string; color: string } => {
+    if (offer.offer_type === "free_delivery") return { text: "مجاني", color: "#1B9E6E" };
+    if (offer.offer_type === "percent_off_delivery" && offer.discount_percent) return { text: "تخفيض", color: "#E53935" };
+    if (offer.offer_type === "percent_off_order" && offer.discount_percent) return { text: "تخفيض", color: "#E53935" };
+    return { text: "عرض خاص", color: PRIMARY };
+  };
+
   return (
     <section>
       <SectionHeader title="عروض وخصومات التوصيل" icon={Tag} />
-      <div className="relative overflow-hidden rounded-[20px] shadow-lg" style={{ height: 160 }}>
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
         {offers.map((offer, i) => {
           const discountText = getOfferDiscountText(offer);
-          const imgSrc =
-            offer.image_url ||
-            FALLBACK_OFFER_IMAGES[i % FALLBACK_OFFER_IMAGES.length];
+          const badge = getBadge(offer);
+          const imgSrc = offer.image_url || FALLBACK_OFFER_IMAGES[i % FALLBACK_OFFER_IMAGES.length];
+          const titleText = discountText && discountText !== "توصيل مجاني"
+            ? `خصم ${discountText} ${offer.title || ""}`.trim()
+            : offer.title || (discountText === "توصيل مجاني" ? "توصيل مجاني" : "");
+          const subtitle = (offer as any).subtitle || offer.description || "";
 
           return (
-            <div
+            <button
               key={offer.id}
-              className={`absolute inset-0 transition-opacity duration-500 ${i === idx ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-              style={{ backgroundColor: PRIMARY, direction: "rtl" }}
-              onClick={() => i === idx && handleClick(offer)}
+              onClick={() => handleClick(offer)}
+              className="relative shrink-0 overflow-hidden text-right hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
+              style={{ width: 175, height: 112, borderRadius: 14 }}
             >
-              {/* Right: food image bleeding to edge */}
-              <div className="absolute left-0 top-0 bottom-0 w-[52%] overflow-hidden">
-                <img
-                  src={imgSrc}
-                  alt={offer.title || ""}
-                  className="w-full h-full object-cover"
-                  style={{ filter: "brightness(0.9)" }}
-                  loading="lazy"
-                />
-                {/* gradient blending into green */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background: `linear-gradient(to left, transparent 30%, ${PRIMARY} 85%)`,
-                  }}
-                />
+              {/* Background food image */}
+              <img
+                src={imgSrc}
+                alt={titleText}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ filter: "brightness(0.52)" }}
+                loading="lazy"
+              />
+
+              {/* Badge — top right */}
+              <span
+                className="absolute top-2.5 right-2.5 z-10 text-white font-black text-[10px] px-2.5 py-1 shadow-md"
+                style={{ backgroundColor: badge.color, borderRadius: 99 }}
+              >
+                {badge.text}
+              </span>
+
+              {/* Text — bottom gradient */}
+              <div
+                className="absolute bottom-0 right-0 left-0 px-2.5 pb-2.5 pt-6 z-10"
+                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.68) 60%, transparent)" }}
+              >
+                {titleText && (
+                  <p className="text-white font-black leading-tight line-clamp-2" style={{ fontSize: 12 }}>
+                    {titleText}
+                  </p>
+                )}
+                {subtitle && (
+                  <p className="text-white/80 leading-tight line-clamp-1 mt-0.5" style={{ fontSize: 10 }}>
+                    {subtitle}
+                  </p>
+                )}
               </div>
-
-              {/* Left: text content */}
-              <div className="absolute right-0 top-0 bottom-0 w-[55%] flex flex-col justify-center px-4 py-3 gap-1.5">
-                {/* Badge */}
-                <span
-                  className="self-start text-[9px] font-black px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: LIGHT_GREEN, color: "#fff" }}
-                >
-                  عرض خاص ✨
-                </span>
-
-                {/* Discount percentage */}
-                {discountText && (
-                  <p className="text-white font-black leading-none" style={{ fontSize: discountText.length > 4 ? 20 : 34 }}>
-                    {discountText === "توصيل مجاني" ? (
-                      <span style={{ fontSize: 18 }}>🚚 توصيل مجاني</span>
-                    ) : (
-                      <>
-                        <span style={{ fontSize: 34 }}>{discountText}</span>
-                        {discountText !== "توصيل مجاني" && (
-                          <span className="text-white/80 font-medium" style={{ fontSize: 11 }}> خصم</span>
-                        )}
-                      </>
-                    )}
-                  </p>
-                )}
-
-                {/* Title / subtitle */}
-                {offer.title && (
-                  <p className="text-white/90 font-semibold line-clamp-1 leading-tight" style={{ fontSize: 11 }}>
-                    {offer.title}
-                  </p>
-                )}
-                {((offer as any).subtitle || offer.description) && (
-                  <p className="text-white/70 line-clamp-1 leading-tight" style={{ fontSize: 10 }}>
-                    {(offer as any).subtitle || offer.description}
-                  </p>
-                )}
-
-                {/* CTA button */}
-                <button
-                  className="self-start mt-1 flex items-center gap-1 px-3 py-1.5 rounded-full font-black text-[11px] shadow-md transition-transform active:scale-95"
-                  style={{ backgroundColor: "#fff", color: PRIMARY }}
-                  onClick={(e) => { e.stopPropagation(); handleClick(offer); }}
-                >
-                  <ChevronLeft className="w-3 h-3" />
-                  اطلب الآن
-                </button>
-              </div>
-            </div>
+            </button>
           );
         })}
-
-        {/* Dots */}
-        {offers.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-            {offers.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setIdx(i)}
-                className="rounded-full transition-all duration-300"
-                style={{
-                  width: i === idx ? 20 : 6,
-                  height: 6,
-                  backgroundColor: i === idx ? "#fff" : "rgba(255,255,255,0.4)",
-                }}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </section>
   );
