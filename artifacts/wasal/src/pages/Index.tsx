@@ -289,43 +289,77 @@ const BannerCarousel = () => {
   );
 };
 
-// ─── Restaurant Card (horizontal, matches RestaurantsPage style) ──────────────
+// ─── COMPONENT 3: Nearby Restaurant Card (horizontal, Talabat style) ───────────
 const RestaurantCard = ({ r }: { r: any }) => {
   const navigate = useNavigate();
   const heroSrc = r.cover_image || r.logo_url;
   const ratingNum = Number(r.rating || 0);
+  const deliveryTime = r.estimated_delivery_time;
+  const deliveryFee = r.delivery_fee ?? 0;
+
   return (
     <button
       onClick={() => navigate(`/restaurants/${r.id}`)}
-      className="w-full bg-card rounded-2xl border border-border/40 overflow-hidden shadow-sm hover:shadow-md hover:border-primary/30 transition-all text-right active:scale-[0.99]"
+      className="w-full text-right active:scale-[0.99] transition-all duration-200 hover:-translate-y-0.5"
+      style={{
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+        overflow: "hidden",
+      }}
     >
-      <div className="flex items-stretch gap-3 p-2.5">
-        {/* Image */}
-        <div className="relative w-[88px] h-[88px] rounded-xl overflow-hidden bg-muted shrink-0">
+      <div className="flex items-stretch gap-0" style={{ height: 100 }}>
+        {/* LEFT: Image with badges */}
+        <div className="relative shrink-0 overflow-hidden bg-gray-100" style={{ width: 100, borderRadius: "16px 0 0 16px" }}>
           {heroSrc ? (
             <img src={heroSrc} alt={r.name_ar} className="w-full h-full object-cover" loading="lazy" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-3xl bg-muted">🏪</div>
+            <div className="w-full h-full flex items-center justify-center text-3xl">🏪</div>
           )}
+          {/* Distance badge top-left (gray pill) */}
+          <span
+            className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+            style={{ backgroundColor: "rgba(0,0,0,0.55)", color: "#fff" }}
+          >
+            {r.city || "قريب"}
+          </span>
+          {/* Featured label */}
           {r.is_featured && (
-            <span className="absolute top-1 right-1 bg-amber-500 text-white text-[9px] font-black rounded-md px-1 py-0.5 shadow">مميز</span>
+            <span
+              className="absolute bottom-2 right-2 text-[9px] font-black px-1.5 py-0.5 rounded-full"
+              style={{ backgroundColor: "#F59E0B", color: "#fff" }}
+            >
+              مميز
+            </span>
           )}
         </div>
-        {/* Info */}
-        <div className="flex-1 min-w-0 flex flex-col py-0.5">
-          <p className="font-black text-[14px] leading-tight text-foreground line-clamp-1">{r.name_ar}</p>
-          <div className="mt-auto flex items-center gap-3 text-[11px] text-muted-foreground pt-2">
-            <span className="flex items-center gap-0.5">
-              <Clock className="w-3 h-3" />
-              {r.estimated_delivery_time || 30} د
-            </span>
-            <span className="flex items-center gap-0.5">
-              <Tag className="w-3 h-3" />
-              {r.delivery_fee ? `${Number(r.delivery_fee).toLocaleString("ar-YE")} ر.ي` : <span className="text-emerald-600 font-bold">مجاني</span>}
-            </span>
-            <span className="mr-auto inline-flex items-center gap-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-700 font-black rounded-md px-1.5 py-0.5">
-              <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+
+        {/* RIGHT: Info */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center px-3 py-2 gap-1">
+          {/* Name */}
+          <p className="font-black text-[14px] leading-tight line-clamp-1" style={{ color: "#1A1A1A" }}>
+            {r.name_ar}
+          </p>
+
+          {/* Row: rating | delivery time | delivery fee */}
+          <div className="flex items-center gap-2.5 flex-wrap" style={{ fontSize: 11, color: "#888" }}>
+            <span className="inline-flex items-center gap-0.5 font-bold" style={{ color: "#F59E0B" }}>
+              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
               {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+            </span>
+            {deliveryTime && (
+              <span className="inline-flex items-center gap-0.5">
+                <Clock className="w-3 h-3" />
+                {deliveryTime} د
+              </span>
+            )}
+            <span className="inline-flex items-center gap-0.5">
+              <Tag className="w-3 h-3" />
+              {deliveryFee === 0 ? (
+                <span className="font-semibold" style={{ color: "#52B788" }}>مجاني</span>
+              ) : (
+                `${Number(deliveryFee).toLocaleString("ar-YE")} ر.ي`
+              )}
             </span>
           </div>
         </div>
@@ -386,9 +420,19 @@ const palette = [
   "from-pink-500 to-rose-500",
 ];
 
+// ─── COMPONENT 1: Hero Offers Banner (Index page — promotions table) ─────────
+const HERO_FALLBACK_IMGS = [
+  "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=700&q=80&fit=crop",
+  "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=700&q=80&fit=crop",
+  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=700&q=80&fit=crop",
+  "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=700&q=80&fit=crop",
+];
+
 const OffersSection = () => {
   const navigate = useNavigate();
   const [offers, setOffers] = useState<any[] | null>(null);
+  const [idx, setIdx] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const today = new Date().toISOString();
@@ -403,53 +447,128 @@ const OffersSection = () => {
   }, []);
 
   const list = offers ?? [];
+
+  useEffect(() => {
+    if (list.length <= 1) return;
+    timerRef.current = setInterval(() => setIdx(i => (i + 1) % list.length), 4200);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [list.length]);
+
   if (list.length === 0) return null;
 
   return (
     <div className="mb-6">
       <SectionHeader title="عروض وخصومات" icon={Tag} onMore={() => navigate("/restaurants")} />
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+
+      {/* Hero banner carousel */}
+      <div
+        className="relative overflow-hidden"
+        style={{ borderRadius: 20, height: 160 }}
+      >
         {list.map((o, i) => {
           const discountLabel = o.discount_value
-            ? (o.discount_type === "percentage"
-                ? `خصم ${o.discount_value}%`
-                : `خصم ${Number(o.discount_value).toLocaleString("ar-YE")} ر.ي`)
+            ? o.discount_type === "percentage"
+              ? `${o.discount_value}%`
+              : `${Number(o.discount_value).toLocaleString("ar-YE")} ر.ي`
             : null;
+          const imgSrc = o.image_url || HERO_FALLBACK_IMGS[i % HERO_FALLBACK_IMGS.length];
+
           return (
-            <button
+            <div
               key={o.id}
-              onClick={() => o.restaurant_id ? navigate(`/restaurants/${o.restaurant_id}`) : navigate("/restaurants")}
-              className={`relative min-w-[230px] w-[230px] rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-right shrink-0 bg-gradient-to-br ${palette[i % palette.length]} text-white p-4 flex flex-col justify-between`}
-              style={{ minHeight: 105 }}
+              className={`absolute inset-0 transition-opacity duration-500 cursor-pointer ${i === idx ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+              style={{ backgroundColor: "#1B4332", direction: "rtl" }}
+              onClick={() => i === idx && (o.restaurant_id ? navigate(`/restaurants/${o.restaurant_id}`) : navigate("/restaurants"))}
             >
-              <div className="absolute -top-5 -left-5 w-20 h-20 rounded-full bg-white/10 pointer-events-none" />
-              <div className="absolute -bottom-6 -right-3 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
-              <div className="relative z-10 space-y-1">
-                <Badge className="bg-white/25 text-white border-0 text-[10px] font-bold px-2 py-0.5 backdrop-blur-sm w-fit">
-                  عرض خاص
-                </Badge>
-                <p className="font-black text-[15px] leading-snug line-clamp-1 drop-shadow">{o.title}</p>
-                {o.description && (
-                  <p className="text-[11px] text-white/90 line-clamp-1">{o.description}</p>
-                )}
+              {/* Left: food image bleeding to edge */}
+              <div className="absolute left-0 top-0 bottom-0 overflow-hidden" style={{ width: "52%" }}>
+                <img
+                  src={imgSrc}
+                  alt={o.title || ""}
+                  className="w-full h-full object-cover"
+                  style={{ filter: "brightness(0.88)" }}
+                  loading="lazy"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(to left, transparent 20%, #1B4332 82%)" }}
+                />
               </div>
-              {(discountLabel || o.promo_code) && (
-                <div className="relative z-10 mt-2 flex items-center gap-2 flex-wrap">
-                  {discountLabel && (
-                    <span className="bg-white/20 text-white text-[11px] font-black px-2.5 py-0.5 rounded-full backdrop-blur-sm">
-                      {discountLabel}
-                    </span>
-                  )}
-                  {o.promo_code && (
-                    <span className="bg-white/15 text-white text-[10px] font-mono px-2 py-0.5 rounded-full border border-white/30 tracking-wide">
-                      {o.promo_code}
-                    </span>
-                  )}
-                </div>
-              )}
-            </button>
+
+              {/* Right: text */}
+              <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center px-4 py-3 gap-1.5" style={{ width: "56%" }}>
+                <span
+                  className="self-start text-[9px] font-black px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: "#52B788", color: "#fff" }}
+                >
+                  عرض خاص ✨
+                </span>
+
+                {discountLabel && (
+                  <p className="text-white font-black leading-none" style={{ fontSize: 32 }}>
+                    {discountLabel}
+                    <span className="text-white/75 font-medium" style={{ fontSize: 11 }}> خصم</span>
+                  </p>
+                )}
+
+                {o.title && (
+                  <p className="text-white/90 font-semibold line-clamp-1 leading-tight" style={{ fontSize: 11 }}>
+                    {o.title}
+                  </p>
+                )}
+
+                {o.description && (
+                  <p className="text-white/65 line-clamp-1 leading-tight" style={{ fontSize: 10 }}>
+                    {o.description}
+                  </p>
+                )}
+
+                {o.promo_code && (
+                  <span
+                    className="self-start text-[9px] font-mono font-bold px-2.5 py-1 tracking-wider"
+                    style={{
+                      border: "1.5px dashed rgba(255,255,255,0.5)",
+                      borderRadius: 6,
+                      color: "#fff",
+                    }}
+                  >
+                    الكود: {o.promo_code}
+                  </span>
+                )}
+
+                <button
+                  className="self-start mt-0.5 flex items-center gap-1 px-3 py-1.5 rounded-full font-black text-[11px] shadow-md transition-transform active:scale-95"
+                  style={{ backgroundColor: "#fff", color: "#1B4332" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    o.restaurant_id ? navigate(`/restaurants/${o.restaurant_id}`) : navigate("/restaurants");
+                  }}
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                  اطلب الآن
+                </button>
+              </div>
+            </div>
           );
         })}
+
+        {/* Pagination dots */}
+        {list.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {list.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setIdx(i)}
+                className="rounded-full transition-all duration-300"
+                style={{
+                  width: i === idx ? 20 : 6,
+                  height: 6,
+                  backgroundColor: i === idx ? "#fff" : "rgba(255,255,255,0.4)",
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

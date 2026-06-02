@@ -792,6 +792,7 @@ const RestaurantMenuPage = () => {
 };
 
 // ── Menu Item Card Component ──
+// ─── COMPONENT 4: Menu Item Card (inside restaurant page, 2-col grid) ────────
 const MenuItemCard = ({
   item, cartItem, onOpen, onAdd, onUpdateQty,
 }: {
@@ -813,65 +814,122 @@ const MenuItemCard = ({
   const hasDiscount = hasPromo && finalPrice < originalPrice;
   const discountPct = hasDiscount ? Math.round((1 - finalPrice / originalPrice) * 100) : 0;
   const countdown = promoScheduleActive ? getPromoCountdown(item.promo_ends_at) : null;
+  const ratingNum = Number(item.rating || 0);
+  const prepTime = item.preparation_time;
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden hover:shadow-md transition-all active:scale-[0.98] cursor-pointer"
+      className="flex flex-col cursor-pointer hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98]"
+      style={{
+        borderRadius: 16,
+        backgroundColor: "#fff",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+        overflow: "hidden",
+      }}
       onClick={onOpen}
     >
-      {/* ── صورة مربعة مدورة الحواف ── */}
-      <div className="relative w-full aspect-square bg-muted overflow-hidden rounded-2xl shadow-sm">
+      {/* ── Image (4:3 aspect ratio) ── */}
+      <div
+        className="relative w-full overflow-hidden bg-gray-100"
+        style={{ aspectRatio: "4/3" }}
+      >
         {item.image_url
           ? <img src={item.image_url} alt={item.name_ar} loading="lazy" className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center text-4xl">🍽️</div>}
+          : <div className="w-full h-full flex items-center justify-center text-4xl bg-gray-50">🍽️</div>}
 
+        {/* Gradient bottom overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+
+        {/* Popular badge — top right */}
         {item.is_popular && (
-          <span className="absolute top-2 right-2 inline-flex items-center gap-0.5 bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow">
+          <span
+            className="absolute top-2 right-2 z-10 inline-flex items-center gap-0.5 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow"
+            style={{ backgroundColor: "#F59E0B" }}
+          >
             <Flame className="w-2.5 h-2.5" />شائع
           </span>
         )}
+
+        {/* Discount badge — top left (red pill) */}
         {promoScheduleActive && hasDiscount && (
-          <span className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow">
-            {discountPct}%
+          <span
+            className="absolute top-2 left-2 z-10 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow"
+            style={{ backgroundColor: "#E53935" }}
+          >
+            -{discountPct}%
           </span>
         )}
+
+        {/* Countdown timer — bottom center */}
         {countdown && (
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-0.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm whitespace-nowrap">
+          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-0.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm whitespace-nowrap">
             <Timer className="w-2 h-2 text-orange-300" />{countdown}
           </span>
         )}
       </div>
 
-      {/* ── معلومات الوجبة — نص ممركز بدون خلفية ── */}
-      <div className="pt-2 pb-1 flex flex-col flex-1 gap-1 text-center">
-        <h3 className="font-bold text-[12px] leading-snug line-clamp-2 text-foreground">{item.name_ar}</h3>
+      {/* ── Info section ── */}
+      <div className="p-2.5 flex flex-col gap-1 flex-1">
+        {/* Meal name */}
+        <h3 className="font-bold text-[12px] leading-snug line-clamp-2" style={{ color: "#1A1A1A" }}>
+          {item.name_ar}
+        </h3>
 
+        {/* Promo label (non-discount type) */}
         {promoScheduleActive && promoLabel && !hasDiscount && (
-          <span className="self-center text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
+          <span
+            className="self-start text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+            style={{ backgroundColor: "#1B4332", color: "#fff", opacity: 0.9 }}
+          >
             🎁 {promoLabel}
           </span>
         )}
 
-        {/* سعر + زر الإضافة */}
-        <div className="mt-auto pt-1 flex items-center justify-center gap-2">
-          <div className="flex flex-col items-center leading-none">
-            <span className="font-extrabold text-primary text-[13px]">{finalPrice} ر.ي</span>
+        {/* Rating + prep time */}
+        <div className="flex items-center gap-2 text-[10px]" style={{ color: "#888" }}>
+          {ratingNum > 0 && (
+            <span className="inline-flex items-center gap-0.5 font-bold" style={{ color: "#F59E0B" }}>
+              <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+              {ratingNum.toFixed(1)}
+            </span>
+          )}
+          {prepTime && (
+            <span className="inline-flex items-center gap-0.5">
+              <Clock className="w-2.5 h-2.5" />{prepTime} د
+            </span>
+          )}
+        </div>
+
+        {/* Price row + add button */}
+        <div className="mt-auto pt-1 flex items-center justify-between gap-1">
+          {/* Price */}
+          <div className="flex flex-col leading-tight">
+            <span className="font-extrabold text-[13px]" style={{ color: "#1B4332" }}>
+              {finalPrice} ر.ي
+            </span>
             {hasDiscount && (
-              <span className="text-[9px] text-muted-foreground line-through">{originalPrice} ر.ي</span>
+              <span className="text-[9px] line-through" style={{ color: "#888" }}>
+                {originalPrice} ر.ي
+              </span>
             )}
           </div>
 
+          {/* Cart controls */}
           {cartItem ? (
             <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
               <button
-                className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
+                className="flex items-center justify-center rounded-full border transition-all active:scale-95"
+                style={{ width: 24, height: 24, borderColor: "#1B4332", backgroundColor: "rgba(27,67,50,0.08)" }}
                 onClick={() => onUpdateQty(item.id, -1)}
               >
-                <Minus className="w-3 h-3 text-primary" />
+                <Minus className="w-3 h-3" style={{ color: "#1B4332" }} />
               </button>
-              <span className="text-xs font-black min-w-[16px] text-center">{cartItem.quantity}</span>
+              <span className="text-xs font-black min-w-[16px] text-center" style={{ color: "#1A1A1A" }}>
+                {cartItem.quantity}
+              </span>
               <button
-                className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                className="flex items-center justify-center rounded-full text-white transition-all active:scale-95"
+                style={{ width: 24, height: 24, backgroundColor: "#1B4332" }}
                 onClick={() => onUpdateQty(item.id, 1)}
               >
                 <Plus className="w-3 h-3" />
@@ -879,7 +937,8 @@ const MenuItemCard = ({
             </div>
           ) : (
             <button
-              className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 active:scale-95 transition-all shrink-0"
+              className="flex items-center justify-center rounded-full text-white shadow-md transition-all active:scale-95 hover:opacity-90 shrink-0"
+              style={{ width: 32, height: 32, backgroundColor: "#1B4332" }}
               onClick={e => { e.stopPropagation(); onAdd(); }}
               aria-label="أضف للسلة"
             >

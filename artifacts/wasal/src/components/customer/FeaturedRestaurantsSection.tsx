@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Award, ChevronLeft, Star, Clock, Truck } from "lucide-react";
+import { Award, ChevronLeft, Star, Clock, Truck, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import FavoriteHeart from "./FavoriteHeart";
 import { getOpenStatus } from "@/lib/restaurantHours";
 
-// ─── بطاقة المطعم الرأسية ─────────────────────────────────────────────────────
+// This project uses Supabase for data — preserve all supabase.from().select() calls exactly as they are
+
+// ─── Design tokens ─────────────────────────────────────────────────────────────
+const PRIMARY = "#1B4332";
+const LIGHT_GREEN = "#52B788";
+const DANGER = "#E53935";
+const TEXT_PRIMARY = "#1A1A1A";
+const TEXT_SECONDARY = "#888888";
+
+// ─── COMPONENT 2: Restaurant Vertical Card (Talabat style, 160px wide) ────────
 const RestaurantVerticalCard = ({ r }: { r: any }) => {
   const navigate = useNavigate();
   const ratingNum = Number(r.rating || 0);
@@ -22,77 +31,108 @@ const RestaurantVerticalCard = ({ r }: { r: any }) => {
       tabIndex={0}
       onClick={() => navigate(`/restaurants/${r.id}`)}
       onKeyDown={(e) => { if (e.key === "Enter") navigate(`/restaurants/${r.id}`); }}
-      className="relative w-[158px] shrink-0 rounded-2xl overflow-hidden bg-card border border-border/30 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
+      className="shrink-0 cursor-pointer hover:-translate-y-1 transition-all duration-200"
+      style={{
+        width: 160,
+        borderRadius: 16,
+        backgroundColor: "#fff",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+        overflow: "hidden",
+        position: "relative",
+      }}
     >
-      {/* ── صورة ── */}
-      <div className="relative w-full h-[125px] bg-muted overflow-hidden">
+      {/* ── Food image (square 1:1, fixed height) ── */}
+      <div className="relative w-full overflow-hidden bg-gray-100" style={{ height: 130 }}>
         {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt={r.name_ar}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          <img src={imgSrc} alt={r.name_ar} className="w-full h-full object-cover" loading="lazy" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl bg-muted">🏪</div>
+          <div className="w-full h-full flex items-center justify-center text-5xl bg-gray-50">🏪</div>
         )}
 
-        {/* تعتيم تدريجي للنص أسفل الصورة */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        {/* Gradient overlay bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
 
-        {/* قلب المفضلة */}
-        <div className="absolute top-2 right-2 z-10">
+        {/* Heart/favorite — top right (white circle) */}
+        <div
+          className="absolute top-2 right-2 z-10 flex items-center justify-center rounded-full bg-white shadow-md"
+          style={{ width: 28, height: 28 }}
+          onClick={(e) => e.stopPropagation()}
+        >
           <FavoriteHeart entityType="restaurant" entityId={r.id} size="sm" />
         </div>
 
-        {/* شارة خصم */}
+        {/* Discount badge — top left (red pill) */}
         {hasDiscount && (
-          <span className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-black rounded-md px-1.5 py-0.5 shadow z-10">
-            خصم {r.discount_percent}%
+          <span
+            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow"
+            style={{ backgroundColor: DANGER }}
+          >
+            -{r.discount_percent}%
           </span>
         )}
 
-        {/* وقت التوصيل — أسفل يمين الصورة */}
+        {/* Delivery time pill — bottom left (primary green pill) */}
         {deliveryTime && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center gap-0.5 bg-black/65 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-            <Clock className="w-2.5 h-2.5" />{deliveryTime} د
+          <span
+            className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-0.5 text-white font-bold text-[9px] px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: PRIMARY }}
+          >
+            <Clock className="w-2.5 h-2.5" />
+            {deliveryTime} دقيقة
           </span>
         )}
 
-        {/* التقييم — أسفل يسار الصورة */}
-        <span className="absolute bottom-2 left-2 inline-flex items-center gap-0.5 bg-black/65 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+        {/* Rating pill — bottom right */}
+        <span
+          className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+          style={{ backgroundColor: "rgba(0,0,0,0.55)", color: "#FFC107" }}
+        >
           <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
           {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
         </span>
       </div>
 
-      {/* ── معلومات ── */}
-      <div className="p-2.5 space-y-0.5">
-        <p className="font-black text-[13px] text-foreground leading-tight line-clamp-1">{r.name_ar}</p>
+      {/* ── Info section ── */}
+      <div className="p-2.5 space-y-1">
+        {/* Restaurant name */}
+        <p className="font-black text-[13px] leading-tight line-clamp-1" style={{ color: TEXT_PRIMARY }}>
+          {r.name_ar}
+        </p>
+
+        {/* Cuisine tags */}
         {Array.isArray(r.cuisine_type) && r.cuisine_type.length > 0 && (
-          <p className="text-[10px] text-muted-foreground line-clamp-1">
+          <p className="text-[10px] line-clamp-1" style={{ color: TEXT_SECONDARY }}>
             {r.cuisine_type.slice(0, 3).join(" • ")}
           </p>
         )}
-        <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+
+        {/* Delivery fee row */}
+        <p className="text-[10px] inline-flex items-center gap-0.5" style={{ color: TEXT_SECONDARY }}>
           <Truck className="w-2.5 h-2.5 shrink-0" />
-          {deliveryFee === 0
-            ? <span className="text-emerald-600 font-semibold">توصيل مجاني</span>
-            : `${deliveryFee} ريال توصيل`}
+          {deliveryFee === 0 ? (
+            <span className="font-semibold" style={{ color: LIGHT_GREEN }}>توصيل مجاني</span>
+          ) : (
+            `${deliveryFee} ريال توصيل`
+          )}
         </p>
       </div>
 
-      {/* شارة مغلق */}
+      {/* Closed overlay */}
       {!isOpen && (
-        <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-start justify-center pt-10">
-          <span className="bg-black/80 text-white text-xs font-bold px-3 py-1 rounded-full">مغلق</span>
+        <div
+          className="absolute inset-0 flex items-start justify-center pt-10"
+          style={{ backgroundColor: "rgba(0,0,0,0.38)", borderRadius: 16 }}
+        >
+          <span className="text-white text-xs font-bold px-3 py-1 rounded-full" style={{ backgroundColor: "rgba(0,0,0,0.75)" }}>
+            مغلق
+          </span>
         </div>
       )}
     </div>
   );
 };
 
-// ─── القسم الرئيسي ─────────────────────────────────────────────────────────────
+// ─── Section ────────────────────────────────────────────────────────────────────
 const FeaturedRestaurantsSection = () => {
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<any[]>([]);
@@ -124,21 +164,24 @@ const FeaturedRestaurantsSection = () => {
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-[15px] font-black text-foreground flex items-center gap-1.5">
-          <Award className="w-4 h-4 text-primary" />
+      {/* Section header */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-[15px] font-black flex items-center gap-1.5" style={{ color: TEXT_PRIMARY }}>
+          <Award className="w-4 h-4" style={{ color: LIGHT_GREEN }} />
           مطاعم مميزة
         </h2>
         <button
           onClick={() => navigate("/food")}
-          className="text-xs text-primary font-semibold flex items-center gap-0.5"
+          className="text-[12px] font-bold flex items-center gap-0.5"
+          style={{ color: LIGHT_GREEN }}
         >
           عرض الكل
           <ChevronLeft className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+      {/* Horizontal scroll */}
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
         {restaurants.map((r) => (
           <RestaurantVerticalCard key={r.id} r={r} />
         ))}

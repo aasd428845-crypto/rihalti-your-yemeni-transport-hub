@@ -14,8 +14,9 @@ import {
   Clock,
   ChevronLeft as ArrowLeftIcon,
   Heart,
+  MapPin,
+  Truck,
 } from "lucide-react";
-import { getRestaurantCuisines } from "@/lib/restaurantApi";
 import { supabase } from "@/integrations/supabase/client";
 import { getCustomerActiveOffers, type DeliveryOffer } from "@/lib/deliveryOffersApi";
 import { computeItemPromo, isPromoScheduleActive } from "@/lib/promotionsApi";
@@ -24,19 +25,31 @@ import DeliveryRequestBanner from "@/components/customer/DeliveryRequestBanner";
 import FeaturedRestaurantsSection from "@/components/customer/FeaturedRestaurantsSection";
 import SharedCategoryScroller from "@/components/customer/CategoryScroller";
 
+// This project uses Supabase for data — preserve all supabase.from().select() calls exactly as they are
+
 // ─── Promo fields to always SELECT on menu_items ─────────────────────────────
 const PROMO_SELECT =
   "id, name_ar, image_url, price, discounted_price, preparation_time, rating, total_ratings, restaurant_id, " +
   "promo_type, promo_value, promo_text, promo_active, promo_starts_at, promo_ends_at, promo_active_days, promo_start_time, promo_end_time, " +
   "restaurants(name_ar, estimated_delivery_time)";
 
-// ─── Shared: compute effective promo for a menu item ─────────────────────────
+// ─── Shared: compute effective promo ─────────────────────────────────────────
 function getEffectivePromo(item: any) {
   const scheduleOk = isPromoScheduleActive(item);
   return computeItemPromo({ ...item, promo_active: scheduleOk && !!item.promo_active });
 }
 
-// ─── Reusable: Section header ────────────────────────────────────────────────
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const PRIMARY = "#1B4332";
+const LIGHT_GREEN = "#52B788";
+const CARD_BG = "#FFFFFF";
+const PAGE_BG = "#F8F8F8";
+const TEXT_PRIMARY = "#1A1A1A";
+const TEXT_SECONDARY = "#888888";
+const RATING_GOLD = "#FFC107";
+const DANGER = "#E53935";
+
+// ─── Section header ───────────────────────────────────────────────────────────
 const SectionHeader = ({
   title,
   icon: Icon,
@@ -46,15 +59,16 @@ const SectionHeader = ({
   icon?: any;
   onMore?: () => void;
 }) => (
-  <div className="flex items-center justify-between mb-1.5">
-    <h2 className="text-[15px] font-black text-foreground flex items-center gap-1.5">
-      {Icon && <Icon className="w-4 h-4 text-primary" />}
+  <div className="flex items-center justify-between mb-3">
+    <h2 className="text-[15px] font-black flex items-center gap-1.5" style={{ color: TEXT_PRIMARY }}>
+      {Icon && <Icon className="w-4 h-4" style={{ color: LIGHT_GREEN }} />}
       {title}
     </h2>
     {onMore && (
       <button
         onClick={onMore}
-        className="text-xs text-primary font-semibold flex items-center gap-0.5"
+        className="text-[12px] font-bold flex items-center gap-0.5"
+        style={{ color: LIGHT_GREEN }}
       >
         عرض الكل
         <ArrowLeftIcon className="w-3.5 h-3.5" />
@@ -63,18 +77,175 @@ const SectionHeader = ({
   </div>
 );
 
-// Small feature pills (توصيل سريع، دفع آمن، …)
+// Small feature pills
 const FEATURES = [
-  { icon: Zap, label: "توصيل سريع", color: "text-amber-500" },
-  { icon: Shield, label: "دفع آمن", color: "text-emerald-500" },
-  { icon: Star, label: "تقييمات موثوقة", color: "text-orange-500" },
-  { icon: TrendingUp, label: "أسعار تنافسية", color: "text-blue-500" },
+  { icon: Zap, label: "توصيل سريع", color: "#F59E0B" },
+  { icon: Shield, label: "دفع آمن", color: LIGHT_GREEN },
+  { icon: Star, label: "تقييمات موثوقة", color: "#F97316" },
+  { icon: TrendingUp, label: "أسعار تنافسية", color: "#3B82F6" },
 ];
 
-// ─── Item Card (small, 120px — for TopRated & Featured) ──────────────────────
+// ─── COMPONENT 1: Hero Offers Banner (عروض وخصومات التوصيل) ──────────────────
+// Redesigned: dark green carousel, food image right, text left, dots pagination
+const FALLBACK_OFFER_IMAGES = [
+  "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&fit=crop",
+  "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80&fit=crop",
+  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80&fit=crop",
+];
+
+function getOfferDiscountText(offer: DeliveryOffer): string {
+  if (offer.offer_type === "free_delivery") return "توصيل مجاني";
+  if (offer.offer_type === "percent_off_delivery" && offer.discount_percent)
+    return `${offer.discount_percent}%`;
+  if (offer.offer_type === "percent_off_order" && offer.discount_percent)
+    return `${offer.discount_percent}%`;
+  if ((offer as any).discount_value) return `${(offer as any).discount_value}%`;
+  return "";
+}
+
+const OffersSection = ({
+  offers,
+  onNavigate,
+}: {
+  offers: (DeliveryOffer & { link_url?: string; subtitle?: string })[];
+  onNavigate: (url: string) => void;
+}) => {
+  const [idx, setIdx] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (offers.length <= 1) return;
+    timerRef.current = setInterval(() => setIdx(i => (i + 1) % offers.length), 4000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [offers.length]);
+
+  if (!offers.length) return null;
+
+  const VALID_PATHS = ["/food", "/delivery-request", "/restaurants", "/shipments", "/deliveries", "/history", "/trips"];
+  const isSafePath = (p: string) => VALID_PATHS.some(v => p === v || p.startsWith(v + "/") || p.startsWith(v + "?"));
+
+  const handleClick = (offer: DeliveryOffer & { link_url?: string }) => {
+    if (offer.restaurant_id) { onNavigate(`/restaurants/${offer.restaurant_id}`); return; }
+    let dest = (offer as any).link_url as string | undefined;
+    if (!dest) { onNavigate("/food"); return; }
+    if (dest === "/shipment-request" || dest === "/shipments") dest = "/delivery-request";
+    onNavigate(isSafePath(dest) ? dest : "/food");
+  };
+
+  return (
+    <section>
+      <SectionHeader title="عروض وخصومات التوصيل" icon={Tag} />
+      <div className="relative overflow-hidden rounded-[20px] shadow-lg" style={{ height: 160 }}>
+        {offers.map((offer, i) => {
+          const discountText = getOfferDiscountText(offer);
+          const imgSrc =
+            offer.image_url ||
+            FALLBACK_OFFER_IMAGES[i % FALLBACK_OFFER_IMAGES.length];
+
+          return (
+            <div
+              key={offer.id}
+              className={`absolute inset-0 transition-opacity duration-500 ${i === idx ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+              style={{ backgroundColor: PRIMARY, direction: "rtl" }}
+              onClick={() => i === idx && handleClick(offer)}
+            >
+              {/* Right: food image bleeding to edge */}
+              <div className="absolute left-0 top-0 bottom-0 w-[52%] overflow-hidden">
+                <img
+                  src={imgSrc}
+                  alt={offer.title || ""}
+                  className="w-full h-full object-cover"
+                  style={{ filter: "brightness(0.9)" }}
+                  loading="lazy"
+                />
+                {/* gradient blending into green */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(to left, transparent 30%, ${PRIMARY} 85%)`,
+                  }}
+                />
+              </div>
+
+              {/* Left: text content */}
+              <div className="absolute right-0 top-0 bottom-0 w-[55%] flex flex-col justify-center px-4 py-3 gap-1.5">
+                {/* Badge */}
+                <span
+                  className="self-start text-[9px] font-black px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: LIGHT_GREEN, color: "#fff" }}
+                >
+                  عرض خاص ✨
+                </span>
+
+                {/* Discount percentage */}
+                {discountText && (
+                  <p className="text-white font-black leading-none" style={{ fontSize: discountText.length > 4 ? 20 : 34 }}>
+                    {discountText === "توصيل مجاني" ? (
+                      <span style={{ fontSize: 18 }}>🚚 توصيل مجاني</span>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: 34 }}>{discountText}</span>
+                        {discountText !== "توصيل مجاني" && (
+                          <span className="text-white/80 font-medium" style={{ fontSize: 11 }}> خصم</span>
+                        )}
+                      </>
+                    )}
+                  </p>
+                )}
+
+                {/* Title / subtitle */}
+                {offer.title && (
+                  <p className="text-white/90 font-semibold line-clamp-1 leading-tight" style={{ fontSize: 11 }}>
+                    {offer.title}
+                  </p>
+                )}
+                {((offer as any).subtitle || offer.description) && (
+                  <p className="text-white/70 line-clamp-1 leading-tight" style={{ fontSize: 10 }}>
+                    {(offer as any).subtitle || offer.description}
+                  </p>
+                )}
+
+                {/* CTA button */}
+                <button
+                  className="self-start mt-1 flex items-center gap-1 px-3 py-1.5 rounded-full font-black text-[11px] shadow-md transition-transform active:scale-95"
+                  style={{ backgroundColor: "#fff", color: PRIMARY }}
+                  onClick={(e) => { e.stopPropagation(); handleClick(offer); }}
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                  اطلب الآن
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Dots */}
+        {offers.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {offers.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setIdx(i)}
+                className="rounded-full transition-all duration-300"
+                style={{
+                  width: i === idx ? 20 : 6,
+                  height: 6,
+                  backgroundColor: i === idx ? "#fff" : "rgba(255,255,255,0.4)",
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
+
+// ─── COMPONENT 2: Meal/Restaurant Card (horizontal scroll) ───────────────────
+// Redesigned: 160px wide, white bg, square image, delivery pill, heart, name, tags, rating+price
 const ItemCard = ({ item }: { item: any }) => {
   const navigate = useNavigate();
-  const { originalPrice, finalPrice, promoLabel, hasPromo } = getEffectivePromo(item);
+  const { originalPrice, finalPrice, hasPromo } = getEffectivePromo(item);
   const showDiscount = hasPromo && finalPrice < originalPrice;
   const discountPct =
     showDiscount && item.promo_type === "discount_percent" && item.promo_value
@@ -84,72 +255,101 @@ const ItemCard = ({ item }: { item: any }) => {
       : 0;
   const ratingNum = Number(item.rating || 0);
   const deliveryTime = item.restaurants?.estimated_delivery_time;
+  const restaurantName = item.restaurants?.name_ar;
 
   return (
     <div
       onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="w-[120px] shrink-0 cursor-pointer hover:-translate-y-0.5 transition-all"
+      className="shrink-0 cursor-pointer hover:-translate-y-1 transition-all duration-200"
+      style={{
+        width: 160,
+        borderRadius: 16,
+        backgroundColor: CARD_BG,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+        overflow: "hidden",
+      }}
     >
-      {/* ── صورة مع badges ── */}
-      <div className="relative w-full h-[110px] rounded-xl bg-muted overflow-hidden shadow-sm">
+      {/* Image section */}
+      <div className="relative w-full overflow-hidden bg-gray-100" style={{ height: 130 }}>
         {item.image_url ? (
           <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover" loading="lazy" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl">🍔</div>
+          <div className="w-full h-full flex items-center justify-center text-5xl bg-gray-50">🍔</div>
         )}
 
-        {/* قلب المفضلة */}
-        <div className="absolute top-1.5 right-1.5">
-          <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
+        {/* Gradient overlay bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+
+        {/* Heart top-right */}
+        <div className="absolute top-2 right-2 z-10">
+          <div className="w-7 h-7 rounded-full bg-white shadow flex items-center justify-center">
+            <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
+          </div>
         </div>
 
-        {/* شارة خصم نسبي */}
+        {/* Discount badge top-left */}
         {showDiscount && discountPct > 0 && (
-          <span className="absolute top-1.5 left-1.5 bg-red-500 text-white text-[8px] font-black rounded-md px-1 py-0.5 shadow">
+          <span
+            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow"
+            style={{ backgroundColor: DANGER }}
+          >
             -{discountPct}%
           </span>
         )}
-        {/* نص عرض مخصص (custom_text) */}
-        {hasPromo && !showDiscount && promoLabel && (
-          <span className="absolute top-1.5 left-1.5 bg-amber-500 text-white text-[8px] font-black rounded-md px-1 py-0.5 shadow line-clamp-1 max-w-[60px]">
-            {promoLabel}
+
+        {/* Delivery time pill bottom-left */}
+        {deliveryTime && (
+          <span
+            className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-0.5 text-white font-bold text-[9px] px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: PRIMARY }}
+          >
+            <Clock className="w-2.5 h-2.5" />
+            {deliveryTime} د
           </span>
         )}
-
-        {/* وقت + تقييم — أسفل الصورة */}
-        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-1.5 pb-1.5 gap-1">
-          {deliveryTime ? (
-            <span className="inline-flex items-center gap-0.5 bg-black/65 backdrop-blur-sm text-white text-[9px] font-bold px-1 py-0.5 rounded-md">
-              <Clock className="w-2 h-2" />{deliveryTime}
-            </span>
-          ) : <span />}
-          <span className="inline-flex items-center gap-0.5 bg-black/65 backdrop-blur-sm text-white text-[9px] font-bold px-1 py-0.5 rounded-md">
-            <Star className="w-2 h-2 fill-amber-400 text-amber-400" />
-            {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
-          </span>
-        </div>
       </div>
 
-      {/* ── نصوص ── */}
-      <div className="pt-1.5 pb-1 px-0.5 text-center space-y-0.5">
-        <p className="font-bold text-[11px] text-foreground leading-tight line-clamp-2">{item.name_ar}</p>
-        {item.restaurants?.name_ar && (
-          <p className="text-[9px] text-muted-foreground line-clamp-1">{item.restaurants.name_ar}</p>
+      {/* Info section */}
+      <div className="p-2.5 space-y-1">
+        {/* Meal name */}
+        <p className="font-black text-[13px] leading-tight line-clamp-1" style={{ color: TEXT_PRIMARY }}>
+          {item.name_ar}
+        </p>
+
+        {/* Restaurant as tag */}
+        {restaurantName && (
+          <p className="text-[10px] line-clamp-1" style={{ color: TEXT_SECONDARY }}>
+            {restaurantName}
+          </p>
         )}
-        {showDiscount ? (
-          <div className="flex items-center justify-center gap-1 flex-wrap">
-            <span className="text-[9px] text-muted-foreground line-through">{Number(originalPrice).toLocaleString()} ر.ي</span>
-            <span className="text-[12px] font-extrabold" style={{ color: "#2E7D32" }}>{Number(finalPrice).toLocaleString()} ر.ي</span>
-          </div>
-        ) : (
-          <p className="text-[12px] font-extrabold text-primary">{Number(finalPrice).toLocaleString()} ر.ي</p>
-        )}
+
+        {/* Rating + price */}
+        <div className="flex items-center justify-between pt-0.5">
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: TEXT_SECONDARY }}>
+            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+            {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
+          </span>
+          {showDiscount ? (
+            <div className="flex flex-col items-end leading-tight">
+              <span className="text-[8px] line-through" style={{ color: TEXT_SECONDARY }}>
+                {Number(originalPrice).toLocaleString()} ر.ي
+              </span>
+              <span className="font-extrabold text-[11px]" style={{ color: LIGHT_GREEN }}>
+                {Number(finalPrice).toLocaleString()} ر.ي
+              </span>
+            </div>
+          ) : (
+            <span className="font-extrabold text-[11px]" style={{ color: PRIMARY }}>
+              {Number(finalPrice).toLocaleString()} ر.ي
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-// ─── Meal Offer Card (wider, 160px — for عروض الوجبات section) ───────────────
+// ─── عروض الوجبات Card (160px wide, full spec) ────────────────────────────────
 const MealOfferCard = ({ item }: { item: any }) => {
   const navigate = useNavigate();
   const { originalPrice, finalPrice, promoLabel } = getEffectivePromo(item);
@@ -165,67 +365,90 @@ const MealOfferCard = ({ item }: { item: any }) => {
   return (
     <div
       onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="shrink-0 cursor-pointer hover:-translate-y-0.5 transition-all rounded-2xl overflow-hidden bg-white"
-      style={{ width: 160, boxShadow: "0 4px 16px rgba(0,0,0,0.10)" }}
+      className="shrink-0 cursor-pointer hover:-translate-y-1 transition-all duration-200"
+      style={{
+        width: 160,
+        borderRadius: 16,
+        backgroundColor: CARD_BG,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+        overflow: "hidden",
+      }}
     >
-      {/* صورة الوجبة */}
-      <div className="relative w-full overflow-hidden bg-muted" style={{ height: 120 }}>
+      {/* Image */}
+      <div className="relative w-full overflow-hidden bg-gray-100" style={{ height: 120 }}>
         {item.image_url ? (
           <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover" loading="lazy" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl">🍽️</div>
+          <div className="w-full h-full flex items-center justify-center text-5xl bg-gray-50">🍽️</div>
         )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
 
-        {/* شارة الخصم — يسار أعلى */}
+        {/* Discount pill top-left */}
         {discountPct > 0 && (
-          <span className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-black rounded-full px-1.5 py-0.5 shadow-md">
+          <span
+            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow"
+            style={{ backgroundColor: DANGER }}
+          >
             -{discountPct}%
           </span>
         )}
         {!discountPct && promoLabel && (
-          <span className="absolute top-2 left-2 bg-amber-500 text-white text-[9px] font-black rounded-full px-1.5 py-0.5 shadow-md">
+          <span
+            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow"
+            style={{ backgroundColor: "#F59E0B" }}
+          >
             {promoLabel}
           </span>
         )}
 
-        {/* زر المفضلة — يمين أعلى */}
-        <div
-          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
+        {/* Heart top-right */}
+        <div className="absolute top-2 right-2 z-10">
+          <div className="w-7 h-7 rounded-full bg-white shadow flex items-center justify-center" onClick={e => e.stopPropagation()}>
+            <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
+          </div>
         </div>
+
+        {/* Delivery time bottom-right */}
+        {deliveryTime && (
+          <span
+            className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-0.5 text-white font-bold text-[9px] px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: PRIMARY }}
+          >
+            <Clock className="w-2.5 h-2.5" />{deliveryTime} د
+          </span>
+        )}
       </div>
 
-      {/* معلومات الوجبة */}
-      <div className="p-2 text-right space-y-0.5">
-        <p className="font-bold text-[13px] text-gray-900 leading-tight line-clamp-1">{item.name_ar}</p>
+      {/* Info */}
+      <div className="p-2.5 space-y-1">
+        <p className="font-black text-[13px] leading-tight line-clamp-1" style={{ color: TEXT_PRIMARY }}>
+          {item.name_ar}
+        </p>
         {item.restaurants?.name_ar && (
-          <p className="text-[11px] text-gray-400 line-clamp-1">{item.restaurants.name_ar}</p>
+          <p className="text-[10px] line-clamp-1" style={{ color: TEXT_SECONDARY }}>
+            {item.restaurants.name_ar}
+          </p>
         )}
-
-        {/* صف السعر */}
         {showDiscount ? (
-          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-            <span className="text-[10px] text-gray-400 line-through">{Number(originalPrice).toLocaleString()} ر.ي</span>
-            <span className="text-[13px] font-extrabold" style={{ color: "#2E7D32" }}>{Number(finalPrice).toLocaleString()} ر.ي</span>
+          <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
+            <span className="text-[9px] line-through" style={{ color: TEXT_SECONDARY }}>
+              {Number(originalPrice).toLocaleString()} ر.ي
+            </span>
+            <span className="font-extrabold text-[12px]" style={{ color: LIGHT_GREEN }}>
+              {Number(finalPrice).toLocaleString()} ر.ي
+            </span>
           </div>
         ) : (
-          <p className="text-[13px] font-extrabold text-primary pt-0.5">{Number(finalPrice).toLocaleString()} ر.ي</p>
-        )}
-
-        {/* وقت التوصيل */}
-        {deliveryTime && (
-          <span className="inline-flex items-center gap-0.5 bg-gray-100 text-gray-500 text-[9px] font-semibold px-1.5 py-0.5 rounded-full mt-0.5">
-            <Clock className="w-2.5 h-2.5" />{deliveryTime}
-          </span>
+          <p className="font-extrabold text-[12px] pt-0.5" style={{ color: PRIMARY }}>
+            {Number(finalPrice).toLocaleString()} ر.ي
+          </p>
         )}
       </div>
     </div>
   );
 };
 
-// ─── Most-rated Items section ─────────────────────────────────────────────────
+// ─── TopRatedItems ────────────────────────────────────────────────────────────
 const TopRatedItems = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
@@ -255,21 +478,15 @@ const TopRatedItems = () => {
 
   return (
     <div>
-      <SectionHeader
-        title="الأكثر تقييماً"
-        icon={Flame}
-        onMore={() => navigate("/food")}
-      />
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
-        {items.map((it) => (
-          <ItemCard key={it.id} item={it} />
-        ))}
+      <SectionHeader title="الأكثر تقييماً 🔥" onMore={() => navigate("/food")} />
+      <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
+        {items.map((it) => <ItemCard key={it.id} item={it} />)}
       </div>
     </div>
   );
 };
 
-// ─── Featured Items (مختارات لك) ─────────────────────────────────────────────
+// ─── FeaturedItems ────────────────────────────────────────────────────────────
 const FeaturedItems = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
@@ -287,21 +504,15 @@ const FeaturedItems = () => {
 
   return (
     <div>
-      <SectionHeader
-        title="مختارات لك"
-        icon={Sparkles}
-        onMore={() => navigate("/food")}
-      />
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
-        {items.map((it) => (
-          <ItemCard key={it.id} item={it} />
-        ))}
+      <SectionHeader title="مختارات لك ✨" onMore={() => navigate("/food")} />
+      <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
+        {items.map((it) => <ItemCard key={it.id} item={it} />)}
       </div>
     </div>
   );
 };
 
-// ─── عروض الوجبات Section (NEW) ───────────────────────────────────────────────
+// ─── MealOffersSection ────────────────────────────────────────────────────────
 const MealOffersSection = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
@@ -315,9 +526,7 @@ const MealOffersSection = () => {
       .order("promo_value", { ascending: false })
       .limit(20)
       .then(({ data }: any) => {
-        const now = new Date();
         const active = (data || []).filter((item: any) => isPromoScheduleActive(item));
-        // Sort: highest discount percentage first
         active.sort((a: any, b: any) => {
           const pctA = a.promo_type === "discount_percent" ? (a.promo_value || 0) :
             (a.price && a.promo_value && a.promo_type === "fixed_price") ? Math.round((1 - a.promo_value / a.price) * 100) : 0;
@@ -330,116 +539,40 @@ const MealOffersSection = () => {
       });
   }, []);
 
-  // Hide if no active meal offers
   if (loaded && items.length === 0) return null;
   if (!loaded) return null;
 
   return (
     <div>
-      <SectionHeader
-        title="🔥 عروض الوجبات"
-        onMore={() => navigate("/food")}
-      />
+      <SectionHeader title="🔥 عروض الوجبات" onMore={() => navigate("/food")} />
       <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
-        {items.map((it) => (
-          <MealOfferCard key={it.id} item={it} />
-        ))}
+        {items.map((it) => <MealOfferCard key={it.id} item={it} />)}
       </div>
     </div>
   );
 };
 
-// ─── Default carousel banners if DB has none ──────────────────────────────────
+// ─── Default banners / offers / tiles ────────────────────────────────────────
 const DEFAULT_BANNERS = [
-  {
-    id: "d1",
-    title: "اطلب من مطاعمك المفضلة",
-    subtitle: "توصيل سريع لباب منزلك",
-    image_url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=80&fit=crop",
-    badge_text: "جديد",
-    link_url: "/food",
-    banner_type: "carousel",
-  },
-  {
-    id: "d2",
-    title: "خدمات توصيل، تسوق، انقل من أي مكان",
-    subtitle: "مناديب لتوصيل طرودك وطلباتك في أسرع وقت",
-    image_url: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&q=80&fit=crop",
-    badge_text: "متاح الآن",
-    link_url: "/delivery-request",
-    banner_type: "carousel",
-  },
-  {
-    id: "d3",
-    title: "عروض حصرية كل يوم",
-    subtitle: "لا تفوّت أفضل الأسعار",
-    image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200&q=80&fit=crop",
-    badge_text: "عرض محدود",
-    link_url: "/food",
-    banner_type: "carousel",
-  },
+  { id: "d1", title: "اطلب من مطاعمك المفضلة", subtitle: "توصيل سريع لباب منزلك", image_url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=80&fit=crop", badge_text: "جديد", link_url: "/food", banner_type: "carousel" },
+  { id: "d2", title: "خدمات توصيل، تسوق، انقل من أي مكان", subtitle: "مناديب لتوصيل طرودك وطلباتك في أسرع وقت", image_url: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&q=80&fit=crop", badge_text: "متاح الآن", link_url: "/delivery-request", banner_type: "carousel" },
+  { id: "d3", title: "عروض حصرية كل يوم", subtitle: "لا تفوّت أفضل الأسعار", image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200&q=80&fit=crop", badge_text: "عرض محدود", link_url: "/food", banner_type: "carousel" },
 ];
 
-// Default offer tiles if DB has none — restaurant/delivery level only
-const DEFAULT_OFFERS = [
-  {
-    id: "o1",
-    title: "خصم 20% على أول طلب",
-    subtitle: "لعملاء وصل الجدد",
-    image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80&fit=crop",
-    badge_text: "عرض خاص",
-    link_url: "/food",
-    banner_type: "offer",
-  },
-  {
-    id: "o2",
-    title: "توصيل مجاني",
-    subtitle: "عند الطلب فوق 2000 ر.ي",
-    image_url: "https://images.unsplash.com/photo-1519984388953-d2406bc725e1?w=600&q=80&fit=crop",
-    badge_text: "مجاني",
-    link_url: "/food",
-    banner_type: "offer",
-  },
-  {
-    id: "o3",
-    title: "وجبات البرجر المميزة",
-    subtitle: "أقل سعر في المدينة",
-    image_url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&fit=crop",
-    badge_text: "تخفيض",
-    link_url: "/food",
-    banner_type: "offer",
-  },
+const DEFAULT_OFFERS: any[] = [
+  { id: "o1", title: "خصم 20% على أول طلب", subtitle: "لعملاء وصل الجدد", image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80&fit=crop", badge_text: "عرض خاص", link_url: "/food", offer_type: "percent_off_order", discount_percent: 20, is_active: true, delivery_company_id: "", sort_order: 0, created_at: "" },
+  { id: "o2", title: "توصيل مجاني", subtitle: "عند الطلب فوق 2000 ر.ي", image_url: "https://images.unsplash.com/photo-1519984388953-d2406bc725e1?w=600&q=80&fit=crop", badge_text: "مجاني", link_url: "/food", offer_type: "free_delivery", is_active: true, delivery_company_id: "", sort_order: 1, created_at: "" },
+  { id: "o3", title: "وجبات البرجر المميزة", subtitle: "أقل سعر في المدينة", image_url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&fit=crop", badge_text: "تخفيض", link_url: "/food", offer_type: "percent_off_delivery", discount_percent: 30, is_active: true, delivery_company_id: "", sort_order: 2, created_at: "" },
 ];
 
-// Default service tiles
 const DEFAULT_SERVICE_TILES = [
-  {
-    key: "food",
-    label: "مطاعم وتوصيل",
-    img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80&fit=crop",
-    action: "food",
-  },
-  {
-    key: "grocery",
-    label: "بقالة وتسوق",
-    img: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80&fit=crop",
-    action: "grocery",
-  },
-  {
-    key: "pharmacy",
-    label: "صيدليات",
-    img: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80&fit=crop",
-    action: "pharmacy",
-  },
-  {
-    key: "more",
-    label: "المزيد",
-    img: "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600&q=80&fit=crop",
-    action: "more",
-  },
+  { key: "food", label: "مطاعم وتوصيل", img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80&fit=crop", action: "food" },
+  { key: "grocery", label: "بقالة وتسوق", img: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80&fit=crop", action: "grocery" },
+  { key: "pharmacy", label: "صيدليات", img: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80&fit=crop", action: "pharmacy" },
+  { key: "more", label: "المزيد", img: "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600&q=80&fit=crop", action: "more" },
 ];
 
-// ─── Hero Banner Carousel ─────────────────────────────────────────────────────
+// ─── Hero Banner Carousel (unchanged logic) ───────────────────────────────────
 const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (url: string) => void }) => {
   const [idx, setIdx] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -463,7 +596,7 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
   if (!banners.length) return null;
 
   return (
-    <div className="relative w-full overflow-hidden rounded-xl shadow-md" style={{ aspectRatio: "16/7", minHeight: 100, maxHeight: 148 }}>
+    <div className="relative w-full overflow-hidden shadow-md" style={{ aspectRatio: "16/7", minHeight: 100, maxHeight: 148, borderRadius: 20 }}>
       {banners.map((banner, i) => (
         <div
           key={banner.id}
@@ -473,7 +606,9 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
           <img src={banner.image_url} alt={banner.title || ""} className="w-full h-full object-cover" loading={i === 0 ? "eager" : "lazy"} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           {banner.badge_text && (
-            <Badge className="absolute top-3 right-3 bg-amber-500 text-white border-0 shadow-lg font-bold text-xs">{banner.badge_text}</Badge>
+            <Badge className="absolute top-3 right-3 text-white border-0 shadow-lg font-bold text-xs" style={{ backgroundColor: LIGHT_GREEN }}>
+              {banner.badge_text}
+            </Badge>
           )}
           {(banner.title || banner.subtitle) && (
             <div className="absolute bottom-8 right-4 left-4 text-white">
@@ -489,96 +624,15 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
           <button onClick={(e) => { e.stopPropagation(); go(1); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/70 z-10"><ChevronLeft className="w-4 h-4" /></button>
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
             {banners.map((_, i) => (
-              <button key={i} onClick={(e) => { e.stopPropagation(); setIdx(i); }} className={`rounded-full transition-all duration-300 ${i === idx ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/50"}`} />
+              <button key={i} onClick={(e) => { e.stopPropagation(); setIdx(i); }}
+                className="rounded-full transition-all duration-300"
+                style={{ width: i === idx ? 20 : 8, height: 8, backgroundColor: i === idx ? "#fff" : "rgba(255,255,255,0.4)" }}
+              />
             ))}
           </div>
         </>
       )}
     </div>
-  );
-};
-
-// ─── Offers / Deals Horizontal Scroll — restaurant/delivery offers ONLY ──────
-// Bug #3 fix: this section ONLY shows delivery_company_offers (restaurant-level).
-// Meal-item offers are displayed separately via MealOffersSection above.
-const OFFER_PLACEHOLDER_IMAGES: Record<string, string> = {
-  free_delivery: "https://images.unsplash.com/photo-1519984388953-d2406bc725e1?w=400&q=80&fit=crop",
-  percent_off_delivery: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80&fit=crop",
-  fixed_off_delivery: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80&fit=crop",
-};
-
-const OffersSection = ({
-  offers,
-  onNavigate,
-}: {
-  offers: (DeliveryOffer & { link_url?: string; subtitle?: string })[];
-  onNavigate: (url: string) => void;
-}) => {
-  if (!offers.length) return null;
-
-  const VALID_PATHS = ["/food", "/delivery-request", "/restaurants", "/shipments", "/deliveries", "/history", "/trips"];
-  const isSafePath = (p: string) => VALID_PATHS.some(v => p === v || p.startsWith(v + "/") || p.startsWith(v + "?"));
-
-  const handleOfferClick = (offer: DeliveryOffer & { link_url?: string }) => {
-    if (offer.restaurant_id) {
-      onNavigate(`/restaurants/${offer.restaurant_id}`);
-      return;
-    }
-    let dest = (offer as any).link_url as string | undefined;
-    if (!dest) { onNavigate("/food"); return; }
-    if (dest === "/shipment-request" || dest === "/shipments") dest = "/delivery-request";
-    onNavigate(isSafePath(dest) ? dest : "/food");
-  };
-
-  return (
-    <section>
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <div className="p-1 rounded-md bg-red-500/10">
-          <Tag className="w-3.5 h-3.5 text-red-500" />
-        </div>
-        <h2 className="text-[15px] font-black text-foreground">عروض وخصومات التوصيل</h2>
-      </div>
-      <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
-        {offers.map((offer) => {
-          const imgSrc =
-            offer.image_url ||
-            OFFER_PLACEHOLDER_IMAGES[(offer as any).offer_type as string] ||
-            OFFER_PLACEHOLDER_IMAGES.free_delivery;
-          const subtitle = (offer as any).subtitle || offer.description || null;
-          const badge = offer.badge_text || (offer as any).badge_text;
-          return (
-            <button
-              key={offer.id}
-              onClick={() => handleOfferClick(offer)}
-              className="shrink-0 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-card border border-border/30 flex"
-              style={{ width: 185, height: 66 }}
-            >
-              <div className="w-[66px] h-full shrink-0 overflow-hidden">
-                <img src={imgSrc} alt={offer.title || ""} className="w-full h-full object-cover" loading="lazy" />
-              </div>
-              <div className="flex-1 px-2.5 py-2 flex flex-col justify-center text-right">
-                {badge && (
-                  <span className="inline-block self-end bg-primary text-primary-foreground text-[8px] font-black rounded-md px-1.5 py-0.5 mb-1 leading-none">
-                    {badge}
-                  </span>
-                )}
-                {offer.title && (
-                  <p className="font-black text-[11px] text-foreground leading-tight line-clamp-1">{offer.title}</p>
-                )}
-                {subtitle && (
-                  <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight line-clamp-2">{subtitle}</p>
-                )}
-                {offer.restaurant && (
-                  <p className="text-[9px] text-primary/70 mt-0.5 font-semibold line-clamp-1">
-                    {offer.restaurant.name_ar}
-                  </p>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </section>
   );
 };
 
@@ -594,11 +648,7 @@ const DeliveryHubPage = () => {
 
   useEffect(() => {
     Promise.all([
-      supabase
-        .from("delivery_banners" as any)
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order"),
+      supabase.from("delivery_banners" as any).select("*").eq("is_active", true).order("sort_order"),
       getCustomerActiveOffers(),
     ]).then(([bannersRes, liveOffersData]) => {
       const bannersData = bannersRes.data || [];
@@ -627,65 +677,50 @@ const DeliveryHubPage = () => {
     else if (action === "grocery") navigate("/food?tab=grocery");
     else if (action === "pharmacy") navigate("/food?tab=pharmacy");
     else if (action === "more") navigate("/shipments");
-    else if (tile.link_url) {
-      const dest = tile.link_url === "/shipment-request" ? "/delivery-request" : tile.link_url;
-      navigate(dest);
-    }
+    else if (tile.link_url) navigate(tile.link_url === "/shipment-request" ? "/delivery-request" : tile.link_url);
     else navigate("/food");
   };
 
-  const displayTiles =
-    serviceTiles.length > 0
-      ? serviceTiles
-      : companyManaged
-        ? []
-        : DEFAULT_SERVICE_TILES;
+  const displayTiles = serviceTiles.length > 0 ? serviceTiles : companyManaged ? [] : DEFAULT_SERVICE_TILES;
 
   return (
-    <div className="min-h-screen bg-background pb-24" dir="rtl">
-      <div className="container mx-auto px-3 max-w-5xl space-y-2.5 pt-2">
+    <div className="min-h-screen pb-24 dir-rtl" style={{ backgroundColor: PAGE_BG, direction: "rtl" }}>
+      <div className="container mx-auto px-3 max-w-5xl space-y-4 pt-3">
 
         {/* ── 1. Service Tiles ── */}
         {!bannersLoaded ? (
           <div className="grid grid-cols-2 gap-2">
-            {[1,2,3,4].map(i => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}
+            {[1,2,3,4].map(i => <div key={i} className="h-20 rounded-2xl bg-gray-200 animate-pulse" />)}
           </div>
         ) : displayTiles.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
-          {displayTiles.map((tile: any, idx: number) => {
-            const imgSrc = tile.image_url || tile.img || "";
-            const label = tile.title || tile.label || "";
-            return (
-              <button
-                key={tile.id || tile.key || idx}
-                onClick={() => handleTileClick(tile)}
-                className="relative rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group h-20"
-              >
-                {imgSrc && (
-                  <img
-                    src={imgSrc}
-                    alt={label}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                <div className="absolute bottom-0 right-0 left-0 px-3 py-2.5 flex items-center justify-center">
-                  <span className="font-black text-sm text-white leading-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
-                    {label}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+          <div className="grid grid-cols-2 gap-2">
+            {displayTiles.map((tile: any, i: number) => {
+              const imgSrc = tile.image_url || tile.img || "";
+              const label = tile.title || tile.label || "";
+              return (
+                <button
+                  key={tile.id || tile.key || i}
+                  onClick={() => handleTileClick(tile)}
+                  className="relative overflow-hidden group h-20 hover:-translate-y-0.5 transition-all duration-300"
+                  style={{ borderRadius: 16, boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}
+                >
+                  {imgSrc && <img src={imgSrc} alt={label} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  <div className="absolute bottom-0 right-0 left-0 px-3 py-2.5 flex items-center justify-center">
+                    <span className="font-black text-sm text-white leading-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{label}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         )}
 
         {/* ── 2. Hero Banner Carousel ── */}
         {!bannersLoaded
-          ? <div className="w-full rounded-xl bg-muted animate-pulse" style={{ aspectRatio: "16/8", minHeight: 130, maxHeight: 200 }} />
+          ? <div className="w-full animate-pulse bg-gray-200" style={{ aspectRatio: "16/8", minHeight: 130, borderRadius: 20 }} />
           : <BannerCarousel banners={carouselBanners!} onNavigate={navigate} />}
 
-        {/* ── 3. عروض وخصومات التوصيل (restaurant/delivery offers ONLY — Bug #3) ── */}
+        {/* ── 3. Offers Banner (restaurant/delivery level only) ── */}
         {bannersLoaded && (
           <OffersSection
             offers={liveOffers.length > 0 ? liveOffers : offerBanners!}
@@ -693,33 +728,34 @@ const DeliveryHubPage = () => {
           />
         )}
 
-        {/* ── 4. Categories (circular scroller) ── */}
+        {/* ── 4. Categories ── */}
         <SharedCategoryScroller />
 
-        {/* ── 5. عروض الوجبات (NEW — meal-item offers section) ── */}
+        {/* ── 5. عروض الوجبات ── */}
         <MealOffersSection />
 
-        {/* ── 6. Most rated ── */}
+        {/* ── 6. الأكثر تقييماً ── */}
         <TopRatedItems />
 
-        {/* ── 7. Delivery request banner (small green CTA) ── */}
+        {/* ── 7. Delivery request banner ── */}
         <DeliveryRequestBanner />
 
-        {/* ── 8. Featured for you ── */}
+        {/* ── 8. مختارات لك ── */}
         <FeaturedItems />
 
         {/* ── 9. Featured restaurants ── */}
         <FeaturedRestaurantsSection />
 
         {/* ── 10. Feature pills ── */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {FEATURES.map((feat) => (
             <div
               key={feat.label}
-              className="flex items-center gap-1 shrink-0 bg-card border border-border/40 rounded-full px-2.5 py-1 shadow-sm"
+              className="flex items-center gap-1.5 shrink-0 border border-gray-200 px-3 py-1.5 shadow-sm"
+              style={{ borderRadius: 99, backgroundColor: CARD_BG }}
             >
-              <feat.icon className={`w-3 h-3 ${feat.color}`} />
-              <span className="text-[10px] font-semibold text-foreground whitespace-nowrap">
+              <feat.icon className="w-3 h-3" style={{ color: feat.color }} />
+              <span className="text-[10px] font-semibold whitespace-nowrap" style={{ color: TEXT_SECONDARY }}>
                 {feat.label}
               </span>
             </div>
@@ -727,7 +763,7 @@ const DeliveryHubPage = () => {
         </div>
 
         {/* ── 11. Platform stats ── */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 pb-4">
           {[
             { num: "+500", label: "مطعم" },
             { num: "+20", label: "مدينة" },
@@ -735,10 +771,11 @@ const DeliveryHubPage = () => {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="bg-card border border-border/40 rounded-xl p-2 text-center shadow-sm"
+              className="text-center p-2.5 shadow-sm"
+              style={{ backgroundColor: CARD_BG, borderRadius: 16, boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}
             >
-              <p className="font-black text-sm text-primary">{stat.num}</p>
-              <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+              <p className="font-black text-sm" style={{ color: PRIMARY }}>{stat.num}</p>
+              <p className="text-[10px]" style={{ color: TEXT_SECONDARY }}>{stat.label}</p>
             </div>
           ))}
         </div>
