@@ -41,12 +41,18 @@ const RestaurantVerticalCard = ({ r }: { r: any }) => {
         position: "relative",
       }}
     >
-      {/* ── Food image (square 1:1, fixed height) ── */}
-      <div className="relative w-full overflow-hidden bg-gray-100" style={{ height: 130 }}>
-        {imgSrc ? (
-          <img src={imgSrc} alt={r.name_ar} className="w-full h-full object-cover" loading="lazy" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl bg-gray-50">🏪</div>
+      {/* ── Restaurant cover image — object-fit: cover, height 140px ── */}
+      <div className="relative w-full overflow-hidden" style={{ height: 140, backgroundColor: "#f0f0f0" }}>
+        <div className="absolute inset-0 flex items-center justify-center text-5xl select-none" style={{ zIndex: 0 }}>🏪</div>
+        {imgSrc && (
+          <img
+            src={imgSrc}
+            alt={r.name_ar}
+            className="absolute inset-0 w-full h-full"
+            style={{ objectFit: "cover", objectPosition: "center", zIndex: 1 }}
+            loading="lazy"
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />
         )}
 
         {/* Gradient overlay bottom */}

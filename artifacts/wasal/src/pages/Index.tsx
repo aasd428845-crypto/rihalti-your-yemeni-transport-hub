@@ -310,11 +310,17 @@ const RestaurantCard = ({ r }: { r: any }) => {
     >
       <div className="flex items-stretch gap-0" style={{ height: 100 }}>
         {/* LEFT: Image with badges */}
-        <div className="relative shrink-0 overflow-hidden bg-gray-100" style={{ width: 100, borderRadius: "16px 0 0 16px" }}>
-          {heroSrc ? (
-            <img src={heroSrc} alt={r.name_ar} className="w-full h-full object-cover" loading="lazy" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-3xl">🏪</div>
+        <div className="relative shrink-0 overflow-hidden" style={{ width: 100, borderRadius: "16px 0 0 16px", backgroundColor: "#f0f0f0" }}>
+          <div className="absolute inset-0 flex items-center justify-center text-3xl select-none" style={{ zIndex: 0 }}>🏪</div>
+          {heroSrc && (
+            <img
+              src={heroSrc}
+              alt={r.name_ar}
+              className="absolute inset-0 w-full h-full"
+              style={{ objectFit: "cover", objectPosition: "center", zIndex: 1 }}
+              loading="lazy"
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+            />
           )}
           {/* Distance badge top-left (gray pill) */}
           <span
@@ -480,6 +486,7 @@ const OffersSection = () => {
                 className="absolute inset-0 w-full h-full object-cover"
                 style={{ filter: "brightness(0.52)" }}
                 loading="lazy"
+                onError={(e) => { e.currentTarget.style.filter = "brightness(0)"; }}
               />
 
               {/* Badge — top right */}

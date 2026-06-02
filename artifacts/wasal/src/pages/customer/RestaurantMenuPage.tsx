@@ -828,23 +828,43 @@ const MenuItemCard = ({
       }}
       onClick={onOpen}
     >
-      {/* ── Image (4:3 aspect ratio) ── */}
+      {/* ── Image — 3D floating food effect, 4:3 ratio ── */}
       <div
-        className="relative w-full overflow-hidden bg-gray-100"
-        style={{ aspectRatio: "4/3" }}
+        className="relative w-full overflow-hidden"
+        style={{ aspectRatio: "4/3", background: "linear-gradient(135deg, #eef7f1, #d9f0e4)" }}
       >
-        {item.image_url
-          ? <img src={item.image_url} alt={item.name_ar} loading="lazy" className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center text-4xl bg-gray-50">🍽️</div>}
+        {/* Fallback emoji */}
+        <div className="absolute inset-0 flex items-center justify-center text-4xl select-none" style={{ zIndex: 0 }}>🍽️</div>
 
-        {/* Gradient bottom overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+        {item.image_url && (
+          <img
+            src={item.image_url}
+            alt={item.name_ar}
+            loading="lazy"
+            className="absolute inset-0 w-full h-full"
+            style={{
+              objectFit: "contain",
+              objectPosition: "center",
+              filter: "drop-shadow(0px 10px 18px rgba(0,0,0,0.22)) drop-shadow(0px 3px 6px rgba(0,0,0,0.12))",
+              transform: "scale(1.06) translateY(-4px)",
+              transition: "transform 0.3s ease",
+              zIndex: 1,
+            }}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />
+        )}
+
+        {/* Bottom gradient fade */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-10"
+          style={{ background: "linear-gradient(to top, rgba(238,247,241,0.8), transparent)", zIndex: 2 }}
+        />
 
         {/* Popular badge — top right */}
         {item.is_popular && (
           <span
-            className="absolute top-2 right-2 z-10 inline-flex items-center gap-0.5 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow"
-            style={{ backgroundColor: "#F59E0B" }}
+            className="absolute top-2 right-2 inline-flex items-center gap-0.5 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow"
+            style={{ backgroundColor: "#F59E0B", zIndex: 3 }}
           >
             <Flame className="w-2.5 h-2.5" />شائع
           </span>
@@ -853,8 +873,8 @@ const MenuItemCard = ({
         {/* Discount badge — top left (red pill) */}
         {promoScheduleActive && hasDiscount && (
           <span
-            className="absolute top-2 left-2 z-10 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow"
-            style={{ backgroundColor: "#E53935" }}
+            className="absolute top-2 left-2 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow"
+            style={{ backgroundColor: "#E53935", zIndex: 3 }}
           >
             -{discountPct}%
           </span>
@@ -862,7 +882,10 @@ const MenuItemCard = ({
 
         {/* Countdown timer — bottom center */}
         {countdown && (
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-0.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm whitespace-nowrap">
+          <span
+            className="absolute bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-0.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm whitespace-nowrap"
+            style={{ zIndex: 3 }}
+          >
             <Timer className="w-2 h-2 text-orange-300" />{countdown}
           </span>
         )}

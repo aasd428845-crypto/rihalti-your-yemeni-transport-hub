@@ -219,19 +219,40 @@ const ItemCard = ({ item }: { item: any }) => {
         overflow: "hidden",
       }}
     >
-      {/* Image section */}
-      <div className="relative w-full overflow-hidden bg-gray-100" style={{ height: 130 }}>
-        {item.image_url ? (
-          <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover" loading="lazy" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl bg-gray-50">🍔</div>
+      {/* Image section — 3D floating food effect */}
+      <div
+        className="relative w-full overflow-hidden"
+        style={{ height: 140, background: "linear-gradient(135deg, #eef7f1, #d9f0e4)" }}
+      >
+        {/* Fallback emoji — shown when image missing/fails */}
+        <div className="absolute inset-0 flex items-center justify-center text-5xl select-none" style={{ zIndex: 0 }}>🍔</div>
+
+        {item.image_url && (
+          <img
+            src={item.image_url}
+            alt={item.name_ar}
+            loading="lazy"
+            className="absolute inset-0 w-full h-full"
+            style={{
+              objectFit: "contain",
+              objectPosition: "center",
+              filter: "drop-shadow(0px 10px 18px rgba(0,0,0,0.22)) drop-shadow(0px 3px 6px rgba(0,0,0,0.12))",
+              transform: "scale(1.06) translateY(-4px)",
+              transition: "transform 0.3s ease",
+              zIndex: 1,
+            }}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />
         )}
 
-        {/* Gradient overlay bottom */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        {/* Bottom fade for readability */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-10"
+          style={{ background: "linear-gradient(to top, rgba(238,247,241,0.85), transparent)", zIndex: 2 }}
+        />
 
         {/* Heart top-right */}
-        <div className="absolute top-2 right-2 z-10">
+        <div className="absolute top-2 right-2" style={{ zIndex: 3 }}>
           <div className="w-7 h-7 rounded-full bg-white shadow flex items-center justify-center">
             <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
           </div>
@@ -240,18 +261,18 @@ const ItemCard = ({ item }: { item: any }) => {
         {/* Discount badge top-left */}
         {showDiscount && discountPct > 0 && (
           <span
-            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow"
-            style={{ backgroundColor: DANGER }}
+            className="absolute top-2 left-2 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow"
+            style={{ backgroundColor: DANGER, zIndex: 3 }}
           >
             -{discountPct}%
           </span>
         )}
 
-        {/* Delivery time pill bottom-left */}
+        {/* Delivery time pill bottom-right */}
         {deliveryTime && (
           <span
-            className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-0.5 text-white font-bold text-[9px] px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: PRIMARY }}
+            className="absolute bottom-2 right-2 inline-flex items-center gap-0.5 text-white font-bold text-[9px] px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: PRIMARY, zIndex: 3 }}
           >
             <Clock className="w-2.5 h-2.5" />
             {deliveryTime} د
@@ -324,35 +345,50 @@ const MealOfferCard = ({ item }: { item: any }) => {
         overflow: "hidden",
       }}
     >
-      {/* Image */}
-      <div className="relative w-full overflow-hidden bg-gray-100" style={{ height: 120 }}>
-        {item.image_url ? (
-          <img src={item.image_url} alt={item.name_ar} className="w-full h-full object-cover" loading="lazy" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl bg-gray-50">🍽️</div>
+      {/* Image — 3D floating food effect */}
+      <div
+        className="relative w-full overflow-hidden"
+        style={{ height: 140, background: "linear-gradient(135deg, #fff8f0, #ffe9d0)" }}
+      >
+        <div className="absolute inset-0 flex items-center justify-center text-5xl select-none" style={{ zIndex: 0 }}>🍽️</div>
+
+        {item.image_url && (
+          <img
+            src={item.image_url}
+            alt={item.name_ar}
+            loading="lazy"
+            className="absolute inset-0 w-full h-full"
+            style={{
+              objectFit: "contain",
+              objectPosition: "center",
+              filter: "drop-shadow(0px 10px 18px rgba(0,0,0,0.22)) drop-shadow(0px 3px 6px rgba(0,0,0,0.12))",
+              transform: "scale(1.06) translateY(-4px)",
+              transition: "transform 0.3s ease",
+              zIndex: 1,
+            }}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+
+        <div
+          className="absolute inset-x-0 bottom-0 h-10"
+          style={{ background: "linear-gradient(to top, rgba(255,248,240,0.85), transparent)", zIndex: 2 }}
+        />
 
         {/* Discount pill top-left */}
         {discountPct > 0 && (
-          <span
-            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow"
-            style={{ backgroundColor: DANGER }}
-          >
+          <span className="absolute top-2 left-2 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow" style={{ backgroundColor: DANGER, zIndex: 3 }}>
             -{discountPct}%
           </span>
         )}
         {!discountPct && promoLabel && (
-          <span
-            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow"
-            style={{ backgroundColor: "#F59E0B" }}
-          >
+          <span className="absolute top-2 left-2 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow" style={{ backgroundColor: "#F59E0B", zIndex: 3 }}>
             {promoLabel}
           </span>
         )}
 
         {/* Heart top-right */}
-        <div className="absolute top-2 right-2 z-10">
+        <div className="absolute top-2 right-2" style={{ zIndex: 3 }}>
           <div className="w-7 h-7 rounded-full bg-white shadow flex items-center justify-center" onClick={e => e.stopPropagation()}>
             <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
           </div>
@@ -360,10 +396,7 @@ const MealOfferCard = ({ item }: { item: any }) => {
 
         {/* Delivery time bottom-right */}
         {deliveryTime && (
-          <span
-            className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-0.5 text-white font-bold text-[9px] px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: PRIMARY }}
-          >
+          <span className="absolute bottom-2 right-2 inline-flex items-center gap-0.5 text-white font-bold text-[9px] px-2 py-0.5 rounded-full" style={{ backgroundColor: PRIMARY, zIndex: 3 }}>
             <Clock className="w-2.5 h-2.5" />{deliveryTime} د
           </span>
         )}
