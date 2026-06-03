@@ -169,8 +169,13 @@ const RestaurantCheckoutPage = () => {
 
     setSubmitting(true);
     try {
-      // Delivery subsidy: difference charged to restaurant when delivery offer applies
-      const restaurantSubsidy = offerApplies && isDeliveryOffer ? baseFee - computedDeliveryFee : 0;
+      // Delivery subsidy: only charge the restaurant when sponsor_type is "restaurant" (or unset, default).
+      // If the offer is sponsored by an external party or the platform, no debt is recorded on the restaurant.
+      const sponsorType = activeOffer?.offer.sponsor_type;
+      const restaurantIsResponsible = !sponsorType || sponsorType === "restaurant";
+      const restaurantSubsidy = offerApplies && isDeliveryOffer && restaurantIsResponsible
+        ? baseFee - computedDeliveryFee
+        : 0;
 
       const order = await createOrderFromCart({
         customer_id: user.id,
@@ -255,12 +260,19 @@ const RestaurantCheckoutPage = () => {
               <Separator />
               {/* Active offer banner */}
               {activeOffer && offerApplies && (
-                <div className="bg-green-50 dark:bg-green-950/20 border border-green-300 rounded-lg p-2.5 flex items-center gap-2 text-sm text-green-800 dark:text-green-300">
-                  <span className="text-lg">🎉</span>
-                  <div>
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-300 rounded-lg p-2.5 flex items-start gap-2 text-sm text-green-800 dark:text-green-300">
+                  <span className="text-lg shrink-0">🎉</span>
+                  <div className="space-y-0.5">
                     <span className="font-bold">{activeOffer.offer.title}</span>
                     {deliveryDiscount > 0 && <span className="text-green-600 text-xs mr-1">— وفّر {deliveryDiscount.toLocaleString()} ر.ي على التوصيل</span>}
                     {orderDiscount > 0 && <span className="text-green-600 text-xs mr-1">— وفّر {orderDiscount.toLocaleString()} ر.ي على طلبك</span>}
+                    {/* Sponsor credit */}
+                    {activeOffer.offer.sponsor_type === "external" && activeOffer.offer.sponsor_name && (
+                      <p className="text-xs text-green-700 opacity-80">بدعم من: {activeOffer.offer.sponsor_name}</p>
+                    )}
+                    {activeOffer.offer.sponsor_type === "platform" && (
+                      <p className="text-xs text-green-700 opacity-80">هدية من شركة التوصيل</p>
+                    )}
                   </div>
                 </div>
               )}

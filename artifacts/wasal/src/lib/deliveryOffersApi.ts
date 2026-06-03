@@ -9,6 +9,8 @@ export type OfferType =
   | "buy_x_get_y"
   | "custom";
 
+export type SponsorType = "restaurant" | "external" | "platform";
+
 export interface DeliveryOffer {
   id: string;
   delivery_company_id: string;
@@ -29,6 +31,10 @@ export interface DeliveryOffer {
   is_active: boolean;
   sort_order: number;
   created_at: string;
+  /** Who sponsors/bears the cost of this offer */
+  sponsor_type?: SponsorType | null;
+  /** Name of external sponsor (bank, partner, etc.) */
+  sponsor_name?: string | null;
   restaurant?: { id: string; name_ar: string; logo_url?: string | null } | null;
 }
 

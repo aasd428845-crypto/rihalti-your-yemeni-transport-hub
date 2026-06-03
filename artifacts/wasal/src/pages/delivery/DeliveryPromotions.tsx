@@ -261,7 +261,7 @@ const DeliveryPromotions = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold">العروض والخصومات</h2>
+          <h2 className="text-2xl font-bold">عروض المطاعم</h2>
           <p className="text-sm text-muted-foreground">عروض التوصيل والوجبات والخصومات لزبائنك</p>
         </div>
         <Button onClick={openNew} disabled={!selectedRestaurant}>

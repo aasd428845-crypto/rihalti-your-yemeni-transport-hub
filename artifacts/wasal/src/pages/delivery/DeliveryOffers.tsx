@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Pencil, Trash2, Truck, Percent, Minus, CalendarDays, Clock, Gift, Tag, ShoppingBag } from "lucide-react";
 import {
   getDeliveryOffers, createDeliveryOffer, updateDeliveryOffer, deleteDeliveryOffer,
-  type DeliveryOffer, type OfferType
+  type DeliveryOffer, type OfferType, type SponsorType
 } from "@/lib/deliveryOffersApi";
 import { getRestaurants } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +41,14 @@ const OFFER_CATEGORY_LABELS: Record<string, string> = {
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
+const DELIVERY_OFFER_TYPES_SET = new Set(["free_delivery", "percent_off_delivery", "fixed_off_delivery"]);
+
+const SPONSOR_OPTIONS: { value: SponsorType; label: string; icon: string; desc: string }[] = [
+  { value: "restaurant", label: "المطعم",       icon: "🏪", desc: "يُسجَّل مديونية على المطعم" },
+  { value: "external",   label: "جهة خارجية",   icon: "🤝", desc: "بنك، شريك أو جهة أخرى" },
+  { value: "platform",   label: "الشركة",        icon: "🚚", desc: "تتحمّله شركة التوصيل" },
+];
+
 const emptyForm = (): any => ({
   offer_type: "free_delivery" as OfferType,
   title: "",
@@ -58,6 +66,8 @@ const emptyForm = (): any => ({
   ends_at: "",
   is_active: true,
   sort_order: 0,
+  sponsor_type: "restaurant" as SponsorType,
+  sponsor_name: "",
 });
 
 const offerSummary = (o: DeliveryOffer): string => {
@@ -125,6 +135,8 @@ const DeliveryOffers = () => {
       active_days: o.active_days || [],
       starts_at: o.starts_at ? o.starts_at.slice(0, 16) : "",
       ends_at: o.ends_at ? o.ends_at.slice(0, 16) : "",
+      sponsor_type: o.sponsor_type || "restaurant",
+      sponsor_name: o.sponsor_name || "",
     });
     setShowDialog(true);
   };
@@ -144,6 +156,8 @@ const DeliveryOffers = () => {
       const hasPercentField = ["percent_off_delivery", "percent_off_order"].includes(form.offer_type);
       const hasAmountField  = ["fixed_off_delivery",  "fixed_off_order"].includes(form.offer_type);
 
+      const isDeliveryOfferType = DELIVERY_OFFER_TYPES_SET.has(form.offer_type);
+
       const payload: any = {
         delivery_company_id: user.id,
         offer_type: form.offer_type,
@@ -162,6 +176,8 @@ const DeliveryOffers = () => {
         ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
         is_active: form.is_active,
         sort_order: form.sort_order || 0,
+        sponsor_type: isDeliveryOfferType ? (form.sponsor_type || "restaurant") : null,
+        sponsor_name: (isDeliveryOfferType && form.sponsor_type === "external") ? (form.sponsor_name || null) : null,
       };
       if (editItem) {
         await updateDeliveryOffer(editItem.id, payload);
@@ -205,7 +221,7 @@ const DeliveryOffers = () => {
     <div className="space-y-6" dir="rtl">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold">عروض المطاعم</h2>
+          <h2 className="text-2xl font-bold">عروض التوصيل</h2>
           <p className="text-sm text-muted-foreground">عروض التوصيل والخصومات — تُطبَّق تلقائياً في سلة الطلب عند استيفاء الشروط</p>
         </div>
         <Button onClick={openNew}><Plus className="w-4 h-4 ml-1" />إضافة عرض</Button>
@@ -262,6 +278,31 @@ const DeliveryOffers = () => {
                         )}
                         {!o.is_active && <Badge variant="secondary" className="text-[10px]">مخفي</Badge>}
                         <Badge variant="outline" className="text-[10px]">{typeInfo.label}</Badge>
+                        {/* Sponsor badge */}
+                        {o.sponsor_type === "restaurant" && o.restaurant_id && (
+                          <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700 bg-amber-50">
+                            🏪 {restaurants.find(r => r.id === o.restaurant_id)?.name_ar || "مطعم"} (راعي)
+                          </Badge>
+                        )}
+                        {o.sponsor_type === "external" && (
+                          <Badge variant="outline" className="text-[10px] border-blue-400 text-blue-700 bg-blue-50">
+                            🤝 {o.sponsor_name || "جهة خارجية"}
+                          </Badge>
+                        )}
+                        {o.sponsor_type === "platform" && (
+                          <Badge variant="outline" className="text-[10px] border-green-400 text-green-700 bg-green-50">
+                            🚚 الشركة
+                          </Badge>
+                        )}
+                        {/* Restaurant scope badge */}
+                        {o.restaurant_id && o.sponsor_type !== "restaurant" && (
+                          <Badge variant="outline" className="text-[10px]">
+                            🏪 {restaurants.find(r => r.id === o.restaurant_id)?.name_ar || "مطعم محدد"}
+                          </Badge>
+                        )}
+                        {!o.restaurant_id && (
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground">جميع المطاعم</Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">{offerSummary(o)}</p>
                       {o.description && <p className="text-xs text-muted-foreground mt-1">{o.description}</p>}
@@ -324,7 +365,7 @@ const DeliveryOffers = () => {
             {/* Restaurant link */}
             {restaurants.length > 0 && (
               <div>
-                <Label className="font-semibold">ربط بمطعم <span className="text-xs text-muted-foreground font-normal">— عند الضغط على العرض ينتقل العميل لمنيو المطعم</span></Label>
+                <Label className="font-semibold">ربط بمطعم <span className="text-xs text-muted-foreground font-normal">— العرض يُطبَّق على هذا المطعم فقط (اتركه فارغاً لتطبيقه على جميع المطاعم)</span></Label>
                 <Select
                   value={form.restaurant_id || "none"}
                   onValueChange={v => setForm({ ...form, restaurant_id: v === "none" ? "" : v })}
@@ -333,12 +374,57 @@ const DeliveryOffers = () => {
                     <SelectValue placeholder="اختر مطعماً (اختياري)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">بدون ربط بمطعم</SelectItem>
+                    <SelectItem value="none">جميع المطاعم (لا يُقيَّد بمطعم)</SelectItem>
                     {restaurants.map(r => (
                       <SelectItem key={r.id} value={r.id}>{r.name_ar}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {/* ─── Sponsor (راعي العرض) — only for delivery offers ─── */}
+            {DELIVERY_OFFER_TYPES_SET.has(form.offer_type) && (
+              <div>
+                <Label className="font-semibold block mb-2">
+                  راعي العرض
+                  <span className="text-xs text-muted-foreground font-normal mr-1">— من يتحمّل تكلفة هذا العرض؟</span>
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {SPONSOR_OPTIONS.map(s => (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => setForm({ ...form, sponsor_type: s.value })}
+                      className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${form.sponsor_type === s.value ? "bg-primary/10 border-primary" : "bg-muted/50 border-border hover:border-primary/40"}`}
+                    >
+                      <span className="text-xl">{s.icon}</span>
+                      <span className="text-xs font-semibold leading-tight">{s.label}</span>
+                      <span className="text-[10px] text-muted-foreground leading-tight">{s.desc}</span>
+                    </button>
+                  ))}
+                </div>
+                {form.sponsor_type === "external" && (
+                  <div className="mt-2">
+                    <Label className="text-xs">اسم الجهة الراعية</Label>
+                    <Input
+                      value={form.sponsor_name || ""}
+                      onChange={e => setForm({ ...form, sponsor_name: e.target.value })}
+                      placeholder="مثال: بنك سبأ، فيزا، شركة X"
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+                {form.sponsor_type === "restaurant" && (
+                  <div className="mt-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-800 dark:text-amber-300">
+                    ⚠️ سيُسجَّل الفرق بين سعر التوصيل الأصلي والمبلغ الذي دفعه العميل كـ<strong>مديونية على المطعم</strong> في صفحة الإدارة المالية
+                  </div>
+                )}
+                {form.sponsor_type === "platform" && (
+                  <div className="mt-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 rounded-lg p-2.5 text-xs text-blue-800 dark:text-blue-300">
+                    ℹ️ تكلفة العرض على الشركة — لن يُسجَّل أي مديونية على المطعم
+                  </div>
+                )}
               </div>
             )}
 
