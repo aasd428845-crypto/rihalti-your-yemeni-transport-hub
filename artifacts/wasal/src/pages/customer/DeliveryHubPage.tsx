@@ -222,7 +222,7 @@ const ItemCard = ({ item }: { item: any }) => {
       {/* Image section — 3D floating food effect */}
       <div
         className="relative w-full overflow-hidden"
-        style={{ height: 140, background: "linear-gradient(135deg, #eef7f1, #d9f0e4)" }}
+        style={{ height: 140, background: "#ffffff" }}
       >
         {/* Fallback emoji — shown when image missing/fails */}
         <div className="absolute inset-0 flex items-center justify-center text-5xl select-none" style={{ zIndex: 0 }}>🍔</div>
@@ -236,8 +236,8 @@ const ItemCard = ({ item }: { item: any }) => {
             style={{
               objectFit: "contain",
               objectPosition: "center",
-              filter: "drop-shadow(0px 10px 18px rgba(0,0,0,0.22)) drop-shadow(0px 3px 6px rgba(0,0,0,0.12))",
-              transform: "scale(1.06) translateY(-4px)",
+              filter: "drop-shadow(0px 12px 20px rgba(0,0,0,0.28)) drop-shadow(0px 4px 8px rgba(0,0,0,0.14))",
+              transform: "scale(1.06) translateY(-5px)",
               transition: "transform 0.3s ease",
               zIndex: 1,
             }}
@@ -245,10 +245,10 @@ const ItemCard = ({ item }: { item: any }) => {
           />
         )}
 
-        {/* Bottom fade for readability */}
+        {/* Subtle bottom fade */}
         <div
-          className="absolute inset-x-0 bottom-0 h-10"
-          style={{ background: "linear-gradient(to top, rgba(238,247,241,0.85), transparent)", zIndex: 2 }}
+          className="absolute inset-x-0 bottom-0 h-8"
+          style={{ background: "linear-gradient(to top, rgba(255,255,255,0.95), transparent)", zIndex: 2 }}
         />
 
         {/* Heart top-right */}
@@ -348,7 +348,7 @@ const MealOfferCard = ({ item }: { item: any }) => {
       {/* Image — 3D floating food effect */}
       <div
         className="relative w-full overflow-hidden"
-        style={{ height: 140, background: "linear-gradient(135deg, #fff8f0, #ffe9d0)" }}
+        style={{ height: 140, background: "#ffffff" }}
       >
         <div className="absolute inset-0 flex items-center justify-center text-5xl select-none" style={{ zIndex: 0 }}>🍽️</div>
 
@@ -361,8 +361,8 @@ const MealOfferCard = ({ item }: { item: any }) => {
             style={{
               objectFit: "contain",
               objectPosition: "center",
-              filter: "drop-shadow(0px 10px 18px rgba(0,0,0,0.22)) drop-shadow(0px 3px 6px rgba(0,0,0,0.12))",
-              transform: "scale(1.06) translateY(-4px)",
+              filter: "drop-shadow(0px 12px 20px rgba(0,0,0,0.28)) drop-shadow(0px 4px 8px rgba(0,0,0,0.14))",
+              transform: "scale(1.06) translateY(-5px)",
               transition: "transform 0.3s ease",
               zIndex: 1,
             }}
@@ -371,8 +371,8 @@ const MealOfferCard = ({ item }: { item: any }) => {
         )}
 
         <div
-          className="absolute inset-x-0 bottom-0 h-10"
-          style={{ background: "linear-gradient(to top, rgba(255,248,240,0.85), transparent)", zIndex: 2 }}
+          className="absolute inset-x-0 bottom-0 h-8"
+          style={{ background: "linear-gradient(to top, rgba(255,255,255,0.95), transparent)", zIndex: 2 }}
         />
 
         {/* Discount pill top-left */}

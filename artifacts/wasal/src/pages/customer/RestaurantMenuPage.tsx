@@ -831,7 +831,7 @@ const MenuItemCard = ({
       {/* ── Image — 3D floating food effect, 4:3 ratio ── */}
       <div
         className="relative w-full overflow-hidden"
-        style={{ aspectRatio: "4/3", background: "linear-gradient(135deg, #eef7f1, #d9f0e4)" }}
+        style={{ aspectRatio: "4/3", background: "#ffffff" }}
       >
         {/* Fallback emoji */}
         <div className="absolute inset-0 flex items-center justify-center text-4xl select-none" style={{ zIndex: 0 }}>🍽️</div>
@@ -845,8 +845,8 @@ const MenuItemCard = ({
             style={{
               objectFit: "contain",
               objectPosition: "center",
-              filter: "drop-shadow(0px 10px 18px rgba(0,0,0,0.22)) drop-shadow(0px 3px 6px rgba(0,0,0,0.12))",
-              transform: "scale(1.06) translateY(-4px)",
+              filter: "drop-shadow(0px 12px 20px rgba(0,0,0,0.28)) drop-shadow(0px 4px 8px rgba(0,0,0,0.14))",
+              transform: "scale(1.06) translateY(-5px)",
               transition: "transform 0.3s ease",
               zIndex: 1,
             }}
@@ -854,10 +854,10 @@ const MenuItemCard = ({
           />
         )}
 
-        {/* Bottom gradient fade */}
+        {/* Subtle bottom fade */}
         <div
-          className="absolute inset-x-0 bottom-0 h-10"
-          style={{ background: "linear-gradient(to top, rgba(238,247,241,0.8), transparent)", zIndex: 2 }}
+          className="absolute inset-x-0 bottom-0 h-8"
+          style={{ background: "linear-gradient(to top, rgba(255,255,255,0.95), transparent)", zIndex: 2 }}
         />
 
         {/* Popular badge — top right */}
