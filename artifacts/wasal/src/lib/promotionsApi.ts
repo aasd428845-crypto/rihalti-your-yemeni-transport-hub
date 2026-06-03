@@ -11,6 +11,8 @@ export type PromoType =
 
 export type MenuItemPromoType = "discount_percent" | "fixed_price" | "custom_text";
 
+export type PromoSponsorType = "restaurant" | "external" | "platform";
+
 export interface RestaurantPromotion {
   id: string;
   restaurant_id: string;
@@ -31,6 +33,10 @@ export interface RestaurantPromotion {
   is_active: boolean;
   sort_order: number;
   created_at: string;
+  /** Who sponsors/bears the cost of this offer */
+  sponsor_type?: PromoSponsorType | null;
+  /** Name of external sponsor if sponsor_type === "external" */
+  sponsor_name?: string | null;
 }
 
 export const getRestaurantPromotions = async (restaurantId: string): Promise<RestaurantPromotion[]> => {

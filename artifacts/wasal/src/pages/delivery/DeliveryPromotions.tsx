@@ -13,7 +13,8 @@ import { Plus, Pencil, Trash2, Tag, Truck, Clock, Calendar, Gift, Percent, Badge
 import { getActiveRestaurants } from "@/lib/restaurantApi";
 import {
   getRestaurantPromotions, createRestaurantPromotion, updateRestaurantPromotion,
-  deleteRestaurantPromotion, notifyCustomersAboutPromo, type RestaurantPromotion, type PromoType
+  deleteRestaurantPromotion, notifyCustomersAboutPromo,
+  type RestaurantPromotion, type PromoType, type PromoSponsorType
 } from "@/lib/promotionsApi";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/common/ImageUpload";
@@ -34,6 +35,21 @@ const PROMO_TYPES: { value: PromoType; label: string; icon: any; group: string; 
 ];
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+
+const PROMO_TO_OFFER_TYPE: Record<string, string> = {
+  free_delivery_min_order: "free_delivery",
+  free_delivery_schedule: "free_delivery",
+  free_delivery_limited: "free_delivery",
+  discount_percent: "percent_off_order",
+  fixed_discount: "fixed_off_order",
+};
+const SPONSOR_SYNCED_TYPES = new Set(Object.keys(PROMO_TO_OFFER_TYPE));
+
+const SPONSOR_OPTIONS: { value: PromoSponsorType; label: string; desc: string; color: string }[] = [
+  { value: "restaurant", label: "🏪 المطعم", desc: "قيمة التوصيل/الخصم تُسجَّل مديونية على المطعم", color: "border-amber-500 bg-amber-50 text-amber-800" },
+  { value: "external",   label: "🤝 جهة خارجية", desc: "بنك أو جهة راعية — لا مديونية على المطعم", color: "border-blue-500 bg-blue-50 text-blue-800" },
+  { value: "platform",   label: "🚚 الشركة", desc: "الشركة تتحمّل التكلفة كاملاً", color: "border-primary/60 bg-primary/5 text-primary" },
+];
 
 const GROUP_LABELS: Record<string, string> = {
   delivery: "🚚 عروض التوصيل",
@@ -62,6 +78,8 @@ const emptyForm = (): any => ({
   is_active: true,
   sort_order: 0,
   restaurant_id: "",
+  sponsor_type: "restaurant" as PromoSponsorType,
+  sponsor_name: "",
 });
 
 const promoTypeInfo = (t: PromoType) => PROMO_TYPES.find(p => p.value === t) || PROMO_TYPES[0];
@@ -126,6 +144,8 @@ const DeliveryPromotions = () => {
       active_days: p.active_days || [],
       starts_at: p.starts_at ? p.starts_at.slice(0, 16) : "",
       ends_at: p.ends_at ? p.ends_at.slice(0, 16) : "",
+      sponsor_type: p.sponsor_type || "restaurant",
+      sponsor_name: p.sponsor_name || "",
     });
     setShowDialog(true);
   };
@@ -134,6 +154,7 @@ const DeliveryPromotions = () => {
     if (!form.title.trim()) { toast({ title: "أدخل عنوان العرض", variant: "destructive" }); return; }
     if (!form.restaurant_id) { toast({ title: "اختر المطعم", variant: "destructive" }); return; }
     try {
+      const synced = SPONSOR_SYNCED_TYPES.has(form.promo_type);
       const payload: any = {
         restaurant_id: form.restaurant_id,
         promo_type: form.promo_type,
@@ -154,6 +175,8 @@ const DeliveryPromotions = () => {
         ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
         is_active: form.is_active,
         sort_order: form.sort_order || 0,
+        sponsor_type: synced ? (form.sponsor_type || "restaurant") : null,
+        sponsor_name: (synced && form.sponsor_type === "external") ? (form.sponsor_name || null) : null,
       };
       const isNewlyActive = form.is_active && !(editItem?.is_active ?? false);
       let savedPromo: RestaurantPromotion;
@@ -165,14 +188,14 @@ const DeliveryPromotions = () => {
         toast({ title: "تمت إضافة العرض ✓" });
       }
 
-      // Sync a delivery_banners entry so the offer shows in the customer carousel
+      // ── Sync delivery_banners (customer carousel) ──
       const rest = restaurants.find(r => r.id === form.restaurant_id);
       const bannerPayload: any = {
         delivery_company_id: user!.id,
         title: form.title,
         subtitle: form.description || promoSummary(savedPromo),
         image_url: form.image_url || rest?.cover_image || null,
-        badge_text: form.badge_text || promoTypeInfo(form.promo_type).group === "delivery" ? "مجاني" : "خصم",
+        badge_text: form.badge_text || (promoTypeInfo(form.promo_type).group === "delivery" ? "مجاني" : "خصم"),
         is_active: form.is_active,
         banner_type: "offer",
         tile_action: "restaurants",
@@ -180,11 +203,53 @@ const DeliveryPromotions = () => {
         city: rest?.city || null,
         sort_order: form.sort_order || 0,
       };
-      // Try to upsert banner — link to promotion via link_url = restaurant_id
       await supabase.from("delivery_banners" as any).upsert({
         ...bannerPayload,
         id: (editItem as any)?.banner_id || undefined,
       }, { onConflict: "id" });
+
+      // ── Sync delivery_company_offers (so checkout applies the offer + records subsidy) ──
+      if (synced) {
+        const offerType = PROMO_TO_OFFER_TYPE[form.promo_type];
+        const autoBadge = form.badge_text || (
+          offerType === "free_delivery" ? "مجاني" :
+          offerType === "percent_off_order" ? `خصم ${form.discount_percent}%` :
+          `خصم ${form.discount_amount} ر.ي`
+        );
+        const offerPayload: any = {
+          delivery_company_id: user!.id,
+          offer_type: offerType,
+          title: form.title,
+          description: form.description || null,
+          image_url: form.image_url || null,
+          badge_text: autoBadge,
+          restaurant_id: form.restaurant_id,
+          discount_percent: form.promo_type === "discount_percent" ? (form.discount_percent || null) : null,
+          discount_amount: form.promo_type === "fixed_discount" ? (form.discount_amount || null) : null,
+          min_order_amount: form.promo_type === "free_delivery_min_order" ? (form.min_order_amount || null) : null,
+          active_days: form.active_days?.length ? form.active_days : null,
+          start_time: form.start_time || null,
+          end_time: form.end_time || null,
+          starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
+          ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
+          is_active: form.is_active,
+          sort_order: form.sort_order || 0,
+          sponsor_type: form.sponsor_type || "restaurant",
+          sponsor_name: form.sponsor_type === "external" ? (form.sponsor_name || null) : null,
+          source_promo_id: savedPromo.id,
+        };
+        const sb = supabase as any;
+        const { data: existingOffer } = await sb
+          .from("delivery_company_offers")
+          .select("id")
+          .eq("source_promo_id", savedPromo.id)
+          .maybeSingle();
+        if (existingOffer?.id) {
+          await sb.from("delivery_company_offers").update(offerPayload).eq("id", existingOffer.id);
+        } else {
+          await sb.from("delivery_company_offers").insert(offerPayload);
+        }
+      }
 
       setShowDialog(false);
       getRestaurantPromotions(selectedRestaurant).then(setPromotions).catch(() => {});
@@ -205,6 +270,8 @@ const DeliveryPromotions = () => {
     if (!confirm("هل تريد حذف هذا العرض؟")) return;
     try {
       await deleteRestaurantPromotion(id);
+      // Remove linked delivery_company_offers entry so checkout no longer applies it
+      await (supabase as any).from("delivery_company_offers").delete().eq("source_promo_id", id);
       toast({ title: "تم حذف العرض" });
       setPromotions(p => p.filter(x => x.id !== id));
     } catch (err: any) {
@@ -216,6 +283,8 @@ const DeliveryPromotions = () => {
     try {
       const newActive = !p.is_active;
       await updateRestaurantPromotion(p.id, { is_active: newActive });
+      // Mirror active state to linked delivery_company_offers entry
+      await (supabase as any).from("delivery_company_offers").update({ is_active: newActive }).eq("source_promo_id", p.id);
       setPromotions(prev => prev.map(x => x.id === p.id ? { ...x, is_active: newActive } : x));
       if (newActive) {
         const rest = restaurants.find(r => r.id === p.restaurant_id);
@@ -332,6 +401,20 @@ const DeliveryPromotions = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-black text-base">{p.title}</h3>
                         <PromoTypeBadge type={p.promo_type} />
+                        {SPONSOR_SYNCED_TYPES.has(p.promo_type) && (
+                          <Badge className="bg-emerald-100 text-emerald-800 border-0 text-[10px] gap-1 px-2 py-0.5">
+                            ⚡ مُزامن مع سلة الطلب
+                          </Badge>
+                        )}
+                        {p.sponsor_type === "restaurant" && (
+                          <Badge className="bg-amber-100 text-amber-800 border-0 text-[10px] px-2 py-0.5">🏪 مديونية مطعم</Badge>
+                        )}
+                        {p.sponsor_type === "external" && (
+                          <Badge className="bg-blue-100 text-blue-800 border-0 text-[10px] px-2 py-0.5">🤝 {p.sponsor_name || "جهة خارجية"}</Badge>
+                        )}
+                        {p.sponsor_type === "platform" && (
+                          <Badge className="bg-primary/10 text-primary border-0 text-[10px] px-2 py-0.5">🚚 الشركة</Badge>
+                        )}
                         {!p.is_active && <Badge variant="secondary">مخفي</Badge>}
                       </div>
                       <p className="text-sm text-muted-foreground mt-0.5">{promoSummary(p)}</p>
@@ -537,6 +620,45 @@ const DeliveryPromotions = () => {
               <div>
                 <Label className="font-semibold">نص العرض المخصص</Label>
                 <Textarea value={form.promo_text} onChange={e => setForm({...form, promo_text: e.target.value})} placeholder="مثال: اشترِ وجبتين واحصل على مشروب مجاني" rows={3} />
+              </div>
+            )}
+
+            {/* Sponsor selector — only for delivery/discount types that sync to checkout */}
+            {SPONSOR_SYNCED_TYPES.has(form.promo_type) && (
+              <div className="space-y-2 rounded-xl border border-dashed border-border p-3 bg-muted/30">
+                <Label className="font-bold text-sm">راعي العرض (من يتحمّل التكلفة؟)</Label>
+                <div className="grid grid-cols-1 gap-2">
+                  {SPONSOR_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setForm({...form, sponsor_type: opt.value})}
+                      className={`flex items-start gap-3 px-3 py-2.5 rounded-xl border-2 text-right text-sm transition-all ${form.sponsor_type === opt.value ? opt.color + " border-current" : "bg-muted/50 border-border hover:border-primary/40"}`}
+                    >
+                      <div className="flex-1">
+                        <p className="font-bold leading-tight">{opt.label}</p>
+                        <p className="text-xs opacity-75 mt-0.5">{opt.desc}</p>
+                      </div>
+                      {form.sponsor_type === opt.value && <span className="text-xs font-black mt-0.5">✓</span>}
+                    </button>
+                  ))}
+                </div>
+                {form.sponsor_type === "restaurant" && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    ⚠️ سيتم تسجيل قيمة التوصيل/الخصم كـ<strong>مديونية على المطعم</strong> في صفحة المالية عند كل طلب يُطبَّق عليه هذا العرض.
+                  </p>
+                )}
+                {form.sponsor_type === "external" && (
+                  <div>
+                    <Label className="text-sm">اسم الجهة الراعية</Label>
+                    <Input
+                      value={form.sponsor_name}
+                      onChange={e => setForm({...form, sponsor_name: e.target.value})}
+                      placeholder="مثال: بنك التضامن، مؤسسة الرياده..."
+                      className="mt-1"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
