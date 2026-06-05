@@ -2,6 +2,14 @@
   command = "pnpm --filter @workspace/wasal run build"
   publish = "artifacts/wasal/dist/public"
 
+[context.production]
+  command = "pnpm --filter @workspace/wasal run build"
+  publish = "artifacts/wasal/dist/public"
+
+[context.main]
+  command = "pnpm --filter @workspace/wasal run build"
+  publish = "artifacts/wasal/dist/public"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
