@@ -9,6 +9,7 @@ import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Store } from "lucide-rea
 import BackButton from "@/components/common/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getActiveOffersListForCompany, type DeliveryOffer, isOfferCurrentlyActive } from "@/lib/deliveryOffersApi";
 
 interface CartItem {
   id: string;
@@ -32,6 +33,8 @@ const CartPage = () => {
   const { toast } = useToast();
   const [carts, setCarts] = useState<CartData[]>([]);
   const [restaurants, setRestaurants] = useState<Record<string, any>>({});
+  // Map of restaurant_id → best active free/discount delivery offer
+  const [restaurantOffers, setRestaurantOffers] = useState<Record<string, DeliveryOffer | null>>({});
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState("");
 
@@ -55,17 +58,41 @@ const CartPage = () => {
           total_amount: c.total_amount,
         })));
 
-        // Load restaurant names
+        // Load restaurant info including delivery pricing fields
         const rIds = [...new Set(validCarts.map((c: any) => c.restaurant_id).filter(Boolean))];
         if (rIds.length > 0) {
           const { data: rData } = await supabase
             .from("restaurants")
-            .select("id, name_ar, delivery_fee, min_order_amount, logo_url")
+            .select("id, name_ar, delivery_fee, min_order_amount, logo_url, delivery_company_id, price_per_km")
             .in("id", rIds);
           if (rData) {
             const map: Record<string, any> = {};
             rData.forEach((r: any) => { map[r.id] = r; });
             setRestaurants(map);
+
+            // Fetch active offers for each unique delivery company
+            const companyIds = [...new Set(
+              rData.map((r: any) => r.delivery_company_id).filter(Boolean)
+            )] as string[];
+
+            if (companyIds.length > 0) {
+              const offerResults = await Promise.all(
+                companyIds.map(cid => getActiveOffersListForCompany(cid).then(offers => ({ cid, offers })))
+              );
+
+              // Build restaurant_id → best offer map
+              const offersMap: Record<string, DeliveryOffer | null> = {};
+              rData.forEach((r: any) => {
+                if (!r.delivery_company_id) { offersMap[r.id] = null; return; }
+                const result = offerResults.find(x => x.cid === r.delivery_company_id);
+                if (!result?.offers.length) { offersMap[r.id] = null; return; }
+                // Prefer restaurant-specific offer, then company-wide
+                const specific = result.offers.find(o => o.restaurant_id === r.id);
+                const wide = result.offers.find(o => !o.restaurant_id);
+                offersMap[r.id] = specific ?? wide ?? null;
+              });
+              setRestaurantOffers(offersMap);
+            }
           }
         }
       } catch (err: any) {
@@ -112,10 +139,16 @@ const CartPage = () => {
   const grandTotal = useMemo(() => {
     return carts.reduce((sum, cart) => {
       const subtotal = cart.items.reduce((s, c) => s + c.price * c.quantity, 0);
-      const fee = restaurants[cart.restaurant_id]?.delivery_fee || 0;
+      const r = restaurants[cart.restaurant_id];
+      const offer = restaurantOffers[cart.restaurant_id];
+      const offerMin = offer?.min_order_amount ?? 0;
+      const offerApplies = !!offer && subtotal >= offerMin;
+      const isFreeDelivery = offerApplies && offer?.offer_type === "free_delivery";
+      // For grand total preview in cart, only add fee if we know it's not free
+      const fee = isFreeDelivery ? 0 : (r?.delivery_fee || 0);
       return sum + subtotal + fee;
     }, 0);
-  }, [carts, restaurants]);
+  }, [carts, restaurants, restaurantOffers]);
 
   if (loading) return (
     <div className="flex justify-center py-20">
@@ -147,7 +180,44 @@ const CartPage = () => {
           {carts.map(cart => {
             const r = restaurants[cart.restaurant_id];
             const subtotal = cart.items.reduce((s, c) => s + c.price * c.quantity, 0);
-            const fee = r?.delivery_fee || 0;
+            const offer = restaurantOffers[cart.restaurant_id];
+            const offerMin = offer?.min_order_amount ?? 0;
+            const offerApplies = !!offer && subtotal >= offerMin;
+            const isFreeDelivery = offerApplies && offer?.offer_type === "free_delivery";
+            const isDistancePriced = !!(r?.price_per_km && Number(r.price_per_km) > 0);
+            const staticFee: number = r?.delivery_fee || 0;
+
+            // Determine what to show for delivery fee
+            let deliveryFeeLabel: React.ReactNode;
+            if (isFreeDelivery) {
+              deliveryFeeLabel = (
+                <span className="flex items-center gap-1">
+                  <span className="line-through text-muted-foreground text-xs">رسوم</span>
+                  <span className="text-green-600 font-bold">مجاني 🎉</span>
+                </span>
+              );
+            } else if (offer && offerMin > subtotal) {
+              const remaining = offerMin - subtotal;
+              deliveryFeeLabel = (
+                <span className="text-amber-600 text-xs">
+                  أضف {remaining.toLocaleString()} ر.ي للتوصيل المجاني
+                </span>
+              );
+            } else if (isDistancePriced) {
+              deliveryFeeLabel = (
+                <span className="text-muted-foreground text-xs">يُحسب عند التوصيل</span>
+              );
+            } else {
+              deliveryFeeLabel = (
+                <span>{staticFee === 0 ? "مجاني" : `${staticFee} ر.ي`}</span>
+              );
+            }
+
+            const displayTotal = isFreeDelivery
+              ? subtotal
+              : isDistancePriced
+                ? subtotal
+                : subtotal + staticFee;
 
             return (
               <Card key={cart.id}>
@@ -195,16 +265,38 @@ const CartPage = () => {
                     </div>
                   ))}
                   <Separator />
+
+                  {/* Active offer banner in cart */}
+                  {offer && offerApplies && (
+                    <div className="bg-green-50 dark:bg-green-950/20 border border-green-300 rounded-lg px-3 py-2 flex items-center gap-2 text-sm text-green-800 dark:text-green-300">
+                      <span className="text-base">🎉</span>
+                      <span className="font-semibold">{offer.title}</span>
+                    </div>
+                  )}
+                  {offer && !offerApplies && offerMin > 0 && (
+                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
+                      <span className="text-base">🎁</span>
+                      <div>
+                        <span className="font-semibold">{offer.title}</span>
+                        <p className="text-xs mt-0.5">أضف <strong>{(offerMin - subtotal).toLocaleString()} ر.ي</strong> للحصول على هذا العرض</p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span>المجموع الفرعي</span><span>{subtotal} ر.ي</span></div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between"><span>المجموع الفرعي</span><span>{subtotal.toLocaleString()} ر.ي</span></div>
+                    <div className="flex justify-between items-center">
                       <span>رسوم التوصيل</span>
-                      <span>{fee === 0 ? "مجاني" : `${fee} ر.ي`}</span>
+                      {deliveryFeeLabel}
                     </div>
                     <Separator />
                     <div className="flex justify-between font-bold">
                       <span>الإجمالي</span>
-                      <span className="text-primary">{subtotal + fee} ر.ي</span>
+                      <span className="text-primary">
+                        {isDistancePriced && !isFreeDelivery
+                          ? <span>{subtotal.toLocaleString()} ر.ي <span className="text-xs font-normal text-muted-foreground">+ رسوم التوصيل</span></span>
+                          : `${displayTotal.toLocaleString()} ر.ي`}
+                      </span>
                     </div>
                   </div>
                   {r?.min_order_amount > 0 && subtotal < r.min_order_amount && (

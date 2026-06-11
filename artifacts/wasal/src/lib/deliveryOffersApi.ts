@@ -149,14 +149,9 @@ export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
 /**
  * Fetch active offers for a specific delivery company + restaurant — used at checkout.
  * Priority: restaurant-specific offer first, then company-wide offers.
- * Returns the first time-valid offer with its full data (so the caller can
- * check min_order_amount against the current cart subtotal).
  *
- * NOTE: We intentionally do NOT filter by delivery_company_id in the Supabase query
- * because RLS policies on this table only allow customers to read rows without
- * a company-scoped filter. We fetch all active offers and filter in JS instead.
- * This mirrors the approach used by getCustomerActiveOffers() which already works
- * for all user roles.
+ * Uses the backend API (/api/offers/active) which runs with the service-role key,
+ * so it reliably bypasses RLS that would otherwise block customer-scoped queries.
  */
 export const getActiveOffersForCompany = async (
   companyId: string,
@@ -167,20 +162,14 @@ export const getActiveOffersForCompany = async (
   appliedOrderDiscount: (subtotal: number) => number;
 } | null> => {
   try {
-    // Fetch all active offers using the same query that works for customers,
-    // then filter by company ID in JavaScript to avoid RLS blocking.
-    const { data, error } = await supabase
-      .from(TABLE)
-      .select("*")
-      .eq("is_active", true);
+    const params = new URLSearchParams({ companyId });
+    const res = await fetch(`/api/offers/active?${params}`);
+    if (!res.ok) return null;
+    const { offers } = (await res.json()) as { offers: DeliveryOffer[] };
+    if (!offers?.length) return null;
 
-    if (error || !data?.length) return null;
-
-    // Filter by company and time validity in JS
-    const companyOffers = (data as unknown as DeliveryOffer[])
-      .filter(o => o.delivery_company_id === companyId)
-      .filter(isOfferCurrentlyActive);
-
+    // Filter by time/day validity in JS
+    const companyOffers = offers.filter(isOfferCurrentlyActive);
     if (!companyOffers.length) return null;
 
     const wrap = (o: DeliveryOffer) => ({
@@ -189,18 +178,36 @@ export const getActiveOffersForCompany = async (
       appliedOrderDiscount: buildOrderDiscount(o),
     });
 
-    // 1. Try restaurant-specific offer first (restaurant_id matches)
+    // 1. Restaurant-specific offer takes priority
     if (restaurantId) {
       const specific = companyOffers.find(o => o.restaurant_id === restaurantId);
       if (specific) return wrap(specific);
     }
 
-    // 2. Fall back to company-wide offer (restaurant_id is null/undefined)
+    // 2. Fall back to company-wide offer (no restaurant_id restriction)
     const companyWide = companyOffers.find(o => !o.restaurant_id);
     if (companyWide) return wrap(companyWide);
 
     return null;
   } catch {
     return null;
+  }
+};
+
+/**
+ * Fetch all active offers for a company via the backend API.
+ * Returns raw offer list filtered by time validity — used by CartPage preview.
+ */
+export const getActiveOffersListForCompany = async (
+  companyId: string
+): Promise<DeliveryOffer[]> => {
+  try {
+    const params = new URLSearchParams({ companyId });
+    const res = await fetch(`/api/offers/active?${params}`);
+    if (!res.ok) return [];
+    const { offers } = (await res.json()) as { offers: DeliveryOffer[] };
+    return (offers ?? []).filter(isOfferCurrentlyActive);
+  } catch {
+    return [];
   }
 };
