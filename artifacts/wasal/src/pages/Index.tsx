@@ -11,6 +11,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { getCustomerActiveOffers, type DeliveryOffer } from "@/lib/deliveryOffersApi";
 
 // ─── Promo Banners (fallback if DB has none) ─────────────────────────────────
 const FALLBACK_BANNERS = [
@@ -439,25 +440,31 @@ const OffersSection = () => {
   const [offers, setOffers] = useState<any[] | null>(null);
 
   useEffect(() => {
-    const today = new Date().toISOString();
-    supabase
-      .from("promotions")
-      .select("id, title, description, discount_value, discount_type, promo_code, restaurant_id, end_date")
-      .eq("is_active", true)
-      .or(`end_date.is.null,end_date.gte.${today}`)
-      .order("created_at", { ascending: false })
-      .limit(6)
-      .then(({ data }) => setOffers(data && data.length > 0 ? data : FALLBACK_OFFERS));
+    getCustomerActiveOffers()
+      .then((data) => {
+        if (data && data.length > 0) {
+          setOffers(data);
+        } else {
+          setOffers(FALLBACK_OFFERS);
+        }
+      })
+      .catch(() => setOffers(FALLBACK_OFFERS));
   }, []);
 
   const list = offers ?? [];
   if (list.length === 0) return null;
 
   const getBadge = (o: any): { text: string; color: string } => {
+    if (o.badge_text) return { text: o.badge_text, color: "#1B4332" };
+    if (o.offer_type === "free_delivery")        return { text: "مجاني", color: "#1B9E6E" };
+    if (o.offer_type === "percent_off_delivery") return { text: `خصم ${o.discount_percent}%`, color: "#E53935" };
+    if (o.offer_type === "fixed_off_delivery")   return { text: "خصم توصيل", color: "#E53935" };
+    if (o.offer_type === "percent_off_order")    return { text: `خصم ${o.discount_percent}%`, color: "#E53935" };
+    if (o.offer_type === "fixed_off_order")      return { text: "خصم", color: "#E53935" };
+    if (o.offer_type === "buy_x_get_y")          return { text: "كومبو", color: "#7C3AED" };
+    // Legacy promotions table fallback
     if (o.discount_type === "percentage" && o.discount_value) return { text: "تخفيض", color: "#E53935" };
-    if (o.discount_type === "fixed" && o.discount_value) return { text: "تخفيض", color: "#E53935" };
-    if (!o.discount_value && !o.promo_code) return { text: "مجاني", color: "#1B9E6E" };
-    if (o.promo_code) return { text: "كود خصم", color: "#F59E0B" };
+    if (!o.discount_value && !o.promo_code)      return { text: "مجاني", color: "#1B9E6E" };
     return { text: "عرض خاص", color: "#1B4332" };
   };
 
