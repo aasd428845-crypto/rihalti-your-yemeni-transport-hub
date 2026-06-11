@@ -180,74 +180,123 @@ const DeliveryPromotions = () => {
       };
       const isNewlyActive = form.is_active && !(editItem?.is_active ?? false);
       let savedPromo: RestaurantPromotion;
+      // Try with sponsor_type/sponsor_name first; fall back without them if columns missing
+      const savePromo = async (p: any) => {
+        if (editItem) return updateRestaurantPromotion(editItem.id, p);
+        return createRestaurantPromotion(p);
+      };
+      try {
+        savedPromo = await savePromo(payload);
+      } catch {
+        // Retry without sponsor columns (pre-migration 010 fallback)
+        const { sponsor_type: _st, sponsor_name: _sn, ...payloadBase } = payload;
+        savedPromo = await savePromo(payloadBase);
+      }
       if (editItem) {
-        savedPromo = await updateRestaurantPromotion(editItem.id, payload);
         toast({ title: "تم تحديث العرض ✓" });
       } else {
-        savedPromo = await createRestaurantPromotion(payload);
         toast({ title: "تمت إضافة العرض ✓" });
       }
 
       // ── Sync delivery_banners (customer carousel) ──
       const rest = restaurants.find(r => r.id === form.restaurant_id);
-      const bannerPayload: any = {
-        delivery_company_id: user!.id,
-        title: form.title,
-        subtitle: form.description || promoSummary(savedPromo),
-        image_url: form.image_url || rest?.cover_image || null,
-        badge_text: form.badge_text || (promoTypeInfo(form.promo_type).group === "delivery" ? "مجاني" : "خصم"),
-        is_active: form.is_active,
-        banner_type: "offer",
-        tile_action: "restaurants",
-        link_url: form.restaurant_id,
-        city: rest?.city || null,
-        sort_order: form.sort_order || 0,
-      };
-      await supabase.from("delivery_banners" as any).upsert({
-        ...bannerPayload,
-        id: (editItem as any)?.banner_id || undefined,
-      }, { onConflict: "id" });
+      try {
+        const bannerPayload: any = {
+          delivery_company_id: user!.id,
+          title: form.title,
+          subtitle: form.description || promoSummary(savedPromo),
+          image_url: form.image_url || rest?.cover_image || null,
+          badge_text: form.badge_text || (promoTypeInfo(form.promo_type).group === "delivery" ? "مجاني" : "خصم"),
+          is_active: form.is_active,
+          banner_type: "offer",
+          tile_action: "restaurants",
+          link_url: form.restaurant_id,
+          city: rest?.city || null,
+          sort_order: form.sort_order || 0,
+        };
+        await supabase.from("delivery_banners" as any).upsert({
+          ...bannerPayload,
+          id: (editItem as any)?.banner_id || undefined,
+        }, { onConflict: "id" });
+      } catch { /* delivery_banners table may not exist yet — non-critical */ }
 
       // ── Sync delivery_company_offers (so checkout applies the offer + records subsidy) ──
       if (synced) {
-        const offerType = PROMO_TO_OFFER_TYPE[form.promo_type];
-        const autoBadge = form.badge_text || (
-          offerType === "free_delivery" ? "مجاني" :
-          offerType === "percent_off_order" ? `خصم ${form.discount_percent}%` :
-          `خصم ${form.discount_amount} ر.ي`
-        );
-        const offerPayload: any = {
-          delivery_company_id: user!.id,
-          offer_type: offerType,
-          title: form.title,
-          description: form.description || null,
-          image_url: form.image_url || null,
-          badge_text: autoBadge,
-          restaurant_id: form.restaurant_id,
-          discount_percent: form.promo_type === "discount_percent" ? (form.discount_percent || null) : null,
-          discount_amount: form.promo_type === "fixed_discount" ? (form.discount_amount || null) : null,
-          min_order_amount: form.promo_type === "free_delivery_min_order" ? (form.min_order_amount || null) : null,
-          active_days: form.active_days?.length ? form.active_days : null,
-          start_time: form.start_time || null,
-          end_time: form.end_time || null,
-          starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
-          ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
-          is_active: form.is_active,
-          sort_order: form.sort_order || 0,
-          sponsor_type: form.sponsor_type || "restaurant",
-          sponsor_name: form.sponsor_type === "external" ? (form.sponsor_name || null) : null,
-          source_promo_id: savedPromo.id,
-        };
-        const sb = supabase as any;
-        const { data: existingOffer } = await sb
-          .from("delivery_company_offers")
-          .select("id")
-          .eq("source_promo_id", savedPromo.id)
-          .maybeSingle();
-        if (existingOffer?.id) {
-          await sb.from("delivery_company_offers").update(offerPayload).eq("id", existingOffer.id);
-        } else {
-          await sb.from("delivery_company_offers").insert(offerPayload);
+        try {
+          const offerType = PROMO_TO_OFFER_TYPE[form.promo_type];
+          const autoBadge = form.badge_text || (
+            offerType === "free_delivery" ? "مجاني" :
+            offerType === "percent_off_order" ? `خصم ${form.discount_percent}%` :
+            `خصم ${form.discount_amount} ر.ي`
+          );
+          const sb = supabase as any;
+
+          // Build the base payload (columns that always exist)
+          const basePayload: any = {
+            delivery_company_id: user!.id,
+            offer_type: offerType,
+            title: form.title,
+            description: form.description || null,
+            image_url: form.image_url || null,
+            badge_text: autoBadge,
+            restaurant_id: form.restaurant_id,
+            discount_percent: form.promo_type === "discount_percent" ? (form.discount_percent || null) : null,
+            discount_amount: form.promo_type === "fixed_discount" ? (form.discount_amount || null) : null,
+            min_order_amount: form.promo_type === "free_delivery_min_order" ? (form.min_order_amount || null) : null,
+            active_days: form.active_days?.length ? form.active_days : null,
+            start_time: form.start_time || null,
+            end_time: form.end_time || null,
+            starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
+            ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
+            is_active: form.is_active,
+            sort_order: form.sort_order || 0,
+          };
+
+          // Extended payload with new columns (require migration 010)
+          const fullPayload: any = {
+            ...basePayload,
+            sponsor_type: form.sponsor_type || "restaurant",
+            sponsor_name: form.sponsor_type === "external" ? (form.sponsor_name || null) : null,
+            source_promo_id: savedPromo.id,
+          };
+
+          // 1. Find existing row: try source_promo_id first, fallback to restaurant_id
+          let existingId: string | null = null;
+          try {
+            const { data } = await sb
+              .from("delivery_company_offers").select("id")
+              .eq("source_promo_id", savedPromo.id).maybeSingle();
+            existingId = data?.id ?? null;
+          } catch { /* source_promo_id column may not exist yet */ }
+
+          if (!existingId && form.restaurant_id) {
+            const { data } = await sb
+              .from("delivery_company_offers").select("id")
+              .eq("delivery_company_id", user!.id)
+              .eq("restaurant_id", form.restaurant_id)
+              .maybeSingle();
+            existingId = data?.id ?? null;
+          }
+
+          // 2. Upsert — try full payload first, fall back to base if new columns missing
+          const upsert = async (payload: any) => {
+            if (existingId) {
+              const { error } = await sb.from("delivery_company_offers").update(payload).eq("id", existingId);
+              if (error) throw error;
+            } else {
+              const { error } = await sb.from("delivery_company_offers").insert(payload);
+              if (error) throw error;
+            }
+          };
+
+          try {
+            await upsert(fullPayload);
+          } catch {
+            // Retry without new columns (pre-migration 010 fallback)
+            await upsert(basePayload);
+          }
+        } catch (syncErr: any) {
+          console.warn("offer sync warning:", syncErr?.message);
         }
       }
 
@@ -269,13 +318,28 @@ const DeliveryPromotions = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("هل تريد حذف هذا العرض؟")) return;
     try {
+      // Find the promo before deleting (needed for fallback cleanup)
+      const promoToDelete = promotions.find(p => p.id === id);
+
       await deleteRestaurantPromotion(id);
-      // Remove linked delivery_company_offers entry so checkout no longer applies it
-      await (supabase as any).from("delivery_company_offers").delete().eq("source_promo_id", id);
-      toast({ title: "تم حذف العرض" });
+
+      // ── Update UI immediately ──
       setPromotions(p => p.filter(x => x.id !== id));
+      toast({ title: "تم حذف العرض" });
+
+      // ── Cleanup delivery_company_offers (fire-and-forget, non-critical) ──
+      const sb = supabase as any;
+      // Try source_promo_id first (requires migration 010)
+      const { error: delErr1 } = await sb
+        .from("delivery_company_offers").delete().eq("source_promo_id", id);
+      if (delErr1 && promoToDelete?.restaurant_id) {
+        // Fallback: delete by restaurant_id + company (pre-migration 010)
+        await sb.from("delivery_company_offers").delete()
+          .eq("delivery_company_id", user!.id)
+          .eq("restaurant_id", promoToDelete.restaurant_id);
+      }
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      toast({ title: "خطأ في الحذف", description: err.message, variant: "destructive" });
     }
   };
 
@@ -283,9 +347,18 @@ const DeliveryPromotions = () => {
     try {
       const newActive = !p.is_active;
       await updateRestaurantPromotion(p.id, { is_active: newActive });
-      // Mirror active state to linked delivery_company_offers entry
-      await (supabase as any).from("delivery_company_offers").update({ is_active: newActive }).eq("source_promo_id", p.id);
+      // Update UI immediately
       setPromotions(prev => prev.map(x => x.id === p.id ? { ...x, is_active: newActive } : x));
+      // Mirror active state to linked delivery_company_offers (resilient to missing columns)
+      const sb2 = supabase as any;
+      const { error: upErr } = await sb2.from("delivery_company_offers")
+        .update({ is_active: newActive }).eq("source_promo_id", p.id);
+      if (upErr && p.restaurant_id) {
+        await sb2.from("delivery_company_offers")
+          .update({ is_active: newActive })
+          .eq("delivery_company_id", user!.id)
+          .eq("restaurant_id", p.restaurant_id);
+      }
       if (newActive) {
         const rest = restaurants.find(r => r.id === p.restaurant_id);
         notifyCustomersAboutPromo(

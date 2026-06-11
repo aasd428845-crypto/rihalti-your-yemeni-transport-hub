@@ -310,20 +310,25 @@ const RestaurantCheckoutPage = () => {
                     )}
                   </span>
                   <span>
-                    {distanceFee === null ? (
-                      <span className="text-muted-foreground text-xs">يُحسب بعد اختيار العنوان</span>
-                    ) : offerApplies && computedDeliveryFee === 0 ? (
-                      // Free delivery offer — show "مجاني" with original price struck through
+                    {/* Free delivery offer active → always show مجاني regardless of address */}
+                    {offerApplies && isDeliveryOffer && computedDeliveryFee === 0 ? (
                       <span className="flex items-center gap-1">
-                        <span className="line-through text-muted-foreground text-xs">{baseFee.toLocaleString()} ر.ي</span>
-                        <span className="text-green-600 font-bold">مجاني</span>
+                        {baseFee > 0 && <span className="line-through text-muted-foreground text-xs">{baseFee.toLocaleString()} ر.ي</span>}
+                        <span className="text-green-600 font-bold">مجاني 🎉</span>
                       </span>
-                    ) : offerApplies && deliveryDiscount > 0 ? (
+                    ) : offerApplies && isDeliveryOffer && deliveryDiscount > 0 ? (
                       // Partial discount
                       <span className="flex items-center gap-1">
                         <span className="line-through text-muted-foreground text-xs">{baseFee.toLocaleString()}</span>
                         <span className="text-green-600 font-bold">{computedDeliveryFee.toLocaleString()} ر.ي</span>
                       </span>
+                    ) : distanceFee === null ? (
+                      /* No offer or not applicable — show pending until address selected */
+                      activeOffer && isDeliveryOffer && offerMinOrder > 0 && !offerApplies ? (
+                        <span className="text-amber-600 text-xs">أضف {(offerMinOrder - subtotal).toLocaleString()} ر.ي للتوصيل المجاني</span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">يُحسب بعد اختيار العنوان</span>
+                      )
                     ) : (
                       <span>{computedDeliveryFee.toLocaleString()} ر.ي</span>
                     )}
