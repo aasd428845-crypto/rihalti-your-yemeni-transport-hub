@@ -120,13 +120,49 @@ const DeliveryPromotions = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!selectedRestaurant) return;
+    if (!selectedRestaurant || !user) return;
     setLoading(true);
     getRestaurantPromotions(selectedRestaurant)
-      .then(data => setPromotions(data))
+      .then(data => {
+        setPromotions(data);
+        // ── Auto-sync: remove orphaned delivery_company_offers for this restaurant ──
+        // If this restaurant has no active promotions, any delivery_company_offers
+        // linked to it are stale — clean them up via backend (uses service-role key).
+        if (data.length === 0) {
+          fetch("/api/offers/cleanup", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              companyId: user.id,
+              restaurantId: selectedRestaurant,
+            }),
+          }).catch(console.warn);
+        } else {
+          // Has promotions — clean up entries whose promoId is no longer in the list
+          const activePromoIds = new Set(data.map(p => p.id));
+          // Fetch current delivery_company_offers for this restaurant and clean stale ones
+          fetch(`/api/offers/active?companyId=${user.id}`)
+            .then(r => r.json())
+            .then(({ offers }: any) => {
+              const staleOffers = (offers ?? []).filter((o: any) =>
+                o.restaurant_id === selectedRestaurant &&
+                o.source_promo_id &&
+                !activePromoIds.has(o.source_promo_id)
+              );
+              staleOffers.forEach((o: any) => {
+                fetch("/api/offers/cleanup", {
+                  method: "DELETE",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ companyId: user.id, promoId: o.source_promo_id }),
+                }).catch(console.warn);
+              });
+            })
+            .catch(console.warn);
+        }
+      })
       .catch(err => toast({ title: "خطأ في التحميل", description: err.message, variant: "destructive" }))
       .finally(() => setLoading(false));
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, user]);
 
   const openNew = () => {
     setEditItem(null);
@@ -318,26 +354,26 @@ const DeliveryPromotions = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("هل تريد حذف هذا العرض؟")) return;
     try {
-      // Find the promo before deleting (needed for fallback cleanup)
       const promoToDelete = promotions.find(p => p.id === id);
 
+      // 1. Delete from restaurant_promotions
       await deleteRestaurantPromotion(id);
 
-      // ── Update UI immediately ──
+      // 2. Update UI immediately — don't wait for cleanup
       setPromotions(p => p.filter(x => x.id !== id));
       toast({ title: "تم حذف العرض" });
 
-      // ── Cleanup delivery_company_offers (fire-and-forget, non-critical) ──
-      const sb = supabase as any;
-      // Try source_promo_id first (requires migration 010)
-      const { error: delErr1 } = await sb
-        .from("delivery_company_offers").delete().eq("source_promo_id", id);
-      if (delErr1 && promoToDelete?.restaurant_id) {
-        // Fallback: delete by restaurant_id + company (pre-migration 010)
-        await sb.from("delivery_company_offers").delete()
-          .eq("delivery_company_id", user!.id)
-          .eq("restaurant_id", promoToDelete.restaurant_id);
-      }
+      // 3. Cleanup delivery_company_offers via backend (uses service-role key, bypasses RLS)
+      //    Fire-and-forget — UI already updated above
+      fetch("/api/offers/cleanup", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId: user!.id,
+          promoId: id,
+          restaurantId: promoToDelete?.restaurant_id ?? undefined,
+        }),
+      }).catch(console.warn);
     } catch (err: any) {
       toast({ title: "خطأ في الحذف", description: err.message, variant: "destructive" });
     }
