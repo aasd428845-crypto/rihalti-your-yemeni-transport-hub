@@ -153,6 +153,31 @@ export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
  * Uses the backend API (/api/offers/active) which runs with the service-role key,
  * so it reliably bypasses RLS that would otherwise block customer-scoped queries.
  */
+/** Internal: fetch active offers list — tries API first, falls back to direct Supabase query */
+async function fetchActiveOffers(companyId: string): Promise<DeliveryOffer[]> {
+  // 1. Try the Vercel serverless function / Express proxy
+  try {
+    const params = new URLSearchParams({ companyId });
+    const res = await fetch(`/api/offers/active?${params}`);
+    if (res.ok) {
+      const json = (await res.json()) as { offers: DeliveryOffer[] };
+      return json.offers ?? [];
+    }
+  } catch { /* fall through */ }
+
+  // 2. Fallback: query Supabase directly — RLS allows public SELECT
+  try {
+    const { data } = await supabase
+      .from("delivery_company_offers" as any)
+      .select("*")
+      .eq("delivery_company_id", companyId)
+      .eq("is_active", true);
+    return (data ?? []) as unknown as DeliveryOffer[];
+  } catch {
+    return [];
+  }
+}
+
 export const getActiveOffersForCompany = async (
   companyId: string,
   restaurantId?: string
@@ -162,13 +187,9 @@ export const getActiveOffersForCompany = async (
   appliedOrderDiscount: (subtotal: number) => number;
 } | null> => {
   try {
-    const params = new URLSearchParams({ companyId });
-    const res = await fetch(`/api/offers/active?${params}`);
-    if (!res.ok) return null;
-    const { offers } = (await res.json()) as { offers: DeliveryOffer[] };
-    if (!offers?.length) return null;
+    const offers = await fetchActiveOffers(companyId);
+    if (!offers.length) return null;
 
-    // Filter by time/day validity in JS
     const companyOffers = offers.filter(isOfferCurrentlyActive);
     if (!companyOffers.length) return null;
 
@@ -202,11 +223,8 @@ export const getActiveOffersListForCompany = async (
   companyId: string
 ): Promise<DeliveryOffer[]> => {
   try {
-    const params = new URLSearchParams({ companyId });
-    const res = await fetch(`/api/offers/active?${params}`);
-    if (!res.ok) return [];
-    const { offers } = (await res.json()) as { offers: DeliveryOffer[] };
-    return (offers ?? []).filter(isOfferCurrentlyActive);
+    const offers = await fetchActiveOffers(companyId);
+    return offers.filter(isOfferCurrentlyActive);
   } catch {
     return [];
   }
