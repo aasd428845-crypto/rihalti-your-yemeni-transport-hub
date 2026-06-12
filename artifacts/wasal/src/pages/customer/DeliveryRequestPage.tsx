@@ -640,9 +640,13 @@ const DeliveryRequestPage = () => {
                     {companyOffers.map(offer => {
                       const isSel = selectedOffer?.id === offer.id;
                       const label =
-                        offer.offer_type === "free_delivery" ? "توصيل مجاني" :
-                        offer.offer_type === "percent_off_delivery" ? `خصم ${offer.discount_percent}%` :
-                        `خصم ${offer.discount_amount?.toLocaleString()} ر.ي`;
+                        offer.offer_type === "free_delivery"        ? "توصيل مجاني" :
+                        offer.offer_type === "percent_off_delivery" ? `خصم ${offer.discount_percent ?? 0}% على التوصيل` :
+                        offer.offer_type === "fixed_off_delivery"   ? `خصم ${(offer.discount_amount ?? 0).toLocaleString()} ر.ي على التوصيل` :
+                        offer.offer_type === "percent_off_order"    ? `خصم ${offer.discount_percent ?? 0}% على الطلب` :
+                        offer.offer_type === "fixed_off_order"      ? `خصم ${(offer.discount_amount ?? 0).toLocaleString()} ر.ي على الطلب` :
+                        offer.offer_type === "buy_x_get_y"          ? (offer.badge_text || "عرض كومبو") :
+                        (offer.badge_text || offer.title || "عرض خاص");
                       return (
                         <button key={offer.id} onClick={() => setSelectedOffer(isSel ? null : offer)}
                           className={`w-full text-right p-3 rounded-xl border-2 transition-all ${
@@ -972,9 +976,12 @@ const DeliveryRequestPage = () => {
                     {selectedOffer && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span className="flex items-center gap-1"><Percent className="w-3 h-3" /> {selectedOffer.title}</span>
-                        <span>{selectedOffer.offer_type === "free_delivery" ? "مجاني" :
-                               selectedOffer.offer_type === "percent_off_delivery" ? `-${selectedOffer.discount_percent}%` :
-                               `-${selectedOffer.discount_amount?.toLocaleString()} ر.ي`}</span>
+                        <span>{selectedOffer.offer_type === "free_delivery"        ? "مجاني" :
+                               selectedOffer.offer_type === "percent_off_delivery" ? `-${selectedOffer.discount_percent ?? 0}%` :
+                               selectedOffer.offer_type === "fixed_off_delivery"   ? `-${(selectedOffer.discount_amount ?? 0).toLocaleString()} ر.ي` :
+                               selectedOffer.offer_type === "percent_off_order"    ? `-${selectedOffer.discount_percent ?? 0}% على الطلب` :
+                               selectedOffer.offer_type === "fixed_off_order"      ? `-${(selectedOffer.discount_amount ?? 0).toLocaleString()} ر.ي على الطلب` :
+                               selectedOffer.badge_text || selectedOffer.title || "عرض مطبَّق"}</span>
                       </div>
                     )}
                     <Separator />

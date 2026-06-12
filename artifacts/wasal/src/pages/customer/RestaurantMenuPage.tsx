@@ -982,25 +982,28 @@ const MenuItemCard = ({
       </div>
 
       {/* ── Delivery offer banner — bottom strip ── */}
-      {restaurantOffer && (() => {
-        const o = restaurantOffer;
-        let label = "";
-        if (o.offer_type === "free_delivery")        label = "🚚 توصيل مجاني";
-        else if (o.offer_type === "percent_off_delivery") label = `🚚 خصم ${o.discount_percent}% على التوصيل`;
-        else if (o.offer_type === "fixed_off_delivery")   label = `🚚 خصم ${o.discount_amount} ر.ي على التوصيل`;
-        else if (o.offer_type === "percent_off_order")    label = `🏷️ خصم ${o.discount_percent}% على الطلب`;
-        else if (o.offer_type === "fixed_off_order")      label = `🏷️ خصم ${o.discount_amount} ر.ي على الطلب`;
-        else if (o.badge_text)                            label = `🎁 ${o.badge_text}`;
-        if (!label) return null;
-        return (
-          <div
-            className="w-full text-center text-[9px] font-black text-white py-1 px-2 truncate"
-            style={{ backgroundColor: "#E53935" }}
-          >
-            {label}
-          </div>
-        );
-      })()}
+      {restaurantOffer && (
+        <div
+          className="mt-1 w-full flex items-center justify-center gap-1 py-1 rounded-lg"
+          style={{ backgroundColor: "#E53935" }}
+        >
+          <span className="text-white text-[9px] font-black leading-none text-center px-1">
+            {restaurantOffer.offer_type === "free_delivery"
+              ? "🚚 توصيل مجاني"
+              : restaurantOffer.offer_type === "percent_off_delivery"
+              ? `🚚 خصم ${restaurantOffer.discount_percent ?? 0}% على التوصيل`
+              : restaurantOffer.offer_type === "fixed_off_delivery"
+              ? `🚚 خصم ${(restaurantOffer.discount_amount ?? 0).toLocaleString()} ر.ي`
+              : restaurantOffer.offer_type === "percent_off_order"
+              ? `🏷️ خصم ${restaurantOffer.discount_percent ?? 0}% على الطلب`
+              : restaurantOffer.offer_type === "fixed_off_order"
+              ? `🏷️ خصم ${(restaurantOffer.discount_amount ?? 0).toLocaleString()} ر.ي على الطلب`
+              : restaurantOffer.offer_type === "buy_x_get_y"
+              ? `🎁 ${restaurantOffer.badge_text || "عرض كومبو"}`
+              : `🎁 ${restaurantOffer.badge_text || restaurantOffer.title || "عرض خاص"}`}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
