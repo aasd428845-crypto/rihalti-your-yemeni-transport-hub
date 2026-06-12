@@ -139,7 +139,7 @@ export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
         .order("sort_order")
         .order("created_at", { ascending: false });
       if (fallbackErr || !fallback) return [];
-      return (fallback as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
+      return (fallback as unknown as DeliveryOffer[]).filter(o => isOfferCurrentlyActive(o) && (o.scope === 'restaurant' || !o.scope));
     }
 
     if (!data) return [];
@@ -227,7 +227,7 @@ export const getActiveOffersListForCompany = async (
     const res = await fetch(`/api/offers/active?${params}`);
     if (res.ok) {
       const json = (await res.json()) as { offers: DeliveryOffer[] };
-      return (json.offers ?? []).filter(isOfferCurrentlyActive);
+      return (json.offers ?? []).filter(o => isOfferCurrentlyActive(o) && (o.scope === 'restaurant' || !o.scope));
     }
   } catch { /* fall through to Supabase */ }
 
@@ -238,7 +238,7 @@ export const getActiveOffersListForCompany = async (
       .select("*")
       .eq("delivery_company_id", companyId)
       .eq("is_active", true);
-    return ((data ?? []) as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
+    return ((data ?? []) as unknown as DeliveryOffer[]).filter(o => isOfferCurrentlyActive(o) && (o.scope === 'restaurant' || !o.scope));
   } catch {
     return [];
   }
