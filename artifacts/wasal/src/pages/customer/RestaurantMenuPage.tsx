@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Star, Clock, Truck, Plus, Minus, ShoppingCart, ArrowLeft, Flame, Search, ChevronLeft, Heart, Share2, Timer, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { getRestaurantById, getRestaurantMenu, getMenuItemOptions, upsertCart, getCart } from "@/lib/restaurantApi";
+import { getActiveOffersForCompany, type DeliveryOffer } from "@/lib/deliveryOffersApi";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -116,6 +117,7 @@ const RestaurantMenuPage = () => {
   const [itemOptions, setItemOptions] = useState<any[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
   const [itemNotes, setItemNotes] = useState("");
+  const [restaurantOffer, setRestaurantOffer] = useState<DeliveryOffer | null>(null);
 
   // Refs for section scroll
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -134,6 +136,13 @@ const RestaurantMenuPage = () => {
         if (user) {
           const existingCart = await getCart(user.id, id);
           if (existingCart?.items) setCart(existingCart.items as unknown as CartItem[]);
+        }
+        // Fetch active delivery offer for this restaurant's company
+        if (r?.delivery_company_id) {
+          try {
+            const result = await getActiveOffersForCompany(r.delivery_company_id, id);
+            setRestaurantOffer(result?.offer ?? null);
+          } catch { setRestaurantOffer(null); }
         }
       } catch (err: any) {
         toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -481,7 +490,7 @@ const RestaurantMenuPage = () => {
                 {(itemsByCategory["__search__"] || []).map(item => (
                   <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
                     onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
-                    onUpdateQty={updateCartQty} />
+                    onUpdateQty={updateCartQty} restaurantOffer={restaurantOffer} />
                 ))}
               </div>
             )}
@@ -511,7 +520,7 @@ const RestaurantMenuPage = () => {
                       {catItems.map(item => (
                         <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
                           onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
-                          onUpdateQty={updateCartQty} />
+                          onUpdateQty={updateCartQty} restaurantOffer={restaurantOffer} />
                       ))}
                     </div>
                   </div>
@@ -531,7 +540,7 @@ const RestaurantMenuPage = () => {
                     {(itemsByCategory["__other__"] || []).map(item => (
                       <MenuItemCard key={item.id} item={item} cartItem={cart.find(c => c.id === item.id)}
                         onOpen={() => openItemDetail(item)} onAdd={() => addToCart(item)}
-                        onUpdateQty={updateCartQty} />
+                        onUpdateQty={updateCartQty} restaurantOffer={restaurantOffer} />
                     ))}
                   </div>
                 </div>
@@ -794,10 +803,11 @@ const RestaurantMenuPage = () => {
 // ── Menu Item Card Component ──
 // ─── COMPONENT 4: Menu Item Card (inside restaurant page, 2-col grid) ────────
 const MenuItemCard = ({
-  item, cartItem, onOpen, onAdd, onUpdateQty,
+  item, cartItem, onOpen, onAdd, onUpdateQty, restaurantOffer,
 }: {
   item: any; cartItem?: CartItem; onOpen: () => void; onAdd: () => void;
   onUpdateQty: (id: string, delta: number) => void;
+  restaurantOffer?: DeliveryOffer | null;
 }) => {
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -970,6 +980,27 @@ const MenuItemCard = ({
           )}
         </div>
       </div>
+
+      {/* ── Delivery offer banner — bottom strip ── */}
+      {restaurantOffer && (() => {
+        const o = restaurantOffer;
+        let label = "";
+        if (o.offer_type === "free_delivery")        label = "🚚 توصيل مجاني";
+        else if (o.offer_type === "percent_off_delivery") label = `🚚 خصم ${o.discount_percent}% على التوصيل`;
+        else if (o.offer_type === "fixed_off_delivery")   label = `🚚 خصم ${o.discount_amount} ر.ي على التوصيل`;
+        else if (o.offer_type === "percent_off_order")    label = `🏷️ خصم ${o.discount_percent}% على الطلب`;
+        else if (o.offer_type === "fixed_off_order")      label = `🏷️ خصم ${o.discount_amount} ر.ي على الطلب`;
+        else if (o.badge_text)                            label = `🎁 ${o.badge_text}`;
+        if (!label) return null;
+        return (
+          <div
+            className="w-full text-center text-[9px] font-black text-white py-1 px-2 truncate"
+            style={{ backgroundColor: "#E53935" }}
+          >
+            {label}
+          </div>
+        );
+      })()}
     </div>
   );
 };

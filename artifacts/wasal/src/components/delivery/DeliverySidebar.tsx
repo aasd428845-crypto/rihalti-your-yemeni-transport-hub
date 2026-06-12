@@ -1,4 +1,4 @@
-import { LayoutDashboard, Store, ShoppingBag, Users, DollarSign, Settings, Link2, LogOut, Home, BarChart3, CreditCard, MapPinned, ImageIcon, Tag, Truck, Calculator } from "lucide-react";
+import { LayoutDashboard, Store, ShoppingBag, Users, DollarSign, Settings, Link2, LogOut, Home, BarChart3, CreditCard, MapPinned, ImageIcon, Tag, Calculator } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -14,8 +14,7 @@ const menuItems = [
   { title: "الطلبات", url: "/delivery/orders", icon: ShoppingBag },
   { title: "المندوبين", url: "/delivery/riders", icon: Users },
   { title: "مناطق التغطية", url: "/delivery/zones", icon: MapPinned },
-  { title: "عروض التوصيل", url: "/delivery/offers", icon: Truck },
-  { title: "عروض المطاعم", url: "/delivery/promotions", icon: Tag },
+  { title: "العروض", url: "/delivery/offers", icon: Tag },
   { title: "مركز التسعير", url: "/delivery/pricing", icon: Calculator },
   { title: "البنرات الإعلانية", url: "/delivery/banners", icon: ImageIcon },
   { title: "المالية", url: "/delivery/finance", icon: DollarSign },

@@ -221,8 +221,8 @@ const DeliveryOffers = () => {
     <div className="space-y-6" dir="rtl">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold">عروض التوصيل</h2>
-          <p className="text-sm text-muted-foreground">عروض التوصيل والخصومات — تُطبَّق تلقائياً في سلة الطلب عند استيفاء الشروط</p>
+          <h2 className="text-2xl font-bold">العروض</h2>
+          <p className="text-sm text-muted-foreground">عروض التوصيل والخصومات والعروض الخاصة بالمطاعم — تُطبَّق تلقائياً في سلة الطلب عند استيفاء الشروط</p>
         </div>
         <Button onClick={openNew}><Plus className="w-4 h-4 ml-1" />إضافة عرض</Button>
       </div>
@@ -324,7 +324,7 @@ const DeliveryOffers = () => {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent dir="rtl" className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editItem ? "تعديل عرض التوصيل" : "إضافة عرض توصيل جديد"}</DialogTitle>
+            <DialogTitle>{editItem ? "تعديل العرض" : "إضافة عرض جديد"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-5">
 
