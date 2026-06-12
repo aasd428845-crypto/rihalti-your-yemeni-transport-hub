@@ -224,6 +224,16 @@ const DeliveryFinance = () => {
       const allRelevantOrders = [...restOrders, ...restActiveCod]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+      // عدد طلبات التوصيل المجاني (مديونية على المطعم)
+      const freeDeliveryOrders = restOrders.filter(o => Number((o as any).restaurant_delivery_subsidy || 0) > 0);
+      // عدد طلبات الخصم على الطلب (applied_offer_type = percent_off_order | fixed_off_order)
+      const discountOrders = restOrders.filter(o =>
+        ['percent_off_order', 'fixed_off_order', 'percent_off_delivery'].includes((o as any).applied_offer_type || '')
+        && Number((o as any).restaurant_delivery_subsidy || 0) === 0
+      );
+      // إجمالي رسوم التوصيل المُحصَّلة من العملاء (المدفوع بالفعل)
+      const totalDeliveryFeeRevenue = restOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
+
       return {
         ...rest,
         totalOrders: restOrders.length,
@@ -236,6 +246,9 @@ const DeliveryFinance = () => {
         periodSubsidy,
         totalRevenue,
         periodRevenue,
+        freeDeliveryOrdersCount: freeDeliveryOrders.length,
+        discountOrdersCount: discountOrders.length,
+        totalDeliveryFeeRevenue,
         recentOrders: allRelevantOrders.slice(0, 15),
       };
     }).sort((a, b) => b.totalRevenue - a.totalRevenue);
@@ -511,6 +524,29 @@ const DeliveryFinance = () => {
                           </div>
                         ))}
                       </div>
+                      {/* Offer stats row */}
+                      {(rest.freeDeliveryOrdersCount > 0 || rest.discountOrdersCount > 0 || rest.totalDeliveryFeeRevenue > 0) && (
+                        <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-dashed">
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-green-600">{rest.freeDeliveryOrdersCount}</p>
+                            <p className="text-[10px] text-muted-foreground">توصيل مجاني</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-blue-600">{rest.discountOrdersCount}</p>
+                            <p className="text-[10px] text-muted-foreground">خصم طلب</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-primary">{rest.totalDeliveryFeeRevenue.toLocaleString()}</p>
+                            <p className="text-[10px] text-muted-foreground">رسوم التوصيل ر.ي</p>
+                          </div>
+                        </div>
+                      )}
+                      {rest.totalSubsidy > 0 && (
+                        <div className="mt-1 bg-red-50 dark:bg-red-950/20 rounded-lg px-2 py-1.5 flex items-center justify-between text-xs">
+                          <span className="text-destructive font-medium flex items-center gap-1">💸 مجموع المديونية</span>
+                          <span className="font-bold text-destructive">{rest.totalSubsidy.toLocaleString()} ر.ي</span>
+                        </div>
+                      )}
                       {/* Pending COD orders indicator — food revenue not yet finalized */}
                       {rest.pendingCodCount > 0 && (
                         <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs bg-amber-50 dark:bg-amber-950/20 rounded-lg px-2 py-1.5">

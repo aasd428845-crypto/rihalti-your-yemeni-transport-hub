@@ -233,6 +233,12 @@ export const createOrderFromCart = async (params: {
   notes?: string;
   /** Delivery fee charged to the restaurant when an offer grants free delivery */
   restaurant_delivery_subsidy?: number;
+  /** ID of the applied offer (for tracking/analytics) */
+  applied_offer_id?: string;
+  /** Type of the applied offer (free_delivery, percent_off_delivery, percent_off_order, fixed_off_order) */
+  applied_offer_type?: string;
+  /** Human-readable title of the applied offer */
+  applied_offer_title?: string;
 }) => {
   const insertData: any = {
     customer_id: params.customer_id,
@@ -258,6 +264,10 @@ export const createOrderFromCart = async (params: {
   if (params.notes) {
     insertData.notes = params.notes;
   }
+  // Applied offer tracking (requires DB columns from migration 011)
+  if (params.applied_offer_id) insertData.applied_offer_id = params.applied_offer_id;
+  if (params.applied_offer_type) insertData.applied_offer_type = params.applied_offer_type;
+  if (params.applied_offer_title) insertData.applied_offer_title = params.applied_offer_title;
   const { data, error } = await supabase.from("delivery_orders").insert(insertData).select().single();
   if (error) throw error;
 

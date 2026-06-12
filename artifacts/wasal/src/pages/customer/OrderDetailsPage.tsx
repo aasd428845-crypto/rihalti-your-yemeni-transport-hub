@@ -174,6 +174,31 @@ export default function OrderDetailsPage() {
                 <>
                   <p><strong>العنوان:</strong> {order.customer_address || '—'}</p>
                   <p><strong>الهاتف:</strong> {isAccepted ? order.customer_phone : '📞 مخفي حتى قبول السعر'}</p>
+                  {/* Applied offer details */}
+                  {order.applied_offer_title && (
+                    <div className="mt-2 pt-2 border-t flex items-center gap-2 flex-wrap">
+                      <span className="font-medium">العرض المطبّق:</span>
+                      <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-semibold px-2 py-0.5 rounded-full">
+                        🎁 {order.applied_offer_title}
+                      </span>
+                      {order.applied_offer_type && (
+                        <span className="text-xs text-muted-foreground">
+                          ({order.applied_offer_type === 'free_delivery' ? 'توصيل مجاني'
+                            : order.applied_offer_type === 'percent_off_delivery' ? 'خصم على التوصيل'
+                            : order.applied_offer_type === 'percent_off_order' ? 'خصم على الطلب'
+                            : order.applied_offer_type === 'fixed_off_order' ? 'خصم ثابت'
+                            : order.applied_offer_type})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {!order.applied_offer_title && Number(order.restaurant_delivery_subsidy || 0) > 0 && (
+                    <div className="mt-2 pt-2 border-t">
+                      <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-semibold px-2 py-0.5 rounded-full">
+                        🎁 توصيل مجاني (عرض مطبّق)
+                      </span>
+                    </div>
+                  )}
                 </>
               )}
               {order.tracking_number && <p><strong>رقم التتبع:</strong> {order.tracking_number}</p>}

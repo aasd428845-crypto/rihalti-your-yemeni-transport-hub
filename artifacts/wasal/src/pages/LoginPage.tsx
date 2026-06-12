@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Phone, ArrowRight, ArrowLeft, Loader2, HelpCircle } from "lucide-react";
+import { Phone, ArrowRight, ArrowLeft, Loader2, HelpCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import TermsModal from "@/components/auth/TermsModal";
 
@@ -22,12 +22,24 @@ const GoogleIcon = () => (
   </svg>
 );
 
+type LoginMethod = "phone" | "email";
+
 const LoginPage = () => {
+  const [method, setMethod] = useState<LoginMethod>("phone");
+
+  // Phone OTP
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [phoneLoading, setPhoneLoading] = useState(false);
+
+  // Email / password
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+
   const [showTerms, setShowTerms] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
 
@@ -35,7 +47,6 @@ const LoginPage = () => {
   const { toast } = useToast();
   const { role, loading: authLoading, user } = useAuth();
 
-  // Detect OAuth redirect (code in URL) → show loading state while session resolves
   const isOAuthCallback = typeof window !== "undefined" &&
     (window.location.search.includes("code=") || window.location.hash.includes("access_token="));
 
@@ -74,6 +85,24 @@ const LoginPage = () => {
     } catch (err: any) {
       toast({ title: "خطأ", description: err?.message || "فشل الاتصال بـ Google", variant: "destructive" });
     }
+  };
+
+  const handleEmailLogin = async () => {
+    if (!email.trim() || !password) {
+      toast({ title: "خطأ", description: "أدخل البريد الإلكتروني وكلمة السر", variant: "destructive" });
+      return;
+    }
+    setEmailLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        toast({ title: "خطأ في تسجيل الدخول", description: error.message === "Invalid login credentials" ? "البريد الإلكتروني أو كلمة السر غير صحيحة" : error.message, variant: "destructive" });
+      }
+      // On success AuthContext handles redirect
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err?.message || "فشل تسجيل الدخول", variant: "destructive" });
+    }
+    setEmailLoading(false);
   };
 
   const fullPhone = `+967${phoneNumber}`;
@@ -144,7 +173,6 @@ const LoginPage = () => {
           setPhoneLoading(false);
           return;
         }
-        // AuthContext SIGNED_IN event will update user+role → useEffect handles redirect + T&C
       }
     } catch (err: any) {
       toast({ title: "خطأ", description: err?.message || "فشل التحقق", variant: "destructive" });
@@ -152,7 +180,6 @@ const LoginPage = () => {
     setPhoneLoading(false);
   };
 
-  // ── OAuth callback loading screen ──
   if (isOAuthCallback && authLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30 gap-4">
@@ -169,7 +196,7 @@ const LoginPage = () => {
     <>
       {showTerms && <TermsModal onAccept={handleTermsAccept} />}
 
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-8">
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-8" dir="rtl">
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
@@ -184,98 +211,172 @@ const LoginPage = () => {
             </a>
           </div>
 
-          <div className="bg-card rounded-2xl border border-border p-8 shadow-lg">
-            <h1 className="text-2xl font-black text-foreground text-center mb-1">تسجيل الدخول</h1>
-            <p className="text-sm text-muted-foreground text-center mb-7">أهلاً بعودتك! اختر طريقة تسجيل الدخول</p>
+          <div className="bg-card rounded-2xl border border-border p-7 shadow-lg space-y-6">
+            <div className="text-center">
+              <h1 className="text-2xl font-black text-foreground">تسجيل الدخول</h1>
+              <p className="text-sm text-muted-foreground mt-1">أهلاً بعودتك! اختر طريقة تسجيل الدخول</p>
+            </div>
 
-            {/* Google Login */}
-            <Button variant="outline" className="w-full mb-6 h-12 text-base font-semibold" onClick={handleGoogleLogin} type="button">
+            {/* Google */}
+            <Button variant="outline" className="w-full h-12 text-base font-semibold" onClick={handleGoogleLogin} type="button">
               <GoogleIcon />
               تسجيل الدخول بـ Google
             </Button>
 
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-              <div className="relative flex justify-center text-xs"><span className="bg-card px-3 text-muted-foreground">أو عبر رقم الهاتف</span></div>
+            {/* Method Tabs */}
+            <div className="flex rounded-xl border border-border overflow-hidden">
+              <button
+                onClick={() => setMethod("phone")}
+                className={`flex-1 py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${method === "phone" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"}`}
+              >
+                <Phone className="w-4 h-4" /> رقم الهاتف
+              </button>
+              <button
+                onClick={() => setMethod("email")}
+                className={`flex-1 py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${method === "email" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"}`}
+              >
+                <Mail className="w-4 h-4" /> البريد الإلكتروني
+              </button>
             </div>
 
             {/* Phone OTP */}
-            {!otpSent ? (
+            {method === "phone" && (
+              <div className="space-y-4">
+                {!otpSent ? (
+                  <>
+                    <div>
+                      <Label>رقم الهاتف</Label>
+                      <div className="flex gap-2 mt-1.5">
+                        <div className="flex items-center justify-center bg-muted rounded-lg px-3 h-11 text-sm font-medium border border-input shrink-0" dir="ltr">
+                          +967
+                        </div>
+                        <div className="relative flex-1">
+                          <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            type="tel"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                            placeholder="7XX XXX XXX"
+                            className="pr-10 h-11"
+                            dir="ltr"
+                            maxLength={9}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">أدخل رقمك بدون رمز البلد (+967)</p>
+                    </div>
+                    <Button
+                      className="w-full h-11 font-bold"
+                      onClick={handleSendOtp}
+                      disabled={phoneLoading || phoneNumber.length !== 9}
+                    >
+                      {phoneLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                      {phoneLoading ? "جاري الإرسال…" : "إرسال رمز التحقق"}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => { setOtpSent(false); setOtpCode(""); }}
+                      className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                    >
+                      <ArrowLeft className="w-3 h-3" />تغيير الرقم
+                    </button>
+                    <p className="text-sm text-muted-foreground text-center">
+                      تم إرسال رمز التحقق إلى{" "}
+                      <span className="font-bold text-foreground" dir="ltr">{fullPhone}</span>
+                    </p>
+                    <div className="flex justify-center" dir="ltr">
+                      <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
+                        <InputOTPGroup>
+                          {[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} />)}
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </div>
+                    <Button
+                      className="w-full h-11 font-bold"
+                      onClick={handleVerifyOtp}
+                      disabled={phoneLoading || otpCode.length !== 6}
+                    >
+                      {phoneLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                      {phoneLoading ? "جاري التحقق…" : "تأكيد الرمز"}
+                    </Button>
+                    <div className="text-center">
+                      {countdown > 0 ? (
+                        <p className="text-xs text-muted-foreground">إعادة الإرسال بعد {countdown} ثانية</p>
+                      ) : (
+                        <button onClick={handleSendOtp} className="text-xs text-primary hover:underline" disabled={phoneLoading}>
+                          إعادة إرسال الرمز
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Email / Password */}
+            {method === "email" && (
               <div className="space-y-4">
                 <div>
-                  <Label>رقم الهاتف</Label>
-                  <div className="flex gap-2 mt-1.5">
-                    <div className="flex items-center justify-center bg-muted rounded-lg px-3 h-11 text-sm font-medium border border-input shrink-0" dir="ltr">
-                      +967
-                    </div>
-                    <div className="relative flex-1">
-                      <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                        placeholder="7XX XXX XXX"
-                        className="pr-10 h-11"
-                        dir="ltr"
-                        maxLength={9}
-                      />
-                    </div>
+                  <Label htmlFor="email">البريد الإلكتروني</Label>
+                  <div className="relative mt-1.5">
+                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="example@email.com"
+                      className="pr-10 h-11"
+                      dir="ltr"
+                      autoComplete="email"
+                    />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">أدخل رقمك بدون رمز البلد (+967)</p>
                 </div>
-                <Button
-                  className="w-full h-11 font-bold"
-                  onClick={handleSendOtp}
-                  disabled={phoneLoading || phoneNumber.length !== 9}
-                >
-                  {phoneLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-                  {phoneLoading ? "جاري الإرسال…" : "إرسال رمز التحقق"}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <button
-                  onClick={() => { setOtpSent(false); setOtpCode(""); }}
-                  className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-                >
-                  <ArrowLeft className="w-3 h-3" />تغيير الرقم
-                </button>
-                <p className="text-sm text-muted-foreground text-center">
-                  تم إرسال رمز التحقق إلى{" "}
-                  <span className="font-bold text-foreground" dir="ltr">{fullPhone}</span>
-                </p>
-                <div className="flex justify-center" dir="ltr">
-                  <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
-                    <InputOTPGroup>
-                      {[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} />)}
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-                <Button
-                  className="w-full h-11 font-bold"
-                  onClick={handleVerifyOtp}
-                  disabled={phoneLoading || otpCode.length !== 6}
-                >
-                  {phoneLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-                  {phoneLoading ? "جاري التحقق…" : "تأكيد الرمز"}
-                </Button>
-                <div className="text-center">
-                  {countdown > 0 ? (
-                    <p className="text-xs text-muted-foreground">إعادة الإرسال بعد {countdown} ثانية</p>
-                  ) : (
-                    <button onClick={handleSendOtp} className="text-xs text-primary hover:underline" disabled={phoneLoading}>
-                      إعادة إرسال الرمز
+                <div>
+                  <Label htmlFor="password">كلمة السر</Label>
+                  <div className="relative mt-1.5">
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="pr-10 pl-10 h-11"
+                      dir="ltr"
+                      autoComplete="current-password"
+                      onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
-                  )}
+                  </div>
                 </div>
+                <Button
+                  className="w-full h-11 font-bold"
+                  onClick={handleEmailLogin}
+                  disabled={emailLoading || !email.trim() || !password}
+                >
+                  {emailLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                  {emailLoading ? "جاري تسجيل الدخول…" : "تسجيل الدخول"}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  يُستخدم هذا الخيار للحسابات التي تم إنشاؤها بالبريد الإلكتروني
+                </p>
               </div>
             )}
 
             {/* Account recovery */}
-            <div className="mt-6 text-center">
+            <div className="border-t pt-4">
               <button
                 onClick={() => setShowRecovery(!showRecovery)}
-                className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
+                className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors w-full justify-center"
               >
                 <HelpCircle className="w-3.5 h-3.5" />
                 لا تستطيع الوصول لحسابك؟
@@ -296,7 +397,7 @@ const LoginPage = () => {
               )}
             </div>
 
-            <p className="text-center text-sm text-muted-foreground mt-5">
+            <p className="text-center text-sm text-muted-foreground">
               ليس لديك حساب؟{" "}
               <a href="/register" className="text-primary font-semibold hover:underline">إنشاء حساب جديد</a>
             </p>

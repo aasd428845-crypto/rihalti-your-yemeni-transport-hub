@@ -194,6 +194,9 @@ const RestaurantCheckoutPage = () => {
         delivery_lat: selectedAddress.latitude,
         delivery_lng: selectedAddress.longitude,
         restaurant_delivery_subsidy: restaurantSubsidy,
+        applied_offer_id: offerApplies && activeOffer ? activeOffer.offer.id : undefined,
+        applied_offer_type: offerApplies && activeOffer ? activeOffer.offer.offer_type : undefined,
+        applied_offer_title: offerApplies && activeOffer ? activeOffer.offer.title : undefined,
       });
       try {
         await supabase.functions.invoke("send-push-notification", {
@@ -359,17 +362,12 @@ const RestaurantCheckoutPage = () => {
                   {selectedAddress.phone && <p className="text-muted-foreground">📞 {selectedAddress.phone}</p>}
                 </div>
               )}
-              {/* Distance fee info */}
-              {selectedAddress && distanceKm !== null && (
-                <div className={`border rounded-lg p-2 text-sm flex items-start gap-2 ${offerApplies && computedDeliveryFee === 0 ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 text-amber-700 dark:text-amber-300" : "bg-green-50 dark:bg-green-950/20 border-green-200 text-green-700 dark:text-green-300"}`}>
+              {/* Distance fee info — hidden when offer covers the delivery fee */}
+              {selectedAddress && distanceKm !== null && !(offerApplies && isDeliveryOffer && computedDeliveryFee === 0) && (
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 rounded-lg p-2 text-sm flex items-start gap-2 text-green-700 dark:text-green-300">
                   <Navigation className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>
                     المسافة: <strong>{distanceKm.toFixed(2)} كم</strong> × {pricePerKm.toLocaleString()} ر.ي/كم = <strong>{baseFee.toLocaleString()} ر.ي</strong>
-                    {offerApplies && computedDeliveryFee === 0 && (
-                      <span className="block text-xs mt-0.5 text-amber-600 dark:text-amber-400">
-                        ⚡ التوصيل مجاني للعميل — رسوم الكيلومتر ({baseFee.toLocaleString()} ر.ي) تُحتسب مديونية على المطعم
-                      </span>
-                    )}
                     {offerApplies && computedDeliveryFee > 0 && deliveryDiscount > 0 && (
                       <span className="block text-xs mt-0.5">
                         بعد الخصم: <strong>{computedDeliveryFee.toLocaleString()} ر.ي</strong>
@@ -421,6 +419,7 @@ const RestaurantCheckoutPage = () => {
             {submitting ? <div className="animate-spin w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full" /> :
               <>تأكيد الطلب - {total} ر.ي</>}
           </Button>
+          <div className="h-6" />
           </div>
         </div>
       </div>
