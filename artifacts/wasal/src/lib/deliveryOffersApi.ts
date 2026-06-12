@@ -149,9 +149,7 @@ export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
 /**
  * Fetch active offers for a specific delivery company + restaurant — used at checkout.
  * Priority: restaurant-specific offer first, then company-wide offers.
- *
- * Uses the backend API (/api/offers/active) which runs with the service-role key,
- * so it reliably bypasses RLS that would otherwise block customer-scoped queries.
+ * Tries the Vercel API first (service-role key), falls back to direct Supabase query.
  */
 export const getActiveOffersForCompany = async (
   companyId: string,
@@ -161,51 +159,79 @@ export const getActiveOffersForCompany = async (
   appliedFeeDiscount: (fee: number) => number;
   appliedOrderDiscount: (subtotal: number) => number;
 } | null> => {
+  let offers: DeliveryOffer[] = [];
+
   try {
-    const { data, error } = await supabase
-      .from("delivery_company_offers" as any)
-      .select("*")
-      .eq("delivery_company_id", companyId)
-      .eq("is_active", true)
-      .order("sort_order");
-    if (error || !data || !(data as any[]).length) return null;
-
-    const companyOffers = (data as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
-    if (!companyOffers.length) return null;
-
-    const wrap = (o: DeliveryOffer) => ({
-      offer: o,
-      appliedFeeDiscount: buildFeeDiscount(o),
-      appliedOrderDiscount: buildOrderDiscount(o),
-    });
-
-    if (restaurantId) {
-      const specific = companyOffers.find(o => o.restaurant_id === restaurantId);
-      if (specific) return wrap(specific);
+    const params = new URLSearchParams({ companyId });
+    const res = await fetch(`/api/offers/active?${params}`);
+    if (res.ok) {
+      const json = (await res.json()) as { offers: DeliveryOffer[] };
+      offers = json.offers ?? [];
+    } else {
+      throw new Error("API unavailable");
     }
-
-    const companyWide = companyOffers.find(o => !o.restaurant_id);
-    if (companyWide) return wrap(companyWide);
-
-    return null;
   } catch {
-    return null;
+    // Fallback: query Supabase directly (RLS allows public read on this table)
+    try {
+      const { data } = await supabase
+        .from(TABLE)
+        .select("*")
+        .eq("delivery_company_id", companyId)
+        .eq("is_active", true);
+      offers = (data ?? []) as unknown as DeliveryOffer[];
+    } catch {
+      return null;
+    }
   }
+
+  if (!offers.length) return null;
+
+  const companyOffers = offers.filter(isOfferCurrentlyActive);
+  if (!companyOffers.length) return null;
+
+  const wrap = (o: DeliveryOffer) => ({
+    offer: o,
+    appliedFeeDiscount: buildFeeDiscount(o),
+    appliedOrderDiscount: buildOrderDiscount(o),
+  });
+
+  // Restaurant-specific offer takes priority over company-wide offer
+  if (restaurantId) {
+    const specific = companyOffers.find(o => o.restaurant_id === restaurantId);
+    if (specific) return wrap(specific);
+  }
+
+  // Fall back to company-wide offer (no restaurant_id = applies to all restaurants)
+  const companyWide = companyOffers.find(o => !o.restaurant_id);
+  if (companyWide) return wrap(companyWide);
+
+  return null;
 };
 
+/**
+ * Fetch all active offers for a company — used by CartPage preview.
+ * Tries the Vercel API first, falls back to direct Supabase query.
+ */
 export const getActiveOffersListForCompany = async (
   companyId: string
 ): Promise<DeliveryOffer[]> => {
   try {
-    const { data, error } = await supabase
-      .from("delivery_company_offers" as any)
+    const params = new URLSearchParams({ companyId });
+    const res = await fetch(`/api/offers/active?${params}`);
+    if (res.ok) {
+      const json = (await res.json()) as { offers: DeliveryOffer[] };
+      return (json.offers ?? []).filter(isOfferCurrentlyActive);
+    }
+  } catch { /* fall through to Supabase */ }
+
+  // Fallback: query Supabase directly
+  try {
+    const { data } = await supabase
+      .from(TABLE)
       .select("*")
       .eq("delivery_company_id", companyId)
-      .eq("is_active", true)
-      .order("sort_order")
-      .order("created_at", { ascending: false });
-    if (error || !data) return [];
-    return (data as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
+      .eq("is_active", true);
+    return ((data ?? []) as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
   } catch {
     return [];
   }
