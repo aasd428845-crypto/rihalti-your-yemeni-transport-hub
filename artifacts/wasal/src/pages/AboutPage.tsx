@@ -12,7 +12,7 @@ const AboutPage = () => (
       </div>
       <h1 className="text-3xl font-black text-foreground mb-2">عن وصال</h1>
       <p className="text-muted-foreground text-base leading-7 max-w-lg mx-auto">
-        منصة التوصيل الذكي — أول منصة يمنية متكاملة تجمع خدمات النقل والطرود وتوصيل الطلبات في مكان واحد
+        منصة التوصيل الذكي — منصة يمنية متكاملة لتوصيل الطلبات من المطاعم والمتاجر إلى باب منزلك
       </p>
     </div>
 
@@ -20,7 +20,7 @@ const AboutPage = () => (
     <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mb-10">
       <h2 className="text-xl font-bold text-foreground mb-3">مهمتنا</h2>
       <p className="text-muted-foreground leading-7">
-        نؤمن بأن كل يمني يستحق خدمة توصيل موثوقة وسريعة وبأسعار عادلة. وصال ليست مجرد تطبيق — إنها شبكة تربط المجتمعات اليمنية وتُسهّل حياتهم اليومية، من توصيل وجبة دافئة إلى شحن بضاعة عبر المدن.
+        نؤمن بأن كل يمني يستحق خدمة توصيل موثوقة وسريعة وبأسعار عادلة. وصال ليست مجرد تطبيق — إنها شبكة تربط المجتمعات اليمنية وتُسهّل حياتهم اليومية من خلال توصيل طلباتهم من المطاعم والمتاجر إلى أبواب منازلهم.
       </p>
     </div>
 
@@ -29,9 +29,9 @@ const AboutPage = () => (
       <h2 className="text-xl font-bold text-foreground mb-5">خدماتنا</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
-          { icon: Package, title: "توصيل الطرود", desc: "شحن آمن وسريع بين جميع المدن اليمنية مع تتبع فوري" },
-          { icon: Truck, title: "النقل بين المدن", desc: "حجز رحلات آمنة ومريحة مع سائقين معتمدين" },
-          { icon: MapPin, title: "توصيل الطلبات", desc: "طلباتك من مطاعمك ومتاجرك المفضلة تصلك لبابك" },
+          { icon: Truck, title: "توصيل الطلبات", desc: "طلباتك من مطاعمك ومتاجرك المفضلة تصل إلى بابك بسرعة وأمان" },
+          { icon: MapPin, title: "تغطية واسعة", desc: "نغطي أحياء ومناطق متعددة ونوسّع تغطيتنا باستمرار" },
+          { icon: Shield, title: "شركاء موثوقون", desc: "نتحقق من جميع شركات التوصيل والمطاعم قبل قبولهم في المنصة" },
           { icon: Clock, title: "تتبع لحظي", desc: "اعرف أين طلبك في كل لحظة برقم التتبع الحي" },
         ].map(({ icon: Icon, title, desc }) => (
           <div key={title} className="bg-card border border-border rounded-xl p-5 flex gap-4">

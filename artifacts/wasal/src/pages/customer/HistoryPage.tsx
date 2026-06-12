@@ -185,32 +185,13 @@ const HistoryPage = () => {
           )}
         </div>
 
-        <Tabs defaultValue="shipments">
+        <Tabs defaultValue="deliveries">
           <TabsList className="mb-6 flex-wrap h-auto gap-1">
-            <TabsTrigger value="bookings" className="gap-2">
-              <Bus className="w-4 h-4" /> الرحلات
-            </TabsTrigger>
-            <TabsTrigger value="shipments" className="gap-2 relative">
-              <Package className="w-4 h-4" /> الطرود
-              {pricedShipments.length > 0 && (
-                <span className="absolute -top-1 -left-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] flex items-center justify-center">
-                  {pricedShipments.length}
-                </span>
-              )}
-            </TabsTrigger>
             <TabsTrigger value="deliveries" className="gap-2 relative">
               <Bike className="w-4 h-4" /> التوصيلات
               {pricedDeliveries.length > 0 && (
                 <span className="absolute -top-1 -left-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] flex items-center justify-center">
                   {pricedDeliveries.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="rides" className="gap-2 relative">
-              <Car className="w-4 h-4" /> الأجرة
-              {pricedRides.length > 0 && (
-                <span className="absolute -top-1 -left-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] flex items-center justify-center">
-                  {pricedRides.length}
                 </span>
               )}
             </TabsTrigger>

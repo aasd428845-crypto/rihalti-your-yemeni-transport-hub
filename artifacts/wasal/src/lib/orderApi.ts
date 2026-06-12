@@ -308,7 +308,9 @@ export const fetchShipmentDetails = async (id: string) => {
 };
 
 export const fetchDeliveryOrderDetails = async (id: string) => {
-  const { data, error } = await supabase.from("delivery_orders").select("*").eq("id", id).single();
+  const { data, error } = await supabase.from("delivery_orders")
+    .select("*, restaurants:restaurant_id(name_ar, logo_url)")
+    .eq("id", id).single();
   if (error) throw error;
   return data;
 };
