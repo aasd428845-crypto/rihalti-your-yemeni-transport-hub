@@ -634,6 +634,7 @@ const DeliveryHubPage = () => {
       supabase.from("delivery_banners" as any).select("*").eq("is_active", true).order("sort_order"),
       getCustomerActiveOffers(),
     ]).then(([bannersRes, liveOffersData]) => {
+      console.log("🎯 liveOffers fetched:", liveOffersData.length, liveOffersData);
       const bannersData = bannersRes.data || [];
       const carousel = bannersData.filter((b: any) => !b.banner_type || b.banner_type === "carousel");
       const bannerOffers = bannersData.filter((b: any) => b.banner_type === "offer");
@@ -641,14 +642,14 @@ const DeliveryHubPage = () => {
       setCompanyManaged(bannersData.length > 0);
       setCarouselBanners(carousel.length > 0 ? carousel : DEFAULT_BANNERS);
       setLiveOffers(liveOffersData);
-      setOfferBanners(liveOffersData.length > 0 ? [] : (bannerOffers.length > 0 ? bannerOffers : DEFAULT_OFFERS));
+      setOfferBanners(liveOffersData.length > 0 ? [] : (bannerOffers.length > 0 ? bannerOffers : []));
       setServiceTiles(tiles);
       setBannersLoaded(true);
     }).catch(() => {
       setCompanyManaged(false);
       setCarouselBanners(DEFAULT_BANNERS);
       setLiveOffers([]);
-      setOfferBanners(DEFAULT_OFFERS);
+      setOfferBanners([]);
       setServiceTiles([]);
       setBannersLoaded(true);
     });

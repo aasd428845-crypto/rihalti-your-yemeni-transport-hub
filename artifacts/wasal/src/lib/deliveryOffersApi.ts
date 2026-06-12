@@ -120,8 +120,8 @@ export function buildOrderDiscount(offer: DeliveryOffer): (subtotal: number) => 
  * Falls back to a basic select if the restaurant_id column doesn't exist yet.
  */
 export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
+  // Try 1: with restaurant join + scope filter
   try {
-    // Try with restaurant join + scope filter (requires scope column to exist)
     const { data, error } = await supabase
       .from(TABLE)
       .select("*, restaurant:restaurant_id(id, name_ar, logo_url)")
@@ -129,24 +129,39 @@ export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
       .eq("scope", "restaurant")
       .order("sort_order")
       .order("created_at", { ascending: false });
-
-    if (error) {
-      // Column may not exist yet — fall back to plain select
-      const { data: fallback, error: fallbackErr } = await supabase
-        .from(TABLE)
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order")
-        .order("created_at", { ascending: false });
-      if (fallbackErr || !fallback) return [];
-      return (fallback as unknown as DeliveryOffer[]).filter(o => isOfferCurrentlyActive(o) && (o.scope === 'restaurant' || !o.scope));
+    if (!error && data) {
+      return (data as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
     }
+  } catch {}
 
-    if (!data) return [];
-    return (data as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
-  } catch {
-    return [];
-  }
+  // Try 2: without join, with scope filter
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select("*")
+      .eq("is_active", true)
+      .eq("scope", "restaurant")
+      .order("sort_order")
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      return (data as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
+    }
+  } catch {}
+
+  // Try 3: without scope filter at all (scope column may not exist yet)
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order")
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      return (data as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
+    }
+  } catch {}
+
+  return [];
 };
 
 /**
