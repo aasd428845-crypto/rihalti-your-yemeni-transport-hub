@@ -50,6 +50,7 @@ const SPONSOR_OPTIONS: { value: SponsorType; label: string; icon: string; desc: 
 ];
 
 const emptyForm = (): any => ({
+  scope: 'restaurant' as 'restaurant' | 'shipment',
   offer_type: "free_delivery" as OfferType,
   title: "",
   description: "",
@@ -132,6 +133,7 @@ const DeliveryOffers = () => {
     setEditItem(o);
     setForm({
       ...emptyForm(), ...o,
+      scope: o.scope || 'restaurant',
       active_days: o.active_days || [],
       starts_at: o.starts_at ? o.starts_at.slice(0, 16) : "",
       ends_at: o.ends_at ? o.ends_at.slice(0, 16) : "",
@@ -160,6 +162,7 @@ const DeliveryOffers = () => {
 
       const payload: any = {
         delivery_company_id: user.id,
+        scope: form.scope || 'restaurant',
         offer_type: form.offer_type,
         title: form.title,
         description: form.description || null,
@@ -294,14 +297,23 @@ const DeliveryOffers = () => {
                             🚚 الشركة
                           </Badge>
                         )}
-                        {/* Restaurant scope badge */}
-                        {o.restaurant_id && o.sponsor_type !== "restaurant" && (
-                          <Badge variant="outline" className="text-[10px]">
-                            🏪 {restaurants.find(r => r.id === o.restaurant_id)?.name_ar || "مطعم محدد"}
+                        {/* Scope badge */}
+                        {(o.scope === 'shipment') ? (
+                          <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-700 bg-orange-50">
+                            📦 شحن الطرود
                           </Badge>
-                        )}
-                        {!o.restaurant_id && (
-                          <Badge variant="outline" className="text-[10px] text-muted-foreground">جميع المطاعم</Badge>
+                        ) : (
+                          <>
+                            {/* Restaurant scope badge */}
+                            {o.restaurant_id && o.sponsor_type !== "restaurant" && (
+                              <Badge variant="outline" className="text-[10px]">
+                                🏪 {restaurants.find(r => r.id === o.restaurant_id)?.name_ar || "مطعم محدد"}
+                              </Badge>
+                            )}
+                            {!o.restaurant_id && (
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground">🍔 جميع المطاعم</Badge>
+                            )}
+                          </>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">{offerSummary(o)}</p>
@@ -327,6 +339,43 @@ const DeliveryOffers = () => {
             <DialogTitle>{editItem ? "تعديل العرض" : "إضافة عرض جديد"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-5">
+
+            {/* Scope — what does this offer apply to? */}
+            <div>
+              <Label className="font-semibold block mb-2">هذا العرض لـ *</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, scope: 'restaurant' })}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                    form.scope === 'restaurant'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-muted/50 hover:border-primary/40'
+                  }`}
+                >
+                  <span className="text-2xl">🍔</span>
+                  <span className="text-sm font-bold">طلبات المطاعم</span>
+                  <span className="text-[11px] text-muted-foreground text-center leading-tight">
+                    يظهر في الصفحة الرئيسية وينطبق عند طلب وجبات
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, scope: 'shipment' })}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                    form.scope === 'shipment'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-muted/50 hover:border-primary/40'
+                  }`}
+                >
+                  <span className="text-2xl">📦</span>
+                  <span className="text-sm font-bold">شحن الطرود</span>
+                  <span className="text-[11px] text-muted-foreground text-center leading-tight">
+                    يظهر في صفحة طلب التوصيل عند شحن الطرود
+                  </span>
+                </button>
+              </div>
+            </div>
 
             {/* Offer type */}
             <div>
@@ -362,8 +411,8 @@ const DeliveryOffers = () => {
               <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="مثال: توصيل مجاني كل خميس" />
             </div>
 
-            {/* Restaurant link */}
-            {restaurants.length > 0 && (
+            {/* Restaurant link — only for restaurant-scoped offers */}
+            {form.scope === 'restaurant' && restaurants.length > 0 && (
               <div>
                 <Label className="font-semibold">ربط بمطعم <span className="text-xs text-muted-foreground font-normal">— العرض يُطبَّق على هذا المطعم فقط (اتركه فارغاً لتطبيقه على جميع المطاعم)</span></Label>
                 <Select

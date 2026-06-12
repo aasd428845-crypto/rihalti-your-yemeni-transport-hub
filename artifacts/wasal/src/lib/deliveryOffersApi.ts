@@ -15,6 +15,8 @@ export interface DeliveryOffer {
   id: string;
   delivery_company_id: string;
   restaurant_id?: string | null;
+  /** Whether this offer applies to restaurant orders or parcel/shipment delivery */
+  scope: 'restaurant' | 'shipment';
   title: string;
   description?: string | null;
   image_url?: string | null;
@@ -119,11 +121,12 @@ export function buildOrderDiscount(offer: DeliveryOffer): (subtotal: number) => 
  */
 export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
   try {
-    // Try with restaurant join first (requires migration 008 to be applied)
+    // Try with restaurant join + scope filter (requires scope column to exist)
     const { data, error } = await supabase
       .from(TABLE)
       .select("*, restaurant:restaurant_id(id, name_ar, logo_url)")
       .eq("is_active", true)
+      .eq("scope", "restaurant")
       .order("sort_order")
       .order("created_at", { ascending: false });
 
@@ -195,14 +198,18 @@ export const getActiveOffersForCompany = async (
     appliedOrderDiscount: buildOrderDiscount(o),
   });
 
+  // Only restaurant-scoped offers apply here
+  const restaurantScoped = companyOffers.filter(o => !o.scope || o.scope === 'restaurant');
+  if (!restaurantScoped.length) return null;
+
   // Restaurant-specific offer takes priority over company-wide offer
   if (restaurantId) {
-    const specific = companyOffers.find(o => o.restaurant_id === restaurantId);
+    const specific = restaurantScoped.find(o => o.restaurant_id === restaurantId);
     if (specific) return wrap(specific);
   }
 
-  // Fall back to company-wide offer (no restaurant_id = applies to all restaurants)
-  const companyWide = companyOffers.find(o => !o.restaurant_id);
+  // Fall back to company-wide restaurant offer (no restaurant_id = applies to all restaurants)
+  const companyWide = restaurantScoped.find(o => !o.restaurant_id);
   if (companyWide) return wrap(companyWide);
 
   return null;
