@@ -121,6 +121,40 @@ const RestaurantVerticalCard = ({ r }: { r: any }) => {
             `${deliveryFee} ريال توصيل`
           )}
         </p>
+
+        {/* Open/close status */}
+        {(() => {
+          const s = getOpenStatus(r);
+          if (!s.isOpen) return (
+            <p className="text-[10px] font-bold" style={{ color: "#E53935" }}>🔴 مغلق الآن</p>
+          );
+          if ((s as any).closingTime) return (
+            <p className="text-[10px]" style={{ color: TEXT_SECONDARY }}>⏰ يغلق {(s as any).closingTime}</p>
+          );
+          return null;
+        })()}
+
+        {/* Delivery offers — up to 2 pills */}
+        {(r.deliveryOffers || []).length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-0.5">
+            {(r.deliveryOffers as any[]).slice(0, 2).map((o, i) => {
+              const label = o.offer_type === "free_delivery"
+                ? "🚚 مجاني"
+                : o.discount_percent
+                ? `🏷️ ${o.discount_percent}%`
+                : o.title || "عرض";
+              return (
+                <span
+                  key={i}
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                  style={{ backgroundColor: o.offer_type === "free_delivery" ? "#1B9E6E" : "#E53935" }}
+                >
+                  {label}
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Closed overlay */}
@@ -144,26 +178,42 @@ const FeaturedRestaurantsSection = () => {
   const [restaurants, setRestaurants] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase
-      .from("restaurants")
-      .select("id, name_ar, cover_image, logo_url, rating, total_ratings, cuisine_type, opening_hours, min_order_amount, delivery_fee, estimated_delivery_time, is_featured, discount_percent, is_active")
-      .eq("is_active", true)
-      .eq("is_featured", true)
-      .order("rating", { ascending: false })
-      .limit(10)
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setRestaurants(data);
-        } else {
-          supabase
-            .from("restaurants")
-            .select("id, name_ar, cover_image, logo_url, rating, total_ratings, cuisine_type, opening_hours, min_order_amount, delivery_fee, estimated_delivery_time, is_featured, discount_percent, is_active")
-            .eq("is_active", true)
-            .order("rating", { ascending: false })
-            .limit(10)
-            .then(({ data: fallback }) => setRestaurants(fallback || []));
+    const loadFeatured = async () => {
+      const { data: rests } = await supabase
+        .from("restaurants")
+        .select("id, name_ar, cover_image, logo_url, rating, cuisine_type, opening_hours, delivery_fee, estimated_delivery_time, is_featured, discount_percent, is_active, delivery_company_id")
+        .eq("is_active", true)
+        .eq("is_featured", true)
+        .order("rating", { ascending: false })
+        .limit(10);
+
+      const list = rests || [];
+
+      if (list.length > 0) {
+        const restaurantIds = list.map((r: any) => r.id);
+        const { data: offersData } = await (supabase.from("delivery_company_offers") as any)
+          .select("restaurant_id, offer_type, discount_percent, title")
+          .eq("is_active", true)
+          .in("restaurant_id", restaurantIds);
+
+        const offerMap: Record<string, any[]> = {};
+        for (const o of (offersData || [])) {
+          if (!offerMap[o.restaurant_id]) offerMap[o.restaurant_id] = [];
+          offerMap[o.restaurant_id].push(o);
         }
-      });
+
+        setRestaurants(list.map((r: any) => ({ ...r, deliveryOffers: offerMap[r.id] || [] })));
+      } else {
+        const { data: fallback } = await supabase
+          .from("restaurants")
+          .select("id, name_ar, cover_image, logo_url, rating, cuisine_type, opening_hours, delivery_fee, estimated_delivery_time, is_featured, discount_percent, is_active")
+          .eq("is_active", true)
+          .order("rating", { ascending: false })
+          .limit(8);
+        setRestaurants((fallback || []).map((r: any) => ({ ...r, deliveryOffers: [] })));
+      }
+    };
+    loadFeatured();
   }, []);
 
   if (restaurants.length === 0) return null;

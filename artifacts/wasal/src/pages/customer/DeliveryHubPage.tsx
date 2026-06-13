@@ -342,22 +342,21 @@ const ItemCard = ({ item }: { item: any }) => {
           </div>
         </div>
 
-        {/* Discount badge — top left */}
-        {showDiscount && discountPct > 0 && (
-          <span
-            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full"
-            style={{ backgroundColor: DANGER }}
-          >
-            -{discountPct}%
-          </span>
-        )}
       </div>
 
       {/* Info */}
       <div className="px-2.5 pt-2 pb-2.5 space-y-1">
-        <p className="font-bold text-[12px] leading-snug line-clamp-2" style={{ color: TEXT_PRIMARY, minHeight: 34 }}>
-          {item.name_ar}
-        </p>
+        <div className="flex items-center justify-between mt-1">
+          {discountPct > 0 ? (
+            <span className="text-white font-black shrink-0" style={{ backgroundColor: DANGER, borderRadius: 99, fontSize: 9, padding: "2px 7px" }}>
+              -{discountPct}%
+            </span>
+          ) : <span />}
+          <p className="font-bold text-[12px] leading-tight line-clamp-1 text-center flex-1 px-1" style={{ color: TEXT_PRIMARY }}>
+            {item.name_ar}
+          </p>
+          <span style={{ width: discountPct > 0 ? 30 : 0 }} />
+        </div>
 
         {restaurantName && (
           <p className="text-[10px] truncate" style={{ color: TEXT_SECONDARY }}>
@@ -447,29 +446,25 @@ const MealOfferCard = ({ item }: { item: any }) => {
           </div>
         </div>
 
-        {/* Promo badge — top left */}
-        {discountPct > 0 ? (
-          <span
-            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full"
-            style={{ backgroundColor: DANGER }}
-          >
-            -{discountPct}%
-          </span>
-        ) : promoLabel ? (
-          <span
-            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full"
-            style={{ backgroundColor: "#F59E0B" }}
-          >
-            {promoLabel}
-          </span>
-        ) : null}
       </div>
 
       {/* Info */}
       <div className="px-2.5 pt-2 pb-2.5 space-y-1">
-        <p className="font-bold text-[12px] leading-snug line-clamp-2" style={{ color: TEXT_PRIMARY, minHeight: 34 }}>
-          {item.name_ar}
-        </p>
+        <div className="flex items-center justify-between mt-1">
+          {discountPct > 0 ? (
+            <span className="text-white font-black shrink-0" style={{ backgroundColor: DANGER, borderRadius: 99, fontSize: 9, padding: "2px 7px" }}>
+              -{discountPct}%
+            </span>
+          ) : promoLabel ? (
+            <span className="text-white font-black shrink-0" style={{ backgroundColor: "#F59E0B", borderRadius: 99, fontSize: 9, padding: "2px 7px" }}>
+              {promoLabel}
+            </span>
+          ) : <span />}
+          <p className="font-bold text-[12px] leading-tight line-clamp-1 text-center flex-1 px-1" style={{ color: TEXT_PRIMARY }}>
+            {item.name_ar}
+          </p>
+          <span style={{ width: (discountPct > 0 || promoLabel) ? 30 : 0 }} />
+        </div>
 
         {item.restaurants?.name_ar && (
           <p className="text-[10px] truncate" style={{ color: TEXT_SECONDARY }}>
