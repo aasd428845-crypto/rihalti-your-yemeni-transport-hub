@@ -256,7 +256,7 @@ const DeliveryRequestPage = () => {
       .eq("partner_id", selectedCompany.user_id)
       .then(({ data }) => setCompanyBanks(data || []));
     getDeliveryOffers(selectedCompany.user_id)
-      .then(offers => { setCompanyOffers(offers.filter(o => o.is_active && o.scope === 'shipment')); setSelectedOffer(null); })
+      .then(offers => { setCompanyOffers(offers.filter(o => o.is_active && (o.scope === 'shipment' || (!o.scope && !o.restaurant_id)))); setSelectedOffer(null); })
       .catch(() => setCompanyOffers([]));
   }, [selectedCompany]);
 
@@ -272,7 +272,7 @@ const DeliveryRequestPage = () => {
     Promise.all(companies.map(async (c: any) => {
       try {
         const offers = await getDeliveryOffers(c.user_id);
-        return [c.user_id, offers.filter((o: DeliveryOffer) => o.is_active && o.scope === 'shipment')] as [string, DeliveryOffer[]];
+        return [c.user_id, offers.filter((o: DeliveryOffer) => o.is_active && (o.scope === 'shipment' || (!o.scope && !o.restaurant_id)))] as [string, DeliveryOffer[]];
       } catch { return [c.user_id, []] as [string, DeliveryOffer[]]; }
     })).then(entries => {
       const map: Record<string, DeliveryOffer[]> = {};

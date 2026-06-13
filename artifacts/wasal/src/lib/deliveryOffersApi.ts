@@ -134,13 +134,12 @@ export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
     }
   } catch {}
 
-  // Try 2: without join, with scope filter
+  // Try 2: with join but without scope filter (scope column may not exist yet)
   try {
     const { data, error } = await supabase
       .from(TABLE)
-      .select("*")
+      .select("*, restaurant:restaurant_id(id, name_ar, logo_url)")
       .eq("is_active", true)
-      .eq("scope", "restaurant")
       .order("sort_order")
       .order("created_at", { ascending: false });
     if (!error && data) {
@@ -148,13 +147,12 @@ export const getCustomerActiveOffers = async (): Promise<DeliveryOffer[]> => {
     }
   } catch {}
 
-  // Try 3: without scope filter at all (scope column may not exist yet)
+  // Try 3: without join and without scope filter (restaurant_id column may not exist)
   try {
     const { data, error } = await supabase
       .from(TABLE)
       .select("*")
       .eq("is_active", true)
-      .order("sort_order")
       .order("created_at", { ascending: false });
     if (!error && data) {
       return (data as unknown as DeliveryOffer[]).filter(isOfferCurrentlyActive);
