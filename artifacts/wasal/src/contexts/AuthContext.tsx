@@ -59,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
+    initOneSignal();
 
     // Load initial session — await role/profile BEFORE clearing the loading state
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -95,10 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setTimeout(async () => {
               if (!mounted) return;
               await fetchUserData(session.user.id);
-              if (mounted) {
-                setLoading(false);
-                initOneSignal();
-              }
+              if (mounted) setLoading(false);
             }, 0);
           }
         } else {
@@ -115,12 +113,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Register for push when role is available
+  // Register for push when both user and role are available
   useEffect(() => {
     if (user && role) {
-      registerUserForPush(user.id, user.email, role);
+      registerUserForPush(user.id, user.email ?? undefined, role);
     }
-  }, [user, role]);
+  }, [user?.id, role]);
 
   const signOut = async () => {
     await logoutFromPush();
