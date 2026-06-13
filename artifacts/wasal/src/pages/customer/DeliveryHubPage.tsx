@@ -11,7 +11,6 @@ import {
   Shield,
   Star,
   TrendingUp,
-  Clock,
   ChevronLeft as ArrowLeftIcon,
   Heart,
   MapPin,
@@ -31,12 +30,27 @@ import SharedCategoryScroller from "@/components/customer/CategoryScroller";
 const PROMO_SELECT =
   "id, name_ar, image_url, price, discounted_price, preparation_time, rating, total_ratings, restaurant_id, " +
   "promo_type, promo_value, promo_text, promo_active, promo_starts_at, promo_ends_at, promo_active_days, promo_start_time, promo_end_time, " +
-  "restaurants(name_ar, estimated_delivery_time)";
+  "restaurants(name_ar, estimated_delivery_time, delivery_company_id)";
 
 // ─── Shared: compute effective promo ─────────────────────────────────────────
 function getEffectivePromo(item: any) {
   const scheduleOk = isPromoScheduleActive(item);
   return computeItemPromo({ ...item, promo_active: scheduleOk && !!item.promo_active });
+}
+
+// ─── Attach delivery company offers to items ──────────────────────────────────
+function attachDeliveryOffers(items: any[], activeOffers: DeliveryOffer[]): any[] {
+  if (!activeOffers.length) return items;
+  return items.map(item => {
+    const companyId = item.restaurants?.delivery_company_id;
+    if (!companyId) return item;
+    const match = activeOffers.find(o =>
+      o.delivery_company_id === companyId &&
+      (o.scope === "restaurant" || !o.scope) &&
+      (!o.restaurant_id || o.restaurant_id === item.restaurant_id)
+    );
+    return match ? { ...item, _deliveryOffer: match } : item;
+  });
 }
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -86,7 +100,6 @@ const FEATURES = [
 ];
 
 // ─── COMPONENT 1: Hero Offers Banner (عروض وخصومات التوصيل) ──────────────────
-// Redesigned: dark green carousel, food image right, text left, dots pagination
 const FALLBACK_OFFER_IMAGES = [
   "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&fit=crop",
   "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80&fit=crop",
@@ -150,27 +163,36 @@ const OffersSection = ({
               className="relative shrink-0 overflow-hidden text-right hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
               style={{ width: 175, height: 112, borderRadius: 14 }}
             >
-              {/* Background food image */}
+              {/* Blurred background layer */}
+              <img
+                src={imgSrc}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ filter: "blur(8px) brightness(0.45)", transform: "scale(1.1)" }}
+                loading="lazy"
+              />
+              {/* Sharp contained image */}
               <img
                 src={imgSrc}
                 alt={titleText}
-                className="absolute inset-0 w-full h-full object-cover"
-                style={{ filter: "brightness(0.52)" }}
+                className="absolute inset-0 w-full h-full object-contain"
+                style={{ zIndex: 1 }}
                 loading="lazy"
               />
 
               {/* Badge — top right */}
               <span
-                className="absolute top-2.5 right-2.5 z-10 text-white font-black text-[10px] px-2.5 py-1 shadow-md"
-                style={{ backgroundColor: badge.color, borderRadius: 99 }}
+                className="absolute top-2.5 right-2.5 text-white font-black text-[10px] px-2.5 py-1 shadow-md"
+                style={{ backgroundColor: badge.color, borderRadius: 99, zIndex: 2 }}
               >
                 {badge.text}
               </span>
 
               {/* Text — bottom gradient */}
               <div
-                className="absolute bottom-0 right-0 left-0 px-2.5 pb-2.5 pt-6 z-10"
-                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.68) 60%, transparent)" }}
+                className="absolute bottom-0 right-0 left-0 px-2.5 pb-2.5 pt-6"
+                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.68) 60%, transparent)", zIndex: 2 }}
               >
                 {titleText && (
                   <p className="text-white font-black leading-tight line-clamp-2" style={{ fontSize: 12 }}>
@@ -192,7 +214,6 @@ const OffersSection = ({
 };
 
 // ─── COMPONENT 2: Meal/Restaurant Card (horizontal scroll) ───────────────────
-// Redesigned: 160px wide, white bg, square image, delivery pill, heart, name, tags, rating+price
 const ItemCard = ({ item }: { item: any }) => {
   const navigate = useNavigate();
   const { originalPrice, finalPrice, hasPromo } = getEffectivePromo(item);
@@ -204,7 +225,6 @@ const ItemCard = ({ item }: { item: any }) => {
       ? Math.round((1 - finalPrice / originalPrice) * 100)
       : 0;
   const ratingNum = Number(item.rating || 0);
-  const deliveryTime = item.restaurants?.estimated_delivery_time;
   const restaurantName = item.restaurants?.name_ar;
 
   return (
@@ -257,64 +277,56 @@ const ItemCard = ({ item }: { item: any }) => {
             <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
           </div>
         </div>
-
-        {/* Discount badge top-left */}
-        {showDiscount && discountPct > 0 && (
-          <span
-            className="absolute top-2 left-2 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow"
-            style={{ backgroundColor: DANGER, zIndex: 3 }}
-          >
-            -{discountPct}%
-          </span>
-        )}
-
-        {/* Delivery time pill bottom-right */}
-        {deliveryTime && (
-          <span
-            className="absolute bottom-2 right-2 inline-flex items-center gap-0.5 text-white font-bold text-[9px] px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: PRIMARY, zIndex: 3 }}
-          >
-            <Clock className="w-2.5 h-2.5" />
-            {deliveryTime} د
-          </span>
-        )}
       </div>
 
       {/* Info section */}
       <div className="p-2.5 space-y-1">
-        {/* Meal name */}
-        <p className="font-black text-[13px] leading-tight line-clamp-1" style={{ color: TEXT_PRIMARY }}>
+        {/* Meal name — centered */}
+        <p className="font-black text-[13px] leading-tight line-clamp-2 text-center" style={{ color: TEXT_PRIMARY }}>
           {item.name_ar}
         </p>
 
         {/* Restaurant as tag */}
         {restaurantName && (
-          <p className="text-[10px] line-clamp-1" style={{ color: TEXT_SECONDARY }}>
+          <p className="text-[10px] line-clamp-1 text-center" style={{ color: TEXT_SECONDARY }}>
             {restaurantName}
           </p>
         )}
 
-        {/* Rating + price */}
-        <div className="flex items-center justify-between pt-0.5">
-          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: TEXT_SECONDARY }}>
-            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+        {/* Rating — centered */}
+        <div className="flex items-center justify-center gap-0.5">
+          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+          <span className="text-[10px] font-bold" style={{ color: TEXT_SECONDARY }}>
             {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
           </span>
-          {showDiscount ? (
-            <div className="flex flex-col items-end leading-tight">
-              <span className="text-[8px] line-through" style={{ color: TEXT_SECONDARY }}>
-                {Number(originalPrice).toLocaleString()} ر.ي
-              </span>
-              <span className="font-extrabold text-[11px]" style={{ color: LIGHT_GREEN }}>
-                {Number(finalPrice).toLocaleString()} ر.ي
-              </span>
-            </div>
-          ) : (
-            <span className="font-extrabold text-[11px]" style={{ color: PRIMARY }}>
+        </div>
+
+        {/* Price — centered, prominent */}
+        {showDiscount ? (
+          <div className="flex flex-col items-center leading-tight">
+            <span className="text-[9px] line-through" style={{ color: TEXT_SECONDARY }}>
+              {Number(originalPrice).toLocaleString()} ر.ي
+            </span>
+            <span className="font-black text-[13px]" style={{ color: LIGHT_GREEN }}>
               {Number(finalPrice).toLocaleString()} ر.ي
             </span>
-          )}
-        </div>
+          </div>
+        ) : (
+          <p className="text-center font-black text-[13px]" style={{ color: PRIMARY }}>
+            {Number(finalPrice).toLocaleString()} ر.ي
+          </p>
+        )}
+
+        {/* Offer strip — bottom */}
+        {(showDiscount && discountPct > 0) ? (
+          <div className="mt-1 rounded-lg px-2 py-1 text-center text-[10px] font-black text-white" style={{ backgroundColor: DANGER }}>
+            🏷️ خصم {discountPct}%
+          </div>
+        ) : item._deliveryOffer ? (
+          <div className="mt-1 rounded-lg px-2 py-1 text-center text-[10px] font-black text-white" style={{ backgroundColor: "#1B9E6E" }}>
+            🚚 {item._deliveryOffer.offer_type === "free_delivery" ? "توصيل مجاني" : item._deliveryOffer.title || "عرض توصيل"}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -331,7 +343,6 @@ const MealOfferCard = ({ item }: { item: any }) => {
       : showDiscount
       ? Math.round((1 - finalPrice / originalPrice) * 100)
       : 0;
-  const deliveryTime = item.restaurants?.estimated_delivery_time;
 
   return (
     <div
@@ -375,66 +386,68 @@ const MealOfferCard = ({ item }: { item: any }) => {
           style={{ background: "linear-gradient(to top, rgba(255,255,255,0.95), transparent)", zIndex: 2 }}
         />
 
-        {/* Discount pill top-left */}
-        {discountPct > 0 && (
-          <span className="absolute top-2 left-2 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow" style={{ backgroundColor: DANGER, zIndex: 3 }}>
-            -{discountPct}%
-          </span>
-        )}
-        {!discountPct && promoLabel && (
-          <span className="absolute top-2 left-2 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow" style={{ backgroundColor: "#F59E0B", zIndex: 3 }}>
-            {promoLabel}
-          </span>
-        )}
-
         {/* Heart top-right */}
         <div className="absolute top-2 right-2" style={{ zIndex: 3 }}>
           <div className="w-7 h-7 rounded-full bg-white shadow flex items-center justify-center" onClick={e => e.stopPropagation()}>
             <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
           </div>
         </div>
-
-        {/* Delivery time bottom-right */}
-        {deliveryTime && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center gap-0.5 text-white font-bold text-[9px] px-2 py-0.5 rounded-full" style={{ backgroundColor: PRIMARY, zIndex: 3 }}>
-            <Clock className="w-2.5 h-2.5" />{deliveryTime} د
-          </span>
-        )}
       </div>
 
       {/* Info */}
       <div className="p-2.5 space-y-1">
-        <p className="font-black text-[13px] leading-tight line-clamp-1" style={{ color: TEXT_PRIMARY }}>
+        {/* Meal name — centered */}
+        <p className="font-black text-[13px] leading-tight line-clamp-2 text-center" style={{ color: TEXT_PRIMARY }}>
           {item.name_ar}
         </p>
+
         {item.restaurants?.name_ar && (
-          <p className="text-[10px] line-clamp-1" style={{ color: TEXT_SECONDARY }}>
+          <p className="text-[10px] line-clamp-1 text-center" style={{ color: TEXT_SECONDARY }}>
             {item.restaurants.name_ar}
           </p>
         )}
+
+        {/* Price — centered, prominent */}
         {showDiscount ? (
-          <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
+          <div className="flex flex-col items-center leading-tight">
             <span className="text-[9px] line-through" style={{ color: TEXT_SECONDARY }}>
               {Number(originalPrice).toLocaleString()} ر.ي
             </span>
-            <span className="font-extrabold text-[12px]" style={{ color: LIGHT_GREEN }}>
+            <span className="font-black text-[13px]" style={{ color: LIGHT_GREEN }}>
               {Number(finalPrice).toLocaleString()} ر.ي
             </span>
           </div>
         ) : (
-          <p className="font-extrabold text-[12px] pt-0.5" style={{ color: PRIMARY }}>
+          <p className="text-center font-black text-[13px]" style={{ color: PRIMARY }}>
             {Number(finalPrice).toLocaleString()} ر.ي
           </p>
         )}
+
+        {/* Offer strip — bottom */}
+        {(showDiscount && discountPct > 0) ? (
+          <div className="mt-1 rounded-lg px-2 py-1 text-center text-[10px] font-black text-white" style={{ backgroundColor: DANGER }}>
+            🏷️ خصم {discountPct}%
+          </div>
+        ) : promoLabel ? (
+          <div className="mt-1 rounded-lg px-2 py-1 text-center text-[10px] font-black text-white" style={{ backgroundColor: "#F59E0B" }}>
+            🏷️ {promoLabel}
+          </div>
+        ) : item._deliveryOffer ? (
+          <div className="mt-1 rounded-lg px-2 py-1 text-center text-[10px] font-black text-white" style={{ backgroundColor: "#1B9E6E" }}>
+            🚚 {item._deliveryOffer.offer_type === "free_delivery" ? "توصيل مجاني" : item._deliveryOffer.title || "عرض توصيل"}
+          </div>
+        ) : null}
       </div>
     </div>
   );
 };
 
 // ─── TopRatedItems ────────────────────────────────────────────────────────────
-const TopRatedItems = () => {
+const TopRatedItems = ({ liveOffers = [] }: { liveOffers?: DeliveryOffer[] }) => {
   const navigate = useNavigate();
-  const [items, setItems] = useState<any[]>([]);
+  const [rawItems, setRawItems] = useState<any[]>([]);
+
+  const items = attachDeliveryOffers(rawItems, liveOffers);
 
   useEffect(() => {
     (supabase.from("menu_items") as any)
@@ -450,9 +463,9 @@ const TopRatedItems = () => {
             .eq("is_popular", true)
             .eq("is_available", true)
             .limit(10)
-            .then(({ data: d2 }: any) => setItems(d2 || []));
+            .then(({ data: d2 }: any) => setRawItems(d2 || []));
         } else {
-          setItems(data || []);
+          setRawItems(data || []);
         }
       });
   }, []);
@@ -496,10 +509,12 @@ const FeaturedItems = () => {
 };
 
 // ─── MealOffersSection ────────────────────────────────────────────────────────
-const MealOffersSection = () => {
+const MealOffersSection = ({ liveOffers = [] }: { liveOffers?: DeliveryOffer[] }) => {
   const navigate = useNavigate();
-  const [items, setItems] = useState<any[]>([]);
+  const [rawItems, setRawItems] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
+
+  const items = attachDeliveryOffers(rawItems, liveOffers);
 
   useEffect(() => {
     (supabase.from("menu_items") as any)
@@ -517,7 +532,7 @@ const MealOffersSection = () => {
             (b.price && b.promo_value && b.promo_type === "fixed_price") ? Math.round((1 - b.promo_value / b.price) * 100) : 0;
           return pctB - pctA;
         });
-        setItems(active.slice(0, 10));
+        setRawItems(active.slice(0, 10));
         setLoaded(true);
       });
   }, []);
@@ -555,7 +570,7 @@ const DEFAULT_SERVICE_TILES = [
   { key: "more", label: "المزيد", img: "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600&q=80&fit=crop", action: "more" },
 ];
 
-// ─── Hero Banner Carousel (unchanged logic) ───────────────────────────────────
+// ─── Hero Banner Carousel ─────────────────────────────────────────────────────
 const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (url: string) => void }) => {
   const [idx, setIdx] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -586,15 +601,31 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
           className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100" : "opacity-0 pointer-events-none"} ${banner.link_url || banner.link_tab ? "cursor-pointer" : ""}`}
           onClick={() => i === idx && handleClick(banner)}
         >
-          <img src={banner.image_url} alt={banner.title || ""} className="w-full h-full object-cover" loading={i === 0 ? "eager" : "lazy"} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          {/* Blurred background */}
+          <img
+            src={banner.image_url}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: "blur(8px) brightness(0.45)", transform: "scale(1.1)" }}
+            loading={i === 0 ? "eager" : "lazy"}
+          />
+          {/* Sharp contained image */}
+          <img
+            src={banner.image_url}
+            alt={banner.title || ""}
+            className="absolute inset-0 w-full h-full object-contain"
+            style={{ zIndex: 1 }}
+            loading={i === 0 ? "eager" : "lazy"}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" style={{ zIndex: 2 }} />
           {banner.badge_text && (
-            <Badge className="absolute top-3 right-3 text-white border-0 shadow-lg font-bold text-xs" style={{ backgroundColor: LIGHT_GREEN }}>
+            <Badge className="absolute top-3 right-3 text-white border-0 shadow-lg font-bold text-xs" style={{ backgroundColor: LIGHT_GREEN, zIndex: 3 }}>
               {banner.badge_text}
             </Badge>
           )}
           {(banner.title || banner.subtitle) && (
-            <div className="absolute bottom-8 right-4 left-4 text-white">
+            <div className="absolute bottom-8 right-4 left-4 text-white" style={{ zIndex: 3 }}>
               {banner.title && <h3 className="text-xl font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-tight">{banner.title}</h3>}
               {banner.subtitle && <p className="text-sm text-white/90 mt-1 drop-shadow font-medium">{banner.subtitle}</p>}
             </div>
@@ -716,10 +747,10 @@ const DeliveryHubPage = () => {
         <SharedCategoryScroller />
 
         {/* ── 5. عروض الوجبات ── */}
-        <MealOffersSection />
+        <MealOffersSection liveOffers={liveOffers} />
 
         {/* ── 6. الأكثر تقييماً ── */}
-        <TopRatedItems />
+        <TopRatedItems liveOffers={liveOffers} />
 
         {/* ── 7. Delivery request banner ── */}
         <DeliveryRequestBanner />
