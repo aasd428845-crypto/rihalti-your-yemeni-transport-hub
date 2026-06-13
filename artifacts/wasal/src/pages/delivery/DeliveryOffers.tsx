@@ -135,8 +135,10 @@ const DeliveryOffers = () => {
       ...emptyForm(), ...o,
       scope: o.scope || 'restaurant',
       active_days: o.active_days || [],
-      starts_at: o.starts_at ? o.starts_at.slice(0, 16) : "",
-      ends_at: o.ends_at ? o.ends_at.slice(0, 16) : "",
+      start_time: o.start_time  || "",
+      end_time:   o.end_time    || "",
+      starts_at:  o.starts_at   ? new Date(o.starts_at).toISOString().slice(0, 16) : "",
+      ends_at:    o.ends_at     ? new Date(o.ends_at).toISOString().slice(0, 16)   : "",
       sponsor_type: o.sponsor_type || "restaurant",
       sponsor_name: o.sponsor_name || "",
     });
