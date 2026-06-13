@@ -5,15 +5,11 @@ import {
   Tag,
   ChevronLeft,
   ChevronRight,
-  Flame,
-  Sparkles,
   Zap,
   Shield,
   Star,
   TrendingUp,
   ChevronLeft as ArrowLeftIcon,
-  Heart,
-  MapPin,
   Truck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +34,7 @@ function getEffectivePromo(item: any) {
   return computeItemPromo({ ...item, promo_active: scheduleOk && !!item.promo_active });
 }
 
-// ─── Attach delivery company offers to items ──────────────────────────────────
+// ─── Attach delivery company offers to items ─────────────────────────────────
 function attachDeliveryOffers(items: any[], activeOffers: DeliveryOffer[]): any[] {
   if (!activeOffers.length) return items;
   return items.map(item => {
@@ -60,7 +56,6 @@ const CARD_BG = "#FFFFFF";
 const PAGE_BG = "#F8F8F8";
 const TEXT_PRIMARY = "#1A1A1A";
 const TEXT_SECONDARY = "#888888";
-const RATING_GOLD = "#FFC107";
 const DANGER = "#E53935";
 
 // ─── Section header ───────────────────────────────────────────────────────────
@@ -99,7 +94,7 @@ const FEATURES = [
   { icon: TrendingUp, label: "أسعار تنافسية", color: "#3B82F6" },
 ];
 
-// ─── COMPONENT 1: Hero Offers Banner (عروض وخصومات التوصيل) ──────────────────
+// ─── COMPONENT 1: Hero Banner Carousel ────────────────────────────────────────
 const FALLBACK_OFFER_IMAGES = [
   "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&fit=crop",
   "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80&fit=crop",
@@ -116,6 +111,103 @@ function getOfferDiscountText(offer: DeliveryOffer): string {
   return "";
 }
 
+// ─── Hero Banner Carousel ─────────────────────────────────────────────────────
+const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (url: string) => void }) => {
+  const [idx, setIdx] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => setIdx(i => (i + 1) % banners.length), 4500);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [banners.length]);
+
+  const go = (dir: number) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setIdx(i => (i + dir + banners.length) % banners.length);
+  };
+
+  const handleClick = (banner: any) => {
+    let dest = banner.link_url || (banner.link_tab === "more" ? "/shipments" : banner.link_tab ? `/food?tab=${banner.link_tab}` : null);
+    if (dest === "/shipment-request") dest = "/delivery-request";
+    if (dest) onNavigate(dest);
+  };
+
+  if (!banners.length) return null;
+
+  return (
+    <div
+      className="relative w-full overflow-hidden"
+      style={{ aspectRatio: "16/7", minHeight: 100, maxHeight: 148, borderRadius: 20, boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}
+    >
+      {banners.map((banner, i) => (
+        <div
+          key={banner.id}
+          className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100" : "opacity-0 pointer-events-none"} ${banner.link_url || banner.link_tab ? "cursor-pointer" : ""}`}
+          onClick={() => i === idx && handleClick(banner)}
+        >
+          <img
+            src={banner.image_url}
+            alt={banner.title || ""}
+            className="w-full h-full object-cover"
+            loading={i === 0 ? "eager" : "lazy"}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+          {banner.badge_text && (
+            <Badge
+              className="absolute top-3 right-3 text-white border-0 shadow-lg font-bold text-xs"
+              style={{ backgroundColor: LIGHT_GREEN }}
+            >
+              {banner.badge_text}
+            </Badge>
+          )}
+          {(banner.title || banner.subtitle) && (
+            <div className="absolute bottom-7 right-4 left-4 text-white">
+              {banner.title && (
+                <h3 className="text-[17px] font-black leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                  {banner.title}
+                </h3>
+              )}
+              {banner.subtitle && (
+                <p className="text-[12px] text-white/85 mt-0.5 drop-shadow font-medium">
+                  {banner.subtitle}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {banners.length > 1 && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); go(-1); }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center z-10"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); go(1); }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center z-10"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {banners.map((_, i) => (
+              <button
+                key={i}
+                onClick={(e) => { e.stopPropagation(); setIdx(i); }}
+                className="rounded-full transition-all duration-300"
+                style={{ width: i === idx ? 18 : 6, height: 6, backgroundColor: i === idx ? "#fff" : "rgba(255,255,255,0.45)" }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ─── COMPONENT 2: Offers Section ─────────────────────────────────────────────
 const OffersSection = ({
   offers,
   onNavigate,
@@ -136,11 +228,17 @@ const OffersSection = ({
     onNavigate(isSafePath(dest) ? dest : "/food");
   };
 
-  const getBadge = (offer: DeliveryOffer): { text: string; color: string } => {
-    if (offer.offer_type === "free_delivery") return { text: "مجاني", color: "#1B9E6E" };
-    if (offer.offer_type === "percent_off_delivery" && offer.discount_percent) return { text: "تخفيض", color: "#E53935" };
-    if (offer.offer_type === "percent_off_order" && offer.discount_percent) return { text: "تخفيض", color: "#E53935" };
-    return { text: "عرض خاص", color: PRIMARY };
+  const getBadgeColor = (offer: DeliveryOffer): string => {
+    if (offer.offer_type === "free_delivery") return "#1B9E6E";
+    if (offer.offer_type === "percent_off_delivery" || offer.offer_type === "percent_off_order") return DANGER;
+    return PRIMARY;
+  };
+
+  const getBadgeText = (offer: DeliveryOffer): string => {
+    const d = getOfferDiscountText(offer);
+    if (d === "توصيل مجاني") return "مجاني";
+    if (d) return `${d} خصم`;
+    return "عرض";
   };
 
   return (
@@ -148,57 +246,39 @@ const OffersSection = ({
       <SectionHeader title="عروض وخصومات التوصيل" icon={Tag} />
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
         {offers.map((offer, i) => {
-          const discountText = getOfferDiscountText(offer);
-          const badge = getBadge(offer);
           const imgSrc = offer.image_url || FALLBACK_OFFER_IMAGES[i % FALLBACK_OFFER_IMAGES.length];
-          const titleText = discountText && discountText !== "توصيل مجاني"
-            ? `خصم ${discountText} ${offer.title || ""}`.trim()
-            : offer.title || (discountText === "توصيل مجاني" ? "توصيل مجاني" : "");
+          const titleText = offer.title || (offer.offer_type === "free_delivery" ? "توصيل مجاني" : "عرض خاص");
           const subtitle = (offer as any).subtitle || offer.description || "";
+          const badgeColor = getBadgeColor(offer);
+          const badgeText = getBadgeText(offer);
 
           return (
             <button
               key={offer.id}
               onClick={() => handleClick(offer)}
-              className="relative shrink-0 overflow-hidden text-right hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
-              style={{ width: 175, height: 112, borderRadius: 14 }}
+              className="relative shrink-0 overflow-hidden text-right active:scale-[0.97] transition-transform duration-150"
+              style={{ width: 175, height: 108, borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,0.10)" }}
             >
-              {/* Blurred background layer */}
-              <img
-                src={imgSrc}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 w-full h-full object-cover"
-                style={{ filter: "blur(8px) brightness(0.45)", transform: "scale(1.1)" }}
-                loading="lazy"
-              />
-              {/* Sharp contained image */}
               <img
                 src={imgSrc}
                 alt={titleText}
-                className="absolute inset-0 w-full h-full object-contain"
-                style={{ zIndex: 1 }}
+                className="absolute inset-0 w-full h-full object-cover"
                 loading="lazy"
               />
-
-              {/* Badge — top right */}
-              <span
-                className="absolute top-2.5 right-2.5 text-white font-black text-[10px] px-2.5 py-1 shadow-md"
-                style={{ backgroundColor: badge.color, borderRadius: 99, zIndex: 2 }}
-              >
-                {badge.text}
-              </span>
-
-              {/* Text — bottom gradient */}
               <div
-                className="absolute bottom-0 right-0 left-0 px-2.5 pb-2.5 pt-6"
-                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.68) 60%, transparent)", zIndex: 2 }}
+                className="absolute inset-0"
+                style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.05) 100%)" }}
+              />
+              <span
+                className="absolute top-2.5 right-2.5 text-white font-black text-[10px] px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: badgeColor, zIndex: 1 }}
               >
-                {titleText && (
-                  <p className="text-white font-black leading-tight line-clamp-2" style={{ fontSize: 12 }}>
-                    {titleText}
-                  </p>
-                )}
+                {badgeText}
+              </span>
+              <div className="absolute bottom-0 right-0 left-0 px-2.5 pb-2.5" style={{ zIndex: 1 }}>
+                <p className="text-white font-black leading-tight line-clamp-1" style={{ fontSize: 12 }}>
+                  {titleText}
+                </p>
                 {subtitle && (
                   <p className="text-white/80 leading-tight line-clamp-1 mt-0.5" style={{ fontSize: 10 }}>
                     {subtitle}
@@ -213,7 +293,7 @@ const OffersSection = ({
   );
 };
 
-// ─── COMPONENT 2: Meal/Restaurant Card (horizontal scroll) ───────────────────
+// ─── COMPONENT 3: ItemCard (160×215px) ───────────────────────────────────────
 const ItemCard = ({ item }: { item: any }) => {
   const navigate = useNavigate();
   const { originalPrice, finalPrice, hasPromo } = getEffectivePromo(item);
@@ -230,109 +310,97 @@ const ItemCard = ({ item }: { item: any }) => {
   return (
     <div
       onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="shrink-0 cursor-pointer hover:-translate-y-1 transition-all duration-200"
+      className="shrink-0 cursor-pointer active:scale-[0.97] transition-transform duration-150"
       style={{
         width: 160,
-        borderRadius: 16,
+        borderRadius: 14,
         backgroundColor: CARD_BG,
-        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.09)",
         overflow: "hidden",
       }}
     >
-      {/* Image section — 3D floating food effect */}
-      <div
-        className="relative w-full overflow-hidden"
-        style={{ height: 140, background: "#ffffff" }}
-      >
-        {/* Fallback emoji — shown when image missing/fails */}
-        <div className="absolute inset-0 flex items-center justify-center text-5xl select-none" style={{ zIndex: 0 }}>🍔</div>
-
-        {item.image_url && (
+      {/* Image */}
+      <div className="relative w-full overflow-hidden" style={{ height: 120 }}>
+        {item.image_url ? (
           <img
             src={item.image_url}
             alt={item.name_ar}
             loading="lazy"
-            className="absolute inset-0 w-full h-full"
-            style={{
-              objectFit: "contain",
-              objectPosition: "center",
-              filter: "drop-shadow(0px 12px 20px rgba(0,0,0,0.28)) drop-shadow(0px 4px 8px rgba(0,0,0,0.14))",
-              transform: "scale(1.06) translateY(-5px)",
-              transition: "transform 0.3s ease",
-              zIndex: 1,
-            }}
+            className="w-full h-full object-cover"
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-4xl" style={{ backgroundColor: "#f5f5f5" }}>
+            🍔
+          </div>
         )}
 
-        {/* Subtle bottom fade */}
-        <div
-          className="absolute inset-x-0 bottom-0 h-8"
-          style={{ background: "linear-gradient(to top, rgba(255,255,255,0.95), transparent)", zIndex: 2 }}
-        />
-
-        {/* Heart top-right */}
-        <div className="absolute top-2 right-2" style={{ zIndex: 3 }}>
-          <div className="w-7 h-7 rounded-full bg-white shadow flex items-center justify-center">
+        {/* Heart — top right */}
+        <div className="absolute top-2 right-2 z-10" onClick={e => e.stopPropagation()}>
+          <div className="w-6 h-6 rounded-full bg-white/90 shadow flex items-center justify-center">
             <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
           </div>
         </div>
+
+        {/* Discount badge — top left */}
+        {showDiscount && discountPct > 0 && (
+          <span
+            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full"
+            style={{ backgroundColor: DANGER }}
+          >
+            -{discountPct}%
+          </span>
+        )}
       </div>
 
-      {/* Info section */}
-      <div className="p-2.5 space-y-1">
-        {/* Meal name — centered */}
-        <p className="font-black text-[13px] leading-tight line-clamp-2 text-center" style={{ color: TEXT_PRIMARY }}>
+      {/* Info */}
+      <div className="px-2.5 pt-2 pb-2.5 space-y-1">
+        <p className="font-bold text-[12px] leading-snug line-clamp-2" style={{ color: TEXT_PRIMARY, minHeight: 34 }}>
           {item.name_ar}
         </p>
 
-        {/* Restaurant as tag */}
         {restaurantName && (
-          <p className="text-[10px] line-clamp-1 text-center" style={{ color: TEXT_SECONDARY }}>
+          <p className="text-[10px] truncate" style={{ color: TEXT_SECONDARY }}>
             {restaurantName}
           </p>
         )}
 
-        {/* Rating — centered */}
-        <div className="flex items-center justify-center gap-0.5">
-          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-          <span className="text-[10px] font-bold" style={{ color: TEXT_SECONDARY }}>
+        <div className="flex items-center justify-between pt-0.5">
+          <span className="inline-flex items-center gap-0.5 text-[9px]" style={{ color: TEXT_SECONDARY }}>
+            <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
             {ratingNum > 0 ? ratingNum.toFixed(1) : "جديد"}
           </span>
-        </div>
-
-        {/* Price — centered, prominent */}
-        {showDiscount ? (
-          <div className="flex flex-col items-center leading-tight">
-            <span className="text-[9px] line-through" style={{ color: TEXT_SECONDARY }}>
-              {Number(originalPrice).toLocaleString()} ر.ي
-            </span>
-            <span className="font-black text-[13px]" style={{ color: LIGHT_GREEN }}>
+          {showDiscount ? (
+            <div className="flex flex-col items-end leading-tight">
+              <span className="text-[9px] line-through" style={{ color: TEXT_SECONDARY }}>
+                {Number(originalPrice).toLocaleString()}
+              </span>
+              <span className="font-black text-[12px]" style={{ color: LIGHT_GREEN }}>
+                {Number(finalPrice).toLocaleString()} ر.ي
+              </span>
+            </div>
+          ) : (
+            <span className="font-black text-[12px]" style={{ color: PRIMARY }}>
               {Number(finalPrice).toLocaleString()} ر.ي
             </span>
-          </div>
-        ) : (
-          <p className="text-center font-black text-[13px]" style={{ color: PRIMARY }}>
-            {Number(finalPrice).toLocaleString()} ر.ي
-          </p>
-        )}
+          )}
+        </div>
 
-        {/* Offer strip — bottom */}
-        {(showDiscount && discountPct > 0) ? (
-          <div className="mt-1 rounded-lg px-2 py-1 text-center text-[10px] font-black text-white" style={{ backgroundColor: DANGER }}>
-            🏷️ خصم {discountPct}%
-          </div>
-        ) : item._deliveryOffer ? (
-          <div className="mt-1 rounded-lg px-2 py-1 text-center text-[10px] font-black text-white" style={{ backgroundColor: "#1B9E6E" }}>
+        {/* Delivery offer strip */}
+        {item._deliveryOffer && (
+          <div
+            className="rounded-md px-1.5 py-0.5 text-center text-[9px] font-bold text-white"
+            style={{ backgroundColor: "#1B9E6E" }}
+          >
             🚚 {item._deliveryOffer.offer_type === "free_delivery" ? "توصيل مجاني" : item._deliveryOffer.title || "عرض توصيل"}
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
 };
 
-// ─── عروض الوجبات Card (160px wide, full spec) ────────────────────────────────
+// ─── COMPONENT 4: MealOfferCard (same proportions as ItemCard) ────────────────
 const MealOfferCard = ({ item }: { item: any }) => {
   const navigate = useNavigate();
   const { originalPrice, finalPrice, promoLabel } = getEffectivePromo(item);
@@ -347,93 +415,91 @@ const MealOfferCard = ({ item }: { item: any }) => {
   return (
     <div
       onClick={() => item.restaurant_id && navigate(`/restaurants/${item.restaurant_id}`)}
-      className="shrink-0 cursor-pointer hover:-translate-y-1 transition-all duration-200"
+      className="shrink-0 cursor-pointer active:scale-[0.97] transition-transform duration-150"
       style={{
         width: 160,
-        borderRadius: 16,
+        borderRadius: 14,
         backgroundColor: CARD_BG,
-        boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.09)",
         overflow: "hidden",
       }}
     >
-      {/* Image — 3D floating food effect */}
-      <div
-        className="relative w-full overflow-hidden"
-        style={{ height: 140, background: "#ffffff" }}
-      >
-        <div className="absolute inset-0 flex items-center justify-center text-5xl select-none" style={{ zIndex: 0 }}>🍽️</div>
-
-        {item.image_url && (
+      {/* Image */}
+      <div className="relative w-full overflow-hidden" style={{ height: 120 }}>
+        {item.image_url ? (
           <img
             src={item.image_url}
             alt={item.name_ar}
             loading="lazy"
-            className="absolute inset-0 w-full h-full"
-            style={{
-              objectFit: "contain",
-              objectPosition: "center",
-              filter: "drop-shadow(0px 12px 20px rgba(0,0,0,0.28)) drop-shadow(0px 4px 8px rgba(0,0,0,0.14))",
-              transform: "scale(1.06) translateY(-5px)",
-              transition: "transform 0.3s ease",
-              zIndex: 1,
-            }}
+            className="w-full h-full object-cover"
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-4xl" style={{ backgroundColor: "#f5f5f5" }}>
+            🍽️
+          </div>
         )}
 
-        <div
-          className="absolute inset-x-0 bottom-0 h-8"
-          style={{ background: "linear-gradient(to top, rgba(255,255,255,0.95), transparent)", zIndex: 2 }}
-        />
-
-        {/* Heart top-right */}
-        <div className="absolute top-2 right-2" style={{ zIndex: 3 }}>
-          <div className="w-7 h-7 rounded-full bg-white shadow flex items-center justify-center" onClick={e => e.stopPropagation()}>
+        {/* Heart — top right */}
+        <div className="absolute top-2 right-2 z-10" onClick={e => e.stopPropagation()}>
+          <div className="w-6 h-6 rounded-full bg-white/90 shadow flex items-center justify-center">
             <FavoriteHeart entityType="menu_item" entityId={item.id} size="sm" />
           </div>
         </div>
+
+        {/* Promo badge — top left */}
+        {discountPct > 0 ? (
+          <span
+            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full"
+            style={{ backgroundColor: DANGER }}
+          >
+            -{discountPct}%
+          </span>
+        ) : promoLabel ? (
+          <span
+            className="absolute top-2 left-2 z-10 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full"
+            style={{ backgroundColor: "#F59E0B" }}
+          >
+            {promoLabel}
+          </span>
+        ) : null}
       </div>
 
       {/* Info */}
-      <div className="p-2.5 space-y-1">
-        {/* Meal name — centered */}
-        <p className="font-black text-[13px] leading-tight line-clamp-2 text-center" style={{ color: TEXT_PRIMARY }}>
+      <div className="px-2.5 pt-2 pb-2.5 space-y-1">
+        <p className="font-bold text-[12px] leading-snug line-clamp-2" style={{ color: TEXT_PRIMARY, minHeight: 34 }}>
           {item.name_ar}
         </p>
 
         {item.restaurants?.name_ar && (
-          <p className="text-[10px] line-clamp-1 text-center" style={{ color: TEXT_SECONDARY }}>
+          <p className="text-[10px] truncate" style={{ color: TEXT_SECONDARY }}>
             {item.restaurants.name_ar}
           </p>
         )}
 
-        {/* Price — centered, prominent */}
-        {showDiscount ? (
-          <div className="flex flex-col items-center leading-tight">
-            <span className="text-[9px] line-through" style={{ color: TEXT_SECONDARY }}>
-              {Number(originalPrice).toLocaleString()} ر.ي
-            </span>
-            <span className="font-black text-[13px]" style={{ color: LIGHT_GREEN }}>
+        <div className="flex items-center justify-end pt-0.5">
+          {showDiscount ? (
+            <div className="flex flex-col items-end leading-tight">
+              <span className="text-[9px] line-through" style={{ color: TEXT_SECONDARY }}>
+                {Number(originalPrice).toLocaleString()}
+              </span>
+              <span className="font-black text-[12px]" style={{ color: LIGHT_GREEN }}>
+                {Number(finalPrice).toLocaleString()} ر.ي
+              </span>
+            </div>
+          ) : (
+            <span className="font-black text-[12px]" style={{ color: PRIMARY }}>
               {Number(finalPrice).toLocaleString()} ر.ي
             </span>
-          </div>
-        ) : (
-          <p className="text-center font-black text-[13px]" style={{ color: PRIMARY }}>
-            {Number(finalPrice).toLocaleString()} ر.ي
-          </p>
-        )}
+          )}
+        </div>
 
-        {/* Offer strip — bottom */}
-        {(showDiscount && discountPct > 0) ? (
-          <div className="mt-1 rounded-lg px-2 py-1 text-center text-[10px] font-black text-white" style={{ backgroundColor: DANGER }}>
-            🏷️ خصم {discountPct}%
-          </div>
-        ) : promoLabel ? (
-          <div className="mt-1 rounded-lg px-2 py-1 text-center text-[10px] font-black text-white" style={{ backgroundColor: "#F59E0B" }}>
-            🏷️ {promoLabel}
-          </div>
-        ) : item._deliveryOffer ? (
-          <div className="mt-1 rounded-lg px-2 py-1 text-center text-[10px] font-black text-white" style={{ backgroundColor: "#1B9E6E" }}>
+        {/* Offer strip — discount, then promoLabel, then delivery offer */}
+        {item._deliveryOffer && !discountPct && !promoLabel ? (
+          <div
+            className="rounded-md px-1.5 py-0.5 text-center text-[9px] font-bold text-white"
+            style={{ backgroundColor: "#1B9E6E" }}
+          >
             🚚 {item._deliveryOffer.offer_type === "free_delivery" ? "توصيل مجاني" : item._deliveryOffer.title || "عرض توصيل"}
           </div>
         ) : null}
@@ -570,86 +636,6 @@ const DEFAULT_SERVICE_TILES = [
   { key: "more", label: "المزيد", img: "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600&q=80&fit=crop", action: "more" },
 ];
 
-// ─── Hero Banner Carousel ─────────────────────────────────────────────────────
-const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (url: string) => void }) => {
-  const [idx, setIdx] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    timerRef.current = setInterval(() => setIdx(i => (i + 1) % banners.length), 4500);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [banners.length]);
-
-  const go = (dir: number) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setIdx(i => (i + dir + banners.length) % banners.length);
-  };
-
-  const handleClick = (banner: any) => {
-    let dest = banner.link_url || (banner.link_tab === "more" ? "/shipments" : banner.link_tab ? `/food?tab=${banner.link_tab}` : null);
-    if (dest === "/shipment-request") dest = "/delivery-request";
-    if (dest) onNavigate(dest);
-  };
-
-  if (!banners.length) return null;
-
-  return (
-    <div className="relative w-full overflow-hidden shadow-md" style={{ aspectRatio: "16/7", minHeight: 100, maxHeight: 148, borderRadius: 20 }}>
-      {banners.map((banner, i) => (
-        <div
-          key={banner.id}
-          className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100" : "opacity-0 pointer-events-none"} ${banner.link_url || banner.link_tab ? "cursor-pointer" : ""}`}
-          onClick={() => i === idx && handleClick(banner)}
-        >
-          {/* Blurred background */}
-          <img
-            src={banner.image_url}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: "blur(8px) brightness(0.45)", transform: "scale(1.1)" }}
-            loading={i === 0 ? "eager" : "lazy"}
-          />
-          {/* Sharp contained image */}
-          <img
-            src={banner.image_url}
-            alt={banner.title || ""}
-            className="absolute inset-0 w-full h-full object-contain"
-            style={{ zIndex: 1 }}
-            loading={i === 0 ? "eager" : "lazy"}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" style={{ zIndex: 2 }} />
-          {banner.badge_text && (
-            <Badge className="absolute top-3 right-3 text-white border-0 shadow-lg font-bold text-xs" style={{ backgroundColor: LIGHT_GREEN, zIndex: 3 }}>
-              {banner.badge_text}
-            </Badge>
-          )}
-          {(banner.title || banner.subtitle) && (
-            <div className="absolute bottom-8 right-4 left-4 text-white" style={{ zIndex: 3 }}>
-              {banner.title && <h3 className="text-xl font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-tight">{banner.title}</h3>}
-              {banner.subtitle && <p className="text-sm text-white/90 mt-1 drop-shadow font-medium">{banner.subtitle}</p>}
-            </div>
-          )}
-        </div>
-      ))}
-      {banners.length > 1 && (
-        <>
-          <button onClick={(e) => { e.stopPropagation(); go(-1); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/70 z-10"><ChevronRight className="w-4 h-4" /></button>
-          <button onClick={(e) => { e.stopPropagation(); go(1); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/70 z-10"><ChevronLeft className="w-4 h-4" /></button>
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-            {banners.map((_, i) => (
-              <button key={i} onClick={(e) => { e.stopPropagation(); setIdx(i); }}
-                className="rounded-full transition-all duration-300"
-                style={{ width: i === idx ? 20 : 8, height: 8, backgroundColor: i === idx ? "#fff" : "rgba(255,255,255,0.4)" }}
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 const DeliveryHubPage = () => {
   const navigate = useNavigate();
@@ -716,11 +702,11 @@ const DeliveryHubPage = () => {
                 <button
                   key={tile.id || tile.key || i}
                   onClick={() => handleTileClick(tile)}
-                  className="relative overflow-hidden group h-20 hover:-translate-y-0.5 transition-all duration-300"
-                  style={{ borderRadius: 16, boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}
+                  className="relative overflow-hidden group h-20 active:scale-[0.97] transition-transform duration-150"
+                  style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,0.08)" }}
                 >
                   {imgSrc && <img src={imgSrc} alt={label} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
                   <div className="absolute bottom-0 right-0 left-0 px-3 py-2.5 flex items-center justify-center">
                     <span className="font-black text-sm text-white leading-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{label}</span>
                   </div>
@@ -735,7 +721,7 @@ const DeliveryHubPage = () => {
           ? <div className="w-full animate-pulse bg-gray-200" style={{ aspectRatio: "16/8", minHeight: 130, borderRadius: 20 }} />
           : <BannerCarousel banners={carouselBanners!} onNavigate={navigate} />}
 
-        {/* ── 3. Offers Banner (restaurant/delivery level only) ── */}
+        {/* ── 3. Offers Banner ── */}
         {bannersLoaded && (
           <OffersSection
             offers={liveOffers.length > 0 ? liveOffers : offerBanners!}
@@ -787,7 +773,7 @@ const DeliveryHubPage = () => {
             <div
               key={stat.label}
               className="text-center p-2.5 shadow-sm"
-              style={{ backgroundColor: CARD_BG, borderRadius: 16, boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}
+              style={{ backgroundColor: CARD_BG, borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,0.06)" }}
             >
               <p className="font-black text-sm" style={{ color: PRIMARY }}>{stat.num}</p>
               <p className="text-[10px]" style={{ color: TEXT_SECONDARY }}>{stat.label}</p>

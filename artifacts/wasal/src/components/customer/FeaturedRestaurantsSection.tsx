@@ -41,30 +41,18 @@ const RestaurantVerticalCard = ({ r }: { r: any }) => {
         position: "relative",
       }}
     >
-      {/* ── Restaurant cover image — blurred bg + contained sharp image ── */}
+      {/* ── Restaurant cover image ── */}
       <div className="relative w-full overflow-hidden" style={{ height: 140, backgroundColor: "#f0f0f0" }}>
         <div className="absolute inset-0 flex items-center justify-center text-5xl select-none" style={{ zIndex: 0 }}>🏪</div>
         {imgSrc && (
-          <>
-            {/* Blurred background layer */}
-            <img
-              src={imgSrc}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: "blur(10px) brightness(0.5)", transform: "scale(1.1)", zIndex: 1 }}
-              loading="lazy"
-            />
-            {/* Sharp contained image */}
-            <img
-              src={imgSrc}
-              alt={r.name_ar}
-              className="absolute inset-0 w-full h-full object-contain"
-              style={{ zIndex: 2 }}
-              loading="lazy"
-              onError={(e) => { e.currentTarget.style.display = "none"; }}
-            />
-          </>
+          <img
+            src={imgSrc}
+            alt={r.name_ar}
+            className="absolute inset-0 w-full h-full object-cover object-center"
+            style={{ zIndex: 1 }}
+            loading="lazy"
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />
         )}
 
         {/* Gradient overlay bottom */}
