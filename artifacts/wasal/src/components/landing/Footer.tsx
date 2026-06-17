@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Bus, Mail, Phone, MessageCircle, Shield } from "lucide-react";
+import { Mail, Phone, MessageCircle, Shield } from "lucide-react";
+import BikeDeliveryIcon from "@/components/common/BikeDeliveryIcon";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -82,7 +83,7 @@ const Footer = () => {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4 cursor-pointer" onClick={() => navigate("/")}>
               <div className="w-10 h-10 rounded-xl bg-gold-gradient flex items-center justify-center">
-                <Bus className="w-5 h-5 text-secondary-foreground" />
+                <BikeDeliveryIcon size={28} color="white" boxLineColor="rgba(0,0,0,0.2)" />
               </div>
               <div>
                 <div className="font-bold text-lg">وصل</div>
