@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, MessageCircle } from "lucide-react";
-import BikeDeliveryIcon from "@/components/common/BikeDeliveryIcon";
 
 const links = {
   "خدماتنا": [
@@ -38,9 +37,7 @@ const HomeFooter = () => {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-[38px] h-[38px] rounded-[10px] bg-primary-gradient flex items-center justify-center">
-                <BikeDeliveryIcon size={30} color="white" boxLineColor="rgba(15,94,89,0.35)" />
-              </div>
+              <img src="/icons/wasal-logo-official.png" alt="وصال" className="w-[38px] h-[38px] rounded-[10px] object-cover" />
               <span className="text-primary-glow font-extrabold text-lg">وصل</span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed mb-5">

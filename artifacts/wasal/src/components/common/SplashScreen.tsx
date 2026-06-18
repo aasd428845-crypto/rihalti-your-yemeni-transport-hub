@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import BikeDeliveryIcon from "./BikeDeliveryIcon";
 
 interface SplashScreenProps {
   onDone: () => void;
@@ -25,35 +24,19 @@ const SplashScreen = ({ onDone }: SplashScreenProps) => {
         pointerEvents: "none",
       }}
     >
-      <div
+      <img
+        src="/icons/wasal-logo-official.png"
+        alt="وصال"
         style={{
-          width: 160,
-          height: 160,
-          borderRadius: "50%",
-          backgroundColor: "rgba(0,0,0,0.18)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          transform: phase === "enter" ? "scale(0.85)" : "scale(1)",
+          width: 148,
+          height: 148,
+          borderRadius: 36,
+          objectFit: "cover",
+          transform: phase === "enter" ? "scale(0.82)" : "scale(1)",
           transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
         }}
-      >
-        <BikeDeliveryIcon size={100} color="white" boxLineColor="rgba(15,94,89,0.35)" />
-        <span
-          style={{
-            color: "white",
-            fontFamily: "'Cairo', sans-serif",
-            fontSize: 16,
-            fontWeight: 700,
-            letterSpacing: 1,
-            marginTop: 2,
-          }}
-        >
-          Wasal
-        </span>
-      </div>
+      />
     </div>
   );
 };

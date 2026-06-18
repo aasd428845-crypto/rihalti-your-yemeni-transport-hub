@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "next-themes";
-import BikeDeliveryIcon from "@/components/common/BikeDeliveryIcon";
 
 const navLinks = [
   { label: "المطاعم والتوصيل", href: "/restaurants" },
@@ -103,9 +102,7 @@ const Header = () => {
       <div className="container mx-auto px-4 flex items-center justify-between h-[72px]">
         {/* Logo */}
         <a href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }} className="flex items-center gap-2.5">
-          <div className="w-[42px] h-[42px] rounded-[10px] bg-primary-gradient flex items-center justify-center shadow-primary">
-            <BikeDeliveryIcon size={32} color="white" boxLineColor="rgba(15,94,89,0.35)" />
-          </div>
+          <img src="/icons/wasal-logo-official.png" alt="وصال" className="w-[42px] h-[42px] rounded-[10px] object-cover shadow-sm" />
           <div className="flex flex-col">
             <span className="text-lg font-extrabold text-foreground leading-none">وصل</span>
             <span className="text-[10px] font-medium text-primary-glow leading-tight tracking-wider">منصة النقل الذكية</span>

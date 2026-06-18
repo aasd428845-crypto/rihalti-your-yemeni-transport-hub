@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Search, X, ArrowRight, Bell, MapPin } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import BikeDeliveryIcon from "@/components/common/BikeDeliveryIcon";
 
 const DETAIL_PATHS = ["/restaurants/", "/trips/", "/checkout/", "/ride/", "/order/"];
 
@@ -109,7 +108,7 @@ const SuperAppHeader = () => {
               <ArrowRight className="w-5 h-5 text-foreground" />
             </button>
             <button onClick={() => navigate("/")} className="flex items-center gap-2">
-              <BikeDeliveryIcon size={32} color="#0f5e59" boxLineColor="rgba(15,94,89,0.15)" />
+              <img src="/icons/wasal-logo-official.png" alt="وصال" className="w-8 h-8 rounded-lg object-cover" />
               <span className="font-extrabold text-lg text-foreground">وصل</span>
             </button>
           </div>
