@@ -18,14 +18,14 @@ const SplashScreen = ({ onDone }: SplashScreenProps) => {
     <div
       className="fixed inset-0 z-[99999] flex flex-col items-center justify-center gap-6 select-none"
       style={{
-        backgroundColor: "#144a33",
+        backgroundColor: "#0c7d4a",
         opacity: phase === "exit" ? 0 : 1,
         transition: phase === "exit" ? "opacity 0.5s ease-in-out" : phase === "enter" ? "opacity 0.3s ease-out" : "none",
         pointerEvents: "none",
       }}
     >
       <img
-        src="/icons/wasal-logo-official.png"
+        src="/icons/wasal-logo-primary.png"
         alt="وصال"
         style={{
           width: 148,

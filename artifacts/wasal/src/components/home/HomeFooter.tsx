@@ -37,7 +37,7 @@ const HomeFooter = () => {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <img src="/icons/wasal-logo-official.png" alt="وصال" className="w-[38px] h-[38px] rounded-[10px] object-cover" />
+              <img src="/icons/wasal-logo-primary.png" alt="وصال" className="w-[38px] h-[38px] rounded-[10px] object-cover" />
               <span className="text-primary-glow font-extrabold text-lg">وصل</span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed mb-5">

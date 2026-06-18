@@ -202,7 +202,7 @@ const LoginPage = () => {
           <div className="text-center mb-8">
             <a href="/" className="inline-flex flex-col items-center gap-3">
               <img
-                src="/icons/wasal-logo-official.png"
+                src="/icons/wasal-logo-primary.png"
                 alt="وصال"
                 className="w-20 h-20 rounded-2xl object-cover"
                 style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}

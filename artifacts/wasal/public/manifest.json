@@ -6,33 +6,33 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#144a33",
-  "theme_color": "#144a33",
+  "background_color": "#0c7d4a",
+  "theme_color": "#0c7d4a",
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "ar",
   "categories": ["travel", "logistics"],
   "icons": [
     {
-      "src": "/icons/wasal-logo-official.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/wasal-logo-official.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icons/wasal-logo-official.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/wasal-logo-official.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

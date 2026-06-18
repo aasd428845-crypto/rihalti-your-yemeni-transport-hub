@@ -81,7 +81,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4 cursor-pointer" onClick={() => navigate("/")}>
-              <img src="/icons/wasal-logo-official.png" alt="وصال" className="w-10 h-10 rounded-xl object-cover" />
+              <img src="/icons/wasal-logo-primary.png" alt="وصال" className="w-10 h-10 rounded-xl object-cover" />
               <div>
                 <div className="font-bold text-lg">وصل</div>
                 <div className="text-[10px] text-primary-foreground/60">منصة النقل الذكية</div>

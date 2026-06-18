@@ -108,7 +108,7 @@ const SuperAppHeader = () => {
               <ArrowRight className="w-5 h-5 text-foreground" />
             </button>
             <button onClick={() => navigate("/")} className="flex items-center gap-2">
-              <img src="/icons/wasal-logo-official.png" alt="وصال" className="w-8 h-8 rounded-lg object-cover" />
+              <img src="/icons/wasal-logo-primary.png" alt="وصال" className="w-8 h-8 rounded-lg object-cover" />
               <span className="font-extrabold text-lg text-foreground">وصل</span>
             </button>
           </div>

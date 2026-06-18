@@ -6,7 +6,7 @@ const WasalLogo = ({
   boxLineColor?: string;
 }) => (
   <img
-    src="/icons/wasal-logo-official.png"
+    src="/icons/wasal-logo-primary.png"
     width={size}
     height={size}
     alt="وصال"

@@ -102,7 +102,7 @@ const Header = () => {
       <div className="container mx-auto px-4 flex items-center justify-between h-[72px]">
         {/* Logo */}
         <a href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }} className="flex items-center gap-2.5">
-          <img src="/icons/wasal-logo-official.png" alt="وصال" className="w-[42px] h-[42px] rounded-[10px] object-cover shadow-sm" />
+          <img src="/icons/wasal-logo-primary.png" alt="وصال" className="w-[42px] h-[42px] rounded-[10px] object-cover shadow-sm" />
           <div className="flex flex-col">
             <span className="text-lg font-extrabold text-foreground leading-none">وصل</span>
             <span className="text-[10px] font-medium text-primary-glow leading-tight tracking-wider">منصة النقل الذكية</span>
