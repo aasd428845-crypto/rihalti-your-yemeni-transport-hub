@@ -155,14 +155,14 @@ const RegisterPage = () => {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
-            <a href="/" className="inline-flex items-center gap-3 mb-2">
-              <div className="w-14 h-14 rounded-2xl bg-hero-gradient flex items-center justify-center shadow-md">
-                <span className="text-3xl font-black text-white">و</span>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-black text-foreground">وصال</div>
-                <div className="text-xs text-muted-foreground">منصة التوصيل الذكي</div>
-              </div>
+            <a href="/" className="inline-flex flex-col items-center gap-3">
+              <img
+                src="/icons/wasal-logo-primary.png"
+                alt="وصال"
+                className="w-20 h-20 rounded-2xl object-cover"
+                style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}
+              />
+              <p className="text-sm text-muted-foreground font-medium">توصيل أسرع، حياة أسهل</p>
             </a>
           </div>
 

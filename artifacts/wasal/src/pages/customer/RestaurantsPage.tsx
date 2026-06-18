@@ -8,6 +8,7 @@ import { getOpenStatus } from "@/lib/restaurantHours";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CategoryScroller from "@/components/customer/CategoryScroller";
+import { getCustomerActiveOffers, DeliveryOffer } from "@/lib/deliveryOffersApi";
 
 // ─── Cuisine Fallback Images ──────────────────────────────────────────────────
 const CUISINE_IMAGES: Record<string, string> = {
@@ -44,11 +45,18 @@ const CUISINE_EMOJI: Record<string, string> = {
   "مكرونة": "🍝",
 };
 
-// Default offers if DB empty
-const DEFAULT_OFFERS = [
-  { id: "o1", title: "خصم 20% على أول طلب", subtitle: "لعملاء وصل الجدد", image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80&fit=crop", badge_text: "عرض خاص" },
-  { id: "o2", title: "توصيل مجاني", subtitle: "عند الطلب فوق 2000 ر.ي", image_url: "https://images.unsplash.com/photo-1519984388953-d2406bc725e1?w=600&q=80&fit=crop", badge_text: "مجاني" },
-  { id: "o3", title: "وجبات البرجر المميزة", subtitle: "أقل سعر في المدينة", image_url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&fit=crop", badge_text: "تخفيض" },
+// Fallback offer images
+const OFFER_FALLBACK_IMGS = [
+  "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=700&q=80&fit=crop",
+  "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=700&q=80&fit=crop",
+  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=700&q=80&fit=crop",
+  "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=700&q=80&fit=crop",
+];
+
+const DEFAULT_OFFERS: DeliveryOffer[] = [
+  { id: "o1", title: "خصم 20% على أول طلب", description: "لعملاء وصال الجدد", image_url: OFFER_FALLBACK_IMGS[0], badge_text: "عرض خاص", offer_type: "percent_off_order", discount_percent: 20, is_active: true, sort_order: 1, created_at: "", delivery_company_id: "", scope: "restaurant" },
+  { id: "o2", title: "توصيل مجاني", description: "عند الطلب فوق 2000 ر.ي", image_url: OFFER_FALLBACK_IMGS[1], badge_text: "مجاني", offer_type: "free_delivery", is_active: true, sort_order: 2, created_at: "", delivery_company_id: "", scope: "restaurant" },
+  { id: "o3", title: "وجبتك بنصف السعر", description: "على الطلب الثاني في اليوم", image_url: OFFER_FALLBACK_IMGS[2], badge_text: "تخفيض", offer_type: "percent_off_order", discount_percent: 50, is_active: true, sort_order: 3, created_at: "", delivery_company_id: "", scope: "restaurant" },
 ];
 
 // ─── Coverage Badge ───────────────────────────────────────────────────────────
@@ -190,7 +198,7 @@ const RestaurantsPage = () => {
   const { user } = useAuth();
 
   const [restaurants, setRestaurants] = useState<any[]>([]);
-  const [offerBanners, setOfferBanners] = useState<any[]>([]);
+  const [offerBanners, setOfferBanners] = useState<DeliveryOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [cuisineFilter, setCuisineFilter] = useState(searchParams.get("category") || "all");
   const [categoryRestaurantMap, setCategoryRestaurantMap] = useState<Record<string, Set<string>>>({});
@@ -198,17 +206,11 @@ const RestaurantsPage = () => {
   const [selectedCity, setSelectedCity] = useState<string>(() => localStorage.getItem("wasal_selected_city") || "");
   const [selectedArea, setSelectedArea] = useState<string>(() => localStorage.getItem("wasal_selected_area") || "");
 
-  // Load offers from DB
+  // Load offers from the same source as the homepage
   useEffect(() => {
-    supabase
-      .from("delivery_banners" as any)
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order")
-      .then(({ data }) => {
-        const offers = (data || []).filter((b: any) => b.banner_type === "offer");
-        setOfferBanners(offers.length > 0 ? offers : DEFAULT_OFFERS);
-      }, () => setOfferBanners(DEFAULT_OFFERS));
+    getCustomerActiveOffers()
+      .then((data) => setOfferBanners(data.length > 0 ? data : DEFAULT_OFFERS))
+      .catch(() => setOfferBanners(DEFAULT_OFFERS));
   }, []);
 
   // Sync city from user address
@@ -329,31 +331,29 @@ const RestaurantsPage = () => {
             <h2 className="text-lg font-black text-foreground">عروض وخصومات</h2>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-            {offerBanners.map((offer) => (
-              <button
-                key={offer.id}
-                onClick={() => {
-                  if (offer.tile_action === "request") { navigate("/delivery-request"); return; }
-                  if (offer.link_url) {
-                    // link_url may be a UUID (restaurant id) or a path
-                    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(offer.link_url);
-                    navigate(isUUID ? `/restaurants/${offer.link_url}` : offer.link_url);
-                  }
-                }}
-                className="relative shrink-0 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
-                style={{ width: 190, height: 115 }}
-              >
-                <img src={offer.image_url} alt={offer.title || ""} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                {offer.badge_text && (
-                  <Badge className="absolute top-2 right-2 bg-red-500 text-white border-0 shadow text-[10px] font-bold px-1.5 py-0.5">{offer.badge_text}</Badge>
-                )}
-                <div className="absolute bottom-0 right-0 left-0 p-2.5 text-white text-right">
-                  {offer.title && <p className="font-black text-[13px] leading-snug drop-shadow">{offer.title}</p>}
-                  {offer.subtitle && <p className="text-[11px] text-white/85 mt-1 drop-shadow leading-tight">{offer.subtitle}</p>}
-                </div>
-              </button>
-            ))}
+            {offerBanners.map((offer, i) => {
+              const imgSrc = offer.image_url || OFFER_FALLBACK_IMGS[i % OFFER_FALLBACK_IMGS.length];
+              const badgeText = offer.badge_text
+                || (offer.offer_type === "free_delivery" ? "مجاني"
+                  : offer.discount_percent ? `خصم ${offer.discount_percent}%`
+                  : "عرض خاص");
+              return (
+                <button
+                  key={offer.id}
+                  onClick={() => offer.restaurant_id ? navigate(`/restaurants/${offer.restaurant_id}`) : navigate("/restaurants")}
+                  className="relative shrink-0 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+                  style={{ width: 190, height: 115 }}
+                >
+                  <img src={imgSrc} alt={offer.title || ""} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                  <Badge className="absolute top-2 right-2 bg-red-500 text-white border-0 shadow text-[10px] font-bold px-1.5 py-0.5">{badgeText}</Badge>
+                  <div className="absolute bottom-0 right-0 left-0 p-2.5 text-white text-right">
+                    {offer.title && <p className="font-black text-[13px] leading-snug drop-shadow">{offer.title}</p>}
+                    {offer.description && <p className="text-[11px] text-white/85 mt-1 drop-shadow leading-tight">{offer.description}</p>}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
 
