@@ -7,6 +7,7 @@ const FULL_BLEED_ROUTES = [
   "/restaurants/:id",
   "/restaurants/:id/checkout",
   "/order/:type/:id",
+  "/category/:name",
 ];
 
 // Detail pages render the header in compact "back + logo" mode (~70px tall).

@@ -106,11 +106,8 @@ const CategoryScroller = ({
 
   const handleClick = (c: CategoryItem) => {
     if (onSelect) return onSelect(c);
-    if (c.restaurant_id) {
-      navigate(`/restaurants/${c.restaurant_id}`);
-    } else {
-      navigate(`/food?tab=restaurants&category=${encodeURIComponent(c.name_ar)}`);
-    }
+    // Always navigate to the dedicated category page
+    navigate(`/category/${encodeURIComponent(c.name_ar)}`);
   };
 
   return (

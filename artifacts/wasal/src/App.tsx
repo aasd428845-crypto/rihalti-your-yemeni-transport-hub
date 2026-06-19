@@ -102,6 +102,7 @@ const DeliveryHubPage = lazy(() => import("./pages/customer/DeliveryHubPage"));
 const RestaurantsPage = lazy(() => import("./pages/customer/RestaurantsPage"));
 const RestaurantMenuPage = lazy(() => import("./pages/customer/RestaurantMenuPage"));
 const RestaurantCheckoutPage = lazy(() => import("./pages/customer/RestaurantCheckoutPage"));
+const CategoryPage = lazy(() => import("./pages/customer/CategoryPage"));
 const CartPage = lazy(() => import("./pages/customer/CartPage"));
 const OrderTrackingPage = lazy(() => import("./pages/customer/OrderTrackingPage"));
 const OrderDetailsPage = lazy(() => import("./pages/customer/OrderDetailsPage"));
@@ -193,6 +194,7 @@ const App = () => (
                 <Route path="/restaurants" element={<DeliveryHubPage />} />
                 <Route path="/delivery-hub" element={<DeliveryHubPage />} />
                 <Route path="/food" element={<RestaurantsPage />} />
+                <Route path="/category/:name" element={<CategoryPage />} />
                 <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
                 <Route path="/restaurants/:id/checkout" element={<RestaurantCheckoutPage />} />
                 <Route path="/history" element={<HistoryPage />} />
