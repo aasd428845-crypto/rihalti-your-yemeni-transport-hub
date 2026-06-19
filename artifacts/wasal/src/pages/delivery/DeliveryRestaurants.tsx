@@ -103,11 +103,10 @@ const DeliveryRestaurants = () => {
     }
     setSaving(true);
     try {
-      // Derive global opening_time/closing_time from the per-day form
       const { opening_time, closing_time } = getGlobalHours(form.opening_hours);
 
-      // Payload — only columns verified to exist in the live DB
-      const payload: Record<string, any> = {
+      // Core payload — columns that definitely exist in every schema version
+      const corePayload: Record<string, any> = {
         name_ar: form.name_ar,
         name_en: form.name_en || null,
         description_ar: form.description_ar || null,
@@ -120,33 +119,51 @@ const DeliveryRestaurants = () => {
         cover_image: form.cover_image || null,
         cover_image_url: form.cover_image || null,
         logo_url: form.logo_url || null,
-        coverage_areas: form.coverage_areas,
-        commission_rate: form.commission_rate,
-        price_per_km: form.price_per_km,
         opening_time,
         closing_time,
       };
 
-      if (form.latitude !== "" && form.latitude !== null) payload.latitude = Number(form.latitude);
-      if (form.longitude !== "" && form.longitude !== null) payload.longitude = Number(form.longitude);
+      if (form.latitude !== "" && form.latitude !== null) corePayload.latitude = Number(form.latitude);
+      if (form.longitude !== "" && form.longitude !== null) corePayload.longitude = Number(form.longitude);
+
+      // Extended payload — try to add extra columns if they exist
+      const fullPayload = {
+        ...corePayload,
+        coverage_areas: form.coverage_areas,
+        commission_rate: form.commission_rate,
+        price_per_km: form.price_per_km,
+      };
 
       let savedId = editItem?.id;
       if (editItem) {
-        await updateRestaurant(editItem.id, payload);
+        // Try full payload first; fall back to core if unknown columns cause errors
+        try {
+          await updateRestaurant(editItem.id, fullPayload);
+        } catch {
+          await updateRestaurant(editItem.id, corePayload);
+        }
       } else {
-        const created = await createRestaurant({ ...payload, delivery_company_id: user.id });
+        const created = await createRestaurant({ ...fullPayload, delivery_company_id: user.id });
         savedId = created?.id;
       }
 
-      // Try to save is_featured separately — ignore error if column doesn't exist in this DB
+      // Save extra columns separately — ignore errors if column doesn't exist
       if (savedId) {
-        await supabase.from("restaurants").update({ is_featured: form.is_featured } as any).eq("id", savedId);
+        const extras: Record<string, any> = { is_featured: form.is_featured };
+        // Save opening_hours JSONB if column exists
+        try {
+          await (supabase.from("restaurants") as any)
+            .update({ ...extras, opening_hours: form.opening_hours })
+            .eq("id", savedId);
+        } catch {
+          await supabase.from("restaurants").update(extras as any).eq("id", savedId);
+        }
       }
 
       toast({ title: editItem ? "تم التحديث بنجاح" : "تمت إضافة المطعم بنجاح" });
       setShowAdd(false); setEditItem(null); setForm(emptyForm()); load();
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -273,6 +290,14 @@ const DeliveryRestaurants = () => {
                 ) : (
                   <p className="text-xs text-destructive font-semibold bg-destructive/10 rounded px-2 py-1">
                     ⚠️ لم تُحدَّد المدينة — المطعم لن يظهر للزبائن! اضغط تعديل لإصلاحها.
+                  </p>
+                )}
+                {(r.opening_time || r.closing_time) && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {r.opening_time ? `يفتح ${r.opening_time}` : ""}
+                    {r.opening_time && r.closing_time ? " — " : ""}
+                    {r.closing_time ? `يغلق ${r.closing_time}` : ""}
                   </p>
                 )}
                 {r.phone && <p className="text-sm text-muted-foreground">📞 {r.phone}</p>}

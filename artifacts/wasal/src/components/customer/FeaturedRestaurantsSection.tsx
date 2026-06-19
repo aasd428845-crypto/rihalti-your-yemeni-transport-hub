@@ -178,30 +178,28 @@ const FeaturedRestaurantsSection = () => {
   const [restaurants, setRestaurants] = useState<any[]>([]);
 
   useEffect(() => {
-    const COLS = "id, name_ar, cover_image, logo_url, rating, cuisine_type, opening_hours, delivery_fee, estimated_delivery_time, discount_percent, is_active, delivery_company_id";
+    const COLS = "id, name_ar, cover_image, logo_url, rating, cuisine_type, opening_time, closing_time, opening_hours, delivery_fee, estimated_delivery_time, discount_percent, is_active, delivery_company_id";
 
     const loadFeatured = async () => {
-      // Try fetching featured restaurants (is_featured column may not exist yet)
       let list: any[] = [];
+
+      // Try fetching only featured restaurants first
       try {
-        const { data: rests, error } = await (supabase
-          .from("restaurants") as any)
+        const { data: rests } = await (supabase.from("restaurants") as any)
           .select(COLS + ", is_featured")
-          .eq("is_active", true)
+          .neq("is_active", false)
           .eq("is_featured", true)
           .order("rating", { ascending: false })
           .limit(10);
-        if (!error && rests && rests.length > 0) {
-          list = rests;
-        }
-      } catch { /* column may not exist */ }
+        if (rests && rests.length > 0) list = rests;
+      } catch { /* is_featured column may not exist */ }
 
-      // If no featured restaurants found, fall back to top-rated
+      // If no featured restaurants, fall back to top-rated active restaurants
       if (list.length === 0) {
         const { data: fallback } = await supabase
           .from("restaurants")
           .select(COLS)
-          .eq("is_active", true)
+          .neq("is_active", false)
           .order("rating", { ascending: false })
           .limit(8);
         list = fallback || [];
@@ -209,18 +207,19 @@ const FeaturedRestaurantsSection = () => {
 
       if (list.length === 0) return;
 
-      // Attach delivery offers
-      const restaurantIds = list.map((r: any) => r.id);
-      const { data: offersData } = await (supabase.from("delivery_company_offers") as any)
-        .select("restaurant_id, offer_type, discount_percent, title")
-        .eq("is_active", true)
-        .in("restaurant_id", restaurantIds);
-
-      const offerMap: Record<string, any[]> = {};
-      for (const o of (offersData || [])) {
-        if (!offerMap[o.restaurant_id]) offerMap[o.restaurant_id] = [];
-        offerMap[o.restaurant_id].push(o);
-      }
+      // Try to attach delivery offers — silently ignore if table doesn't exist
+      let offerMap: Record<string, any[]> = {};
+      try {
+        const restaurantIds = list.map((r: any) => r.id);
+        const { data: offersData } = await (supabase.from("delivery_company_offers") as any)
+          .select("restaurant_id, offer_type, discount_percent, title")
+          .eq("is_active", true)
+          .in("restaurant_id", restaurantIds);
+        for (const o of (offersData || [])) {
+          if (!offerMap[o.restaurant_id]) offerMap[o.restaurant_id] = [];
+          offerMap[o.restaurant_id].push(o);
+        }
+      } catch { /* table may not exist */ }
 
       setRestaurants(list.map((r: any) => ({ ...r, deliveryOffers: offerMap[r.id] || [] })));
     };
