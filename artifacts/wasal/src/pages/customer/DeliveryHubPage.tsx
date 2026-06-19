@@ -53,7 +53,7 @@ function attachDeliveryOffers(items: any[], activeOffers: DeliveryOffer[]): any[
 const PRIMARY = "#1B4332";
 const LIGHT_GREEN = "#52B788";
 const CARD_BG = "#FFFFFF";
-const PAGE_BG = "#F8F8F8";
+const PAGE_BG = "#FFFFFF";
 const TEXT_PRIMARY = "#1A1A1A";
 const TEXT_SECONDARY = "#888888";
 const DANGER = "#E53935";
