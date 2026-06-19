@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    /* Light mode – clean warm white with green/gold accents */
-    --background: 40 20% 97%;
+    /* Light mode – pure white background */
+    --background: 0 0% 100%;
     --foreground: 213 40% 16%;
 
     --card: 0 0% 100%;

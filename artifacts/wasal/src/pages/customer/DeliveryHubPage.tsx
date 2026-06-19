@@ -267,7 +267,7 @@ const OffersSection = ({
               />
               <div
                 className="absolute inset-0"
-                style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.05) 100%)" }}
+                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0) 100%)" }}
               />
               <span
                 className="absolute top-2.5 right-2.5 text-white font-black text-[10px] px-2 py-0.5 rounded-full"
