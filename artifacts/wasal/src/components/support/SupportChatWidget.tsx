@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, Loader2, Phone, MessageSquare } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
+import { useWhatsappNumber, DEFAULT_WA_NUMBER } from "@/hooks/useWhatsappNumber";
 
-const SUPPORT_WHATSAPP = "967712345678";
 const SUPPORT_PHONE = "+967712345678";
 
 interface SupportChatWidgetProps {
@@ -16,6 +17,7 @@ interface SupportChatWidgetProps {
 
 const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
   const { user, profile } = useAuth();
+  const waNumber = useWhatsappNumber();
   const [open, setOpen] = useState(inline);
   const [showOptions, setShowOptions] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -129,12 +131,12 @@ const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
             <p className="text-muted-foreground text-sm">سجّل دخولك للتواصل مع فريق الدعم مباشرة</p>
             <div className="flex gap-3">
               <a
-                href={`https://wa.me/${SUPPORT_WHATSAPP}`}
+                href={`https://wa.me/${waNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors"
               >
-                <MessageSquare className="w-4 h-4" />واتساب
+                <WhatsAppIcon className="w-4 h-4" />واتساب
               </a>
               <a
                 href={`tel:${SUPPORT_PHONE}`}
@@ -157,13 +159,13 @@ const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
             <p className="text-xs opacity-80">نحن هنا لمساعدتك</p>
           </div>
           <a
-            href={`https://wa.me/${SUPPORT_WHATSAPP}`}
+            href={`https://wa.me/${waNumber}`}
             target="_blank"
             rel="noopener noreferrer"
             className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
             title="واتساب"
           >
-            <MessageSquare className="w-4 h-4" />
+            <WhatsAppIcon className="w-4 h-4" />
           </a>
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-muted/20">
@@ -211,10 +213,10 @@ const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
     <>
       {showOptions && !user && (
         <div className="fixed bottom-24 left-6 z-50 flex flex-col gap-3 animate-fade-in">
-          <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer"
+          <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 shadow-xl hover:border-primary/30 transition-all group">
             <div className="w-10 h-10 rounded-full bg-green-500/15 flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 text-green-500" />
+              <WhatsAppIcon className="w-5 h-5 text-green-500" />
             </div>
             <div>
               <p className="text-sm font-bold text-foreground">واتساب</p>
@@ -248,9 +250,9 @@ const SupportChatWidget = ({ inline = false }: SupportChatWidgetProps) => {
               <p className="font-bold text-sm">الدعم المباشر</p>
               <p className="text-xs opacity-80">نحن هنا لمساعدتك</p>
             </div>
-            <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer"
+            <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer"
               className="p-1.5 rounded-lg hover:bg-white/20 transition-colors" title="واتساب">
-              <MessageSquare className="w-4 h-4" />
+              <WhatsAppIcon className="w-4 h-4" />
             </a>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-muted/30">

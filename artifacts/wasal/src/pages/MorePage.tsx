@@ -1,17 +1,20 @@
 import { useNavigate } from "react-router-dom";
 import {
   MessageCircle, Settings, FileText, Shield, Info, LogOut, LogIn,
-  UserPlus, ChevronLeft, Phone, Star, MapPin, Package, Bell
+  UserPlus, ChevronLeft, Star, MapPin, Package, Bell
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import SupportChatWidget from "@/components/support/SupportChatWidget";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
+import { useWhatsappNumber } from "@/hooks/useWhatsappNumber";
 
 const MorePage = () => {
   const navigate = useNavigate();
   const { user, profile, role, signOut } = useAuth();
+  const waNumber = useWhatsappNumber();
 
   const handleSignOut = async () => {
     await signOut();
@@ -122,17 +125,17 @@ const MorePage = () => {
 
         {/* ── WhatsApp ───────────────────────────────────────── */}
         <a
-          href="https://wa.me/967712345678"
+          href={`https://wa.me/${waNumber}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-4 p-4 rounded-2xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors"
         >
           <div className="w-12 h-12 rounded-2xl bg-green-500 flex items-center justify-center shadow-md">
-            <Phone className="w-6 h-6 text-white" />
+            <WhatsAppIcon className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1 text-right">
             <p className="font-bold text-green-700 dark:text-green-400">واتساب الدعم</p>
-            <p className="text-sm text-muted-foreground">+967 712 345 678</p>
+            <p className="text-sm text-muted-foreground" dir="ltr">+{waNumber}</p>
           </div>
           <ChevronLeft className="w-4 h-4 text-muted-foreground" />
         </a>

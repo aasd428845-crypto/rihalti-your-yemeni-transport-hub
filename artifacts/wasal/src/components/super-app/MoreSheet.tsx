@@ -1,12 +1,34 @@
 import { useNavigate } from "react-router-dom";
 import {
   MessageCircle, Settings, FileText, Shield, Info, LogOut, LogIn,
-  UserPlus, ChevronLeft, User, Phone, X, Star, MapPin, Package
+  UserPlus, ChevronLeft, User, X, Star, MapPin, Package
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
+import { useWhatsappNumber } from "@/hooks/useWhatsappNumber";
+
+const WhatsAppSupportLink = () => {
+  const waNumber = useWhatsappNumber();
+  return (
+    <a
+      href={`https://wa.me/${waNumber}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 p-4 rounded-2xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors mt-2 w-full"
+    >
+      <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center shrink-0">
+        <WhatsAppIcon className="w-5 h-5 text-white" />
+      </div>
+      <div className="text-right flex-1">
+        <p className="font-semibold text-sm text-green-700 dark:text-green-400">واتساب الدعم</p>
+        <p className="text-xs text-muted-foreground" dir="ltr">+{waNumber}</p>
+      </div>
+    </a>
+  );
+};
 
 interface MoreSheetProps {
   open: boolean;
@@ -172,20 +194,7 @@ const MoreSheet = ({ open, onClose, onOpenChat }: MoreSheetProps) => {
           </div>
 
           {/* WhatsApp support */}
-          <a
-            href="https://wa.me/967712345678"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 p-4 rounded-2xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors mt-2 w-full"
-          >
-            <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center shrink-0">
-              <Phone className="w-5 h-5 text-white" />
-            </div>
-            <div className="text-right flex-1">
-              <p className="font-semibold text-sm text-green-700 dark:text-green-400">واتساب الدعم</p>
-              <p className="text-xs text-muted-foreground">967 712 345 678+</p>
-            </div>
-          </a>
+          <WhatsAppSupportLink />
 
           {/* Sign Out */}
           {user && (
