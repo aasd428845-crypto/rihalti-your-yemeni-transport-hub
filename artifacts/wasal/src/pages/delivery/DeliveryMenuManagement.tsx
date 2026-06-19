@@ -388,6 +388,13 @@ const DeliveryMenuManagement = () => {
           <div className="space-y-4">
             <div>
               <Label className="mb-2 block">صورة الفئة <span className="text-muted-foreground text-xs">(تظهر في قسم الفئات بالواجهة الرئيسية)</span></Label>
+              <div className="flex items-start gap-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-lg px-3 py-2 mb-2 text-xs text-blue-700 dark:text-blue-400">
+                <span className="mt-px shrink-0">📐</span>
+                <div className="space-y-0.5">
+                  <p className="font-semibold">400 × 400 بكسل (مربع 1:1)</p>
+                  <p className="text-blue-600 dark:text-blue-500">JPG أو PNG — حد أقصى 500 KB</p>
+                </div>
+              </div>
               <ImageUpload
                 value={catForm.image_url}
                 onChange={url => setCatForm({...catForm, image_url: url})}
@@ -418,6 +425,13 @@ const DeliveryMenuManagement = () => {
             {/* Food Image */}
             <div className="space-y-2">
               <Label className="text-base font-semibold">صورة الصنف</Label>
+              <div className="flex items-start gap-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-lg px-3 py-2 text-xs text-blue-700 dark:text-blue-400">
+                <span className="mt-px shrink-0">📐</span>
+                <div className="space-y-0.5">
+                  <p className="font-semibold">800 × 600 بكسل (نسبة 4:3)</p>
+                  <p className="text-blue-600 dark:text-blue-500">JPG أو PNG — حد أقصى 800 KB — صورة واضحة للطعام</p>
+                </div>
+              </div>
               <ImageUpload
                 value={itemForm.image_url}
                 onChange={url => setItemForm(f => ({ ...f, image_url: url }))}

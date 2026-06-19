@@ -303,6 +303,13 @@ const DeliveryRestaurants = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 space-y-1">
                   <Label className="text-sm text-muted-foreground">صورة الغلاف</Label>
+                  <div className="flex items-start gap-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-lg px-3 py-2 text-xs text-blue-700 dark:text-blue-400">
+                    <span className="mt-px shrink-0">📐</span>
+                    <div className="space-y-0.5">
+                      <p className="font-semibold">1200 × 400 بكسل (نسبة 3:1)</p>
+                      <p className="text-blue-600 dark:text-blue-500">JPG أو PNG — حد أقصى 1 MB</p>
+                    </div>
+                  </div>
                   <ImageUpload
                     value={form.cover_image}
                     onChange={url => setForm(f => ({ ...f, cover_image: url }))}
@@ -313,6 +320,13 @@ const DeliveryRestaurants = () => {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-sm text-muted-foreground">شعار المطعم</Label>
+                  <div className="flex items-start gap-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-lg px-3 py-2 text-xs text-blue-700 dark:text-blue-400">
+                    <span className="mt-px shrink-0">📐</span>
+                    <div className="space-y-0.5">
+                      <p className="font-semibold">400 × 400 بكسل (مربع)</p>
+                      <p className="text-blue-600 dark:text-blue-500">PNG شفاف أو JPG — 500 KB</p>
+                    </div>
+                  </div>
                   <ImageUpload
                     value={form.logo_url}
                     onChange={url => setForm(f => ({ ...f, logo_url: url }))}
