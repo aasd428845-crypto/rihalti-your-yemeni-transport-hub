@@ -277,3 +277,15 @@ LEFT JOIN rider_cash_collections rcc ON rcc.rider_id = r.id
 WHERE r.id = '<rider-id>'
 GROUP BY r.id, r.full_name, r.phone, r.vehicle_type, r.created_at;
 */
+
+-- ──────────────────────────────────────────────────────────
+-- عمود مطاعم مميزة (is_featured)
+-- شغّل هذا الأمر مرة واحدة في Supabase > SQL Editor
+-- ──────────────────────────────────────────────────────────
+ALTER TABLE restaurants
+  ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT false;
+
+-- فهرس لتسريع الاستعلام
+CREATE INDEX IF NOT EXISTS idx_restaurants_is_featured
+  ON restaurants (is_featured)
+  WHERE is_featured = true;

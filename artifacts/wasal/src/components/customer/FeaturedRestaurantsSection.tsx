@@ -178,41 +178,53 @@ const FeaturedRestaurantsSection = () => {
   const [restaurants, setRestaurants] = useState<any[]>([]);
 
   useEffect(() => {
+    const COLS = "id, name_ar, cover_image, logo_url, rating, cuisine_type, opening_hours, delivery_fee, estimated_delivery_time, discount_percent, is_active, delivery_company_id";
+
     const loadFeatured = async () => {
-      const { data: rests } = await supabase
-        .from("restaurants")
-        .select("id, name_ar, cover_image, logo_url, rating, cuisine_type, opening_hours, delivery_fee, estimated_delivery_time, is_featured, discount_percent, is_active, delivery_company_id")
-        .eq("is_active", true)
-        .eq("is_featured", true)
-        .order("rating", { ascending: false })
-        .limit(10);
-
-      const list = rests || [];
-
-      if (list.length > 0) {
-        const restaurantIds = list.map((r: any) => r.id);
-        const { data: offersData } = await (supabase.from("delivery_company_offers") as any)
-          .select("restaurant_id, offer_type, discount_percent, title")
+      // Try fetching featured restaurants (is_featured column may not exist yet)
+      let list: any[] = [];
+      try {
+        const { data: rests, error } = await (supabase
+          .from("restaurants") as any)
+          .select(COLS + ", is_featured")
           .eq("is_active", true)
-          .in("restaurant_id", restaurantIds);
-
-        const offerMap: Record<string, any[]> = {};
-        for (const o of (offersData || [])) {
-          if (!offerMap[o.restaurant_id]) offerMap[o.restaurant_id] = [];
-          offerMap[o.restaurant_id].push(o);
+          .eq("is_featured", true)
+          .order("rating", { ascending: false })
+          .limit(10);
+        if (!error && rests && rests.length > 0) {
+          list = rests;
         }
+      } catch { /* column may not exist */ }
 
-        setRestaurants(list.map((r: any) => ({ ...r, deliveryOffers: offerMap[r.id] || [] })));
-      } else {
+      // If no featured restaurants found, fall back to top-rated
+      if (list.length === 0) {
         const { data: fallback } = await supabase
           .from("restaurants")
-          .select("id, name_ar, cover_image, logo_url, rating, cuisine_type, opening_hours, delivery_fee, estimated_delivery_time, is_featured, discount_percent, is_active")
+          .select(COLS)
           .eq("is_active", true)
           .order("rating", { ascending: false })
           .limit(8);
-        setRestaurants((fallback || []).map((r: any) => ({ ...r, deliveryOffers: [] })));
+        list = fallback || [];
       }
+
+      if (list.length === 0) return;
+
+      // Attach delivery offers
+      const restaurantIds = list.map((r: any) => r.id);
+      const { data: offersData } = await (supabase.from("delivery_company_offers") as any)
+        .select("restaurant_id, offer_type, discount_percent, title")
+        .eq("is_active", true)
+        .in("restaurant_id", restaurantIds);
+
+      const offerMap: Record<string, any[]> = {};
+      for (const o of (offersData || [])) {
+        if (!offerMap[o.restaurant_id]) offerMap[o.restaurant_id] = [];
+        offerMap[o.restaurant_id].push(o);
+      }
+
+      setRestaurants(list.map((r: any) => ({ ...r, deliveryOffers: offerMap[r.id] || [] })));
     };
+
     loadFeatured();
   }, []);
 
