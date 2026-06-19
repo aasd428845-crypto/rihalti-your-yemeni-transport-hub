@@ -483,8 +483,8 @@ const DeliveryOffers = () => {
               <div className="flex items-start gap-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-lg px-3 py-2 text-xs text-blue-700 dark:text-blue-400">
                 <span className="mt-px shrink-0">📐</span>
                 <div className="space-y-0.5">
-                  <p className="font-semibold">الحجم المناسب: 1200 × 450 بكسل (نسبة 8:3)</p>
-                  <p className="text-blue-600 dark:text-blue-500">الصيغة: JPG أو PNG — الحد الأقصى: 1 MB</p>
+                  <p className="font-semibold">الحجم المناسب: 800 × 500 بكسل (نسبة 8:5)</p>
+                  <p className="text-blue-600 dark:text-blue-500">الصيغة: JPG أو PNG — الحد الأقصى: 800 KB</p>
                 </div>
               </div>
               <ImageUpload
