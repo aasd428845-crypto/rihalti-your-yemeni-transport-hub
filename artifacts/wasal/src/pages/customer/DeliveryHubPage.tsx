@@ -640,6 +640,23 @@ const DeliveryHubPage = () => {
   const [serviceTiles, setServiceTiles] = useState<any[]>([]);
   const [bannersLoaded, setBannersLoaded] = useState(false);
   const [companyManaged, setCompanyManaged] = useState(false);
+  const [platformStats, setPlatformStats] = useState<{ restaurants: number; cities: number; avgRating: number } | null>(null);
+
+  // Fetch real platform stats once
+  useEffect(() => {
+    supabase
+      .from("restaurants")
+      .select("city, rating")
+      .neq("is_active", false)
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        const uniqueCities = new Set(data.map((r: any) => r.city).filter(Boolean)).size;
+        const ratings = data.map((r: any) => Number(r.rating || 0)).filter(v => v > 0);
+        const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+        setPlatformStats({ restaurants: data.length, cities: uniqueCities, avgRating });
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -758,23 +775,25 @@ const DeliveryHubPage = () => {
           ))}
         </div>
 
-        {/* ── 11. Platform stats ── */}
-        <div className="grid grid-cols-3 gap-2 pb-4">
-          {[
-            { num: "+500", label: "مطعم" },
-            { num: "+20", label: "مدينة" },
-            { num: "4.9 ⭐", label: "تقييم" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="text-center p-2.5 shadow-sm"
-              style={{ backgroundColor: CARD_BG, borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,0.06)" }}
-            >
-              <p className="font-black text-sm" style={{ color: PRIMARY }}>{stat.num}</p>
-              <p className="text-[10px]" style={{ color: TEXT_SECONDARY }}>{stat.label}</p>
-            </div>
-          ))}
-        </div>
+        {/* ── 11. Platform stats (real data) ── */}
+        {platformStats && (
+          <div className="grid grid-cols-3 gap-2 pb-4">
+            {[
+              { num: `${platformStats.restaurants}+`, label: "مطعم" },
+              { num: platformStats.cities > 0 ? `${platformStats.cities}+` : "—", label: "مدينة" },
+              { num: platformStats.avgRating > 0 ? `${platformStats.avgRating.toFixed(1)} ⭐` : "—", label: "تقييم" },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="text-center p-2.5 shadow-sm"
+                style={{ backgroundColor: CARD_BG, borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,0.06)" }}
+              >
+                <p className="font-black text-sm" style={{ color: PRIMARY }}>{stat.num}</p>
+                <p className="text-[10px]" style={{ color: TEXT_SECONDARY }}>{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
       </div>
     </div>

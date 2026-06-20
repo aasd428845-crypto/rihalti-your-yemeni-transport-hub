@@ -112,15 +112,13 @@ const RestaurantVerticalCard = ({ r }: { r: any }) => {
           </p>
         )}
 
-        {/* Delivery fee row */}
-        <p className="text-[10px] inline-flex items-center gap-0.5" style={{ color: TEXT_SECONDARY }}>
-          <Truck className="w-2.5 h-2.5 shrink-0" />
-          {deliveryFee === 0 ? (
-            <span className="font-semibold" style={{ color: LIGHT_GREEN }}>توصيل مجاني</span>
-          ) : (
-            `${deliveryFee} ريال توصيل`
-          )}
-        </p>
+        {/* City */}
+        {r.city && (
+          <p className="text-[10px] inline-flex items-center gap-0.5" style={{ color: TEXT_SECONDARY }}>
+            <MapPin className="w-2.5 h-2.5 shrink-0" />
+            {r.city}
+          </p>
+        )}
 
         {/* Open/close status */}
         {(() => {
@@ -178,7 +176,7 @@ const FeaturedRestaurantsSection = () => {
   const [restaurants, setRestaurants] = useState<any[]>([]);
 
   useEffect(() => {
-    const COLS = "id, name_ar, cover_image, logo_url, rating, cuisine_type, opening_time, closing_time, opening_hours, delivery_fee, estimated_delivery_time, discount_percent, is_active, delivery_company_id";
+    const COLS = "id, name_ar, cover_image, logo_url, rating, cuisine_type, opening_time, closing_time, opening_hours, delivery_fee, estimated_delivery_time, discount_percent, is_active, delivery_company_id, city";
 
     const loadFeatured = async () => {
       let list: any[] = [];
