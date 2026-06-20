@@ -1,0 +1,520 @@
+# 🔴 Phase 1: Fix Commission System (Confirmed Bugs + New Foundation)
+
+## ⚠️ ONE BUSINESS DECISION NEEDED BEFORE STARTING
+
+Currently the code charges platform commission on the FULL order total (food + delivery).
+The recommended fix below charges platform commission ONLY on the delivery company's
+delivery revenue (delivery_fee + restaurant_delivery_subsidy), NOT on food price.
+
+**This matches how `global_commission_delivery` is named** (a "delivery" commission, 
+parallel to `global_commission_ride`, `global_commission_shipment`) and is the standard 
+model used by real-world delivery aggregators (they don't take a cut of food price, 
+only of the logistics fee).
+
+**If your actual business model is "platform takes % of total order value including food"**,
+tell the developer to keep using `params.total` instead of `deliveryRevenueBase` in Step 2 below.
+Everything else in this prompt works identically either way.
+
+---
+
+## CONFIRMED BUGS (verified by reading actual code)
+
+1. `createOrderFromCart` in `restaurantApi.ts` (line ~258) uses **hardcoded `commissionRate = 12`** 
+   — completely ignores admin's `accounting_settings.global_commission_delivery` and any 
+   `partner_commission_settings` override.
+2. The restaurant is **never recorded as a financial party** — `financial_transactions` only 
+   has one row per order, attributed entirely to `delivery_company_id`. Restaurant's earnings 
+   are invisible to the platform-level ledger.
+3. `restaurants.commission_rate` (set in `DeliveryRestaurants.tsx` dashboard) is **saved but 
+   never read in any calculation** anywhere in the codebase.
+4. `DeliveryFinance.tsx` restaurant settlement calculation (`totalRevenue = totalFoodRevenue - totalSubsidy`) 
+   **does not subtract `commission_rate`** — and the Supabase query for restaurants on line ~95 
+   doesn't even select that column.
+5. `getPartnerCommissionSettings` / `upsertPartnerCommission` functions exist in `accountingApi.ts` 
+   but **no admin UI page calls them** — there is no way to actually set a partner override today.
+6. No function exists to create `partner_invoices` rows — invoices can only be viewed/updated, 
+   never generated.
+
+---
+
+## STEP 1 — Database migration
+
+Run in Supabase SQL Editor:
+
+```sql
+-- Distinguish which type of partner a financial_transactions row belongs to
+ALTER TABLE financial_transactions 
+ADD COLUMN IF NOT EXISTS partner_type TEXT DEFAULT 'delivery_company';
+
+-- Backfill existing rows (best guess based on transaction_type)
+UPDATE financial_transactions SET partner_type = 'delivery_company' WHERE partner_type IS NULL;
+
+-- Link financial_transactions to the order they came from, for traceability/debugging
+ALTER TABLE financial_transactions
+ADD COLUMN IF NOT EXISTS order_id UUID;
+```
+
+---
+
+## STEP 2 — Fix `createOrderFromCart` to split revenue 3 ways
+
+File: `artifacts/wasal/src/lib/restaurantApi.ts`
+
+Replace the entire commission/financial_transactions block (currently around line 258-289):
+
+```typescript
+const insertData: any = {
+  // ... unchanged, keep exactly as is ...
+};
+if (params.notes) insertData.notes = params.notes;
+if (params.applied_offer_id) insertData.applied_offer_id = params.applied_offer_id;
+if (params.applied_offer_type) insertData.applied_offer_type = params.applied_offer_type;
+if (params.applied_offer_title) insertData.applied_offer_title = params.applied_offer_title;
+
+const { data, error } = await supabase.from("delivery_orders").insert(insertData).select().single();
+if (error) throw error;
+
+// ──────────────────────────────────────────────────────────────
+// Financial split — THREE parties: platform / delivery company / restaurant
+// ──────────────────────────────────────────────────────────────
+try {
+  const { calculateCommission } = await import("./accountingApi");
+
+  // 1. Delivery company's gross delivery revenue
+  //    = what customer paid for delivery + what restaurant owes for subsidized free delivery
+  const subsidy = params.restaurant_delivery_subsidy ?? 0;
+  const deliveryRevenueBase = params.delivery_fee + subsidy;
+
+  // 2. Platform commission comes out of the delivery company's delivery revenue
+  const { commission: platformCommission, earning: companyDeliveryEarning } =
+    await calculateCommission(deliveryRevenueBase, "delivery", params.delivery_company_id);
+
+  // 3. Restaurant's net food revenue
+  //    = food subtotal - delivery company's cut (commission_rate) - subsidy owed for free delivery
+  const { data: restRow } = await supabase
+    .from("restaurants")
+    .select("commission_rate, name_ar")
+    .eq("id", params.restaurant_id)
+    .maybeSingle();
+  const restCommissionRate = Number((restRow as any)?.commission_rate || 0);
+  const restCommissionCut = Math.floor(params.subtotal * restCommissionRate / 100);
+  const restaurantNetEarning = params.subtotal - restCommissionCut - subsidy;
+
+  // Fetch delivery company name for denormalized partner_name
+  const { data: companyRow } = await supabase
+    .from("delivery_companies")
+    .select("company_name")
+    .eq("user_id", params.delivery_company_id)
+    .maybeSingle();
+
+  // Row 1 — Delivery company settlement (platform's commission ledger)
+  await supabase.from("financial_transactions").insert({
+    reference_id: data.id,
+    order_id: data.id,
+    transaction_type: "delivery_order",
+    partner_type: "delivery_company",
+    customer_id: params.customer_id,
+    partner_id: params.delivery_company_id,
+    partner_name: (companyRow as any)?.company_name ?? null,
+    amount: deliveryRevenueBase,
+    platform_commission: platformCommission,
+    partner_earning: companyDeliveryEarning,
+    payment_method: params.payment_method,
+    payment_status: "pending",
+    notes: `عمولة توصيل — طلب ${data.id}`,
+  });
+
+  // Row 2 — Restaurant settlement (no platform commission on this leg by default,
+  // since the platform's cut already came from the delivery company's leg above)
+  await supabase.from("financial_transactions").insert({
+    reference_id: data.id,
+    order_id: data.id,
+    transaction_type: "restaurant_order",
+    partner_type: "restaurant",
+    customer_id: params.customer_id,
+    partner_id: params.restaurant_id,
+    partner_name: (restRow as any)?.name_ar ?? null,
+    amount: params.subtotal,
+    platform_commission: 0,
+    partner_earning: restaurantNetEarning,
+    payment_method: params.payment_method,
+    payment_status: "pending",
+    notes: `صافي إيرادات الطعام — طلب ${data.id} (عمولة شركة التوصيل: ${restCommissionCut} ر.ي)`,
+  });
+} catch (finErr) {
+  // Never block order creation if financial tracking fails — log only
+  console.error("Financial transaction split failed:", finErr);
+}
+
+// Clear cart
+await clearCart(params.customer_id, params.restaurant_id);
+return data;
+```
+
+**Note for developer:** check the exact table name for delivery companies 
+(`delivery_companies` vs `profiles` vs something else) by searching how 
+`DeliveryRestaurants.tsx` fetches the company's own name, and adjust the 
+`companyRow` query above to match the real schema.
+
+---
+
+## STEP 3 — Fix `DeliveryFinance.tsx` restaurant settlement to apply `commission_rate`
+
+File: `artifacts/wasal/src/pages/delivery/DeliveryFinance.tsx`
+
+**3a.** Update the restaurants query (line ~95) to include `commission_rate`:
+```typescript
+.select("id, name_ar, name_en, logo_url, is_active, commission_rate")
+```
+
+**3b.** In `restaurantStats` (the `useMemo`), after computing `totalFoodRevenue` and `periodFoodRevenue`, 
+add the commission deduction BEFORE subtracting subsidy:
+
+Find:
+```typescript
+const totalFoodRevenue = restOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
+const periodFoodRevenue = periodOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
+```
+
+Add right after:
+```typescript
+const commissionRate = Number((rest as any).commission_rate || 0);
+const totalCommissionCut = Math.floor(totalFoodRevenue * commissionRate / 100);
+const periodCommissionCut = Math.floor(periodFoodRevenue * commissionRate / 100);
+```
+
+Then find:
+```typescript
+const totalRevenue = totalFoodRevenue - totalSubsidy;
+const periodRevenue = periodFoodRevenue - periodSubsidy;
+```
+
+Change to:
+```typescript
+const totalRevenue = totalFoodRevenue - totalCommissionCut - totalSubsidy;
+const periodRevenue = periodFoodRevenue - periodCommissionCut - periodSubsidy;
+```
+
+**3c.** Add a line item in the restaurant detail UI showing the commission deduction 
+(find where `totalSubsidy`/`periodSubsidy` is displayed and add a sibling row):
+```tsx
+<div className="flex justify-between text-sm">
+  <span className="text-muted-foreground">عمولة شركة التوصيل ({commissionRate}%)</span>
+  <span className="text-red-600">-{totalCommissionCut.toLocaleString()} ر.ي</span>
+</div>
+```
+
+---
+
+## STEP 4 — Build missing admin UI: Partner Commission Overrides
+
+Create new file: `artifacts/wasal/src/pages/admin/AdminCommissionOverrides.tsx`
+
+```tsx
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { getPartnerCommissionSettings, upsertPartnerCommission } from "@/lib/accountingApi";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
+
+interface PartnerRow {
+  id: string;
+  name: string;
+  type: "delivery_company" | "supplier" | "driver";
+  override?: { commission_type: string; commission_value: number; override_global: boolean };
+}
+
+const AdminCommissionOverrides = () => {
+  const [partners, setPartners] = useState<PartnerRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Record<string, { type: string; value: number; on: boolean }>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      // Adjust table/column names below to match your actual delivery_companies / suppliers schema
+      const { data: companies } = await supabase.from("delivery_companies").select("user_id, company_name");
+      const { data: suppliers } = await supabase.from("suppliers").select("user_id, company_name").then(r => r).catch(() => ({ data: [] as any[] }));
+
+      const list: PartnerRow[] = [
+        ...(companies || []).map((c: any) => ({ id: c.user_id, name: c.company_name, type: "delivery_company" as const })),
+        ...((suppliers as any[]) || []).map((s: any) => ({ id: s.user_id, name: s.company_name, type: "supplier" as const })),
+      ];
+
+      // Load existing overrides
+      const withOverrides = await Promise.all(
+        list.map(async (p) => {
+          const { data } = await getPartnerCommissionSettings(p.id);
+          return { ...p, override: data as any };
+        })
+      );
+
+      setPartners(withOverrides);
+      const initEditing: Record<string, any> = {};
+      withOverrides.forEach(p => {
+        initEditing[p.id] = {
+          type: p.override?.commission_type || "percentage",
+          value: p.override?.commission_value || 0,
+          on: p.override?.override_global || false,
+        };
+      });
+      setEditing(initEditing);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const handleSave = async (partnerId: string) => {
+    setSaving(partnerId);
+    const e = editing[partnerId];
+    try {
+      await upsertPartnerCommission(partnerId, e.type, e.value, e.on);
+      toast({ title: "تم حفظ نسبة العمولة المخصصة" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+    setSaving(null);
+  };
+
+  if (loading) return <div className="p-6">جاري التحميل...</div>;
+
+  return (
+    <div className="p-4 md:p-6 space-y-4">
+      <h1 className="text-2xl font-bold">نسب العمولة المخصصة للشركاء</h1>
+      <p className="text-sm text-muted-foreground">
+        افتراضياً تُطبَّق النسبة العامة من إعدادات المحاسبة على كل الشركاء. 
+        يمكنك هنا تخصيص نسبة مختلفة لشريك معين (مثلاً كجزء من خطة اشتراك أو اتفاقية خاصة).
+      </p>
+
+      <div className="space-y-3">
+        {partners.map(p => {
+          const e = editing[p.id] || { type: "percentage", value: 0, on: false };
+          return (
+            <Card key={p.id}>
+              <CardContent className="p-4 flex flex-wrap items-center gap-3">
+                <div className="flex-1 min-w-[140px]">
+                  <p className="font-bold">{p.name || "بدون اسم"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {p.type === "delivery_company" ? "شركة توصيل" : p.type === "supplier" ? "مورد" : "سائق"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">تخصيص نسبة؟</span>
+                  <Switch
+                    checked={e.on}
+                    onCheckedChange={(v) => setEditing(prev => ({ ...prev, [p.id]: { ...e, on: v } }))}
+                  />
+                </div>
+
+                {e.on && (
+                  <>
+                    <Select value={e.type} onValueChange={(v) => setEditing(prev => ({ ...prev, [p.id]: { ...e, type: v } }))}>
+                      <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">نسبة %</SelectItem>
+                        <SelectItem value="fixed">مبلغ ثابت</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Input
+                      type="number"
+                      value={e.value}
+                      onChange={(ev) => setEditing(prev => ({ ...prev, [p.id]: { ...e, value: Number(ev.target.value) } }))}
+                      className="w-24"
+                    />
+                  </>
+                )}
+
+                <Button size="sm" onClick={() => handleSave(p.id)} disabled={saving === p.id}>
+                  {saving === p.id ? "..." : "حفظ"}
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default AdminCommissionOverrides;
+```
+
+**4b.** Add route in `App.tsx`:
+```tsx
+const AdminCommissionOverrides = lazy(() => import("./pages/admin/AdminCommissionOverrides"));
+// inside admin routes:
+<Route path="commission-overrides" element={<AdminCommissionOverrides />} />
+```
+
+**4c.** Add sidebar link in admin sidebar component (find `AdminSidebar.tsx` and add):
+```tsx
+{ title: "نسب العمولة المخصصة", url: "/admin/commission-overrides", icon: Percent },
+```
+
+**Developer note:** Verify the exact table names `delivery_companies` and `suppliers` and 
+the column holding the display name — adjust the query in Step 4 if they differ. 
+Check `DeliveryRestaurants.tsx` or `AdminPartners.tsx` for the actual schema being used.
+
+---
+
+## STEP 5 — Build invoice generation function
+
+Add to `artifacts/wasal/src/lib/accountingApi.ts`:
+
+```typescript
+export const createPartnerInvoice = async (
+  partnerId: string,
+  partnerType: string,
+  periodStart: string,
+  periodEnd: string
+) => {
+  const { data: txns, error } = await supabase
+    .from("financial_transactions")
+    .select("*")
+    .eq("partner_id", partnerId)
+    .gte("created_at", periodStart)
+    .lte("created_at", periodEnd)
+    .is("paid_at", null);
+
+  if (error) throw error;
+  if (!txns || txns.length === 0) return null;
+
+  const totalAmount = txns.reduce((s, t) => s + Number(t.amount), 0);
+  const totalCommission = txns.reduce((s, t) => s + Number(t.platform_commission), 0);
+  const netAmount = txns.reduce((s, t) => s + Number(t.partner_earning), 0);
+
+  const invoiceNumber = `INV-${partnerId.slice(0, 6).toUpperCase()}-${periodStart.slice(0, 7)}`;
+
+  return supabase.from("partner_invoices").insert({
+    partner_id: partnerId,
+    invoice_number: invoiceNumber,
+    period_start: periodStart,
+    period_end: periodEnd,
+    period_type: "monthly",
+    total_amount: totalAmount,
+    total_commission: totalCommission,
+    net_amount: netAmount,
+    total_transactions: txns.length,
+    due_date: new Date(new Date(periodEnd).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    status: "pending",
+  }).select().single();
+};
+
+export const generateMonthlyInvoicesForAllPartners = async () => {
+  const now = new Date();
+  const periodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  const periodEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
+
+  const { data: partnerIds } = await supabase
+    .from("financial_transactions")
+    .select("partner_id, partner_type")
+    .gte("created_at", periodStart)
+    .lte("created_at", periodEnd)
+    .is("paid_at", null);
+
+  const uniquePartners = [...new Map((partnerIds || []).map(p => [p.partner_id, p])).values()];
+
+  const results = [];
+  for (const p of uniquePartners) {
+    const result = await createPartnerInvoice(p.partner_id, (p as any).partner_type, periodStart, periodEnd);
+    if (result) results.push(result);
+  }
+  return results;
+};
+```
+
+---
+
+## STEP 6 — Schedule monthly invoice generation (Vercel Cron)
+
+Create `api/invoices/generate-monthly.ts`:
+
+```typescript
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Protect with a secret so only Vercel Cron can call this
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL ?? '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  const supabase = createClient(supabaseUrl, serviceKey);
+
+  const now = new Date();
+  const periodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  const periodEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
+
+  const { data: txns } = await supabase
+    .from('financial_transactions')
+    .select('partner_id, partner_type, amount, platform_commission, partner_earning')
+    .gte('created_at', periodStart)
+    .lte('created_at', periodEnd)
+    .is('paid_at', null);
+
+  const grouped: Record<string, { amount: number; commission: number; earning: number; count: number; type: string }> = {};
+  for (const t of (txns || [])) {
+    if (!grouped[t.partner_id]) grouped[t.partner_id] = { amount: 0, commission: 0, earning: 0, count: 0, type: t.partner_type };
+    grouped[t.partner_id].amount += Number(t.amount);
+    grouped[t.partner_id].commission += Number(t.platform_commission);
+    grouped[t.partner_id].earning += Number(t.partner_earning);
+    grouped[t.partner_id].count += 1;
+  }
+
+  const created = [];
+  for (const [partnerId, g] of Object.entries(grouped)) {
+    const invoiceNumber = `INV-${partnerId.slice(0, 6).toUpperCase()}-${periodStart.slice(0, 7)}`;
+    const { data } = await supabase.from('partner_invoices').insert({
+      partner_id: partnerId,
+      invoice_number: invoiceNumber,
+      period_start: periodStart,
+      period_end: periodEnd,
+      period_type: 'monthly',
+      total_amount: g.amount,
+      total_commission: g.commission,
+      net_amount: g.earning,
+      total_transactions: g.count,
+      due_date: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      status: 'pending',
+    }).select().single();
+    if (data) created.push(data);
+  }
+
+  return res.status(200).json({ generated: created.length, invoices: created });
+}
+```
+
+Add to `vercel.json` (root):
+```json
+{
+  "crons": [
+    { "path": "/api/invoices/generate-monthly", "schedule": "0 3 1 * *" }
+  ]
+}
+```
+This runs at 3 AM on the 1st of every month.
+
+Add `CRON_SECRET` environment variable in Vercel project settings (any random string), 
+and make sure `SUPABASE_SERVICE_ROLE_KEY` is already set (it should be, from the earlier 
+`/api/offers/active.ts` fix).
+
+---
+
+## Testing After Fix
+
+1. Place a test restaurant order with a free-delivery offer applied
+2. Check `financial_transactions` table → should see **2 new rows**: one `partner_type='delivery_company'`, one `partner_type='restaurant'`
+3. Verify delivery company row's `platform_commission` matches the admin's configured `global_commission_delivery` %
+4. Go to Admin → "نسب العمولة المخصصة" → set a custom 5% for one delivery company
+5. Place another order from that company → confirm its `platform_commission` uses 5%, not the global rate
+6. Open `DeliveryFinance.tsx` → restaurant settlement now shows commission deduction line
+7. Manually call `/api/invoices/generate-monthly` with the correct Bearer token → confirm invoices appear in `partner_invoices`

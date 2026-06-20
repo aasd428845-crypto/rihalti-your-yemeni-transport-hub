@@ -271,21 +271,74 @@ export const createOrderFromCart = async (params: {
   const { data, error } = await supabase.from("delivery_orders").insert(insertData).select().single();
   if (error) throw error;
 
-  // Create financial transaction
-  const commissionRate = 12; // default delivery commission
-  const platformCommission = Math.floor(params.total * commissionRate / 100);
-  const partnerEarning = params.total - platformCommission;
-  await supabase.from("financial_transactions").insert({
-    reference_id: data.id,
-    transaction_type: "delivery",
-    customer_id: params.customer_id,
-    partner_id: params.delivery_company_id,
-    amount: params.total,
-    platform_commission: platformCommission,
-    partner_earning: partnerEarning,
-    payment_method: params.payment_method,
-    payment_status: "pending",
-  });
+  // ──────────────────────────────────────────────────────────────
+  // Financial split — THREE parties: platform / delivery company / restaurant
+  // ──────────────────────────────────────────────────────────────
+  try {
+    const { calculateCommission } = await import("./accountingApi");
+
+    // 1. Delivery company's gross delivery revenue
+    const subsidy = params.restaurant_delivery_subsidy ?? 0;
+    const deliveryRevenueBase = params.delivery_fee + subsidy;
+
+    // 2. Platform commission from admin's accounting_settings (not hardcoded 12%)
+    const { commission: platformCommission, earning: companyDeliveryEarning } =
+      await calculateCommission(deliveryRevenueBase, "delivery", params.delivery_company_id);
+
+    // 3. Restaurant's net food revenue
+    const { data: restRow } = await supabase
+      .from("restaurants")
+      .select("commission_rate, name_ar")
+      .eq("id", params.restaurant_id)
+      .maybeSingle();
+    const restCommissionRate = Number((restRow as any)?.commission_rate || 0);
+    const restCommissionCut = Math.floor(params.subtotal * restCommissionRate / 100);
+    const restaurantNetEarning = params.subtotal - restCommissionCut - subsidy;
+
+    // Delivery company's display name from profiles
+    const { data: companyProfile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("user_id", params.delivery_company_id)
+      .maybeSingle();
+
+    // Row 1 — Delivery company settlement
+    await (supabase.from("financial_transactions") as any).insert({
+      reference_id: data.id,
+      order_id: data.id,
+      transaction_type: "delivery_order",
+      partner_type: "delivery_company",
+      customer_id: params.customer_id,
+      partner_id: params.delivery_company_id,
+      partner_name: (companyProfile as any)?.full_name ?? null,
+      amount: deliveryRevenueBase,
+      platform_commission: platformCommission,
+      partner_earning: companyDeliveryEarning,
+      payment_method: params.payment_method,
+      payment_status: "pending",
+      notes: `عمولة توصيل — طلب ${data.id}`,
+    });
+
+    // Row 2 — Restaurant settlement
+    await (supabase.from("financial_transactions") as any).insert({
+      reference_id: data.id,
+      order_id: data.id,
+      transaction_type: "restaurant_order",
+      partner_type: "restaurant",
+      customer_id: params.customer_id,
+      partner_id: params.restaurant_id,
+      partner_name: (restRow as any)?.name_ar ?? null,
+      amount: params.subtotal,
+      platform_commission: 0,
+      partner_earning: restaurantNetEarning,
+      payment_method: params.payment_method,
+      payment_status: "pending",
+      notes: `صافي إيرادات الطعام — طلب ${data.id} (عمولة شركة التوصيل: ${restCommissionCut} ر.ي)`,
+    });
+  } catch (finErr) {
+    // Never block order creation if financial tracking fails
+    console.error("Financial transaction split failed:", finErr);
+  }
 
   // Clear cart
   await clearCart(params.customer_id, params.restaurant_id);

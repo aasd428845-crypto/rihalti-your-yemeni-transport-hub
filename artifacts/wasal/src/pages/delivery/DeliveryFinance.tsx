@@ -92,7 +92,7 @@ const DeliveryFinance = () => {
           .limit(100),
         supabase
           .from("restaurants")
-          .select("id, name_ar, name_en, logo_url, is_active")
+          .select("id, name_ar, name_en, logo_url, is_active, commission_rate")
           .eq("delivery_company_id", user.id)
           .eq("is_active", true)
           .order("created_at", { ascending: false }),
@@ -216,9 +216,14 @@ const DeliveryFinance = () => {
       const totalSubsidy = restOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
       const periodSubsidy = periodOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
 
-      // صافي إيرادات المطعم = إيرادات الطعام المكتملة - مديونية التوصيل
-      const totalRevenue = totalFoodRevenue - totalSubsidy;
-      const periodRevenue = periodFoodRevenue - periodSubsidy;
+      // عمولة شركة التوصيل المستحقة من المطعم
+      const commissionRate = Number((rest as any).commission_rate || 0);
+      const totalCommissionCut = Math.floor(totalFoodRevenue * commissionRate / 100);
+      const periodCommissionCut = Math.floor(periodFoodRevenue * commissionRate / 100);
+
+      // صافي إيرادات المطعم = إيرادات الطعام - عمولة شركة التوصيل - مديونية التوصيل
+      const totalRevenue = totalFoodRevenue - totalCommissionCut - totalSubsidy;
+      const periodRevenue = periodFoodRevenue - periodCommissionCut - periodSubsidy;
 
       // جميع الطلبات ذات الصلة = موصلة + كاش نشطة
       const allRelevantOrders = [...restOrders, ...restActiveCod]
@@ -244,6 +249,9 @@ const DeliveryFinance = () => {
         pendingCodFoodRevenue,
         totalSubsidy,
         periodSubsidy,
+        commissionRate,
+        totalCommissionCut,
+        periodCommissionCut,
         totalRevenue,
         periodRevenue,
         freeDeliveryOrdersCount: freeDeliveryOrders.length,
@@ -556,6 +564,12 @@ const DeliveryFinance = () => {
                           <span className="font-bold text-amber-700 dark:text-amber-400">
                             + {rest.pendingCodFoodRevenue.toLocaleString()} ر.ي
                           </span>
+                        </div>
+                      )}
+                      {rest.commissionRate > 0 && (
+                        <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs">
+                          <span className="text-orange-600 dark:text-orange-400 font-medium">عمولة شركة التوصيل ({rest.commissionRate}%)</span>
+                          <span className="font-bold text-orange-600 dark:text-orange-400">- {rest.totalCommissionCut.toLocaleString()} ر.ي</span>
                         </div>
                       )}
                       {rest.totalSubsidy > 0 && (

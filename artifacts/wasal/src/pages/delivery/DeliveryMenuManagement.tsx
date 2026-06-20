@@ -196,7 +196,7 @@ const DeliveryMenuManagement = () => {
 
   const openEditCat = (c: any) => {
     setEditCat(c);
-    setCatForm({ name_ar: c.name_ar, name_en: c.name_en || "", description: c.description || "", sort_order: c.sort_order || 0, image_url: c.image_url || "" });
+    setCatForm({ name_ar: c.name_ar, name_en: c.name_en || "", description: c.description || "", sort_order: c.sort_order || 0, image_url: c.image_url || "", is_active: c.is_active ?? true });
     setShowCatDialog(true);
   };
 

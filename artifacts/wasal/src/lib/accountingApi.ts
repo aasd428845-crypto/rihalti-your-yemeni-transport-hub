@@ -201,3 +201,67 @@ export const upsertPartnerCommission = async (
     { onConflict: "partner_id" }
   );
 };
+
+// ==================== Partner Invoice Generation ====================
+export const createPartnerInvoice = async (
+  partnerId: string,
+  partnerType: string,
+  periodStart: string,
+  periodEnd: string
+) => {
+  const { data: txns, error } = await (supabase as any)
+    .from("financial_transactions")
+    .select("*")
+    .eq("partner_id", partnerId)
+    .gte("created_at", periodStart)
+    .lte("created_at", periodEnd)
+    .is("paid_at", null);
+
+  if (error) throw error;
+  if (!txns || txns.length === 0) return null;
+
+  const totalAmount = txns.reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const totalCommission = txns.reduce((s: number, t: any) => s + Number(t.platform_commission), 0);
+  const netAmount = txns.reduce((s: number, t: any) => s + Number(t.partner_earning), 0);
+  const invoiceNumber = `INV-${partnerId.slice(0, 6).toUpperCase()}-${periodStart.slice(0, 7)}`;
+
+  return supabase.from("partner_invoices").insert({
+    partner_id: partnerId,
+    invoice_number: invoiceNumber,
+    period_start: periodStart,
+    period_end: periodEnd,
+    period_type: "monthly",
+    total_amount: totalAmount,
+    total_commission: totalCommission,
+    net_amount: netAmount,
+    total_transactions: txns.length,
+    due_date: new Date(new Date(periodEnd).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    status: "pending",
+  } as any).select().single();
+};
+
+export const generateMonthlyInvoicesForAllPartners = async () => {
+  const now = new Date();
+  const periodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  const periodEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString();
+
+  const { data: partnerRows } = await (supabase as any)
+    .from("financial_transactions")
+    .select("partner_id, partner_type")
+    .gte("created_at", periodStart)
+    .lte("created_at", periodEnd)
+    .is("paid_at", null);
+
+  const uniquePartners = [...new Map(
+    ((partnerRows || []) as any[]).map((p: any) => [p.partner_id, p])
+  ).values()];
+
+  const results = [];
+  for (const p of uniquePartners) {
+    try {
+      const result = await createPartnerInvoice(p.partner_id, p.partner_type, periodStart, periodEnd);
+      if (result) results.push(result);
+    } catch {}
+  }
+  return results;
+};

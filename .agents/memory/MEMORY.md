@@ -1,0 +1,2 @@
+- [Wasal DB schema](wasal-db-schema.md) — delivery_companies has only id/created_at/is_active; company names come from profiles.full_name
+- [Wasal commission system](wasal-commission.md) — 3-way financial split pattern; supabase `as any` for missing columns; pre-existing TS cast pattern

@@ -55,7 +55,7 @@ const AdminSupportMessages = () => {
 
   const loadWaNumber = useCallback(async () => {
     try {
-      const { data } = await (supabase.from("app_settings") as any)
+      const { data } = await ((supabase as any).from("app_settings"))
         .select("value")
         .eq("key", WA_SETTING_KEY)
         .maybeSingle();
@@ -67,7 +67,7 @@ const AdminSupportMessages = () => {
     if (!waEditValue.trim()) return;
     setWaSaving(true);
     try {
-      const { error } = await (supabase.from("app_settings") as any).upsert(
+      const { error } = await ((supabase as any).from("app_settings")).upsert(
         { key: WA_SETTING_KEY, value: waEditValue.trim() },
         { onConflict: "key" }
       );

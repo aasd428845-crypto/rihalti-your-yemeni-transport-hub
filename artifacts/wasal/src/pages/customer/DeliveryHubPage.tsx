@@ -654,8 +654,7 @@ const DeliveryHubPage = () => {
         const ratings = data.map((r: any) => Number(r.rating || 0)).filter(v => v > 0);
         const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
         setPlatformStats({ restaurants: data.length, cities: uniqueCities, avgRating });
-      })
-      .catch(() => {});
+      }, () => {});
   }, []);
 
   useEffect(() => {

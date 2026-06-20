@@ -8,7 +8,7 @@ export const useWhatsappNumber = () => {
   const [number, setNumber] = useState(DEFAULT_WA_NUMBER);
 
   useEffect(() => {
-    (supabase.from("app_settings") as any)
+    ((supabase as any).from("app_settings"))
       .select("value")
       .eq("key", WA_SETTING_KEY)
       .maybeSingle()

@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield,
   Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert,
-  MessageCircle, QrCode, CreditCard, Headphones, Bell, BarChart3, Wallet, Activity, Store
+  MessageCircle, QrCode, CreditCard, Headphones, Bell, BarChart3, Wallet, Activity, Store, Percent
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +36,7 @@ const menuGroups = [
       { title: "الفواتير", url: "/admin/invoices", icon: Receipt },
       { title: "الإدارة المالية", url: "/admin/finance", icon: Wallet },
       { title: "التحويلات البنكية", url: "/admin/payment-review", icon: CreditCard },
+      { title: "نسب العمولة المخصصة", url: "/admin/commission-overrides", icon: Percent },
     ],
   },
   {

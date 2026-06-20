@@ -52,6 +52,7 @@ const AdminNotificationLogs = lazy(() => import("./pages/admin/AdminNotification
 const AdminPartnerProfile = lazy(() => import("./pages/admin/AdminPartnerProfile"));
 const AdminMonitoring = lazy(() => import("./pages/admin/AdminMonitoring"));
 const AdminRestaurants = lazy(() => import("./pages/admin/AdminRestaurants"));
+const AdminCommissionOverrides = lazy(() => import("./pages/admin/AdminCommissionOverrides"));
 const InvitePage = lazy(() => import("./pages/InvitePage"));
 // Supplier (lazy loaded)
 const SupplierLayout = lazy(() => import("./components/supplier/SupplierLayout"));
@@ -253,6 +254,7 @@ const App = () => (
                 <Route path="partner-profile/:id" element={<AdminPartnerProfile />} />
                 <Route path="monitoring" element={<AdminMonitoring />} />
                 <Route path="restaurants" element={<AdminRestaurants />} />
+                <Route path="commission-overrides" element={<AdminCommissionOverrides />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
               </Route>
               {/* Supplier */}
