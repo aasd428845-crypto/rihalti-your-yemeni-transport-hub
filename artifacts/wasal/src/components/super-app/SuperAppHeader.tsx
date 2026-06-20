@@ -53,12 +53,14 @@ const SuperAppHeader = () => {
         }
       });
 
-    // Fetch unread notification count
+    // Fetch unread notification count (customer types only)
+    const CUSTOMER_TYPES = ["order_status", "promotion", "general", "promo"];
     supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .is("read_at", null)
+      .in("notification_type", CUSTOMER_TYPES)
       .then(({ count }) => setUnreadCount(count || 0));
 
     // Custom event: fired by NotificationsInbox when user reads

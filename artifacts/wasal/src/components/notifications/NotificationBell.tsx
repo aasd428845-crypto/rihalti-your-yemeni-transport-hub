@@ -9,20 +9,27 @@ import { useAuth } from "@/contexts/AuthContext";
 interface NotificationBellProps {
   notificationsPath: string;
   className?: string;
+  notificationTypes?: string[];
 }
 
-const NotificationBell = ({ notificationsPath, className = "" }: NotificationBellProps) => {
+const NotificationBell = ({ notificationsPath, className = "", notificationTypes }: NotificationBellProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchCount = async (uid: string) => {
-    const { count } = await supabase
+    let query = supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", uid)
       .is("read_at", null);
+
+    if (notificationTypes && notificationTypes.length > 0) {
+      query = query.in("notification_type", notificationTypes);
+    }
+
+    const { count } = await query;
     setUnreadCount(count || 0);
   };
 
@@ -51,7 +58,16 @@ const NotificationBell = ({ notificationsPath, className = "" }: NotificationBel
         schema: "public",
         table: "notifications",
         filter: `user_id=eq.${user.id}`,
-      }, () => setUnreadCount(c => c + 1))
+      }, (payload) => {
+        if (!notificationTypes || notificationTypes.length === 0) {
+          setUnreadCount(c => c + 1);
+          return;
+        }
+        const type = (payload.new as any)?.notification_type;
+        if (notificationTypes.includes(type)) {
+          setUnreadCount(c => c + 1);
+        }
+      })
       .subscribe();
 
     channelRef.current = ch;

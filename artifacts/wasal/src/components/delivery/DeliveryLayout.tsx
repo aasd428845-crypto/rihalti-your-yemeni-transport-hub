@@ -32,7 +32,10 @@ const DeliveryLayout = () => {
               <Menu className="w-5 h-5" />
             </SidebarTrigger>
             <h1 className="text-sm font-bold text-foreground flex-1">لوحة تحكم شركة التوصيل</h1>
-            <NotificationBell notificationsPath="/delivery/notifications" />
+            <NotificationBell
+              notificationsPath="/delivery/notifications"
+              notificationTypes={["new_order", "order_assigned", "driver_update", "payment"]}
+            />
             <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
