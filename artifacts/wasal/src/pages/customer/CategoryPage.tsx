@@ -229,7 +229,7 @@ const CategoryPage = () => {
           .from("menu_categories")
           .select("id, restaurant_id, image_url")
           .eq("name_ar", categoryName)
-          .neq("is_active", false);
+          .or("is_active.eq.true,is_active.is.null");
 
         const firstImage = cats?.find((c: any) => c.image_url)?.image_url ?? null;
         setCategoryImage(firstImage);
