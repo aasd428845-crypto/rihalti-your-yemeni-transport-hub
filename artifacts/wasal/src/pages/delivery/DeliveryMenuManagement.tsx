@@ -248,7 +248,7 @@ const DeliveryMenuManagement = () => {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {restaurantId && <MenuExcelImport restaurantId={restaurantId} onComplete={load} />}
-          <Button variant="outline" size="sm" onClick={() => navigate(`/delivery/promotions`)}>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/delivery/offers`)}>
             <Tag className="w-4 h-4 ml-1" /> عروض المطعم
           </Button>
           <Button variant="outline" onClick={openPreview}>

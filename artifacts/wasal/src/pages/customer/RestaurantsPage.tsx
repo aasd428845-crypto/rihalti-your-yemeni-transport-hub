@@ -340,7 +340,7 @@ const RestaurantsPage = () => {
               return (
                 <button
                   key={offer.id}
-                  onClick={() => offer.restaurant_id ? navigate(`/restaurants/${offer.restaurant_id}`) : navigate("/restaurants")}
+                  onClick={() => (offer as any).scope === "shipment" ? navigate("/delivery-request") : offer.restaurant_id ? navigate(`/restaurants/${offer.restaurant_id}`) : navigate("/restaurants")}
                   className="relative shrink-0 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
                   style={{ width: 190, height: 115 }}
                 >
