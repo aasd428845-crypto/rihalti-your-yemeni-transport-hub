@@ -1,0 +1,553 @@
+# 🔴 Phase 2: Subscription System for Delivery Companies
+
+## ⚠️ Correction to Phase 1 prompt
+
+Phase 1 assumed a `delivery_companies` table exists — **it does not**. Delivery 
+company profile data lives in the `profiles` table (columns: `user_id`, `company_name`, 
+`logo_url`, etc.), filtered via `user_roles` where `role = 'delivery_company'`. 
+If Phase 1 hasn't been implemented yet, fix the `companyRow` query there to:
+```typescript
+const { data: companyRow } = await supabase
+  .from("profiles")
+  .select("company_name")
+  .eq("user_id", params.delivery_company_id)
+  .maybeSingle();
+```
+Same correction applies to Step 4 of Phase 1 (use `profiles` + `user_roles` join, not `delivery_companies`/`suppliers` tables).
+
+---
+
+## CONFIRMED: A primitive trial system already exists (build on top of it, don't duplicate)
+
+`profiles` table already has `is_trial_active`, `trial_start_date`, `trial_end_date`, 
+managed manually from `AdminPartnerProfile.tsx`. **Confirmed: these fields are purely 
+informational — nothing in the app actually checks them to restrict access.** Similarly, 
+`accounting_settings.auto_suspend_days` is a stored number that is never read anywhere 
+to actually suspend anyone.
+
+This phase replaces the ad-hoc trial flags with a real, enforced subscription system, 
+while keeping the existing trial dates as historical data (we migrate them in, not delete them).
+
+---
+
+## STEP 1 — Database schema
+
+Run in Supabase SQL Editor:
+
+```sql
+-- Plan catalog (admin-managed, flexible)
+CREATE TABLE IF NOT EXISTS subscription_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  name_ar TEXT NOT NULL,
+  description TEXT,
+  price_monthly NUMERIC NOT NULL DEFAULT 0,
+  price_yearly NUMERIC,
+  max_orders_per_month INTEGER,          -- NULL = unlimited
+  max_restaurants INTEGER,                -- NULL = unlimited
+  max_riders INTEGER,                     -- NULL = unlimited
+  commission_override_type TEXT,          -- 'percentage' | 'fixed' | NULL (use global rate)
+  commission_override_value NUMERIC,
+  features JSONB DEFAULT '[]'::jsonb,     -- array of feature strings shown to the company
+  is_trial BOOLEAN DEFAULT false,
+  trial_days INTEGER,                     -- only relevant if is_trial = true
+  sort_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Active subscriptions per partner (currently scoped to delivery companies, 
+-- but partner_type allows extending to suppliers/drivers later)
+CREATE TABLE IF NOT EXISTS partner_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_id UUID NOT NULL,
+  partner_type TEXT NOT NULL DEFAULT 'delivery_company',
+  plan_id UUID NOT NULL REFERENCES subscription_plans(id),
+  status TEXT NOT NULL DEFAULT 'active',  -- active | expired | cancelled | pending_payment
+  billing_cycle TEXT NOT NULL DEFAULT 'monthly', -- monthly | yearly
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  current_period_end TIMESTAMPTZ NOT NULL,
+  auto_renew BOOLEAN DEFAULT true,
+  cancelled_at TIMESTAMPTZ,
+  last_payment_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_partner_subscriptions_partner ON partner_subscriptions(partner_id);
+CREATE INDEX IF NOT EXISTS idx_partner_subscriptions_status ON partner_subscriptions(status);
+
+-- RLS: partners can read their own subscription; admin can read/write all
+ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE partner_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anyone_can_read_active_plans" ON subscription_plans
+  FOR SELECT USING (is_active = true);
+
+CREATE POLICY "admin_full_access_plans" ON subscription_plans
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY "partner_reads_own_subscription" ON partner_subscriptions
+  FOR SELECT USING (partner_id = auth.uid());
+
+CREATE POLICY "admin_full_access_subscriptions" ON partner_subscriptions
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin')
+  );
+
+-- Seed: a free trial plan + 3 paid tiers (edit values as needed)
+INSERT INTO subscription_plans (name, name_ar, description, price_monthly, price_yearly, max_orders_per_month, commission_override_type, commission_override_value, features, is_trial, trial_days, sort_order)
+VALUES
+  ('Free Trial', 'تجربة مجانية', 'فترة تجريبية لاستكشاف المنصة', 0, 0, 200, NULL, NULL, '["جميع الميزات الأساسية", "200 طلب شهرياً", "دعم عبر البريد"]', true, 14, 0),
+  ('Starter', 'الأساسية', 'للشركات الصغيرة والمتوسطة', 15000, 150000, 1000, NULL, NULL, '["1000 طلب شهرياً", "دعم عبر واتساب", "تقارير أساسية"]', false, NULL, 1),
+  ('Growth', 'النمو', 'لشركات التوصيل المتنامية', 35000, 350000, NULL, 'percentage', 8, '["طلبات غير محدودة", "عمولة مخفّضة 8%", "دعم أولوية", "تقارير متقدمة"]', false, NULL, 2),
+  ('Enterprise', 'الأعمال', 'لكبرى شركات التوصيل', 75000, 750000, NULL, 'percentage', 5, '["طلبات غير محدودة", "عمولة مخفّضة 5%", "مدير حساب مخصص", "API مخصص"]', false, NULL, 3)
+ON CONFLICT DO NOTHING;
+```
+
+---
+
+## STEP 2 — Tie subscription commission override into `calculateCommission`
+
+File: `artifacts/wasal/src/lib/accountingApi.ts`
+
+Update `calculateCommission` so the lookup priority is:
+**1. Active subscription's plan override → 2. Manual partner override (`partner_commission_settings`) → 3. Global setting**
+
+Replace the function with:
+
+```typescript
+export const calculateCommission = async (
+  amount: number,
+  type: "booking" | "shipment" | "delivery" | "ride",
+  partnerId?: string
+): Promise<{ commission: number; earning: number; source: "subscription" | "override" | "global" }> => {
+  // 1. Check active subscription plan's commission override
+  if (partnerId) {
+    const { data: sub } = await supabase
+      .from("partner_subscriptions")
+      .select("*, subscription_plans(commission_override_type, commission_override_value)")
+      .eq("partner_id", partnerId)
+      .eq("status", "active")
+      .gte("current_period_end", new Date().toISOString())
+      .maybeSingle();
+
+    const plan = (sub as any)?.subscription_plans;
+    if (plan?.commission_override_type) {
+      const commission =
+        plan.commission_override_type === "percentage"
+          ? (amount * Number(plan.commission_override_value)) / 100
+          : Number(plan.commission_override_value);
+      return {
+        commission: Math.round(commission * 100) / 100,
+        earning: Math.round((amount - commission) * 100) / 100,
+        source: "subscription",
+      };
+    }
+  }
+
+  // 2. Check manual partner-specific override
+  if (partnerId) {
+    const { data: override } = await supabase
+      .from("partner_commission_settings")
+      .select("*")
+      .eq("partner_id", partnerId)
+      .eq("override_global", true)
+      .maybeSingle();
+    if (override) {
+      const commission =
+        override.commission_type === "percentage"
+          ? (amount * Number(override.commission_value)) / 100
+          : Number(override.commission_value);
+      return {
+        commission: Math.round(commission * 100) / 100,
+        earning: Math.round((amount - commission) * 100) / 100,
+        source: "override",
+      };
+    }
+  }
+
+  // 3. Fall back to global setting (existing logic — keep as is, just add `source: "global"` to the return)
+  const { data: settings } = await supabase.from("accounting_settings").select("*").eq("id", 1).maybeSingle();
+  const rateMap: Record<string, number> = {
+    booking: settings?.global_commission_booking ?? 10,
+    shipment: settings?.global_commission_shipment ?? 10,
+    delivery: settings?.global_commission_delivery ?? 10,
+    ride: settings?.global_commission_ride ?? 10,
+  };
+  const rate = rateMap[type] ?? 10;
+  const commission = (amount * rate) / 100;
+  return {
+    commission: Math.round(commission * 100) / 100,
+    earning: Math.round((amount - commission) * 100) / 100,
+    source: "global",
+  };
+};
+```
+
+**Note:** This changes the return type to include `source`. Any code calling `calculateCommission` 
+(including Phase 1's `createOrderFromCart`) doesn't need changes since it just destructures 
+`{ commission, earning }` — the extra `source` field is ignored unless used.
+
+---
+
+## STEP 3 — Enforce subscription limits & expiry (the part that was missing entirely)
+
+Create new file: `artifacts/wasal/src/lib/subscriptionApi.ts`
+
+```typescript
+import { supabase } from "@/integrations/supabase/client";
+
+export interface SubscriptionStatus {
+  hasActiveSubscription: boolean;
+  isExpired: boolean;
+  isExpiringSoon: boolean; // within 3 days
+  plan: any | null;
+  subscription: any | null;
+  ordersUsedThisMonth: number;
+  orderLimitReached: boolean;
+}
+
+export const getPartnerSubscriptionStatus = async (partnerId: string): Promise<SubscriptionStatus> => {
+  const { data: sub } = await supabase
+    .from("partner_subscriptions")
+    .select("*, subscription_plans(*)")
+    .eq("partner_id", partnerId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!sub) {
+    return {
+      hasActiveSubscription: false, isExpired: true, isExpiringSoon: false,
+      plan: null, subscription: null, ordersUsedThisMonth: 0, orderLimitReached: false,
+    };
+  }
+
+  const plan = (sub as any).subscription_plans;
+  const periodEnd = new Date(sub.current_period_end);
+  const now = new Date();
+  const isExpired = sub.status !== "active" || periodEnd < now;
+  const daysLeft = (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  const isExpiringSoon = !isExpired && daysLeft <= 3;
+
+  // Count orders this month for limit enforcement
+  let ordersUsedThisMonth = 0;
+  let orderLimitReached = false;
+  if (plan?.max_orders_per_month) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const { count } = await supabase
+      .from("delivery_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("delivery_company_id", partnerId)
+      .gte("created_at", monthStart);
+    ordersUsedThisMonth = count || 0;
+    orderLimitReached = ordersUsedThisMonth >= plan.max_orders_per_month;
+  }
+
+  return {
+    hasActiveSubscription: !isExpired,
+    isExpired,
+    isExpiringSoon,
+    plan,
+    subscription: sub,
+    ordersUsedThisMonth,
+    orderLimitReached,
+  };
+};
+
+export const subscribeToPlan = async (
+  partnerId: string,
+  planId: string,
+  billingCycle: "monthly" | "yearly"
+) => {
+  const { data: plan } = await supabase.from("subscription_plans").select("*").eq("id", planId).single();
+  if (!plan) throw new Error("الخطة غير موجودة");
+
+  const now = new Date();
+  let periodEnd: Date;
+  if (plan.is_trial && plan.trial_days) {
+    periodEnd = new Date(now.getTime() + plan.trial_days * 24 * 60 * 60 * 1000);
+  } else if (billingCycle === "yearly") {
+    periodEnd = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+  } else {
+    periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  }
+
+  // Cancel any existing active subscription first
+  await supabase
+    .from("partner_subscriptions")
+    .update({ status: "cancelled", cancelled_at: now.toISOString() })
+    .eq("partner_id", partnerId)
+    .eq("status", "active");
+
+  return supabase.from("partner_subscriptions").insert({
+    partner_id: partnerId,
+    partner_type: "delivery_company",
+    plan_id: planId,
+    status: plan.price_monthly === 0 || plan.is_trial ? "active" : "pending_payment",
+    billing_cycle: billingCycle,
+    started_at: now.toISOString(),
+    current_period_end: periodEnd.toISOString(),
+    auto_renew: true,
+  }).select().single();
+};
+
+export const cancelSubscription = async (subscriptionId: string) => {
+  return supabase
+    .from("partner_subscriptions")
+    .update({ status: "cancelled", cancelled_at: new Date().toISOString(), auto_renew: false })
+    .eq("id", subscriptionId);
+};
+```
+
+---
+
+## STEP 4 — Banner in delivery dashboard layout showing subscription status
+
+File: `artifacts/wasal/src/components/delivery/DeliverySidebar.tsx` (or the dashboard layout wrapper)
+
+Add a status banner at the top of the dashboard (find the main layout component, likely 
+`DeliveryDashboard.tsx` or a `DeliveryLayout.tsx` wrapping all delivery routes):
+
+```tsx
+import { getPartnerSubscriptionStatus } from "@/lib/subscriptionApi";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+
+const SubscriptionBanner = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [status, setStatus] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) getPartnerSubscriptionStatus(user.id).then(setStatus);
+  }, [user]);
+
+  if (!status) return null;
+
+  if (status.isExpired) {
+    return (
+      <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
+        <span className="text-sm font-bold text-red-700">
+          ⚠️ انتهت صلاحية اشتراكك. بعض الميزات معطّلة حالياً.
+        </span>
+        <button onClick={() => navigate("/delivery/subscription")} className="text-sm font-bold text-white bg-red-600 px-3 py-1.5 rounded-lg">
+          تجديد الاشتراك
+        </button>
+      </div>
+    );
+  }
+
+  if (status.isExpiringSoon) {
+    return (
+      <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
+        <span className="text-sm font-bold text-amber-700">
+          ⏰ اشتراكك ({status.plan?.name_ar}) ينتهي قريباً.
+        </span>
+        <button onClick={() => navigate("/delivery/subscription")} className="text-sm font-bold text-white bg-amber-600 px-3 py-1.5 rounded-lg">
+          تجديد الآن
+        </button>
+      </div>
+    );
+  }
+
+  if (status.orderLimitReached) {
+    return (
+      <div className="bg-orange-50 border-b border-orange-200 px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
+        <span className="text-sm font-bold text-orange-700">
+          📦 وصلتَ للحد الأقصى من الطلبات هذا الشهر ({status.ordersUsedThisMonth}/{status.plan?.max_orders_per_month}).
+        </span>
+        <button onClick={() => navigate("/delivery/subscription")} className="text-sm font-bold text-white bg-orange-600 px-3 py-1.5 rounded-lg">
+          ترقية الخطة
+        </button>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+export default SubscriptionBanner;
+```
+
+Render `<SubscriptionBanner />` at the very top of the delivery dashboard layout, above all routed content.
+
+**Important — what "disabled" should mean when expired:** Do NOT hard-block the dashboard 
+(that would lock companies out of viewing/completing in-progress orders, which is unsafe for 
+customers mid-delivery). Instead, gate ONLY new-order-accepting and offer-creation actions: 
+in `DeliveryOrders.tsx`, before allowing a company to accept a new incoming order, and in 
+`DeliveryOffers.tsx` before allowing offer creation, call `getPartnerSubscriptionStatus` 
+and show a toast + block the action if `isExpired` or `orderLimitReached` is true.
+
+---
+
+## STEP 5 — Delivery company's "My Subscription" page
+
+Create `artifacts/wasal/src/pages/delivery/DeliverySubscription.tsx`:
+
+```tsx
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { getPartnerSubscriptionStatus, subscribeToPlan } from "@/lib/subscriptionApi";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
+import { CheckCircle2 } from "lucide-react";
+
+const DeliverySubscription = () => {
+  const { user } = useAuth();
+  const [plans, setPlans] = useState<any[]>([]);
+  const [status, setStatus] = useState<any>(null);
+  const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
+  const [subscribing, setSubscribing] = useState<string | null>(null);
+
+  const load = async () => {
+    const { data } = await supabase.from("subscription_plans").select("*").eq("is_active", true).order("sort_order");
+    setPlans((data || []).filter(p => !p.is_trial)); // don't show the trial as a purchasable option
+    if (user) setStatus(await getPartnerSubscriptionStatus(user.id));
+  };
+
+  useEffect(() => { load(); }, [user]);
+
+  const handleSubscribe = async (planId: string) => {
+    if (!user) return;
+    setSubscribing(planId);
+    try {
+      await subscribeToPlan(user.id, planId, cycle);
+      toast({ title: "تم الاشتراك بنجاح! سيتم تفعيل الخطة بعد تأكيد الدفع." });
+      await load();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+    setSubscribing(null);
+  };
+
+  return (
+    <div className="p-4 md:p-6 space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold">الاشتراك</h1>
+        {status?.subscription && (
+          <p className="text-sm text-muted-foreground mt-1">
+            خطتك الحالية: <strong>{status.plan?.name_ar}</strong> — 
+            {status.isExpired ? " منتهية" : ` تنتهي في ${new Date(status.subscription.current_period_end).toLocaleDateString("ar")}`}
+          </p>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <Button variant={cycle === "monthly" ? "default" : "outline"} size="sm" onClick={() => setCycle("monthly")}>شهري</Button>
+        <Button variant={cycle === "yearly" ? "default" : "outline"} size="sm" onClick={() => setCycle("yearly")}>سنوي (وفّر أكثر)</Button>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-4">
+        {plans.map(plan => {
+          const isCurrent = status?.subscription?.plan_id === plan.id && !status?.isExpired;
+          const price = cycle === "monthly" ? plan.price_monthly : plan.price_yearly;
+          return (
+            <Card key={plan.id} className={isCurrent ? "border-primary border-2" : ""}>
+              <CardContent className="p-5 space-y-3">
+                {isCurrent && <Badge>خطتك الحالية</Badge>}
+                <h3 className="font-bold text-lg">{plan.name_ar}</h3>
+                <p className="text-sm text-muted-foreground">{plan.description}</p>
+                <p className="text-2xl font-black">
+                  {Number(price).toLocaleString()} <span className="text-sm font-normal">ر.ي / {cycle === "monthly" ? "شهر" : "سنة"}</span>
+                </p>
+                <ul className="space-y-1.5">
+                  {(plan.features || []).map((f: string, i: number) => (
+                    <li key={i} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className="w-full"
+                  disabled={isCurrent || subscribing === plan.id}
+                  onClick={() => handleSubscribe(plan.id)}
+                >
+                  {isCurrent ? "نشطة حالياً" : subscribing === plan.id ? "جاري..." : "اشترك الآن"}
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default DeliverySubscription;
+```
+
+Add route in `App.tsx`:
+```tsx
+const DeliverySubscription = lazy(() => import("./pages/delivery/DeliverySubscription"));
+// inside delivery routes:
+<Route path="subscription" element={<DeliverySubscription />} />
+```
+
+Add sidebar link in `DeliverySidebar.tsx`:
+```tsx
+{ title: "الاشتراك", url: "/delivery/subscription", icon: CreditCard },
+```
+
+---
+
+## STEP 6 — Admin pages: manage plans + view all subscriptions
+
+Create `artifacts/wasal/src/pages/admin/AdminSubscriptionPlans.tsx` — CRUD table for `subscription_plans` 
+(same pattern as `DeliveryOffers.tsx` dialog form: name_ar, price_monthly, price_yearly, 
+max_orders_per_month, commission_override_type/value, features as a tag-input, is_active toggle).
+
+Create `artifacts/wasal/src/pages/admin/AdminPartnerSubscriptions.tsx` — table listing all 
+`partner_subscriptions` joined with `profiles.company_name` and `subscription_plans.name_ar`, 
+filterable by status, with manual actions: "تمديد 30 يوم" (extend), "تعليق" (suspend → sets status='cancelled'), 
+"تفعيل يدوي" (manually activate after confirming offline payment, e.g. bank transfer).
+
+Add both routes to `App.tsx` and sidebar links to the admin sidebar component, mirroring 
+the patterns from Phase 1 Step 4.
+
+---
+
+## STEP 7 — Migrate existing trial users into the new system (one-time data fix)
+
+Run once in Supabase SQL Editor after deploying the above:
+
+```sql
+INSERT INTO partner_subscriptions (partner_id, partner_type, plan_id, status, billing_cycle, started_at, current_period_end, auto_renew)
+SELECT 
+  p.user_id,
+  'delivery_company',
+  (SELECT id FROM subscription_plans WHERE is_trial = true LIMIT 1),
+  CASE WHEN p.trial_end_date > now() THEN 'active' ELSE 'expired' END,
+  'monthly',
+  COALESCE(p.trial_start_date, now()),
+  COALESCE(p.trial_end_date, now()),
+  false
+FROM profiles p
+JOIN user_roles ur ON ur.user_id = p.user_id
+WHERE ur.role = 'delivery_company' 
+  AND p.is_trial_active = true
+  AND NOT EXISTS (SELECT 1 FROM partner_subscriptions ps WHERE ps.partner_id = p.user_id);
+```
+
+---
+
+## Testing After Fix
+
+1. Admin → "خطط الاشتراك" → confirm 4 seeded plans appear (تجربة مجانية، الأساسية، النمو، الأعمال)
+2. Delivery company dashboard → "الاشتراك" page → subscribe to "النمو" plan
+3. Place a restaurant order from that company → check `financial_transactions` → 
+   `platform_commission` should now use 8% (the plan's override), not the global rate
+4. Admin → "الاشتراكات النشطة" → confirm the new subscription row appears with correct dates
+5. Manually set a subscription's `current_period_end` to yesterday in Supabase → 
+   reload delivery dashboard → red expiry banner should appear
+6. Try to create a new offer while expired → should be blocked with a toast message
+7. Set `max_orders_per_month = 5` on a test plan, place 6 orders → 7th attempt to accept 
+   a new order should show "وصلتَ للحد الأقصى" banner
