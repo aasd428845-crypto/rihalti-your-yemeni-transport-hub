@@ -216,6 +216,7 @@ const CategoryPage = () => {
   const [groups, setGroups] = useState<GroupedResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [categoryImage, setCategoryImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!categoryName) return;
@@ -226,9 +227,12 @@ const CategoryPage = () => {
         // 1. Find all menu_categories matching this name (across all restaurants)
         const { data: cats } = await supabase
           .from("menu_categories")
-          .select("id, restaurant_id")
+          .select("id, restaurant_id, image_url")
           .eq("name_ar", categoryName)
           .eq("is_active", true);
+
+        const firstImage = cats?.find((c: any) => c.image_url)?.image_url ?? null;
+        setCategoryImage(firstImage);
 
         if (!cats || cats.length === 0) { setGroups([]); setLoading(false); return; }
 
@@ -240,7 +244,7 @@ const CategoryPage = () => {
           .from("menu_items")
           .select("id, name_ar, description, price, original_price, image_url, is_available, is_featured, category_id")
           .in("category_id", catIds)
-          .neq("is_available", false)
+          .or("is_available.eq.true,is_available.is.null")
           .order("sort_order", { ascending: true });
 
         if (!items || items.length === 0) { setGroups([]); setLoading(false); return; }
@@ -297,7 +301,7 @@ const CategoryPage = () => {
   }, [groups, search]);
 
   const totalItems = filtered.reduce((sum, g) => sum + g.items.length, 0);
-  const coverImg = getCategoryFallbackImage(categoryName);
+  const coverImg = categoryImage || getCategoryFallbackImage(categoryName);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FFFFFF" }} dir="rtl">
