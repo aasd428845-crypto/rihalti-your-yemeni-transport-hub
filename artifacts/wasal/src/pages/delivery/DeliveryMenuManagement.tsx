@@ -63,7 +63,7 @@ const DeliveryMenuManagement = () => {
   const [showItemDialog, setShowItemDialog] = useState(false);
   const [editCat, setEditCat] = useState<any>(null);
   const [editItem, setEditItem] = useState<any>(null);
-  const [catForm, setCatForm] = useState({ name_ar: "", name_en: "", description: "", sort_order: 0, image_url: "" });
+  const [catForm, setCatForm] = useState({ name_ar: "", name_en: "", description: "", sort_order: 0, image_url: "", is_active: true });
   const [itemForm, setItemForm] = useState(emptyItemForm());
 
   const load = async () => {
@@ -96,7 +96,7 @@ const DeliveryMenuManagement = () => {
         toast({ title: "تمت إضافة الفئة" });
       }
       setShowCatDialog(false); setEditCat(null);
-      setCatForm({ name_ar: "", name_en: "", description: "", sort_order: 0, image_url: "" });
+      setCatForm({ name_ar: "", name_en: "", description: "", sort_order: 0, image_url: "", is_active: true });
       load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -262,7 +262,7 @@ const DeliveryMenuManagement = () => {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-lg">الفئات</h3>
-            <Button size="sm" onClick={() => { setEditCat(null); setCatForm({ name_ar: "", name_en: "", description: "", sort_order: 0, image_url: "" }); setShowCatDialog(true); }}>
+            <Button size="sm" onClick={() => { setEditCat(null); setCatForm({ name_ar: "", name_en: "", description: "", sort_order: 0, image_url: "", is_active: true }); setShowCatDialog(true); }}>
               <Plus className="w-3 h-3 ml-1" /> فئة
             </Button>
           </div>
