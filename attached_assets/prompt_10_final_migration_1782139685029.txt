@@ -1,0 +1,41 @@
+PROMPT 10 of 10 — Run this in Supabase SQL Editor yourself (final step, no Replit needed)
+
+This migrates any existing delivery companies that had the old manual trial flags 
+(is_trial_active / trial_start_date / trial_end_date on the profiles table) into the 
+new partner_subscriptions system, so nobody's existing trial status gets lost.
+
+INSERT INTO partner_subscriptions (partner_id, partner_type, plan_id, status, billing_cycle, started_at, current_period_end, auto_renew)
+SELECT 
+  p.user_id,
+  'delivery_company',
+  (SELECT id FROM subscription_plans WHERE is_trial = true LIMIT 1),
+  CASE WHEN p.trial_end_date > now() THEN 'active' ELSE 'expired' END,
+  'monthly',
+  COALESCE(p.trial_start_date, now()),
+  COALESCE(p.trial_end_date, now()),
+  false
+FROM profiles p
+JOIN user_roles ur ON ur.user_id = p.user_id
+WHERE ur.role = 'delivery_company' 
+  AND p.is_trial_active = true
+  AND NOT EXISTS (SELECT 1 FROM partner_subscriptions ps WHERE ps.partner_id = p.user_id);
+
+Verify with:
+SELECT ps.*, p.company_name 
+FROM partner_subscriptions ps 
+JOIN profiles p ON p.user_id = ps.partner_id;
+
+🎉 This completes BOTH Phase 1 (Commission System) and Phase 2 (Subscription System).
+
+FULL SYSTEM TEST (do this last, after everything above):
+1. Pick a delivery company with no subscription → they should fall back to global 
+   commission rate on new orders
+2. Subscribe that company to "Enterprise" (5% override) from their dashboard
+3. Place a restaurant order through them → confirm financial_transactions shows 5% commission
+4. As admin, go to "الاشتراكات النشطة" → confirm the subscription is listed correctly
+5. As admin, manually expire that subscription (edit current_period_end to yesterday 
+   directly in Supabase) → reload the delivery company's dashboard → red banner should appear
+6. Try creating a new offer while expired → should this be blocked? (We did NOT add this 
+   specific gate in these 10 prompts — only the banner. If you want offer-creation and 
+   order-acceptance to be blocked when expired, that's a small additional prompt — ask 
+   for "Prompt 11: enforcement gates" if you want it.)

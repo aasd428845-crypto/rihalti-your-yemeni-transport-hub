@@ -1,0 +1,186 @@
+PROMPT 8 of 10 — Send this to Replit Agent
+
+Task: Add a subscription status banner to the delivery company dashboard, and build the 
+"My Subscription" page where companies can view/upgrade their plan.
+
+Step A — Create new file: artifacts/wasal/src/components/delivery/SubscriptionBanner.tsx
+
+```tsx
+import { getPartnerSubscriptionStatus } from "@/lib/subscriptionApi";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+
+const SubscriptionBanner = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [status, setStatus] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) getPartnerSubscriptionStatus(user.id).then(setStatus);
+  }, [user]);
+
+  if (!status) return null;
+
+  if (status.isExpired) {
+    return (
+      <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
+        <span className="text-sm font-bold text-red-700">⚠️ انتهت صلاحية اشتراكك. بعض الميزات معطّلة حالياً.</span>
+        <button onClick={() => navigate("/delivery/subscription")} className="text-sm font-bold text-white bg-red-600 px-3 py-1.5 rounded-lg">
+          تجديد الاشتراك
+        </button>
+      </div>
+    );
+  }
+
+  if (status.isExpiringSoon) {
+    return (
+      <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
+        <span className="text-sm font-bold text-amber-700">⏰ اشتراكك ({status.plan?.name_ar}) ينتهي قريباً.</span>
+        <button onClick={() => navigate("/delivery/subscription")} className="text-sm font-bold text-white bg-amber-600 px-3 py-1.5 rounded-lg">
+          تجديد الآن
+        </button>
+      </div>
+    );
+  }
+
+  if (status.orderLimitReached) {
+    return (
+      <div className="bg-orange-50 border-b border-orange-200 px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
+        <span className="text-sm font-bold text-orange-700">
+          📦 وصلتَ للحد الأقصى من الطلبات هذا الشهر ({status.ordersUsedThisMonth}/{status.plan?.max_orders_per_month}).
+        </span>
+        <button onClick={() => navigate("/delivery/subscription")} className="text-sm font-bold text-white bg-orange-600 px-3 py-1.5 rounded-lg">
+          ترقية الخطة
+        </button>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+export default SubscriptionBanner;
+```
+
+Step B — Find the main layout component that wraps ALL delivery dashboard pages 
+(it's the component used in App.tsx's delivery route group, likely rendering 
+DeliverySidebar + an <Outlet />). Import SubscriptionBanner there and render it 
+once, right above the routed page content (above <Outlet /> or {children}).
+
+Step C — Create new file: artifacts/wasal/src/pages/delivery/DeliverySubscription.tsx
+
+```tsx
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { getPartnerSubscriptionStatus, subscribeToPlan } from "@/lib/subscriptionApi";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
+import { CheckCircle2 } from "lucide-react";
+
+const DeliverySubscription = () => {
+  const { user } = useAuth();
+  const [plans, setPlans] = useState<any[]>([]);
+  const [status, setStatus] = useState<any>(null);
+  const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
+  const [subscribing, setSubscribing] = useState<string | null>(null);
+
+  const load = async () => {
+    const { data } = await supabase.from("subscription_plans").select("*").eq("is_active", true).order("sort_order");
+    setPlans((data || []).filter(p => !p.is_trial));
+    if (user) setStatus(await getPartnerSubscriptionStatus(user.id));
+  };
+
+  useEffect(() => { load(); }, [user]);
+
+  const handleSubscribe = async (planId: string) => {
+    if (!user) return;
+    setSubscribing(planId);
+    try {
+      await subscribeToPlan(user.id, planId, cycle);
+      toast({ title: "تم الاشتراك بنجاح! سيتم تفعيل الخطة بعد تأكيد الدفع." });
+      await load();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+    setSubscribing(null);
+  };
+
+  return (
+    <div className="p-4 md:p-6 space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold">الاشتراك</h1>
+        {status?.subscription && (
+          <p className="text-sm text-muted-foreground mt-1">
+            خطتك الحالية: <strong>{status.plan?.name_ar}</strong> —
+            {status.isExpired ? " منتهية" : ` تنتهي في ${new Date(status.subscription.current_period_end).toLocaleDateString("ar")}`}
+          </p>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <Button variant={cycle === "monthly" ? "default" : "outline"} size="sm" onClick={() => setCycle("monthly")}>شهري</Button>
+        <Button variant={cycle === "yearly" ? "default" : "outline"} size="sm" onClick={() => setCycle("yearly")}>سنوي (وفّر أكثر)</Button>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-4">
+        {plans.map(plan => {
+          const isCurrent = status?.subscription?.plan_id === plan.id && !status?.isExpired;
+          const price = cycle === "monthly" ? plan.price_monthly : plan.price_yearly;
+          return (
+            <Card key={plan.id} className={isCurrent ? "border-primary border-2" : ""}>
+              <CardContent className="p-5 space-y-3">
+                {isCurrent && <Badge>خطتك الحالية</Badge>}
+                <h3 className="font-bold text-lg">{plan.name_ar}</h3>
+                <p className="text-sm text-muted-foreground">{plan.description}</p>
+                <p className="text-2xl font-black">
+                  {Number(price).toLocaleString()} <span className="text-sm font-normal">ر.ي / {cycle === "monthly" ? "شهر" : "سنة"}</span>
+                </p>
+                <ul className="space-y-1.5">
+                  {(plan.features || []).map((f: string, i: number) => (
+                    <li key={i} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button className="w-full" disabled={isCurrent || subscribing === plan.id} onClick={() => handleSubscribe(plan.id)}>
+                  {isCurrent ? "نشطة حالياً" : subscribing === plan.id ? "جاري..." : "اشترك الآن"}
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default DeliverySubscription;
+```
+
+Step D — Add route in App.tsx:
+```tsx
+const DeliverySubscription = lazy(() => import("./pages/delivery/DeliverySubscription"));
+```
+Inside the delivery routes:
+```tsx
+<Route path="subscription" element={<DeliverySubscription />} />
+```
+
+Step E — Add sidebar link in DeliverySidebar.tsx:
+```tsx
+{ title: "الاشتراك", url: "/delivery/subscription", icon: CreditCard },
+```
+
+TEST BEFORE MOVING ON:
+1. Log in as a delivery company → go to /delivery/subscription
+2. Confirm you see 3 plan cards (Starter, Growth, Enterprise) — trial plan hidden
+3. Click "اشترك الآن" on Growth → confirm success toast
+4. Refresh → confirm "خطتك الحالية" badge now shows on Growth card
+5. Go to any other delivery dashboard page → confirm no banner shows (since this 
+   subscription isn't expired and order limit isn't reached)
+
+✅ Once confirmed working, move to Prompt 9.

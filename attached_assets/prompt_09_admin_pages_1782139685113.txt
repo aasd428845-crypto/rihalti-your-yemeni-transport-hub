@@ -1,0 +1,61 @@
+PROMPT 9 of 10 — Send this to Replit Agent
+
+Task: Build two admin pages — one to manage subscription plans (CRUD), one to view/manage 
+all active partner subscriptions.
+
+Step A — Create artifacts/wasal/src/pages/admin/AdminSubscriptionPlans.tsx
+
+Follow the EXACT same dialog/form/table pattern already used in 
+artifacts/wasal/src/pages/delivery/DeliveryOffers.tsx (it has a clean list + 
+add/edit dialog pattern). Build a page with:
+- A table/grid listing all rows from `subscription_plans` (name_ar, price_monthly, 
+  price_yearly, max_orders_per_month, commission_override_value, is_active)
+- An "إضافة خطة" button opening a Dialog with form fields for every column: 
+  name, name_ar, description (textarea), price_monthly (number), price_yearly (number), 
+  max_orders_per_month (number, nullable — empty means unlimited), 
+  commission_override_type (select: percentage/fixed/none), commission_override_value (number),
+  features (a simple textarea where each line becomes one array item — split by newline on save),
+  is_active (switch)
+- Edit and delete buttons on each row, using standard supabase .update() / .delete() 
+  on the `subscription_plans` table
+- Use toast() for success/error feedback, matching the style of DeliveryOffers.tsx
+
+Step B — Create artifacts/wasal/src/pages/admin/AdminPartnerSubscriptions.tsx
+
+Build a page that:
+- Queries `partner_subscriptions` joined with `subscription_plans(name_ar)`, 
+  and separately fetches `profiles.company_name` for each `partner_id` to display the name
+- Shows a table: Company Name | Plan | Status | Started | Expires | Auto-renew
+- Has a filter dropdown for status (all / active / expired / cancelled)
+- Has 3 action buttons per row:
+  1. "تمديد 30 يوم" — adds 30 days to `current_period_end` via supabase update
+  2. "تعليق" — sets status to 'cancelled'
+  3. "تفعيل يدوي" — sets status to 'active' and current_period_end to 30 days from now 
+     (for confirming an offline/bank-transfer payment)
+- Use toast() for feedback after each action, and refetch the list after any action
+
+Step C — Add both routes in App.tsx:
+```tsx
+const AdminSubscriptionPlans = lazy(() => import("./pages/admin/AdminSubscriptionPlans"));
+const AdminPartnerSubscriptions = lazy(() => import("./pages/admin/AdminPartnerSubscriptions"));
+```
+Inside admin routes:
+```tsx
+<Route path="subscription-plans" element={<AdminSubscriptionPlans />} />
+<Route path="partner-subscriptions" element={<AdminPartnerSubscriptions />} />
+```
+
+Step D — Add both to the admin sidebar:
+```tsx
+{ title: "خطط الاشتراك", url: "/admin/subscription-plans", icon: Package },
+{ title: "الاشتراكات النشطة", url: "/admin/partner-subscriptions", icon: Users },
+```
+
+TEST BEFORE MOVING ON:
+1. Go to /admin/subscription-plans → confirm the 4 seeded plans appear
+2. Edit one plan's price → save → refresh → confirm it persisted
+3. Go to /admin/partner-subscriptions → confirm the subscription created in Prompt 8 
+   (the Growth plan one) appears in the list
+4. Click "تمديد 30 يوم" on it → confirm the expiry date moved forward by 30 days
+
+✅ Once confirmed working, move to Prompt 10 (final step).

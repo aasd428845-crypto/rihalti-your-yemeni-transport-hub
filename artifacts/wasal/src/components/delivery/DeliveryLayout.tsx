@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DeliverySidebar from "./DeliverySidebar";
+import SubscriptionBanner from "./SubscriptionBanner";
 import { Menu, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
@@ -40,6 +41,7 @@ const DeliveryLayout = () => {
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
           </header>
+          <SubscriptionBanner />
           <div className="flex-1 p-4 md:p-6 bg-background overflow-auto">
             <Outlet />
           </div>

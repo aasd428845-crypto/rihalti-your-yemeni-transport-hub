@@ -53,6 +53,9 @@ const AdminPartnerProfile = lazy(() => import("./pages/admin/AdminPartnerProfile
 const AdminMonitoring = lazy(() => import("./pages/admin/AdminMonitoring"));
 const AdminRestaurants = lazy(() => import("./pages/admin/AdminRestaurants"));
 const AdminCommissionOverrides = lazy(() => import("./pages/admin/AdminCommissionOverrides"));
+const AdminSubscriptionPlans = lazy(() => import("./pages/admin/AdminSubscriptionPlans"));
+const AdminPartnerSubscriptions = lazy(() => import("./pages/admin/AdminPartnerSubscriptions"));
+const DeliverySubscription = lazy(() => import("./pages/delivery/DeliverySubscription"));
 const InvitePage = lazy(() => import("./pages/InvitePage"));
 // Supplier (lazy loaded)
 const SupplierLayout = lazy(() => import("./components/supplier/SupplierLayout"));
@@ -255,6 +258,8 @@ const App = () => (
                 <Route path="monitoring" element={<AdminMonitoring />} />
                 <Route path="restaurants" element={<AdminRestaurants />} />
                 <Route path="commission-overrides" element={<AdminCommissionOverrides />} />
+                <Route path="subscription-plans" element={<AdminSubscriptionPlans />} />
+                <Route path="partner-subscriptions" element={<AdminPartnerSubscriptions />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
               </Route>
               {/* Supplier */}
@@ -291,6 +296,7 @@ const App = () => (
                 <Route path="profile" element={<PartnerProfilePage />} />
                 <Route path="payment-settings" element={<PartnerPaymentSettings />} />
                 <Route path="notifications" element={<DeliveryNotificationsPage />} />
+                <Route path="subscription" element={<DeliverySubscription />} />
               </Route>
               {/* Driver */}
               <Route path="/driver" element={<DriverLayout />}>
