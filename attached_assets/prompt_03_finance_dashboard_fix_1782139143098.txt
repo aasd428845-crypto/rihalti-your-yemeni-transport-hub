@@ -1,0 +1,56 @@
+PROMPT 3 of 10 — Send this to Replit Agent
+
+Task: Fix restaurant earnings calculation in the delivery company's own finance dashboard 
+to actually subtract the restaurant commission rate (currently it's set in the UI but 
+never applied to any number shown to the user).
+
+File: artifacts/wasal/src/pages/delivery/DeliveryFinance.tsx
+
+Step A — Find the Supabase query for restaurants (around line 95):
+```typescript
+.select("id, name_ar, name_en, logo_url, is_active")
+```
+Change to:
+```typescript
+.select("id, name_ar, name_en, logo_url, is_active, commission_rate")
+```
+
+Step B — Find this code inside the restaurantStats calculation:
+```typescript
+const totalFoodRevenue = restOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
+const periodFoodRevenue = periodOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
+```
+Add immediately after it:
+```typescript
+const commissionRate = Number((rest as any).commission_rate || 0);
+const totalCommissionCut = Math.floor(totalFoodRevenue * commissionRate / 100);
+const periodCommissionCut = Math.floor(periodFoodRevenue * commissionRate / 100);
+```
+
+Step C — Find:
+```typescript
+const totalRevenue = totalFoodRevenue - totalSubsidy;
+const periodRevenue = periodFoodRevenue - periodSubsidy;
+```
+Change to:
+```typescript
+const totalRevenue = totalFoodRevenue - totalCommissionCut - totalSubsidy;
+const periodRevenue = periodFoodRevenue - periodCommissionCut - periodSubsidy;
+```
+
+Step D — In the restaurant detail UI, find where totalSubsidy is displayed as a line item, 
+and add a sibling row right above or below it:
+```tsx
+<div className="flex justify-between text-sm">
+  <span className="text-muted-foreground">عمولة شركة التوصيل ({commissionRate}%)</span>
+  <span className="text-red-600">-{totalCommissionCut.toLocaleString()} ر.ي</span>
+</div>
+```
+
+TEST BEFORE MOVING ON:
+1. Go to a restaurant in DeliveryRestaurants page → set "نسبة العمولة %" to 10 for a test restaurant
+2. Go to DeliveryFinance page → open that restaurant's detail view
+3. Confirm you now see a new line "عمولة شركة التوصيل (10%)" with a negative amount
+4. Confirm the total restaurant revenue shown decreased accordingly
+
+✅ Once confirmed working, move to Prompt 4.
