@@ -1,0 +1,124 @@
+PROMPT 5 of 10 — Send this to Replit Agent
+
+Task: Build automatic monthly invoice generation for delivery companies.
+
+Step A — Add this function to artifacts/wasal/src/lib/accountingApi.ts (at the end of the file):
+
+```typescript
+export const createPartnerInvoice = async (
+  partnerId: string,
+  partnerType: string,
+  periodStart: string,
+  periodEnd: string
+) => {
+  const { data: txns, error } = await supabase
+    .from("financial_transactions")
+    .select("*")
+    .eq("partner_id", partnerId)
+    .gte("created_at", periodStart)
+    .lte("created_at", periodEnd)
+    .is("paid_at", null);
+
+  if (error) throw error;
+  if (!txns || txns.length === 0) return null;
+
+  const totalAmount = txns.reduce((s, t) => s + Number(t.amount), 0);
+  const totalCommission = txns.reduce((s, t) => s + Number(t.platform_commission), 0);
+  const netAmount = txns.reduce((s, t) => s + Number(t.partner_earning), 0);
+
+  const invoiceNumber = `INV-${partnerId.slice(0, 6).toUpperCase()}-${periodStart.slice(0, 7)}`;
+
+  return supabase.from("partner_invoices").insert({
+    partner_id: partnerId,
+    invoice_number: invoiceNumber,
+    period_start: periodStart,
+    period_end: periodEnd,
+    period_type: "monthly",
+    total_amount: totalAmount,
+    total_commission: totalCommission,
+    net_amount: netAmount,
+    total_transactions: txns.length,
+    due_date: new Date(new Date(periodEnd).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    status: "pending",
+  }).select().single();
+};
+```
+
+Step B — Create new file: api/invoices/generate-monthly.ts (in repo ROOT /api/ folder, 
+alongside the existing /api/offers/ and /api/sms/ folders)
+
+```typescript
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL ?? '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  const supabase = createClient(supabaseUrl, serviceKey);
+
+  const now = new Date();
+  const periodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  const periodEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
+
+  const { data: txns } = await supabase
+    .from('financial_transactions')
+    .select('partner_id, partner_type, amount, platform_commission, partner_earning')
+    .gte('created_at', periodStart)
+    .lte('created_at', periodEnd)
+    .is('paid_at', null);
+
+  const grouped: Record<string, { amount: number; commission: number; earning: number; count: number; type: string }> = {};
+  for (const t of (txns || [])) {
+    if (!grouped[t.partner_id]) grouped[t.partner_id] = { amount: 0, commission: 0, earning: 0, count: 0, type: t.partner_type };
+    grouped[t.partner_id].amount += Number(t.amount);
+    grouped[t.partner_id].commission += Number(t.platform_commission);
+    grouped[t.partner_id].earning += Number(t.partner_earning);
+    grouped[t.partner_id].count += 1;
+  }
+
+  const created = [];
+  for (const [partnerId, g] of Object.entries(grouped)) {
+    const invoiceNumber = `INV-${partnerId.slice(0, 6).toUpperCase()}-${periodStart.slice(0, 7)}`;
+    const { data } = await supabase.from('partner_invoices').insert({
+      partner_id: partnerId,
+      invoice_number: invoiceNumber,
+      period_start: periodStart,
+      period_end: periodEnd,
+      period_type: 'monthly',
+      total_amount: g.amount,
+      total_commission: g.commission,
+      net_amount: g.earning,
+      total_transactions: g.count,
+      due_date: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      status: 'pending',
+    }).select().single();
+    if (data) created.push(data);
+  }
+
+  return res.status(200).json({ generated: created.length, invoices: created });
+}
+```
+
+Step C — Add to vercel.json in the repo root (merge with existing content, don't replace the whole file):
+```json
+"crons": [
+  { "path": "/api/invoices/generate-monthly", "schedule": "0 3 1 * *" }
+]
+```
+
+Step D — Tell me (the developer) to add a CRON_SECRET environment variable in Vercel 
+project settings (any random string of letters/numbers) — this is required for the cron 
+endpoint to work and cannot be done from code.
+
+TEST BEFORE MOVING ON:
+1. Add CRON_SECRET in Vercel env vars and redeploy
+2. Manually call: curl -X GET "https://wasal-app.vercel.app/api/invoices/generate-monthly" -H "Authorization: Bearer YOUR_CRON_SECRET"
+3. Check Supabase `partner_invoices` table → confirm new invoice rows appeared (if there 
+   were any unpaid financial_transactions from last month)
+
+✅ This completes Phase 1 (Commission System). Move to Prompt 6 for Phase 2 (Subscriptions).

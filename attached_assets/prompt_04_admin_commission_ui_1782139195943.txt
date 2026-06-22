@@ -1,0 +1,169 @@
+PROMPT 4 of 10 — Send this to Replit Agent
+
+Task: Build an admin page to set custom commission overrides per delivery company. 
+The backend functions for this already exist (getPartnerCommissionSettings, 
+upsertPartnerCommission in accountingApi.ts) but there is currently NO page that uses them.
+
+Create new file: artifacts/wasal/src/pages/admin/AdminCommissionOverrides.tsx
+
+```tsx
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { getPartnerCommissionSettings, upsertPartnerCommission } from "@/lib/accountingApi";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
+
+interface PartnerRow {
+  id: string;
+  name: string;
+  type: string;
+  override?: { commission_type: string; commission_value: number; override_global: boolean };
+}
+
+const AdminCommissionOverrides = () => {
+  const [partners, setPartners] = useState<PartnerRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Record<string, { type: string; value: number; on: boolean }>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "delivery_company");
+
+      const userIds = (roles || []).map((r: any) => r.user_id);
+      if (userIds.length === 0) { setLoading(false); return; }
+
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, company_name")
+        .in("user_id", userIds);
+
+      const list: PartnerRow[] = (profilesData || []).map((p: any) => ({
+        id: p.user_id,
+        name: p.company_name || "بدون اسم",
+        type: "delivery_company",
+      }));
+
+      const withOverrides = await Promise.all(
+        list.map(async (p) => {
+          const { data } = await getPartnerCommissionSettings(p.id);
+          return { ...p, override: data as any };
+        })
+      );
+
+      setPartners(withOverrides);
+      const initEditing: Record<string, any> = {};
+      withOverrides.forEach(p => {
+        initEditing[p.id] = {
+          type: p.override?.commission_type || "percentage",
+          value: p.override?.commission_value || 0,
+          on: p.override?.override_global || false,
+        };
+      });
+      setEditing(initEditing);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const handleSave = async (partnerId: string) => {
+    setSaving(partnerId);
+    const e = editing[partnerId];
+    try {
+      await upsertPartnerCommission(partnerId, e.type, e.value, e.on);
+      toast({ title: "تم حفظ نسبة العمولة المخصصة" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+    setSaving(null);
+  };
+
+  if (loading) return <div className="p-6">جاري التحميل...</div>;
+
+  return (
+    <div className="p-4 md:p-6 space-y-4">
+      <h1 className="text-2xl font-bold">نسب العمولة المخصصة للشركاء</h1>
+      <p className="text-sm text-muted-foreground">
+        افتراضياً تُطبَّق النسبة العامة من إعدادات المحاسبة. يمكنك هنا تخصيص نسبة مختلفة لشريك معين.
+      </p>
+
+      <div className="space-y-3">
+        {partners.length === 0 && <p className="text-muted-foreground">لا توجد شركات توصيل مسجلة بعد.</p>}
+        {partners.map(p => {
+          const e = editing[p.id] || { type: "percentage", value: 0, on: false };
+          return (
+            <Card key={p.id}>
+              <CardContent className="p-4 flex flex-wrap items-center gap-3">
+                <div className="flex-1 min-w-[140px]">
+                  <p className="font-bold">{p.name}</p>
+                  <p className="text-xs text-muted-foreground">شركة توصيل</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">تخصيص نسبة؟</span>
+                  <Switch
+                    checked={e.on}
+                    onCheckedChange={(v) => setEditing(prev => ({ ...prev, [p.id]: { ...e, on: v } }))}
+                  />
+                </div>
+
+                {e.on && (
+                  <>
+                    <Select value={e.type} onValueChange={(v) => setEditing(prev => ({ ...prev, [p.id]: { ...e, type: v } }))}>
+                      <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">نسبة %</SelectItem>
+                        <SelectItem value="fixed">مبلغ ثابت</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Input
+                      type="number"
+                      value={e.value}
+                      onChange={(ev) => setEditing(prev => ({ ...prev, [p.id]: { ...e, value: Number(ev.target.value) } }))}
+                      className="w-24"
+                    />
+                  </>
+                )}
+
+                <Button size="sm" onClick={() => handleSave(p.id)} disabled={saving === p.id}>
+                  {saving === p.id ? "..." : "حفظ"}
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default AdminCommissionOverrides;
+```
+
+Then add the route in artifacts/wasal/src/App.tsx — find the lazy-loaded admin pages section and add:
+```tsx
+const AdminCommissionOverrides = lazy(() => import("./pages/admin/AdminCommissionOverrides"));
+```
+And inside the admin `<Route>` children, add:
+```tsx
+<Route path="commission-overrides" element={<AdminCommissionOverrides />} />
+```
+
+Then add a sidebar link. Find the admin sidebar component (likely AdminSidebar.tsx) and add 
+an entry pointing to "/admin/commission-overrides" with a Percent icon, labeled "نسب العمولة المخصصة".
+
+TEST BEFORE MOVING ON:
+1. Go to /admin/commission-overrides
+2. Confirm you see a list of delivery companies
+3. Toggle "تخصيص نسبة" ON for one, set value to 5, click حفظ
+4. Refresh the page → confirm the 5% and toggle ON state persisted
+
+✅ Once confirmed working, move to Prompt 5.
