@@ -1,0 +1,95 @@
+PROMPT 2 of 10 — Send this to Replit Agent
+
+Task: Fix commission calculation in restaurant order creation.
+
+File: artifacts/wasal/src/lib/restaurantApi.ts
+
+Find the function `createOrderFromCart`. It currently inserts into `delivery_orders`, 
+then creates ONE financial_transactions row using a hardcoded `commissionRate = 12`. 
+Replace that entire commission/financial_transactions block (everything AFTER the 
+delivery_orders insert succeeds, up to "Clear cart") with this:
+
+```typescript
+// ──────────────────────────────────────────────────────────────
+// Financial split — TWO parties: delivery company (platform commission applies) 
+// and restaurant (gets food revenue minus delivery company's cut and any subsidy)
+// ──────────────────────────────────────────────────────────────
+try {
+  const { calculateCommission } = await import("./accountingApi");
+
+  const subsidy = params.restaurant_delivery_subsidy ?? 0;
+  const deliveryRevenueBase = params.delivery_fee + subsidy;
+
+  const { commission: platformCommission, earning: companyDeliveryEarning } =
+    await calculateCommission(deliveryRevenueBase, "delivery", params.delivery_company_id);
+
+  const { data: restRow } = await supabase
+    .from("restaurants")
+    .select("commission_rate, name_ar")
+    .eq("id", params.restaurant_id)
+    .maybeSingle();
+  const restCommissionRate = Number((restRow as any)?.commission_rate || 0);
+  const restCommissionCut = Math.floor(params.subtotal * restCommissionRate / 100);
+  const restaurantNetEarning = params.subtotal - restCommissionCut - subsidy;
+
+  const { data: companyRow } = await supabase
+    .from("profiles")
+    .select("company_name")
+    .eq("user_id", params.delivery_company_id)
+    .maybeSingle();
+
+  await supabase.from("financial_transactions").insert({
+    reference_id: data.id,
+    order_id: data.id,
+    transaction_type: "delivery_order",
+    partner_type: "delivery_company",
+    customer_id: params.customer_id,
+    partner_id: params.delivery_company_id,
+    partner_name: (companyRow as any)?.company_name ?? null,
+    amount: deliveryRevenueBase,
+    platform_commission: platformCommission,
+    partner_earning: companyDeliveryEarning,
+    payment_method: params.payment_method,
+    payment_status: "pending",
+    notes: `عمولة توصيل — طلب ${data.id}`,
+  });
+
+  await supabase.from("financial_transactions").insert({
+    reference_id: data.id,
+    order_id: data.id,
+    transaction_type: "restaurant_order",
+    partner_type: "restaurant",
+    customer_id: params.customer_id,
+    partner_id: params.restaurant_id,
+    partner_name: (restRow as any)?.name_ar ?? null,
+    amount: params.subtotal,
+    platform_commission: 0,
+    partner_earning: restaurantNetEarning,
+    payment_method: params.payment_method,
+    payment_status: "pending",
+    notes: `صافي إيرادات الطعام — طلب ${data.id} (عمولة شركة التوصيل: ${restCommissionCut} ر.ي)`,
+  });
+} catch (finErr) {
+  console.error("Financial transaction split failed:", finErr);
+}
+```
+
+Important: keep the line `await clearCart(params.customer_id, params.restaurant_id);` 
+and `return data;` AFTER this block, unchanged.
+
+Also check: does `calculateCommission` in `artifacts/wasal/src/lib/accountingApi.ts` 
+currently accept a third `partnerId` argument? If not, leave it as is for now — 
+we will update that function in Prompt 7. For now it's fine if it only uses 2 arguments; 
+just make sure the call above doesn't cause a TypeScript error (if it does, temporarily 
+call it with only the first 2 arguments: `calculateCommission(deliveryRevenueBase, "delivery")`).
+
+TEST BEFORE MOVING ON:
+1. Place a test restaurant order (any restaurant, any item)
+2. In Supabase Table Editor, open `financial_transactions`, sort by created_at descending
+3. Confirm you see 2 NEW rows for this order: one with partner_type = 'delivery_company', 
+   one with partner_type = 'restaurant'
+4. Confirm the restaurant row's partner_earning is roughly equal to the food subtotal 
+   (since commission_rate is probably 0 for most restaurants right now — that's expected, 
+   we fix the rate input in Prompt 3)
+
+✅ Once confirmed working, move to Prompt 3.

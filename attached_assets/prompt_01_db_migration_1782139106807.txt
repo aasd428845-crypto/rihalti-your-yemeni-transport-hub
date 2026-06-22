@@ -1,0 +1,19 @@
+PROMPT 1 of 10 — Database Migration (run this in Supabase SQL Editor yourself — no Replit needed for this one)
+
+Go to Supabase Dashboard → SQL Editor → paste and run:
+
+ALTER TABLE financial_transactions 
+ADD COLUMN IF NOT EXISTS partner_type TEXT DEFAULT 'delivery_company';
+
+UPDATE financial_transactions SET partner_type = 'delivery_company' WHERE partner_type IS NULL;
+
+ALTER TABLE financial_transactions
+ADD COLUMN IF NOT EXISTS order_id UUID;
+
+After running, verify with:
+
+SELECT column_name FROM information_schema.columns WHERE table_name = 'financial_transactions';
+
+You should see partner_type and order_id in the list.
+
+✅ Once confirmed, move to Prompt 2.
