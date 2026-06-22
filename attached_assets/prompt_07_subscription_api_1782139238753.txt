@@ -1,0 +1,197 @@
+PROMPT 7 of 10 — Send this to Replit Agent
+
+Task: Create the subscription logic file, and update calculateCommission so an active 
+subscription's commission override takes priority over the manual partner override.
+
+Step A — Update artifacts/wasal/src/lib/accountingApi.ts. 
+Find the existing `calculateCommission` function and replace it ENTIRELY with:
+
+```typescript
+export const calculateCommission = async (
+  amount: number,
+  type: "booking" | "shipment" | "delivery" | "ride",
+  partnerId?: string
+): Promise<{ commission: number; earning: number; source: "subscription" | "override" | "global" }> => {
+  if (partnerId) {
+    const { data: sub } = await supabase
+      .from("partner_subscriptions")
+      .select("*, subscription_plans(commission_override_type, commission_override_value)")
+      .eq("partner_id", partnerId)
+      .eq("status", "active")
+      .gte("current_period_end", new Date().toISOString())
+      .maybeSingle();
+
+    const plan = (sub as any)?.subscription_plans;
+    if (plan?.commission_override_type) {
+      const commission =
+        plan.commission_override_type === "percentage"
+          ? (amount * Number(plan.commission_override_value)) / 100
+          : Number(plan.commission_override_value);
+      return {
+        commission: Math.round(commission * 100) / 100,
+        earning: Math.round((amount - commission) * 100) / 100,
+        source: "subscription",
+      };
+    }
+  }
+
+  if (partnerId) {
+    const { data: override } = await supabase
+      .from("partner_commission_settings")
+      .select("*")
+      .eq("partner_id", partnerId)
+      .eq("override_global", true)
+      .maybeSingle();
+    if (override) {
+      const commission =
+        override.commission_type === "percentage"
+          ? (amount * Number(override.commission_value)) / 100
+          : Number(override.commission_value);
+      return {
+        commission: Math.round(commission * 100) / 100,
+        earning: Math.round((amount - commission) * 100) / 100,
+        source: "override",
+      };
+    }
+  }
+
+  const { data: settings } = await supabase.from("accounting_settings").select("*").eq("id", 1).maybeSingle();
+  const rateMap: Record<string, number> = {
+    booking: settings?.global_commission_booking ?? 10,
+    shipment: settings?.global_commission_shipment ?? 10,
+    delivery: settings?.global_commission_delivery ?? 10,
+    ride: settings?.global_commission_ride ?? 10,
+  };
+  const rate = rateMap[type] ?? 10;
+  const commission = (amount * rate) / 100;
+  return {
+    commission: Math.round(commission * 100) / 100,
+    earning: Math.round((amount - commission) * 100) / 100,
+    source: "global",
+  };
+};
+```
+
+IMPORTANT: search the whole codebase for every place that currently calls 
+`calculateCommission(...)` and confirm none of them destructure a field other than 
+`commission` and `earning` (the new `source` field is additive and safe to ignore). 
+If any call site uses positional destructuring that would break, fix it to use 
+named destructuring `{ commission, earning }`.
+
+Step B — Create new file: artifacts/wasal/src/lib/subscriptionApi.ts
+
+```typescript
+import { supabase } from "@/integrations/supabase/client";
+
+export interface SubscriptionStatus {
+  hasActiveSubscription: boolean;
+  isExpired: boolean;
+  isExpiringSoon: boolean;
+  plan: any | null;
+  subscription: any | null;
+  ordersUsedThisMonth: number;
+  orderLimitReached: boolean;
+}
+
+export const getPartnerSubscriptionStatus = async (partnerId: string): Promise<SubscriptionStatus> => {
+  const { data: sub } = await supabase
+    .from("partner_subscriptions")
+    .select("*, subscription_plans(*)")
+    .eq("partner_id", partnerId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!sub) {
+    return {
+      hasActiveSubscription: false, isExpired: true, isExpiringSoon: false,
+      plan: null, subscription: null, ordersUsedThisMonth: 0, orderLimitReached: false,
+    };
+  }
+
+  const plan = (sub as any).subscription_plans;
+  const periodEnd = new Date(sub.current_period_end);
+  const now = new Date();
+  const isExpired = sub.status !== "active" || periodEnd < now;
+  const daysLeft = (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  const isExpiringSoon = !isExpired && daysLeft <= 3;
+
+  let ordersUsedThisMonth = 0;
+  let orderLimitReached = false;
+  if (plan?.max_orders_per_month) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const { count } = await supabase
+      .from("delivery_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("delivery_company_id", partnerId)
+      .gte("created_at", monthStart);
+    ordersUsedThisMonth = count || 0;
+    orderLimitReached = ordersUsedThisMonth >= plan.max_orders_per_month;
+  }
+
+  return {
+    hasActiveSubscription: !isExpired,
+    isExpired,
+    isExpiringSoon,
+    plan,
+    subscription: sub,
+    ordersUsedThisMonth,
+    orderLimitReached,
+  };
+};
+
+export const subscribeToPlan = async (
+  partnerId: string,
+  planId: string,
+  billingCycle: "monthly" | "yearly"
+) => {
+  const { data: plan } = await supabase.from("subscription_plans").select("*").eq("id", planId).single();
+  if (!plan) throw new Error("الخطة غير موجودة");
+
+  const now = new Date();
+  let periodEnd: Date;
+  if (plan.is_trial && plan.trial_days) {
+    periodEnd = new Date(now.getTime() + plan.trial_days * 24 * 60 * 60 * 1000);
+  } else if (billingCycle === "yearly") {
+    periodEnd = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+  } else {
+    periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  }
+
+  await supabase
+    .from("partner_subscriptions")
+    .update({ status: "cancelled", cancelled_at: now.toISOString() })
+    .eq("partner_id", partnerId)
+    .eq("status", "active");
+
+  return supabase.from("partner_subscriptions").insert({
+    partner_id: partnerId,
+    partner_type: "delivery_company",
+    plan_id: planId,
+    status: plan.price_monthly === 0 || plan.is_trial ? "active" : "pending_payment",
+    billing_cycle: billingCycle,
+    started_at: now.toISOString(),
+    current_period_end: periodEnd.toISOString(),
+    auto_renew: true,
+  }).select().single();
+};
+
+export const cancelSubscription = async (subscriptionId: string) => {
+  return supabase
+    .from("partner_subscriptions")
+    .update({ status: "cancelled", cancelled_at: new Date().toISOString(), auto_renew: false })
+    .eq("id", subscriptionId);
+};
+```
+
+TEST BEFORE MOVING ON (requires a tiny temporary test — we'll build the real UI in Prompt 8):
+1. In Supabase Table Editor, manually insert a test row into partner_subscriptions: 
+   pick any real delivery_company user_id, plan_id = the "Growth" plan's id (8% override), 
+   status = 'active', current_period_end = a date next month
+2. Place a test restaurant order from that delivery company
+3. Check financial_transactions → the new delivery_company row's platform_commission 
+   should now be calculated at 8%, not the global rate
+4. Delete that test row from partner_subscriptions when done testing (we'll create real 
+   ones properly in Prompt 8)
+
+✅ Once confirmed working, move to Prompt 8.

@@ -62,8 +62,32 @@ export const calculateCommission = async (
   amount: number,
   type: "booking" | "shipment" | "delivery" | "ride",
   partnerId?: string
-): Promise<{ commission: number; earning: number }> => {
-  // Check for partner-specific override first
+): Promise<{ commission: number; earning: number; source: "subscription" | "override" | "global" }> => {
+  // Priority 1: Active subscription plan commission override
+  if (partnerId) {
+    const { data: sub } = await (supabase as any)
+      .from("partner_subscriptions")
+      .select("*, subscription_plans(commission_override_type, commission_override_value)")
+      .eq("partner_id", partnerId)
+      .eq("status", "active")
+      .gte("current_period_end", new Date().toISOString())
+      .maybeSingle();
+
+    const plan = (sub as any)?.subscription_plans;
+    if (plan?.commission_override_type) {
+      const commission =
+        plan.commission_override_type === "percentage"
+          ? (amount * Number(plan.commission_override_value)) / 100
+          : Number(plan.commission_override_value);
+      return {
+        commission: Math.round(commission * 100) / 100,
+        earning: Math.round((amount - commission) * 100) / 100,
+        source: "subscription",
+      };
+    }
+  }
+
+  // Priority 2: Manual per-partner override
   if (partnerId) {
     const { data: override } = await supabase
       .from("partner_commission_settings")
@@ -76,20 +100,29 @@ export const calculateCommission = async (
         override.commission_type === "percentage"
           ? (amount * Number(override.commission_value)) / 100
           : Number(override.commission_value);
-      return { commission: Math.round(commission * 100) / 100, earning: Math.round((amount - commission) * 100) / 100 };
+      return {
+        commission: Math.round(commission * 100) / 100,
+        earning: Math.round((amount - commission) * 100) / 100,
+        source: "override",
+      };
     }
   }
 
-  const settings = await getAccountingSettings();
+  // Priority 3: Global accounting settings
+  const { data: settings } = await supabase.from("accounting_settings").select("*").eq("id", 1).maybeSingle();
   const rateMap: Record<string, number> = {
-    booking: Number(settings.global_commission_booking),
-    delivery: Number(settings.global_commission_delivery),
-    shipment: Number(settings.global_commission_shipment),
-    ride: Number(settings.global_commission_ride),
+    booking: settings?.global_commission_booking ?? 10,
+    shipment: settings?.global_commission_shipment ?? 10,
+    delivery: settings?.global_commission_delivery ?? 10,
+    ride: settings?.global_commission_ride ?? 10,
   };
-  const rate = rateMap[type] || 10;
+  const rate = rateMap[type] ?? 10;
   const commission = (amount * rate) / 100;
-  return { commission: Math.round(commission * 100) / 100, earning: Math.round((amount - commission) * 100) / 100 };
+  return {
+    commission: Math.round(commission * 100) / 100,
+    earning: Math.round((amount - commission) * 100) / 100,
+    source: "global",
+  };
 };
 
 // ==================== Partner Invoices ====================

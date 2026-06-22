@@ -1,0 +1,80 @@
+PROMPT 6 of 10 — Run this in Supabase SQL Editor yourself (no Replit needed)
+
+This starts Phase 2: Subscription System.
+
+CREATE TABLE IF NOT EXISTS subscription_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  name_ar TEXT NOT NULL,
+  description TEXT,
+  price_monthly NUMERIC NOT NULL DEFAULT 0,
+  price_yearly NUMERIC,
+  max_orders_per_month INTEGER,
+  max_restaurants INTEGER,
+  max_riders INTEGER,
+  commission_override_type TEXT,
+  commission_override_value NUMERIC,
+  features JSONB DEFAULT '[]'::jsonb,
+  is_trial BOOLEAN DEFAULT false,
+  trial_days INTEGER,
+  sort_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS partner_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_id UUID NOT NULL,
+  partner_type TEXT NOT NULL DEFAULT 'delivery_company',
+  plan_id UUID NOT NULL REFERENCES subscription_plans(id),
+  status TEXT NOT NULL DEFAULT 'active',
+  billing_cycle TEXT NOT NULL DEFAULT 'monthly',
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  current_period_end TIMESTAMPTZ NOT NULL,
+  auto_renew BOOLEAN DEFAULT true,
+  cancelled_at TIMESTAMPTZ,
+  last_payment_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_partner_subscriptions_partner ON partner_subscriptions(partner_id);
+CREATE INDEX IF NOT EXISTS idx_partner_subscriptions_status ON partner_subscriptions(status);
+
+ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE partner_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anyone_can_read_active_plans" ON subscription_plans
+  FOR SELECT USING (is_active = true);
+
+CREATE POLICY "admin_full_access_plans" ON subscription_plans
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY "partner_reads_own_subscription" ON partner_subscriptions
+  FOR SELECT USING (partner_id = auth.uid());
+
+CREATE POLICY "admin_full_access_subscriptions" ON partner_subscriptions
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin')
+  );
+
+INSERT INTO subscription_plans (name, name_ar, description, price_monthly, price_yearly, max_orders_per_month, commission_override_type, commission_override_value, features, is_trial, trial_days, sort_order)
+VALUES
+  ('Free Trial', 'تجربة مجانية', 'فترة تجريبية لاستكشاف المنصة', 0, 0, 200, NULL, NULL, '["جميع الميزات الأساسية", "200 طلب شهرياً", "دعم عبر البريد"]', true, 14, 0),
+  ('Starter', 'الأساسية', 'للشركات الصغيرة والمتوسطة', 15000, 150000, 1000, NULL, NULL, '["1000 طلب شهرياً", "دعم عبر واتساب", "تقارير أساسية"]', false, NULL, 1),
+  ('Growth', 'النمو', 'لشركات التوصيل المتنامية', 35000, 350000, NULL, 'percentage', 8, '["طلبات غير محدودة", "عمولة مخفّضة 8%", "دعم أولوية", "تقارير متقدمة"]', false, NULL, 2),
+  ('Enterprise', 'الأعمال', 'لكبرى شركات التوصيل', 75000, 750000, NULL, 'percentage', 5, '["طلبات غير محدودة", "عمولة مخفّضة 5%", "مدير حساب مخصص", "API مخصص"]', false, NULL, 3)
+ON CONFLICT DO NOTHING;
+
+After running, verify with:
+SELECT name_ar, price_monthly, commission_override_value FROM subscription_plans ORDER BY sort_order;
+
+You should see 4 rows.
+
+Note: feel free to edit the prices in the seed data above before running — these are 
+placeholder values. You can also edit them later from the admin UI built in Prompt 9.
+
+✅ Once confirmed, move to Prompt 7.
