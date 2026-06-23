@@ -57,22 +57,6 @@ const AdminSubscriptionPlans = lazy(() => import("./pages/admin/AdminSubscriptio
 const AdminPartnerSubscriptions = lazy(() => import("./pages/admin/AdminPartnerSubscriptions"));
 const DeliverySubscription = lazy(() => import("./pages/delivery/DeliverySubscription"));
 const InvitePage = lazy(() => import("./pages/InvitePage"));
-// Supplier (lazy loaded)
-const SupplierLayout = lazy(() => import("./components/supplier/SupplierLayout"));
-const SupplierDashboard = lazy(() => import("./pages/supplier/SupplierDashboard"));
-const SupplierTrips = lazy(() => import("./pages/supplier/SupplierTrips"));
-const SupplierBookings = lazy(() => import("./pages/supplier/SupplierBookings"));
-const SupplierShipments = lazy(() => import("./pages/supplier/SupplierShipments"));
-const SupplierFinance = lazy(() => import("./pages/supplier/SupplierFinance"));
-const SupplierSettings = lazy(() => import("./pages/supplier/SupplierSettings"));
-const SupplierMessages = lazy(() => import("./pages/supplier/SupplierMessages"));
-const SupplierPromotions = lazy(() => import("./pages/supplier/SupplierPromotions"));
-const SupplierOrderDetails = lazy(() => import("./pages/supplier/SupplierOrderDetails"));
-const SupplierPayments = lazy(() => import("./pages/supplier/SupplierPayments"));
-const PartnerPaymentSettings = lazy(() => import("./pages/supplier/PartnerPaymentSettings"));
-// Partner
-const PartnerProfilePage = lazy(() => import("./pages/partner/PartnerProfilePage"));
-const PublicPartnerProfilePage = lazy(() => import("./pages/partner/PublicPartnerProfilePage"));
 // Delivery (lazy loaded)
 const DeliveryLayout = lazy(() => import("./components/delivery/DeliveryLayout"));
 const DeliveryDashboard = lazy(() => import("./pages/delivery/DeliveryDashboard"));
@@ -90,8 +74,6 @@ const DeliveryBanners = lazy(() => import("./pages/delivery/DeliveryBanners"));
 const DeliveryOffers = lazy(() => import("./pages/delivery/DeliveryOffers"));
 const DeliveryPricing = lazy(() => import("./pages/delivery/DeliveryPricing"));
 // Customer Pages (lazy loaded)
-const TripsPage = lazy(() => import("./pages/customer/TripsPage"));
-const TripDetailsPage = lazy(() => import("./pages/customer/TripDetailsPage"));
 const CheckoutPage = lazy(() => import("./pages/customer/CheckoutPage"));
 // ShipmentsPage was the old supplier-based parcel flow. It is intentionally
 // no longer routed; /shipments now redirects to /delivery-request which uses
@@ -110,23 +92,10 @@ const CategoryPage = lazy(() => import("./pages/customer/CategoryPage"));
 const CartPage = lazy(() => import("./pages/customer/CartPage"));
 const OrderTrackingPage = lazy(() => import("./pages/customer/OrderTrackingPage"));
 const OrderDetailsPage = lazy(() => import("./pages/customer/OrderDetailsPage"));
-const RideRequestPage = lazy(() => import("./pages/customer/RideRequestPage"));
-const RideDetailsPage = lazy(() => import("./pages/customer/RideDetailsPage"));
-const RideTrackingPage = lazy(() => import("./pages/customer/RideTrackingPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const NotificationSettingsPage = lazy(() => import("./pages/NotificationSettingsPage"));
 const PaymentPage = lazy(() => import("./pages/customer/PaymentPage"));
 const PaymentSuccessPage = lazy(() => import("./pages/customer/PaymentSuccessPage"));
-// Driver (lazy loaded)
-const DriverLayout = lazy(() => import("./components/driver/DriverLayout"));
-const DriverDashboard = lazy(() => import("./pages/driver/DriverDashboard"));
-const RideDriverNotificationsPage = lazy(() => import("./pages/driver/DriverNotificationsPage"));
-const DriverRideDetails = lazy(() => import("./pages/driver/DriverRideDetails"));
-const DriverActiveRide = lazy(() => import("./pages/driver/DriverActiveRide"));
-const DriverProfile = lazy(() => import("./pages/driver/DriverProfile"));
-const DriverHistory = lazy(() => import("./pages/driver/DriverHistory"));
-const DriverEarnings = lazy(() => import("./pages/driver/DriverEarnings"));
-const DriverSettings = lazy(() => import("./pages/driver/DriverSettings"));
 // Delivery Driver (lazy loaded)
 const DeliveryDriverLayout = lazy(() => import("./components/delivery-driver/DeliveryDriverLayout"));
 const DeliveryDriverDashboard = lazy(() => import("./pages/delivery-driver/DeliveryDriverDashboard"));
@@ -186,8 +155,6 @@ const App = () => (
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/terms/company" element={<CompanyTermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
-                <Route path="/trips" element={<TripsPage />} />
-                <Route path="/trips/:id" element={<TripDetailsPage />} />
                 <Route path="/checkout/:tripId" element={<CheckoutPage />} />
                 {/* /shipments was the old supplier-based page; redirect to the
                    delivery-company flow so all existing tiles/links land on the
@@ -202,9 +169,6 @@ const App = () => (
                 <Route path="/restaurants/:id" element={<RestaurantMenuPage />} />
                 <Route path="/restaurants/:id/checkout" element={<RestaurantCheckoutPage />} />
                 <Route path="/history" element={<HistoryPage />} />
-                <Route path="/ride/request" element={<RideRequestPage />} />
-                <Route path="/ride/:id" element={<RideDetailsPage />} />
-                <Route path="/ride/track/:id" element={<RideTrackingPage />} />
                 <Route path="/order/:type/:id" element={<OrderDetailsPage />} />
                 <Route path="/order/track/:type/:id" element={<OrderTrackingPage />} />
                 <Route path="/payment/:entityType/:entityId" element={<PaymentPage />} />
@@ -217,7 +181,6 @@ const App = () => (
                 <Route path="/shipment-request" element={<ShipmentRequestPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/more" element={<MorePage />} />
-                <Route path="/partner/public/:id" element={<PublicPartnerProfilePage />} />
                 <Route path="/install" element={<InstallPage />} />
               </Route>
 
@@ -228,9 +191,6 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/complete-profile" element={<CompleteProfilePage />} />
               <Route path="/invite/:token" element={<InvitePage />} />
-
-              {/* Partner Profile */}
-              <Route path="/partner/profile" element={<PartnerProfilePage />} />
 
               {/* Admin */}
               <Route path="/admin" element={<AdminLayout />}>
@@ -262,21 +222,6 @@ const App = () => (
                 <Route path="partner-subscriptions" element={<AdminPartnerSubscriptions />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
               </Route>
-              {/* Supplier */}
-              <Route path="/supplier" element={<SupplierLayout />}>
-                <Route index element={<SupplierDashboard />} />
-                <Route path="trips" element={<SupplierTrips />} />
-                <Route path="shipments" element={<SupplierShipments />} />
-                <Route path="bookings" element={<SupplierBookings />} />
-                <Route path="messages" element={<SupplierMessages />} />
-                <Route path="finance" element={<SupplierFinance />} />
-                <Route path="payments" element={<SupplierPayments />} />
-                <Route path="promotions" element={<SupplierPromotions />} />
-                <Route path="settings" element={<SupplierSettings />} />
-                <Route path="order/:id" element={<SupplierOrderDetails />} />
-                <Route path="profile" element={<PartnerProfilePage />} />
-                <Route path="payment-settings" element={<PartnerPaymentSettings />} />
-              </Route>
               {/* Delivery Company */}
               <Route path="/delivery" element={<DeliveryLayout />}>
                 <Route index element={<DeliveryDashboard />} />
@@ -293,21 +238,8 @@ const App = () => (
                 <Route path="offers" element={<DeliveryOffers />} />
                 <Route path="pricing" element={<DeliveryPricing />} />
                 <Route path="integrations" element={<DeliveryIntegrations />} />
-                <Route path="profile" element={<PartnerProfilePage />} />
-                <Route path="payment-settings" element={<PartnerPaymentSettings />} />
                 <Route path="notifications" element={<DeliveryNotificationsPage />} />
                 <Route path="subscription" element={<DeliverySubscription />} />
-              </Route>
-              {/* Driver */}
-              <Route path="/driver" element={<DriverLayout />}>
-                <Route index element={<DriverDashboard />} />
-                <Route path="ride/:id" element={<DriverRideDetails />} />
-                <Route path="active-ride/:id" element={<DriverActiveRide />} />
-                <Route path="history" element={<DriverHistory />} />
-                <Route path="earnings" element={<DriverEarnings />} />
-                <Route path="profile" element={<DriverProfile />} />
-                <Route path="settings" element={<DriverSettings />} />
-                <Route path="notifications" element={<RideDriverNotificationsPage />} />
               </Route>
               {/* Delivery Driver */}
               <Route path="/delivery-driver" element={<DeliveryDriverLayout />}>

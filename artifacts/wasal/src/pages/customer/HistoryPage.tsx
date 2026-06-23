@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import BackButton from "@/components/common/BackButton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Bus, Package, Bike, Clock, XCircle, DollarSign, Bell, Star, Car, Eye } from "lucide-react";
+import { Bus, Package, Bike, Clock, XCircle, DollarSign, Bell, Star, Eye } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchMyBookings, fetchMyShipments, fetchMyDeliveryOrders, createCancellationRequest } from "@/lib/customerApi";
-import { fetchCustomerRideRequests } from "@/lib/rideApi";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -107,12 +106,6 @@ const HistoryPage = () => {
     enabled: !!user,
   });
 
-  const { data: rides, isLoading: loadingRides } = useQuery({
-    queryKey: ["my-rides", user?.id],
-    queryFn: () => fetchCustomerRideRequests(user!.id),
-    enabled: !!user,
-  });
-
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -125,9 +118,6 @@ const HistoryPage = () => {
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `customer_id=eq.${user.id}` }, () => {
         queryClient.invalidateQueries({ queryKey: ["my-bookings", user.id] });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ride_requests', filter: `customer_id=eq.${user.id}` }, () => {
-        queryClient.invalidateQueries({ queryKey: ["my-rides", user.id] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -151,7 +141,6 @@ const HistoryPage = () => {
       queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
       queryClient.invalidateQueries({ queryKey: ["my-shipments"] });
       queryClient.invalidateQueries({ queryKey: ["my-deliveries"] });
-      queryClient.invalidateQueries({ queryKey: ["my-rides"] });
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
@@ -161,8 +150,7 @@ const HistoryPage = () => {
 
   const pricedShipments = (shipments || []).filter((s: any) => s.negotiation_status === 'offered' || s.status === 'priced');
   const pricedDeliveries = (deliveries || []).filter((d: any) => d.negotiation_status === 'offered');
-  const pricedRides = (rides || []).filter((r: any) => r.negotiation_status === 'offered');
-  const attentionCount = pricedShipments.length + pricedDeliveries.length + pricedRides.length;
+  const attentionCount = pricedShipments.length + pricedDeliveries.length;
 
   if (!user) {
     return (
@@ -395,81 +383,6 @@ const HistoryPage = () => {
             ) : <EmptyState icon={<Bike className="w-12 h-12" />} text="لا توجد طلبات توصيل" />}
           </TabsContent>
 
-          {/* Rides */}
-          <TabsContent value="rides">
-            {loadingRides ? <LoadingSkeleton /> : rides && rides.length > 0 ? (
-              <div className="space-y-4">
-                {(rides as any[]).map((r: any) => {
-                  const hasPriceOffer = r.proposed_price && r.negotiation_status === 'offered';
-                  const isAccepted = r.customer_accepted || r.negotiation_status === 'accepted';
-                  return (
-                    <Card key={r.id} className={`hover:shadow-md transition-shadow ${hasPriceOffer && !isAccepted ? "border-amber-300 shadow-amber-100 shadow-md" : ""}`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <Car className="w-4 h-4 text-primary" />
-                              <span className="font-semibold">{r.from_city} → {r.to_city}</span>
-                              <Badge className={statusColors[r.status] || statusColors[r.negotiation_status] || "bg-muted"}>
-                                {statusLabels[r.status] || statusLabels[r.negotiation_status] || r.status}
-                              </Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-4 flex-wrap">
-                              <span>{r.ride_type === "round_trip" ? "ذهاب وعودة" : "ذهاب فقط"}</span>
-                              <span>{r.passenger_count} راكب</span>
-                              {r.final_price ? (
-                                <span className="font-semibold text-foreground">{r.final_price} ر.ي</span>
-                              ) : r.proposed_price ? (
-                                <span className="font-semibold text-foreground">{r.proposed_price} ر.ي (عرض)</span>
-                              ) : null}
-                              <span>{format(new Date(r.created_at), "dd/MM/yyyy", { locale: ar })}</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="gap-1" onClick={() => navigate(`/ride/${r.id}`)}>
-                              <Eye className="w-4 h-4" /> تفاصيل
-                            </Button>
-                            {(r.status === 'completed') && !ratedIds.has(r.id) && r.driver_id && (
-                              <Button variant="outline" size="sm" className="gap-1" onClick={() => setRatingTarget({
-                                revieweeId: r.driver_id, revieweeName: "السائق",
-                                entityType: "driver", entityId: r.id,
-                              })}>
-                                <Star className="w-3 h-3" /> قيّم
-                              </Button>
-                            )}
-                            {canCancel(r.status) && (
-                              <Button variant="outline" size="sm" className="text-destructive gap-1" onClick={() => setCancelModal({ type: "ride", id: r.id })}>
-                                <XCircle className="w-4 h-4" /> إلغاء
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        {hasPriceOffer && !isAccepted && (
-                          <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <DollarSign className="w-5 h-5 text-amber-600" />
-                              <div>
-                                <p className="text-sm font-bold text-amber-800">عرض سعر من السائق!</p>
-                                <p className="text-lg font-black text-amber-900">{Number(r.proposed_price).toLocaleString()} ر.ي</p>
-                              </div>
-                            </div>
-                            <Button size="sm" className="gap-1" onClick={() => navigate(`/ride/${r.id}`)}>
-                              عرض التفاصيل والقبول
-                            </Button>
-                          </div>
-                        )}
-                        {isAccepted && (
-                          <div className="mt-2 p-2 rounded bg-green-50 border border-green-200 text-xs text-green-700">
-                            ✅ تم قبول السعر: {Number(r.final_price || r.proposed_price).toLocaleString()} ر.ي
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : <EmptyState icon={<Car className="w-12 h-12" />} text="لا توجد طلبات أجرة" />}
-          </TabsContent>
         </Tabs>
 
         {ratingTarget && (
