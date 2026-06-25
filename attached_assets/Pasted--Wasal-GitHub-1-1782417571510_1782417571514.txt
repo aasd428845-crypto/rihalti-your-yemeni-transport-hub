@@ -1,0 +1,56 @@
+أنت في مشروع وصال (Wasal). المهمة: تنظيف الكود من الأدوار غير المستخدمة ثم رفعه لـ GitHub.
+
+الخطوة 1 — تنظيف App.tsx (src/App.tsx):
+احذف هذه الـ imports كاملاً من الملف (كل سطر يذكر أياً منها):
+- SupplierDashboard, SupplierBookings, SupplierFinance, SupplierMessages
+- SupplierOrderDetails, SupplierPayments, SupplierPromotions
+- SupplierSettings, SupplierShipments, SupplierTrips, PartnerPaymentSettings
+- DriverDashboard, DriverActiveRide, DriverRideDetails, DriverProfile
+- DriverHistory, DriverEarnings, DriverSettings, DriverNotificationsPage
+- TripsPage, TripDetailsPage
+- RideRequestPage, RideDetailsPage, RideTrackingPage
+- PartnerProfilePage, PublicPartnerProfilePage
+- SupplierLayout, DriverLayout (taxi - الـ layout للـ driver العادي ليس DeliveryDriver)
+
+احذف هذه الـ Routes من JSX:
+- كل <Route> داخل SupplierLayout
+- كل <Route> داخل DriverLayout (taxi)
+- <Route path="/trips" ...>
+- <Route path="/ride/request" ...>
+- <Route path="/ride/:id" ...>
+- <Route path="/ride/track/:id" ...>
+- <Route path="/partner" ...>
+
+لا تلمس أي شيء يبدأ بـ DeliveryDriver أو Delivery أو Admin أو customer غير المذكور.
+
+الخطوة 2 — حذف الملفات (shell commands):
+rm -rf artifacts/wasal/src/pages/driver/
+rm -rf artifacts/wasal/src/pages/supplier/
+rm -rf artifacts/wasal/src/pages/partner/
+rm -rf artifacts/wasal/src/components/driver/
+rm -rf artifacts/wasal/src/components/supplier/
+rm -rf artifacts/wasal/src/components/trips/
+rm -f artifacts/wasal/src/pages/customer/RideRequestPage.tsx
+rm -f artifacts/wasal/src/pages/customer/RideDetailsPage.tsx
+rm -f artifacts/wasal/src/pages/customer/RideTrackingPage.tsx
+rm -f artifacts/wasal/src/pages/customer/TripsPage.tsx
+rm -f artifacts/wasal/src/pages/customer/TripDetailsPage.tsx
+rm -f artifacts/wasal/src/lib/rideApi.ts
+rm -f artifacts/wasal/src/lib/supplierApi.ts
+
+الخطوة 3 — تحقق من Build:
+cd artifacts/wasal && pnpm run build 2>&1 | tail -20
+
+إذا ظهرت أخطاء import: أصلحها في الملفات المذكورة ثم أعد البناء.
+إذا نجح Build:
+
+الخطوة 4 — رفع إلى GitHub:
+cd artifacts/wasal
+git config user.email "bot@wasal.app"
+git config user.name "Cleanup Bot"
+git remote set-url origin "https://$GITHUB_TOKEN@github.com/aasd428845-crypto/rihalti-your-yemeni-transport-hub.git"
+git add -A
+git commit -m "cleanup: remove taxi/ride/supplier roles"
+git push origin main
+
+أخبرني بنتيجة كل خطوة قبل التالية.
