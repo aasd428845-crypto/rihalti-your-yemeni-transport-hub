@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bus, Mail, Lock, User, Phone, Eye, EyeOff, Upload, Camera, Car, CreditCard, ArrowRight, AlertTriangle, CheckCircle, Loader2, Building2, Truck, UserCheck, Bike } from "lucide-react";
+import { Mail, Lock, User, Phone, Eye, EyeOff, Upload, Camera, Car, CreditCard, ArrowRight, AlertTriangle, Loader2, Building2, Truck, UserCheck, Bike } from "lucide-react";
 import { toast } from "sonner";
 import BackButton from "@/components/common/BackButton";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
 
 type InviteData = { email: string; role: string; token: string; created_by: string | null };
 
@@ -275,25 +277,43 @@ const InvitePage = () => {
         await supabase.from("notifications").insert(notifications);
       }
 
-      // 6. For auto-approved roles: sign them in and redirect to their dashboard.
+      // 6. For auto-approved roles: confirm email via admin API then sign them in
+      //    directly to their dashboard (no email verification needed for invite flow).
       //    For other roles: keep the manual review flow.
       if (autoApprove) {
+        // Confirm the email via server-side admin API so signInWithPassword works
+        // immediately without the user needing to click a confirmation link.
         try {
-          await supabase.auth.signInWithPassword({ email: inviteData.email, password });
-          toast.success("تم إنشاء حسابك وتسجيل الدخول بنجاح");
-          // Use window.location.href to force a full page reload so the auth context
-          // picks up the new session and role correctly before rendering the dashboard.
+          await fetch(`${API_BASE}/api/auth/confirm-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }),
+          });
+        } catch {
+          // Non-critical: proceed and attempt sign-in anyway
+        }
+
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: inviteData.email,
+          password,
+        });
+
+        if (!signInError && signInData.session) {
+          toast.success("تم إنشاء حسابك وتسجيل الدخول بنجاح 🎉");
+          // Full page reload so AuthContext picks up the new session and role.
           if (inviteData.role === "delivery_company") {
             window.location.href = "/delivery";
           } else {
             window.location.href = "/delivery-driver";
           }
           return;
-        } catch {
-          toast.success("تم إنشاء حسابك بنجاح! يمكنك الآن تسجيل الدخول.");
-          navigate("/login");
-          return;
         }
+
+        // Sign-in still failed (e.g. email confirm not yet propagated) — redirect to
+        // login with a helpful message instead of silently going to a broken dashboard.
+        toast.success("تم إنشاء حسابك بنجاح! سجّل الدخول الآن بالبريد وكلمة المرور.");
+        navigate("/login");
+        return;
       }
 
       toast.success("تم إنشاء حسابك بنجاح! سيتم مراجعة طلبك من قبل الإدارة.");
@@ -391,14 +411,14 @@ const InvitePage = () => {
 
         {/* Logo */}
         <div className="text-center mb-6">
-          <a href="/" className="inline-flex items-center gap-2 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-hero-gradient flex items-center justify-center">
-              <Bus className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <div className="text-right">
-               <div className="text-xl font-black text-foreground">وصل</div>
-              <div className="text-xs text-muted-foreground">منصة النقل الذكية</div>
-            </div>
+          <a href="/" className="inline-flex flex-col items-center gap-2 mb-2">
+            <img
+              src="/icons/wasal-logo-primary.png"
+              alt="وصال"
+              className="w-20 h-20 rounded-2xl object-cover"
+              style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}
+            />
+            <div className="text-xs text-muted-foreground font-medium">توصيل أسرع، حياة أسهل</div>
           </a>
         </div>
 
