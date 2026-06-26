@@ -163,7 +163,7 @@ export const upsertCart = async (cart: { customer_id: string; restaurant_id: str
       items: cart.items as any,
       total_amount: cart.total_amount,
       updated_at: new Date().toISOString(),
-    }).eq("id", existing.id).select().single();
+    }).eq("id", existing.id).select().maybeSingle();
     if (error) throw error;
     return data;
   } else {
@@ -172,7 +172,7 @@ export const upsertCart = async (cart: { customer_id: string; restaurant_id: str
       restaurant_id: cart.restaurant_id,
       items: cart.items as any,
       total_amount: cart.total_amount,
-    }).select().single();
+    }).select().maybeSingle();
     if (error) throw error;
     return data;
   }
@@ -268,8 +268,27 @@ export const createOrderFromCart = async (params: {
   if (params.applied_offer_id) insertData.applied_offer_id = params.applied_offer_id;
   if (params.applied_offer_type) insertData.applied_offer_type = params.applied_offer_type;
   if (params.applied_offer_title) insertData.applied_offer_title = params.applied_offer_title;
-  const { data, error } = await supabase.from("delivery_orders").insert(insertData).select().single();
+  // Use select() without .single() — RLS may block the returning-clause SELECT
+  // even when the INSERT itself succeeds, causing .single() to throw.
+  const { data: rows, error } = await supabase
+    .from("delivery_orders")
+    .insert(insertData)
+    .select("id");
   if (error) throw error;
+
+  // rows[0] is populated when RLS allows; otherwise fall back to a direct lookup.
+  let data: any = rows?.[0] ?? null;
+  if (!data) {
+    const { data: fallback } = await supabase
+      .from("delivery_orders")
+      .select("id")
+      .eq("customer_id", params.customer_id)
+      .eq("restaurant_id", params.restaurant_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    data = fallback;
+  }
 
   // ──────────────────────────────────────────────────────────────
   // Financial split — THREE parties: platform / delivery company / restaurant
