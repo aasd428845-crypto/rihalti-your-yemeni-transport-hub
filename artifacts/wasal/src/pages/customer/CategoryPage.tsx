@@ -17,7 +17,7 @@ interface MenuItem {
   name_ar: string;
   description?: string;
   price: number;
-  original_price?: number;
+  discounted_price?: number;
   image_url?: string;
   is_available?: boolean;
   is_featured?: boolean;
@@ -50,7 +50,7 @@ const MenuItemCard = ({
   restaurant: Restaurant;
   onNavigate: () => void;
 }) => {
-  const hasDiscount = item.original_price && item.original_price > item.price;
+  const hasDiscount = item.discounted_price && item.discounted_price < item.price;
 
   return (
     <div
@@ -106,7 +106,7 @@ const MenuItemCard = ({
             </span>
             {hasDiscount && (
               <span className="text-[10px] line-through" style={{ color: TEXT_DIM }}>
-                {item.original_price!.toLocaleString("ar-YE")} ر.ي
+                {item.discounted_price!.toLocaleString("ar-YE")} ر.ي
               </span>
             )}
           </div>
@@ -248,7 +248,7 @@ const CategoryPage = () => {
         // 3. Fetch menu items for these categories (allow all — even if is_available not set)
         const { data: items, error: itemsErr } = await supabase
           .from("menu_items")
-          .select("id, name_ar, description, price, original_price, image_url, is_available, is_featured, category_id")
+          .select("id, name_ar, description, price, discounted_price, image_url, is_available, is_featured, category_id")
           .in("category_id", catIds)
           .order("sort_order", { ascending: true });
 
