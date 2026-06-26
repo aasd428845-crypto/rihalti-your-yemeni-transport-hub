@@ -395,7 +395,7 @@ const RestaurantMenuPage = () => {
                   <button
                     key={cat.id}
                     data-chip={cat.id}
-                    onClick={() => scrollToCategory(cat.id)}
+                    onClick={() => navigate(`/category/${encodeURIComponent(cat.name_ar)}`)}
                     className="flex flex-col items-center gap-1 shrink-0 group"
                     style={{ minWidth: 64 }}
                   >

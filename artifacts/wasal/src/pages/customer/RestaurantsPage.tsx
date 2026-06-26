@@ -372,8 +372,7 @@ const RestaurantsPage = () => {
           </div>
           <CategoryScroller
             showHeader={false}
-            active={cuisineFilter === "all" ? undefined : cuisineFilter}
-            onSelect={(c) => setCuisineFilter(prev => prev === c.name_ar ? "all" : c.name_ar)}
+            onSelect={(c) => navigate(`/category/${encodeURIComponent(c.name_ar)}`)}
           />
         </div>
 
