@@ -225,11 +225,13 @@ const CategoryPage = () => {
     const load = async () => {
       try {
         // 1. Find all menu_categories matching this name (across all restaurants)
-        const { data: cats } = await supabase
+        const { data: cats, error: catsErr } = await supabase
           .from("menu_categories")
           .select("id, restaurant_id, image_url")
           .eq("name_ar", categoryName)
           .or("is_active.eq.true,is_active.is.null");
+
+        if (catsErr) console.error("[CategoryPage] menu_categories error:", catsErr);
 
         const firstImage = cats?.find((c: any) => c.image_url)?.image_url ?? null;
         setCategoryImage(firstImage);
@@ -237,44 +239,58 @@ const CategoryPage = () => {
         if (!cats || cats.length === 0) { setGroups([]); setLoading(false); return; }
 
         const catIds = cats.map((c: any) => c.id);
-        const restaurantIds = [...new Set(cats.map((c: any) => c.restaurant_id).filter(Boolean))];
+        const restaurantIds = [...new Set(cats.map((c: any) => c.restaurant_id).filter(Boolean))] as string[];
 
-        // 2. Fetch menu items for these categories
-        const { data: items } = await supabase
+        // 2. Build category_id → restaurant_id map early
+        const catToRestaurant: Record<string, string> = {};
+        cats.forEach((c: any) => { if (c.restaurant_id) catToRestaurant[c.id] = c.restaurant_id; });
+
+        // 3. Fetch menu items for these categories (allow all — even if is_available not set)
+        const { data: items, error: itemsErr } = await supabase
           .from("menu_items")
           .select("id, name_ar, description, price, original_price, image_url, is_available, is_featured, category_id")
           .in("category_id", catIds)
-          .or("is_available.eq.true,is_available.is.null")
           .order("sort_order", { ascending: true });
 
+        if (itemsErr) console.error("[CategoryPage] menu_items error:", itemsErr);
         if (!items || items.length === 0) { setGroups([]); setLoading(false); return; }
 
-        // 3. Fetch restaurants
-        const { data: restaurants } = await supabase
-          .from("restaurants")
-          .select("id, name_ar, cover_image, logo_url, rating, estimated_delivery_time, delivery_fee, is_active")
-          .in("id", restaurantIds)
-          .neq("is_active", false);
+        // Filter out unavailable items client-side (more permissive than .eq filter — accepts null)
+        const availableItems = items.filter((i: any) => i.is_available !== false);
+        if (availableItems.length === 0) { setGroups([]); setLoading(false); return; }
 
-        if (!restaurants) { setGroups([]); setLoading(false); return; }
+        // 4. Fetch restaurants — use OR to include restaurants where is_active is null
+        //    NOTE: .neq("is_active", false) silently excludes NULL rows in PostgreSQL
+        let restaurantMap: Record<string, Restaurant> = {};
+        if (restaurantIds.length > 0) {
+          const { data: restaurants, error: restErr } = await supabase
+            .from("restaurants")
+            .select("id, name_ar, cover_image, logo_url, rating, estimated_delivery_time, delivery_fee, is_active")
+            .in("id", restaurantIds)
+            .or("is_active.eq.true,is_active.is.null");
 
-        // 4. Build category_id → restaurant_id map
-        const catToRestaurant: Record<string, string> = {};
-        cats.forEach((c: any) => { catToRestaurant[c.id] = c.restaurant_id; });
+          if (restErr) console.error("[CategoryPage] restaurants error:", restErr);
+          (restaurants || []).forEach((r: any) => { restaurantMap[r.id] = r; });
+        }
 
         // 5. Group items by restaurant
         const grouped: Record<string, MenuItem[]> = {};
-        items.forEach((item: any) => {
+        availableItems.forEach((item: any) => {
           const rId = catToRestaurant[item.category_id];
           if (!rId) return;
           if (!grouped[rId]) grouped[rId] = [];
           grouped[rId].push(item);
         });
 
-        const result: GroupedResult[] = restaurants
-          .filter((r: any) => grouped[r.id]?.length > 0)
-          .map((r: any) => ({ restaurant: r, items: grouped[r.id] || [] }))
-          .sort((a, b) => (b.restaurant.rating || 0) - (a.restaurant.rating || 0));
+        // 6. Build result — create fallback restaurant entry if not found in map
+        //    (handles case where restaurant RLS blocks the read but items are readable)
+        const result: GroupedResult[] = Object.entries(grouped)
+          .filter(([, itms]) => itms.length > 0)
+          .map(([rId, itms]) => ({
+            restaurant: restaurantMap[rId] ?? { id: rId, name_ar: "مطعم" },
+            items: itms,
+          }))
+          .sort((a, b) => (Number(b.restaurant.rating) || 0) - (Number(a.restaurant.rating) || 0));
 
         setGroups(result);
       } finally {
