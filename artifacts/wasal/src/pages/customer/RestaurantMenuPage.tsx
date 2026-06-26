@@ -509,11 +509,24 @@ const RestaurantMenuPage = () => {
                   className="pt-4"
                 >
                   {/* Section header */}
-                  <div className="flex items-center gap-2 px-4 mb-3">
-                    <span className="text-xl">{getCategoryEmoji(cat.name_ar || "")}</span>
+                  <button
+                    className="flex items-center gap-2.5 px-4 mb-3 w-full text-right hover:opacity-80 transition-opacity"
+                    onClick={() => scrollToCategory(cat.id)}
+                  >
+                    <div className="w-9 h-9 rounded-full overflow-hidden bg-muted border border-border/40 shrink-0 shadow-sm">
+                      <img
+                        src={cat.image_url || getCategoryFallbackImage(cat.name_ar || "")}
+                        alt={cat.name_ar}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = getCategoryFallbackImage("default");
+                        }}
+                      />
+                    </div>
                     <h2 className="text-base font-bold">{cat.name_ar}</h2>
                     <span className="text-xs text-muted-foreground">({catItems.length})</span>
-                  </div>
+                  </button>
                   {/* Items */}
                   <div className="px-4">
                     <div className="grid grid-cols-2 gap-3">
@@ -972,8 +985,8 @@ const MenuItemCard = ({
             <button
               className="flex items-center justify-center rounded-full text-white shadow-md transition-all active:scale-95 hover:opacity-90 shrink-0"
               style={{ width: 32, height: 32, backgroundColor: "#1B4332" }}
-              onClick={e => { e.stopPropagation(); onAdd(); }}
-              aria-label="أضف للسلة"
+              onClick={e => { e.stopPropagation(); onOpen(); }}
+              aria-label="اختر الخيارات"
             >
               <Plus className="w-4 h-4" />
             </button>

@@ -22,6 +22,7 @@ interface CartItem {
   price: number;
   quantity: number;
   image_url?: string;
+  selectedOptions?: Record<string, any>;
 }
 
 const RestaurantCheckoutPage = () => {
@@ -248,8 +249,16 @@ const RestaurantCheckoutPage = () => {
             <CardContent className="space-y-3">
               {cart.map(item => (
                 <div key={item.id} className="flex items-center justify-between gap-3">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{item.name_ar}</p>
+                    {item.selectedOptions && Object.values(item.selectedOptions).length > 0 && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {Object.values(item.selectedOptions).map((opt: any) => {
+                          if (Array.isArray(opt)) return opt.map((o: any) => o.name_ar).join(", ");
+                          return opt?.name_ar;
+                        }).filter(Boolean).join(" · ")}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">{item.price} ر.ي × {item.quantity}</p>
                   </div>
                   <div className="flex items-center gap-2">

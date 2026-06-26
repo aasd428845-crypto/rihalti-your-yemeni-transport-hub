@@ -182,13 +182,23 @@ export default function OrderDetailsPage() {
                 {/* Items */}
                 <div className="space-y-2">
                   {restaurantItems.map((item: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div key={i} className="flex items-start justify-between text-sm gap-2">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
                         {item.image_url && (
-                          <img src={item.image_url} alt={item.name_ar} className="w-9 h-9 rounded-lg object-cover shrink-0 border" />
+                          <img src={item.image_url} alt={item.name_ar} className="w-9 h-9 rounded-lg object-cover shrink-0 border mt-0.5" />
                         )}
-                        <span className="truncate">{item.name_ar || item.name}</span>
-                        <span className="text-muted-foreground shrink-0">× {item.quantity}</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="block truncate font-medium">{item.name_ar || item.name}</span>
+                          {item.selectedOptions && Object.values(item.selectedOptions).length > 0 && (
+                            <span className="block text-xs text-muted-foreground truncate">
+                              {Object.values(item.selectedOptions).map((opt: any) => {
+                                if (Array.isArray(opt)) return opt.map((o: any) => o.name_ar).join(", ");
+                                return opt?.name_ar;
+                              }).filter(Boolean).join(" · ")}
+                            </span>
+                          )}
+                          <span className="text-muted-foreground text-xs">× {item.quantity}</span>
+                        </div>
                       </div>
                       <span className="font-semibold shrink-0 mr-2">
                         {(Number(item.price) * Number(item.quantity)).toLocaleString()} ر.ي
