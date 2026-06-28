@@ -1,0 +1,161 @@
+PROMPT 11 — Send this to Replit Agent
+
+Task: Add a proper "Grant Custom Free Period" feature to the admin subscriptions page 
+built in Prompt 9, so the admin doesn't need to touch SQL manually anymore.
+
+File: artifacts/wasal/src/pages/admin/AdminPartnerSubscriptions.tsx
+
+Step A — Add state for the grant dialog:
+```typescript
+const [grantDialogOpen, setGrantDialogOpen] = useState(false);
+const [grantTarget, setGrantTarget] = useState<{ partnerId: string; companyName: string } | null>(null);
+const [grantPlanId, setGrantPlanId] = useState("");
+const [grantDuration, setGrantDuration] = useState(1);
+const [grantUnit, setGrantUnit] = useState<"days" | "months">("months");
+const [granting, setGranting] = useState(false);
+const [allPlans, setAllPlans] = useState<any[]>([]);
+```
+
+Step B — Load all plans once (add to the existing useEffect or a new one):
+```typescript
+useEffect(() => {
+  supabase.from("subscription_plans").select("id, name_ar").eq("is_active", true).order("sort_order")
+    .then(({ data }) => setAllPlans(data || []));
+}, []);
+```
+
+Step C — Add the grant handler function:
+```typescript
+const handleGrantFreePeriod = async () => {
+  if (!grantTarget || !grantPlanId) return;
+  setGranting(true);
+  try {
+    // Cancel any existing active subscription
+    await supabase
+      .from("partner_subscriptions")
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+      .eq("partner_id", grantTarget.partnerId)
+      .eq("status", "active");
+
+    // Compute the new period end
+    const now = new Date();
+    const periodEnd = new Date(now);
+    if (grantUnit === "days") {
+      periodEnd.setDate(periodEnd.getDate() + grantDuration);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + grantDuration);
+    }
+
+    const { error } = await supabase.from("partner_subscriptions").insert({
+      partner_id: grantTarget.partnerId,
+      partner_type: "delivery_company",
+      plan_id: grantPlanId,
+      status: "active",
+      billing_cycle: "monthly",
+      started_at: now.toISOString(),
+      current_period_end: periodEnd.toISOString(),
+      auto_renew: false,
+    });
+
+    if (error) throw error;
+
+    toast({ title: `تم منح ${grantTarget.companyName} فترة مجانية حتى ${periodEnd.toLocaleDateString("ar")}` });
+    setGrantDialogOpen(false);
+    setGrantTarget(null);
+    setGrantDuration(1);
+    refetch(); // call whatever function name reloads the subscriptions list in this file
+  } catch (err: any) {
+    toast({ title: "خطأ", description: err.message, variant: "destructive" });
+  }
+  setGranting(false);
+};
+```
+
+Note: replace `refetch()` with whatever the actual function name is in this file that 
+reloads the subscriptions table (it was likely called `load` or `loadSubscriptions` 
+when this page was built in Prompt 9 — find it and use the correct name).
+
+Step D — Add a 4th action button next to "تمديد 30 يوم" / "تعليق" / "تفعيل يدوي" on each row:
+```tsx
+<Button
+  size="sm"
+  variant="outline"
+  onClick={() => {
+    setGrantTarget({ partnerId: row.partner_id, companyName: row.company_name });
+    setGrantDialogOpen(true);
+  }}
+>
+  🎁 منح فترة مجانية
+</Button>
+```
+
+Step E — Add the Dialog itself (anywhere in the JSX, typically right before the closing 
+tag of the main return):
+```tsx
+<Dialog open={grantDialogOpen} onOpenChange={setGrantDialogOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>منح فترة مجانية — {grantTarget?.companyName}</DialogTitle>
+    </DialogHeader>
+    <div className="space-y-4 py-2">
+      <div>
+        <Label>الخطة الممنوحة</Label>
+        <Select value={grantPlanId} onValueChange={setGrantPlanId}>
+          <SelectTrigger><SelectValue placeholder="اختر خطة" /></SelectTrigger>
+          <SelectContent>
+            {allPlans.map(p => (
+              <SelectItem key={p.id} value={p.id}>{p.name_ar}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <Label>المدة</Label>
+          <Input
+            type="number"
+            min={1}
+            value={grantDuration}
+            onChange={(e) => setGrantDuration(Number(e.target.value))}
+          />
+        </div>
+        <div className="flex-1">
+          <Label>الوحدة</Label>
+          <Select value={grantUnit} onValueChange={(v) => setGrantUnit(v as "days" | "months")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="days">يوم</SelectItem>
+              <SelectItem value="months">شهر</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        سيتم إلغاء أي اشتراك نشط حالي لهذه الشركة واستبداله بهذه الفترة المجانية.
+      </p>
+
+      <Button className="w-full" disabled={!grantPlanId || granting} onClick={handleGrantFreePeriod}>
+        {granting ? "جارٍ المنح..." : "منح الفترة المجانية"}
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+```
+
+Make sure `Dialog, DialogContent, DialogHeader, DialogTitle` and `Label` are imported 
+at the top of the file from their usual shadcn/ui paths (check how DeliveryOffers.tsx 
+imports them and match the same import paths).
+
+TEST BEFORE FINISHING:
+1. Go to /admin/partner-subscriptions
+2. Click "🎁 منح فترة مجانية" on any delivery company
+3. Select plan "النمو", duration = 3, unit = شهر
+4. Click "منح الفترة المجانية"
+5. Confirm success toast appears showing the correct end date (today + 3 months)
+6. Refresh the page → confirm that company now shows "النمو" plan with the correct expiry date
+7. Log in as that delivery company → place an order → confirm financial_transactions 
+   uses the Growth plan's 8% commission override (not the global rate)
+
+✅ This completes the full commission + subscription system (Prompts 1-11).

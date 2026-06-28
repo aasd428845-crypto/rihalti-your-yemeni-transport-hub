@@ -3,7 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Users, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,6 +23,14 @@ const AdminPartnerSubscriptions = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const [grantDialogOpen, setGrantDialogOpen] = useState(false);
+  const [grantTarget, setGrantTarget] = useState<{ partnerId: string; companyName: string } | null>(null);
+  const [grantPlanId, setGrantPlanId] = useState("");
+  const [grantDuration, setGrantDuration] = useState(1);
+  const [grantUnit, setGrantUnit] = useState<"days" | "months">("months");
+  const [granting, setGranting] = useState(false);
+  const [allPlans, setAllPlans] = useState<any[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -51,6 +62,11 @@ const AdminPartnerSubscriptions = () => {
   };
 
   useEffect(() => { load(); }, [statusFilter]);
+
+  useEffect(() => {
+    supabase.from("subscription_plans" as any).select("id, name_ar").eq("is_active", true).order("sort_order")
+      .then(({ data }: { data: any }) => setAllPlans(data || []));
+  }, []);
 
   const handleExtend = async (sub: any) => {
     setActionLoading(sub.id);
@@ -105,6 +121,49 @@ const AdminPartnerSubscriptions = () => {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     }
     setActionLoading(null);
+  };
+
+  const handleGrantFreePeriod = async () => {
+    if (!grantTarget || !grantPlanId) return;
+    setGranting(true);
+    try {
+      await (supabase as any)
+        .from("partner_subscriptions")
+        .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+        .eq("partner_id", grantTarget.partnerId)
+        .eq("status", "active");
+
+      const now = new Date();
+      const periodEnd = new Date(now);
+      if (grantUnit === "days") {
+        periodEnd.setDate(periodEnd.getDate() + grantDuration);
+      } else {
+        periodEnd.setMonth(periodEnd.getMonth() + grantDuration);
+      }
+
+      const { error } = await (supabase as any).from("partner_subscriptions").insert({
+        partner_id: grantTarget.partnerId,
+        partner_type: "delivery_company",
+        plan_id: grantPlanId,
+        status: "active",
+        billing_cycle: "monthly",
+        started_at: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        auto_renew: false,
+      });
+
+      if (error) throw error;
+
+      toast({ title: `✓ تم منح ${grantTarget.companyName} فترة مجانية حتى ${periodEnd.toLocaleDateString("ar")}` });
+      setGrantDialogOpen(false);
+      setGrantTarget(null);
+      setGrantPlanId("");
+      setGrantDuration(1);
+      await load();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+    setGranting(false);
   };
 
   return (
@@ -206,6 +265,17 @@ const AdminPartnerSubscriptions = () => {
                           تفعيل يدوي
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setGrantTarget({ partnerId: sub.partner_id, companyName: sub.partnerName });
+                          setGrantDialogOpen(true);
+                        }}
+                        className="text-xs"
+                      >
+                        🎁 منح فترة مجانية
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -214,6 +284,61 @@ const AdminPartnerSubscriptions = () => {
           })}
         </div>
       )}
+
+      <Dialog open={grantDialogOpen} onOpenChange={setGrantDialogOpen}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>منح فترة مجانية — {grantTarget?.companyName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>الخطة الممنوحة</Label>
+              <Select value={grantPlanId} onValueChange={setGrantPlanId}>
+                <SelectTrigger><SelectValue placeholder="اختر خطة" /></SelectTrigger>
+                <SelectContent>
+                  {allPlans.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name_ar}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Label>المدة</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={grantDuration}
+                  onChange={(e) => setGrantDuration(Number(e.target.value))}
+                />
+              </div>
+              <div className="flex-1">
+                <Label>الوحدة</Label>
+                <Select value={grantUnit} onValueChange={(v) => setGrantUnit(v as "days" | "months")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="days">يوم</SelectItem>
+                    <SelectItem value="months">شهر</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              سيتم إلغاء أي اشتراك نشط حالي لهذه الشركة واستبداله بهذه الفترة المجانية.
+            </p>
+
+            <Button
+              className="w-full"
+              disabled={!grantPlanId || granting}
+              onClick={handleGrantFreePeriod}
+            >
+              {granting ? "جارٍ المنح..." : "منح الفترة المجانية"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
