@@ -49,6 +49,20 @@ const RestaurantCheckoutPage = () => {
     appliedOrderDiscount: (subtotal: number) => number;
   } | null>(null);
 
+  // Countdown to offer expiry (seconds remaining, null = no expiry set)
+  const [offerSecondsLeft, setOfferSecondsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!activeOffer?.offer.ends_at) { setOfferSecondsLeft(null); return; }
+    const calc = () => {
+      const diff = Math.floor((new Date(activeOffer.offer.ends_at!).getTime() - Date.now()) / 1000);
+      setOfferSecondsLeft(diff > 0 ? diff : 0);
+    };
+    calc();
+    const id = setInterval(calc, 1000);
+    return () => clearInterval(id);
+  }, [activeOffer?.offer.ends_at]);
+
   useEffect(() => {
     if (!restaurantId) return;
     if (!user) {
@@ -145,6 +159,16 @@ const RestaurantCheckoutPage = () => {
   const orderDiscount = subtotal - computedSubtotal;
 
   const remainingForOffer = offerMinOrder > 0 && !offerApplies ? offerMinOrder - subtotal : 0;
+
+  // Expiry helpers
+  const offerExpiring = offerSecondsLeft !== null && offerSecondsLeft <= 30 * 60;
+  const offerUrgent   = offerSecondsLeft !== null && offerSecondsLeft <= 5 * 60;
+  const formatCountdown = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m > 0 ? `${m}د ${sec.toString().padStart(2, "0")}ث` : `${sec}ث`;
+  };
+
   const tax = 0;
   const total = computedSubtotal + computedDeliveryFee + tax;
   const canOrder = !!selectedAddress;
@@ -288,6 +312,17 @@ const RestaurantCheckoutPage = () => {
                   </div>
                 </div>
               )}
+              {/* Offer expiry countdown banner */}
+              {activeOffer && offerExpiring && offerSecondsLeft !== null && offerSecondsLeft > 0 && (
+                <div className={`border rounded-lg p-2.5 flex items-center gap-2 text-sm ${offerUrgent ? "bg-red-50 border-red-400 text-red-800 dark:bg-red-950/20 dark:text-red-300" : "bg-amber-50 border-amber-400 text-amber-800 dark:bg-amber-950/20 dark:text-amber-300"}`}>
+                  <span className="text-lg shrink-0">{offerUrgent ? "⏰" : "⏳"}</span>
+                  <div>
+                    <p className="font-bold text-xs">{offerUrgent ? "ينتهي العرض الآن!" : "العرض ينتهي قريباً"}</p>
+                    <p className="text-xs">الوقت المتبقي: <span className="font-bold tabular-nums">{formatCountdown(offerSecondsLeft)}</span></p>
+                  </div>
+                </div>
+              )}
+
               {activeOffer && !offerApplies && offerMinOrder > 0 && (
                 <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-300 rounded-lg p-2.5 flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
                   <span className="text-lg">🎁</span>
