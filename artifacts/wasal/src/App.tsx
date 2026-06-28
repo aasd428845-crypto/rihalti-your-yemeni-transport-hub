@@ -118,7 +118,15 @@ import SplashScreen from "./components/common/SplashScreen";
 
 const SPLASH_KEY = "wasal_splash_shown";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      retry: 1,
+    },
+  },
+});
 
 const AppWithSplash = ({ children }: { children: React.ReactNode }) => {
   const [splashDone, setSplashDone] = React.useState(() => {

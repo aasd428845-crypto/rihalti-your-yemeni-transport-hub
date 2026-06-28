@@ -1,0 +1,53 @@
+PROMPT — Send this to Replit Agent
+
+Task: Step 3 (image compression) was only partially done — the compressImage() function 
+was created but is NOT yet wired into any actual upload form. Images are still being 
+uploaded at full size. Complete the wiring now.
+
+Search the codebase for every place that uploads a file to Supabase Storage:
+```
+grep -rn "storage.from(" artifacts/wasal/src --include="*.tsx"
+```
+
+This should find upload code in files like:
+- DeliveryBanners.tsx
+- DeliveryOffers.tsx
+- DeliveryMenuManagement.tsx
+- DeliveryRestaurants.tsx
+- (and possibly a few more — check the full grep output, don't assume only these 4)
+
+For EACH file found, do this:
+
+1. Add the import at the top:
+```typescript
+import { compressImage } from "@/lib/imageCompression";
+```
+
+2. Find the function that handles the file input (usually triggered by 
+   `<input type="file" onChange={...}>` or similar). It currently takes the raw 
+   File object and passes it directly to `.storage.from(...).upload(...)`.
+
+3. Insert a compression step right before the upload call:
+```typescript
+const compressedFile = await compressImage(file);
+// then replace `file` with `compressedFile` in the .upload(...) call that follows
+```
+
+Report back a list of every file you modified, and for each one confirm the upload 
+call now uses `compressedFile` (or equivalent variable name) instead of the raw `file`.
+
+---
+
+ALSO — confirm Steps 1 & 2 actually work with this real test (do this and report results):
+
+1. Open the app, go to the home page, wait for it to fully load
+2. Tap into any restaurant
+3. Press the browser/app back button to return to the home page
+4. Does the home page appear INSTANTLY with no loading spinner/skeleton? 
+   (This confirms react-query cache is actually working)
+5. Do the same test on the Restaurants list page
+
+If the home page still shows a loading spinner on back-navigation, the useQuery 
+conversion in Step 2 has a bug (likely a queryKey that changes on every render, 
+defeating the cache) — report this back with the exact file/component and I'll 
+diagnose the queryKey issue.

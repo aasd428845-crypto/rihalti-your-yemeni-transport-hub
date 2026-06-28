@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Star, Clock, Truck, Tag, AlertTriangle, Info, Sparkles, Search, ArrowRight } from "lucide-react";
@@ -197,21 +198,11 @@ const RestaurantsPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const [restaurants, setRestaurants] = useState<any[]>([]);
-  const [offerBanners, setOfferBanners] = useState<DeliveryOffer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [cuisineFilter, setCuisineFilter] = useState(searchParams.get("category") || "all");
   const [categoryRestaurantMap, setCategoryRestaurantMap] = useState<Record<string, Set<string>>>({});
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [selectedCity, setSelectedCity] = useState<string>(() => localStorage.getItem("wasal_selected_city") || "");
   const [selectedArea, setSelectedArea] = useState<string>(() => localStorage.getItem("wasal_selected_area") || "");
-
-  // Load offers from the same source as the homepage
-  useEffect(() => {
-    getCustomerActiveOffers()
-      .then((data) => setOfferBanners(data.length > 0 ? data : DEFAULT_OFFERS))
-      .catch(() => setOfferBanners(DEFAULT_OFFERS));
-  }, []);
 
   // Sync city from user address
   useEffect(() => {
@@ -225,35 +216,31 @@ const RestaurantsPage = () => {
       }, () => {});
   }, [user?.id]);
 
-  // Fetch restaurants — try with city filter first, fallback to all if empty result
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    const cityArg = selectedCity && selectedCity !== "all" ? selectedCity : undefined;
+  // Offers — shared cache key with homepage (already warm on first visit)
+  const { data: offerBanners = DEFAULT_OFFERS } = useQuery({
+    queryKey: ["home-banners-offers"],
+    queryFn: async () => {
+      const data = await getCustomerActiveOffers();
+      return data.length > 0 ? data : DEFAULT_OFFERS;
+    },
+    select: (d) => d as DeliveryOffer[],
+  });
 
-    const run = async () => {
-      try {
-        let data = await getActiveRestaurants(cityArg, selectedArea || undefined);
-        if (!data || data.length === 0) {
-          // fallback: show all restaurants regardless of city
-          data = await getActiveRestaurants(undefined, undefined);
-        }
-        if (!cancelled) setRestaurants(data || []);
-      } catch {
-        try {
-          const all = await getActiveRestaurants(undefined, undefined);
-          if (!cancelled) setRestaurants(all || []);
-        } catch {
-          if (!cancelled) setRestaurants([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+  // Restaurants — keyed by city + area so back-navigation hits cache
+  const cityKey = selectedCity && selectedCity !== "all" ? selectedCity : "";
+  const areaKey = selectedArea || "";
+  const { data: restaurants = [], isLoading: loading } = useQuery({
+    queryKey: ["restaurants", cityKey, areaKey],
+    queryFn: async () => {
+      const cityArg = cityKey || undefined;
+      const areaArg = areaKey || undefined;
+      let data = await getActiveRestaurants(cityArg, areaArg);
+      if (!data || data.length === 0) {
+        data = await getActiveRestaurants(undefined, undefined);
       }
-    };
-
-    run();
-    return () => { cancelled = true; };
-  }, [selectedCity, selectedArea]);
+      return data || [];
+    },
+  });
 
   // URL search & category query
   useEffect(() => {

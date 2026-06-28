@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -634,54 +635,49 @@ const DEFAULT_SERVICE_TILES = [
 // ─── Main Component ───────────────────────────────────────────────────────────
 const DeliveryHubPage = () => {
   const navigate = useNavigate();
-  const [carouselBanners, setCarouselBanners] = useState<any[] | null>(null);
-  const [offerBanners, setOfferBanners] = useState<any[] | null>(null);
-  const [liveOffers, setLiveOffers] = useState<DeliveryOffer[]>([]);
-  const [serviceTiles, setServiceTiles] = useState<any[]>([]);
-  const [bannersLoaded, setBannersLoaded] = useState(false);
-  const [companyManaged, setCompanyManaged] = useState(false);
-  const [platformStats, setPlatformStats] = useState<{ restaurants: number; cities: number; avgRating: number } | null>(null);
 
-  // Fetch real platform stats once
-  useEffect(() => {
-    supabase
-      .from("restaurants")
-      .select("city, rating")
-      .neq("is_active", false)
-      .then(({ data }) => {
-        if (!data || data.length === 0) return;
-        const uniqueCities = new Set(data.map((r: any) => r.city).filter(Boolean)).size;
-        const ratings = data.map((r: any) => Number(r.rating || 0)).filter(v => v > 0);
-        const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
-        setPlatformStats({ restaurants: data.length, cities: uniqueCities, avgRating });
-      }, () => {});
-  }, []);
+  // Platform stats — cached for 5 min (set globally in QueryClient)
+  const { data: platformStats = null } = useQuery({
+    queryKey: ["platform-stats"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurants")
+        .select("city, rating")
+        .neq("is_active", false);
+      if (!data || data.length === 0) return null;
+      const uniqueCities = new Set(data.map((r: any) => r.city).filter(Boolean)).size;
+      const ratings = data.map((r: any) => Number(r.rating || 0)).filter((v: number) => v > 0);
+      const avgRating = ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0;
+      return { restaurants: data.length, cities: uniqueCities, avgRating };
+    },
+  });
 
-  useEffect(() => {
-    Promise.all([
-      supabase.from("delivery_banners" as any).select("*").eq("is_active", true).order("sort_order"),
-      getCustomerActiveOffers(),
-    ]).then(([bannersRes, liveOffersData]) => {
-      console.log("🎯 liveOffers fetched:", liveOffersData.length, liveOffersData);
+  // Banners + offers — one request, cached
+  const { data: homeData, isSuccess: bannersLoaded } = useQuery({
+    queryKey: ["home-banners-offers"],
+    queryFn: async () => {
+      const [bannersRes, liveOffersData] = await Promise.all([
+        supabase.from("delivery_banners" as any).select("*").eq("is_active", true).order("sort_order"),
+        getCustomerActiveOffers(),
+      ]);
       const bannersData = bannersRes.data || [];
       const carousel = bannersData.filter((b: any) => !b.banner_type || b.banner_type === "carousel");
       const bannerOffers = bannersData.filter((b: any) => b.banner_type === "offer");
       const tiles = bannersData.filter((b: any) => b.banner_type === "service_tile");
-      setCompanyManaged(bannersData.length > 0);
-      setCarouselBanners(carousel.length > 0 ? carousel : DEFAULT_BANNERS);
-      setLiveOffers(liveOffersData);
-      setOfferBanners(liveOffersData.length > 0 ? [] : (bannerOffers.length > 0 ? bannerOffers : []));
-      setServiceTiles(tiles);
-      setBannersLoaded(true);
-    }).catch(() => {
-      setCompanyManaged(false);
-      setCarouselBanners(DEFAULT_BANNERS);
-      setLiveOffers([]);
-      setOfferBanners([]);
-      setServiceTiles([]);
-      setBannersLoaded(true);
-    });
-  }, []);
+      return {
+        companyManaged: bannersData.length > 0,
+        carouselBanners: carousel.length > 0 ? carousel : DEFAULT_BANNERS,
+        liveOffers: liveOffersData,
+        offerBanners: liveOffersData.length > 0 ? [] : (bannerOffers.length > 0 ? bannerOffers : []),
+        serviceTiles: tiles,
+      };
+    },
+  });
+
+  const companyManaged = homeData?.companyManaged ?? false;
+  const carouselBanners = homeData?.carouselBanners ?? null;
+  const liveOffers: DeliveryOffer[] = homeData?.liveOffers ?? [];
+  const serviceTiles = homeData?.serviceTiles ?? [];
 
   const handleTileClick = (tile: any) => {
     const action = tile.tile_action || tile.action || tile.key || "food";
@@ -735,7 +731,7 @@ const DeliveryHubPage = () => {
         {/* ── 3. Offers Banner ── */}
         {bannersLoaded && (
           <OffersSection
-            offers={liveOffers.length > 0 ? liveOffers : offerBanners!}
+            offers={liveOffers.length > 0 ? liveOffers : ((homeData?.offerBanners ?? []) as unknown as DeliveryOffer[])}
             onNavigate={navigate}
           />
         )}

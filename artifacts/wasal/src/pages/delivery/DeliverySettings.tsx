@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { compressImage } from "@/lib/imageCompression";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,9 +58,10 @@ const DeliverySettings = () => {
     if (!file || !user?.id) return;
     setLogoUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      const compressedFile = await compressImage(file);
+      const ext = compressedFile.name.split(".").pop();
       const path = `${user.id}/logo.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("company-logos").upload(path, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage.from("company-logos").upload(path, compressedFile, { upsert: true });
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from("company-logos").getPublicUrl(path);
       await supabase.from("profiles").update({ logo_url: urlData.publicUrl } as any).eq("user_id", user.id);

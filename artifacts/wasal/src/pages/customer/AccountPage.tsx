@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, Save, Phone, Camera, Bell, MapPin } from "lucide-react";
+import { compressImage } from "@/lib/imageCompression";
 import BackButton from "@/components/common/BackButton";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,12 +66,13 @@ const AccountPage = () => {
 
     setUploadingAvatar(true);
     try {
-      const ext = file.name.split(".").pop();
+      const compressedFile = await compressImage(file);
+      const ext = compressedFile.name.split(".").pop();
       const path = `${user.id}/avatar.${ext}`;
       
       const { error: uploadError } = await supabase.storage
         .from("profile-logos")
-        .upload(path, file, { upsert: true });
+        .upload(path, compressedFile, { upsert: true });
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from("profile-logos").getPublicUrl(path);

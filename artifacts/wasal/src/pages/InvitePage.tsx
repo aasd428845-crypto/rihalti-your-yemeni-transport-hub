@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { compressImage } from "@/lib/imageCompression";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,8 +103,9 @@ const InvitePage = () => {
   };
 
   const uploadFile = async (bucket: string, userId: string, fileName: string, file: File): Promise<string | null> => {
+    const compressedFile = await compressImage(file);
     const path = `${userId}/${fileName}`;
-    const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from(bucket).upload(path, compressedFile, { upsert: true });
     if (error) { console.error("Upload error:", error); return null; }
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;

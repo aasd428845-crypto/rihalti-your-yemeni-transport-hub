@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { compressImage } from "@/lib/imageCompression";
 
 interface ImageUploadProps {
   value?: string;
@@ -37,12 +38,13 @@ const ImageUpload = ({ value, onChange, bucket, folder = "", aspectRatio = "squa
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
+      const compressedFile = await compressImage(file);
+      const ext = compressedFile.name.split(".").pop() || "jpg";
       const path = `${folder ? folder + "/" : ""}${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(path, compressedFile, { upsert: true, contentType: compressedFile.type });
 
       if (uploadError) throw uploadError;
 
