@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAddresses, createAddress, deleteAddress, updateAddress } from "@/lib/customerApi";
@@ -29,6 +30,7 @@ type FormStep = 1 | 2;
 const AddressesPage = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const isWelcome = searchParams.get("welcome") === "1";
   const returnTo  = searchParams.get("from") || null;
@@ -214,6 +216,9 @@ const AddressesPage = () => {
       setShowForm(false);
       resetForm();
       if (formCity) localStorage.setItem(SELECTED_CITY_KEY, formCity);
+      if (formDefault) {
+        queryClient.invalidateQueries({ queryKey: ["restaurants"] });
+      }
       if (isWelcome) {
         toast({ title: "مرحباً بك في وصل! 🎉", description: "يمكنك الآن البدء بالطلب" });
         navigate("/");
