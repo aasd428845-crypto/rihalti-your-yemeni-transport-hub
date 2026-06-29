@@ -127,10 +127,21 @@ const BannerCarousel = ({ banners, onNavigate }: { banners: any[]; onNavigate: (
     setIdx(i => (i + dir + banners.length) % banners.length);
   };
 
+  const SAFE_PREFIXES = ["/food", "/delivery-request", "/restaurants", "/shipments", "/deliveries", "/history", "/trips", "/profile", "/addresses", "/payment"];
+  const toSafeDest = (raw: string): string | null => {
+    if (!raw) return null;
+    // Strip full URLs down to just the pathname (e.g. "https://host/food" → "/food")
+    try { raw = new URL(raw).pathname; } catch {}
+    if (!raw.startsWith("/")) raw = "/" + raw;
+    return SAFE_PREFIXES.some(p => raw === p || raw.startsWith(p + "/") || raw.startsWith(p + "?")) ? raw : "/food";
+  };
+
   const handleClick = (banner: any) => {
     let dest = banner.link_url || (banner.link_tab === "more" ? "/shipments" : banner.link_tab ? `/food?tab=${banner.link_tab}` : null);
+    if (!dest) return;
     if (dest === "/shipment-request") dest = "/delivery-request";
-    if (dest) onNavigate(dest);
+    const safe = toSafeDest(dest);
+    if (safe) onNavigate(safe);
   };
 
   if (!banners.length) return null;

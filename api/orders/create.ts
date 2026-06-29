@@ -131,7 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const itemIds = items.map((i: any) => i.id);
   const { data: realItems, error: itemsErr } = await supabase
     .from("menu_items")
-    .select("id, price, discounted_price, is_available, restaurant_id")
+    .select("id, name_ar, name_en, price, discounted_price, is_available, restaurant_id")
     .in("id", itemIds);
 
   if (itemsErr || !realItems || realItems.length !== itemIds.length) {
@@ -141,6 +141,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   let subtotal = 0;
+  const enrichedItems: any[] = [];
   for (const reqItem of items) {
     const real = (realItems as any[]).find((r: any) => r.id === reqItem.id);
     if (!real)
@@ -160,6 +161,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "كمية غير صالحة" });
     const unitPrice = Number(real.discounted_price ?? real.price);
     subtotal += unitPrice * qty;
+    // Build enriched item with name + price for display in order management
+    enrichedItems.push({
+      id: reqItem.id,
+      name_ar: real.name_ar || real.name_en || "",
+      name: real.name_en || real.name_ar || "",
+      quantity: qty,
+      price: unitPrice,
+      selectedOptions: reqItem.selectedOptions || {},
+      notes: reqItem.notes || "",
+    });
   }
 
   // 3. Sanity-check delivery_fee / tax
@@ -177,7 +188,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     customer_address,
     delivery_lat,
     delivery_lng,
-    items,
+    items: enrichedItems,
     subtotal,
     delivery_fee: safeDeliveryFee,
     tax: safeTax,
