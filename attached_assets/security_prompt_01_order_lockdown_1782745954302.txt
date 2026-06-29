@@ -1,0 +1,282 @@
+PROMPT — CRITICAL SECURITY FIX — Send this to Replit Agent
+
+⚠️ This fixes the two most severe vulnerabilities found in a security audit:
+1. The RLS policy "Anyone can create orders" on delivery_orders has WITH CHECK (true) — 
+   literally anyone, even unauthenticated, can insert a fake order with ANY price.
+2. The RLS policy on financial_transactions allows any authenticated user to insert a row 
+   as long as customer_id OR partner_id equals their own auth.uid() — meaning any user can 
+   fabricate fake commission/earning records by setting partner_id to their own id.
+
+This prompt moves order creation to a trusted server endpoint that recomputes the food 
+subtotal authoritatively from real menu_items prices, then locks down the RLS policies 
+so direct client writes to these two tables are no longer possible.
+
+NOTE: This first pass authoritatively validates subtotal (food price) — the highest-value 
+fraud target. Delivery fee / offer-discount recomputation is NOT fully re-validated server-side 
+yet in this pass (it still trusts the client-computed delivery_fee within a sanity floor of 0). 
+That needs a careful follow-up prompt since offer logic is more complex — don't skip telling 
+me once this is done, so I can write that follow-up.
+
+---
+
+STEP 1 — Create the trusted server endpoint
+
+Create new file: api/orders/create.ts (in repo root /api/ folder)
+
+```typescript
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = process.env.SUPABASE_URL ?? '';
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', process.env.APP_ORIGIN ?? '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (!SERVICE_ROLE_KEY) {
+    return res.status(503).json({ error: 'الخدمة غير مهيأة' });
+  }
+
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  // 1. Verify the caller's identity from their auth token (sent from the client)
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'يجب تسجيل الدخول' });
+
+  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+  if (userErr || !userData?.user) return res.status(401).json({ error: 'جلسة غير صالحة' });
+  const authenticatedUserId = userData.user.id;
+
+  const {
+    restaurant_id,
+    delivery_company_id,
+    customer_name,
+    customer_phone,
+    customer_address,
+    delivery_lat,
+    delivery_lng,
+    items, // [{ id, quantity }]
+    delivery_fee, // still client-provided for now — sanity-checked below only
+    tax,
+    payment_method,
+    notes,
+    restaurant_delivery_subsidy,
+    applied_offer_id,
+    applied_offer_type,
+    applied_offer_title,
+  } = req.body ?? {};
+
+  if (!restaurant_id || !delivery_company_id || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'بيانات الطلب غير مكتملة' });
+  }
+
+  // 2. Authoritatively recompute subtotal from REAL menu_items prices — never trust client price
+  const itemIds = items.map((i: any) => i.id);
+  const { data: realItems, error: itemsErr } = await supabase
+    .from('menu_items')
+    .select('id, price, discounted_price, is_available, restaurant_id')
+    .in('id', itemIds);
+
+  if (itemsErr || !realItems || realItems.length !== itemIds.length) {
+    return res.status(400).json({ error: 'أحد العناصر في الطلب غير موجود' });
+  }
+
+  let subtotal = 0;
+  for (const reqItem of items) {
+    const real = realItems.find((r: any) => r.id === reqItem.id);
+    if (!real) return res.status(400).json({ error: 'عنصر غير صالح في الطلب' });
+    if (real.restaurant_id !== restaurant_id) {
+      return res.status(400).json({ error: 'عناصر الطلب لا تنتمي لهذا المطعم' });
+    }
+    if (real.is_available === false) {
+      return res.status(400).json({ error: 'أحد العناصر غير متوفر حالياً' });
+    }
+    const qty = Number(reqItem.quantity) || 0;
+    if (qty <= 0 || qty > 50) return res.status(400).json({ error: 'كمية غير صالحة' });
+    const unitPrice = Number(real.discounted_price ?? real.price);
+    subtotal += unitPrice * qty;
+  }
+
+  // 3. Sanity-check delivery_fee / tax (full server-side offer recomputation comes in a follow-up)
+  const safeDeliveryFee = Math.max(0, Number(delivery_fee) || 0);
+  const safeTax = Math.max(0, Number(tax) || 0);
+  const total = subtotal + safeDeliveryFee + safeTax;
+
+  // 4. Insert the order using the service role (RLS no longer needs to allow client inserts)
+  const { data: orderRows, error: orderErr } = await supabase
+    .from('delivery_orders')
+    .insert({
+      customer_id: authenticatedUserId,
+      restaurant_id,
+      delivery_company_id,
+      customer_name,
+      customer_phone,
+      customer_address,
+      delivery_lat,
+      delivery_lng,
+      items,
+      subtotal,
+      delivery_fee: safeDeliveryFee,
+      tax: safeTax,
+      total,
+      payment_method,
+      status: 'pending',
+      payment_status: 'pending',
+      order_type: 'restaurant',
+      restaurant_delivery_subsidy: restaurant_delivery_subsidy ?? 0,
+      ...(notes ? { notes } : {}),
+      ...(applied_offer_id ? { applied_offer_id, applied_offer_type, applied_offer_title } : {}),
+    })
+    .select()
+    .limit(1);
+
+  if (orderErr || !orderRows?.[0]) {
+    return res.status(500).json({ error: 'فشل إنشاء الطلب', details: orderErr?.message });
+  }
+  const order = orderRows[0];
+
+  // 5. Create the financial_transactions split (server-trusted, same logic as before)
+  try {
+    const { calculateCommission } = await import('../../artifacts/wasal/src/lib/accountingApi');
+    const subsidy = Number(restaurant_delivery_subsidy) || 0;
+    const deliveryRevenueBase = safeDeliveryFee + subsidy;
+
+    const { commission: platformCommission, earning: companyDeliveryEarning } =
+      await calculateCommission(deliveryRevenueBase, 'delivery', delivery_company_id);
+
+    const { data: restRow } = await supabase
+      .from('restaurants').select('commission_rate, name_ar').eq('id', restaurant_id).maybeSingle();
+    const restCommissionRate = Number((restRow as any)?.commission_rate || 0);
+    const restCommissionCut = Math.floor(subtotal * restCommissionRate / 100);
+    const restaurantNetEarning = subtotal - restCommissionCut - subsidy;
+
+    const { data: companyRow } = await supabase
+      .from('profiles').select('company_name').eq('user_id', delivery_company_id).maybeSingle();
+
+    await supabase.from('financial_transactions').insert({
+      reference_id: order.id, order_id: order.id, transaction_type: 'delivery_order',
+      partner_type: 'delivery_company', customer_id: authenticatedUserId, partner_id: delivery_company_id,
+      partner_name: (companyRow as any)?.company_name ?? null, amount: deliveryRevenueBase,
+      platform_commission: platformCommission, partner_earning: companyDeliveryEarning,
+      payment_method, payment_status: 'pending', notes: `عمولة توصيل — طلب ${order.id}`,
+    });
+
+    await supabase.from('financial_transactions').insert({
+      reference_id: order.id, order_id: order.id, transaction_type: 'restaurant_order',
+      partner_type: 'restaurant', customer_id: authenticatedUserId, partner_id: restaurant_id,
+      partner_name: (restRow as any)?.name_ar ?? null, amount: subtotal,
+      platform_commission: 0, partner_earning: restaurantNetEarning,
+      payment_method, payment_status: 'pending',
+      notes: `صافي إيرادات الطعام — طلب ${order.id} (عمولة شركة التوصيل: ${restCommissionCut} ر.ي)`,
+    });
+  } catch (finErr) {
+    console.error('Financial transaction split failed:', finErr);
+  }
+
+  return res.status(200).json({ success: true, order });
+}
+```
+
+**Important note for the developer:** the dynamic `import('../../artifacts/wasal/src/lib/accountingApi')` 
+path above may not resolve correctly in a Vercel serverless function depending on the build setup. 
+If it fails, copy just the `calculateCommission` function's logic directly into this file instead 
+of importing it cross-package — check first whether the import works, and only inline it if needed.
+
+---
+
+STEP 2 — Update the two call sites to use this endpoint instead of direct client insert
+
+File: artifacts/wasal/src/pages/customer/RestaurantCheckoutPage.tsx 
+File: artifacts/wasal/src/pages/customer/CartPage.tsx (if it also creates orders directly)
+
+Find where `createOrderFromCart(...)` is currently called (imported from `@/lib/restaurantApi`). 
+Replace that call with a fetch to the new endpoint:
+
+```typescript
+const { data: { session } } = await supabase.auth.getSession();
+const response = await fetch('/api/orders/create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${session?.access_token}`,
+  },
+  body: JSON.stringify({
+    restaurant_id: restaurantId,
+    delivery_company_id: deliveryCompanyId,
+    customer_name: customerName,
+    customer_phone: customerPhone,
+    customer_address: customerAddress,
+    delivery_lat: deliveryLat,
+    delivery_lng: deliveryLng,
+    items: cartItems.map(i => ({ id: i.menu_item_id, quantity: i.quantity })),
+    delivery_fee: computedDeliveryFee,
+    tax: 0,
+    payment_method: paymentMethod,
+    notes: orderNotes,
+    restaurant_delivery_subsidy: subsidyAmount,
+    applied_offer_id: appliedOffer?.id,
+    applied_offer_type: appliedOffer?.offer_type,
+    applied_offer_title: appliedOffer?.title,
+  }),
+});
+const result = await response.json();
+if (!response.ok) throw new Error(result.error || 'فشل إنشاء الطلب');
+const order = result.order;
+```
+
+Adjust variable names above (`cartItems`, `computedDeliveryFee`, `appliedOffer`, etc.) to match 
+whatever the actual variable names are in this file — read the existing `createOrderFromCart(...)` 
+call's arguments first to map them correctly to this new request body shape.
+
+Do NOT delete `createOrderFromCart` from `restaurantApi.ts` yet — keep it in the file but stop 
+calling it from the UI, in case anything else still references it. We'll clean it up after 
+confirming the new flow works end-to-end.
+
+---
+
+STEP 3 — Lock down the RLS policies (run in Supabase SQL Editor yourself, AFTER confirming Step 1+2 work)
+
+```sql
+-- Remove the wide-open order creation policy
+DROP POLICY IF EXISTS "Anyone can create orders" ON public.delivery_orders;
+
+-- Replace with: only allow inserts where customer_id matches the authenticated user
+-- (the new /api/orders/create.ts endpoint uses the service role key, which bypasses 
+-- RLS entirely, so this restriction only affects direct/bypassing client calls)
+CREATE POLICY "Customers create own orders only" ON public.delivery_orders
+  FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = customer_id);
+
+-- Remove the policy that lets any user insert fake financial_transactions rows
+DROP POLICY IF EXISTS "Authenticated insert own financial_transactions" ON public.financial_transactions;
+
+-- Do NOT replace it with anything — financial_transactions should only ever be 
+-- written by server code using the service role key, which bypasses RLS by design. 
+-- No authenticated/anon role needs direct INSERT access to this table anymore.
+```
+
+---
+
+TEST BEFORE CONSIDERING THIS DONE (do all of these):
+
+1. Place a normal restaurant order through the app as a real customer → confirm it 
+   still works end-to-end (order created, financial_transactions rows created, 
+   checkout page shows success)
+2. Open browser dev tools → Network tab → find the request to /api/orders/create → 
+   try resending it with a modified `items` quantity or a fake `id` → confirm you 
+   get a 400 error, not a successful fake order
+3. After running Step 3's SQL: try calling `supabase.from('delivery_orders').insert(...)` 
+   directly from the browser console with `customer_id` set to someone else's UID → 
+   confirm it's rejected (permission denied)
+4. Try calling `supabase.from('financial_transactions').insert(...)` directly from the 
+   browser console → confirm it's rejected for ANY value now, even your own UID
+
+Report back the results of test 2, 3, and 4 specifically — these confirm the actual 
+security fix, not just that the happy path still works.

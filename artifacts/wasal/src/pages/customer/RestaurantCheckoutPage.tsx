@@ -202,27 +202,35 @@ const RestaurantCheckoutPage = () => {
         ? baseFee - computedDeliveryFee
         : 0;
 
-      const order = await createOrderFromCart({
-        customer_id: user.id,
-        restaurant_id: restaurantId,
-        delivery_company_id: restaurant.delivery_company_id,
-        customer_name: (selectedAddress as any)?.customer_name || profile?.full_name || "عميل",
-        customer_phone: phone,
-        customer_address: fullAddress,
-        items: cart,
-        subtotal: computedSubtotal,
-        delivery_fee: computedDeliveryFee,
-        tax,
-        total,
-        payment_method: "pending",
-        notes: form.notes || undefined,
-        delivery_lat: selectedAddress.latitude,
-        delivery_lng: selectedAddress.longitude,
-        restaurant_delivery_subsidy: restaurantSubsidy,
-        applied_offer_id: offerApplies && activeOffer ? activeOffer.offer.id : undefined,
-        applied_offer_type: offerApplies && activeOffer ? activeOffer.offer.offer_type : undefined,
-        applied_offer_title: offerApplies && activeOffer ? activeOffer.offer.title : undefined,
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          restaurant_id: restaurantId,
+          delivery_company_id: restaurant.delivery_company_id,
+          customer_name: (selectedAddress as any)?.customer_name || profile?.full_name || "عميل",
+          customer_phone: phone,
+          customer_address: fullAddress,
+          delivery_lat: selectedAddress.latitude,
+          delivery_lng: selectedAddress.longitude,
+          items: cart.map((i: CartItem) => ({ id: i.id, quantity: i.quantity })),
+          delivery_fee: computedDeliveryFee,
+          tax,
+          payment_method: "pending",
+          notes: form.notes || undefined,
+          restaurant_delivery_subsidy: restaurantSubsidy,
+          applied_offer_id: offerApplies && activeOffer ? activeOffer.offer.id : undefined,
+          applied_offer_type: offerApplies && activeOffer ? activeOffer.offer.offer_type : undefined,
+          applied_offer_title: offerApplies && activeOffer ? activeOffer.offer.title : undefined,
+        }),
       });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "فشل إنشاء الطلب");
+      const order = result.order;
       try {
         await supabase.functions.invoke("send-push-notification", {
           body: {
