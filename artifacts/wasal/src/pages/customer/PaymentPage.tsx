@@ -307,7 +307,10 @@ const PaymentPage = () => {
       }
 
       // Create financial transaction
-      if (partnerId) {
+      // NOTE: for "delivery" orders the financial_transactions rows are already
+      // created server-side when the order is placed (via api/orders/create).
+      // Creating them again here would produce duplicates — skip for delivery.
+      if (partnerId && entityType !== "delivery") {
         const ftData: any = {
           transaction_type: entityType,
           reference_id: entityId,
@@ -317,17 +320,21 @@ const PaymentPage = () => {
           platform_commission: commission,
           partner_earning: partnerEarning,
           payment_method: payMethodDb,
-          payment_status: payMethodDb === "cash" ? "pending" : "pending",
+          payment_status: "pending",
           payment_transaction_id: (paymentTx as any)?.id,
           partner_name: supplierInfo?.full_name || supplierInfo?.company_name,
         };
 
-        // For cash payments, record as debt: rider owes company, company owes platform
         if (payMethodDb === "cash") {
           ftData.notes = `مديونية نقدية: المبلغ ${amount} ر.ي مستلم نقداً. عمولة المنصة: ${commission} ر.ي`;
         }
 
-        await createFinancialTransaction(ftData);
+        try {
+          await createFinancialTransaction(ftData);
+        } catch (ftErr) {
+          // Never block the payment flow if financial tracking fails
+          console.error("Financial transaction recording failed:", ftErr);
+        }
       }
 
       // Notifications
