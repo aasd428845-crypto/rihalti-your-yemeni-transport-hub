@@ -48,3 +48,9 @@ Thumbs.db
 .cache/
 .local/
 .vercel
+
+# Android signing keystore
+*.jks
+*.keystore
+*.p12
+keystore.properties

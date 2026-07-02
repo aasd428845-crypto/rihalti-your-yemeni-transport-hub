@@ -5,9 +5,13 @@
   "installCommand": "pnpm install",
   "framework": null,
   "rewrites": [
-    { "source": "/((?!api/|assets|icons|manifest\\.json|sw\\.js|workbox-.*).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets|icons|manifest\\.json|sw\\.js|workbox-.*|\\.well-known).*)", "destination": "/index.html" }
   ],
   "headers": [
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+    },
     {
       "source": "/manifest.json",
       "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }]
