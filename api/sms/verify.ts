@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://hhqhoqwpebnmfuhwhllw.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const ALLOWED_ORIGIN = process.env.APP_ORIGIN ?? "https://wasal-app.vercel.app";
 const APP_URL = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : process.env.APP_URL ?? "https://localhost:5000";
@@ -28,7 +29,7 @@ function phoneToEmail(phone: string) {
 }
 
 export default async function handler(req: any, res: any) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
@@ -50,22 +51,40 @@ export default async function handler(req: any, res: any) {
 
   const { data: record, error: fetchErr } = await supabase
     .from("verification_codes")
-    .select("code, expires_at")
+    .select("code, expires_at, attempts")
     .eq("phone", phone_number)
     .maybeSingle();
 
   if (fetchErr || !record) {
-    return res.status(400).json({ error: "لم يتم إرسال رمز لهذا الرقم. اضغط إرسال مرة أخرى." });
+    return res
+      .status(400)
+      .json({ error: "لم يتم إرسال رمز لهذا الرقم. اضغط إرسال مرة أخرى." });
+  }
+
+  // ── Brute-force lockout (requires attempts column) ─────────────────────────
+  if ((record.attempts ?? 0) >= 5) {
+    await supabase.from("verification_codes").delete().eq("phone", phone_number);
+    return res
+      .status(429)
+      .json({ error: "تجاوزت عدد المحاولات المسموح. اطلب رمزاً جديداً." });
   }
 
   if (new Date(record.expires_at) < new Date()) {
-    return res.status(400).json({ error: "انتهت صلاحية الرمز (10 دقائق). أرسل رمزاً جديداً." });
+    return res
+      .status(400)
+      .json({ error: "انتهت صلاحية الرمز (10 دقائق). أرسل رمزاً جديداً." });
   }
 
   if (record.code !== String(code)) {
+    // Increment the attempts counter
+    await supabase
+      .from("verification_codes")
+      .update({ attempts: (record.attempts ?? 0) + 1 })
+      .eq("phone", phone_number);
     return res.status(400).json({ error: "رمز التحقق غير صحيح" });
   }
 
+  // ── Code correct — delete it so it can't be reused ────────────────────────
   await supabase.from("verification_codes").delete().eq("phone", phone_number);
 
   const email = phoneToEmail(phone_number);

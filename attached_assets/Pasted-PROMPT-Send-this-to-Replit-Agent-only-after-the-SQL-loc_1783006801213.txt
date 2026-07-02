@@ -1,0 +1,142 @@
+PROMPT — Send this to Replit Agent (only after the SQL lockdown above has been run)
+
+⚠️ STEP 0 — Resolve a schema ambiguity BEFORE writing any code
+
+The current code in api/sms/send.ts and api/sms/verify.ts uses the column name `phone` 
+(e.g. `.eq("phone", phone_number)`), but I need you to verify the ACTUAL live column name 
+in the `verification_codes` table before touching anything — do not assume either name is 
+correct. Run a query against the live Supabase database (or check via the Supabase dashboard 
+Table Editor) to confirm the real column name, then use that confirmed name consistently in 
+everything below. If it turns out the code has been using the wrong column name this whole 
+time, tell me immediately — that may be a separate bug worth its own investigation into 
+whether OTP inserts have been silently failing.
+
+---
+
+STEP 1 — Fix CORS on both files (currently wide open to any website in the world)
+
+Files: api/sms/send.ts, api/sms/verify.ts
+
+Both currently have:
+```typescript
+res.setHeader("Access-Control-Allow-Origin", "*");
+```
+
+Replace with:
+```typescript
+const ALLOWED_ORIGIN = process.env.APP_ORIGIN ?? "https://wasal-app.vercel.app";
+res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+```
+
+Add `APP_ORIGIN` to Vercel environment variables set to the real production domain 
+(confirm the exact current domain — it may not be wasal-app.vercel.app anymore if a 
+custom domain was added since).
+
+---
+
+STEP 2 — Add rate limiting to send.ts
+
+Create this table first (give me this SQL to run myself, don't try to run it from Replit):
+```sql
+CREATE TABLE IF NOT EXISTS otp_send_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone_number text NOT NULL,
+  ip text,
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE otp_send_log ENABLE ROW LEVEL SECURITY;
+-- No policies added on purpose — only the service role (server) touches this table.
+```
+
+Then update api/sms/send.ts — insert this logic AFTER validating `phone_number` exists, 
+BEFORE generating the OTP:
+
+```typescript
+const clientIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() 
+  || req.socket?.remoteAddress 
+  || "unknown";
+
+const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+// Per-phone limit: max 3 sends per 15 minutes
+const { count: phoneCount } = await supabase
+  .from("otp_send_log")
+  .select("id", { count: "exact", head: true })
+  .eq("phone_number", phone_number)
+  .gte("created_at", fifteenMinAgo);
+
+if ((phoneCount ?? 0) >= 3) {
+  return res.status(429).json({ error: "لقد تجاوزت عدد المحاولات المسموح. حاول بعد 15 دقيقة." });
+}
+
+// Per-IP limit: max 10 sends per 15 minutes (catches abuse across many phone numbers)
+const { count: ipCount } = await supabase
+  .from("otp_send_log")
+  .select("id", { count: "exact", head: true })
+  .eq("ip", clientIp)
+  .gte("created_at", fifteenMinAgo);
+
+if ((ipCount ?? 0) >= 10) {
+  return res.status(429).json({ error: "تم إيقاف الطلبات مؤقتاً من هذا الجهاز. حاول لاحقاً." });
+}
+```
+
+Note: `supabase` here refers to the admin client instance — make sure this runs after 
+`const supabase = adminClient();` in the existing code, not before.
+
+Then, right after the existing successful insert into `verification_codes` (after 
+`insertErr` check passes), add:
+```typescript
+await supabase.from("otp_send_log").insert({ phone_number, ip: clientIp });
+```
+
+---
+
+STEP 3 — Wire up the existing (currently unused) `attempts` column in verify.ts
+
+The `verification_codes` table already has an `attempts` column that is never read or 
+updated anywhere in the current code. Use it now to lock out brute-force guessing.
+
+In api/sms/verify.ts, right after fetching `record` (after the `fetchErr || !record` check), add:
+
+```typescript
+if ((record.attempts ?? 0) >= 5) {
+  await supabase.from("verification_codes").delete().eq(/* use the confirmed column name from Step 0 */, phone_number);
+  return res.status(429).json({ error: "تجاوزت عدد المحاولات المسموح. اطلب رمزاً جديداً." });
+}
+```
+
+Then find this existing block:
+```typescript
+if (record.code !== String(code)) {
+  return res.status(400).json({ error: "رمز التحقق غير صحيح" });
+}
+```
+
+Change to:
+```typescript
+if (record.code !== String(code)) {
+  await supabase
+    .from("verification_codes")
+    .update({ attempts: (record.attempts ?? 0) + 1 })
+    .eq(/* confirmed column name */, phone_number);
+  return res.status(400).json({ error: "رمز التحقق غير صحيح" });
+}
+```
+
+---
+
+TEST BEFORE CONSIDERING THIS DONE:
+
+1. Confirm Step 0's column name check result and that everything still compiles with 
+   the confirmed name used consistently
+2. Request an OTP 4 times rapidly for the same test phone number → the 4th request 
+   should return the 429 "تجاوزت عدد المحاولات" error, not a new code
+3. Request an OTP successfully, then submit 6 wrong codes in a row → the 6th attempt 
+   should return "تجاوزت عدد المحاولات المسموح" and the code should no longer be usable 
+   even if you then guess correctly
+4. Confirm a LEGITIMATE flow still works end to end: request code, receive it (or dev_code 
+   in non-production), enter correct code, log in successfully within the first 5 attempts
+
+Report back the exact behavior you observed for tests 2 and 3 — not just "it works," 
+the actual response you got.

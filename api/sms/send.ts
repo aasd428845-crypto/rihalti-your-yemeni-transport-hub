@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://hhqhoqwpebnmfuhwhllw.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const ALLOWED_ORIGIN = process.env.APP_ORIGIN ?? "https://wasal-app.vercel.app";
 
 function adminClient() {
   return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -14,7 +15,7 @@ function randomOtp() {
 }
 
 export default async function handler(req: any, res: any) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
@@ -33,9 +34,49 @@ export default async function handler(req: any, res: any) {
     });
   }
 
+  const supabase = adminClient();
+
+  // ── Rate limiting (requires otp_send_log table — degrades gracefully if missing) ──
+  const clientIp =
+    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+    req.socket?.remoteAddress ||
+    "unknown";
+
+  const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+  try {
+    // Per-phone: max 3 sends per 15 minutes
+    const { count: phoneCount } = await supabase
+      .from("otp_send_log")
+      .select("id", { count: "exact", head: true })
+      .eq("phone_number", phone_number)
+      .gte("created_at", fifteenMinAgo);
+
+    if ((phoneCount ?? 0) >= 3) {
+      return res
+        .status(429)
+        .json({ error: "لقد تجاوزت عدد المحاولات المسموح. حاول بعد 15 دقيقة." });
+    }
+
+    // Per-IP: max 10 sends per 15 minutes (catches multi-phone abuse)
+    const { count: ipCount } = await supabase
+      .from("otp_send_log")
+      .select("id", { count: "exact", head: true })
+      .eq("ip", clientIp)
+      .gte("created_at", fifteenMinAgo);
+
+    if ((ipCount ?? 0) >= 10) {
+      return res
+        .status(429)
+        .json({ error: "تم إيقاف الطلبات مؤقتاً من هذا الجهاز. حاول لاحقاً." });
+    }
+  } catch {
+    // otp_send_log table may not exist yet — allow the request through
+  }
+
+  // ── Generate and store OTP ─────────────────────────────────────────────────
   const otp = randomOtp();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-  const supabase = adminClient();
 
   await supabase.from("verification_codes").delete().eq("phone", phone_number);
 
@@ -49,10 +90,17 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({ error: "فشل إرسال رمز التحقق. حاول مرة أخرى." });
   }
 
+  // Log this send for rate-limit tracking (non-critical — don't fail on error)
+  try {
+    await supabase.from("otp_send_log").insert({ phone_number, ip: clientIp });
+  } catch {
+    // silent — don't block the user if the log table is missing
+  }
+
   const isDev = process.env.NODE_ENV !== "production";
 
   return res.status(200).json({
     success: true,
-    ...(isDev ? { dev_code: otp, dev_note: "DEV ONLY" } : {}),
+    ...(isDev ? { dev_code: otp, dev_note: "DEV ONLY — رمز مرئي في وضع التطوير فقط" } : {}),
   });
 }

@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const router = Router();
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://xugjqhxfdjlndljogvru.supabase.co";
+const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://hhqhoqwpebnmfuhwhllw.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
 function adminClient() {
@@ -34,10 +34,49 @@ router.post("/sms/send", async (req, res) => {
     });
   }
 
+  const supabase = adminClient();
+
+  // ── Rate limiting (requires otp_send_log table — degrades gracefully if missing) ──
+  const clientIp =
+    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+    req.socket?.remoteAddress ||
+    "unknown";
+
+  const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+  try {
+    // Per-phone: max 3 sends per 15 minutes
+    const { count: phoneCount } = await supabase
+      .from("otp_send_log")
+      .select("id", { count: "exact", head: true })
+      .eq("phone_number", phone_number)
+      .gte("created_at", fifteenMinAgo);
+
+    if ((phoneCount ?? 0) >= 3) {
+      return res
+        .status(429)
+        .json({ error: "لقد تجاوزت عدد المحاولات المسموح. حاول بعد 15 دقيقة." });
+    }
+
+    // Per-IP: max 10 sends per 15 minutes
+    const { count: ipCount } = await supabase
+      .from("otp_send_log")
+      .select("id", { count: "exact", head: true })
+      .eq("ip", clientIp)
+      .gte("created_at", fifteenMinAgo);
+
+    if ((ipCount ?? 0) >= 10) {
+      return res
+        .status(429)
+        .json({ error: "تم إيقاف الطلبات مؤقتاً من هذا الجهاز. حاول لاحقاً." });
+    }
+  } catch {
+    // otp_send_log table may not exist yet — allow the request through
+  }
+
+  // ── Generate and store OTP ─────────────────────────────────────────────────
   const otp = randomOtp();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-
-  const supabase = adminClient();
 
   // Delete any previous code for this phone then insert a fresh one
   await supabase.from("verification_codes").delete().eq("phone", phone_number);
@@ -50,6 +89,13 @@ router.post("/sms/send", async (req, res) => {
 
   if (insertErr) {
     return res.status(500).json({ error: "فشل إرسال رمز التحقق. حاول مرة أخرى." });
+  }
+
+  // Log this send for rate-limit tracking (non-critical)
+  try {
+    await supabase.from("otp_send_log").insert({ phone_number, ip: clientIp });
+  } catch {
+    // silent — don't block the user if the log table is missing
   }
 
   const isDev = process.env.NODE_ENV === "development";
@@ -81,23 +127,40 @@ router.post("/sms/verify", async (req, res) => {
 
   const { data: record, error: fetchErr } = await supabase
     .from("verification_codes")
-    .select("code, expires_at")
+    .select("code, expires_at, attempts")
     .eq("phone", phone_number)
     .maybeSingle();
 
   if (fetchErr || !record) {
-    return res.status(400).json({ error: "لم يتم إرسال رمز لهذا الرقم. اضغط إرسال مرة أخرى." });
+    return res
+      .status(400)
+      .json({ error: "لم يتم إرسال رمز لهذا الرقم. اضغط إرسال مرة أخرى." });
+  }
+
+  // ── Brute-force lockout ────────────────────────────────────────────────────
+  if ((record.attempts ?? 0) >= 5) {
+    await supabase.from("verification_codes").delete().eq("phone", phone_number);
+    return res
+      .status(429)
+      .json({ error: "تجاوزت عدد المحاولات المسموح. اطلب رمزاً جديداً." });
   }
 
   if (new Date(record.expires_at) < new Date()) {
-    return res.status(400).json({ error: "انتهت صلاحية الرمز (10 دقائق). أرسل رمزاً جديداً." });
+    return res
+      .status(400)
+      .json({ error: "انتهت صلاحية الرمز (10 دقائق). أرسل رمزاً جديداً." });
   }
 
   if (record.code !== String(code)) {
+    // Increment the attempts counter then reject
+    await supabase
+      .from("verification_codes")
+      .update({ attempts: (record.attempts ?? 0) + 1 })
+      .eq("phone", phone_number);
     return res.status(400).json({ error: "رمز التحقق غير صحيح" });
   }
 
-  // Code correct — delete it so it can't be reused
+  // ── Code correct — delete it so it can't be reused ────────────────────────
   await supabase.from("verification_codes").delete().eq("phone", phone_number);
 
   const email = phoneToEmail(phone_number);
