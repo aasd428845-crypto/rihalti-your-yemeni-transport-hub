@@ -110,7 +110,6 @@ const DeliveryNotificationsPage = lazy(() => import("./pages/delivery/DeliveryNo
 const AdminNotificationsPage = lazy(() => import("./pages/admin/AdminNotificationsPage"));
 const MorePage = lazy(() => import("./pages/MorePage"));
 const InstallPage = lazy(() => import("./pages/InstallPage"));
-const VideoTemplate = lazy(() => import("./components/video/VideoTemplate"));
 import { InstallPWAButton } from "./components/InstallPWAButton";
 import { UpdateNotification } from "./components/UpdateNotification";
 import RealtimeToastListener from "./components/notifications/RealtimeToastListener";
@@ -192,9 +191,6 @@ const App = () => (
                 <Route path="/more" element={<MorePage />} />
                 <Route path="/install" element={<InstallPage />} />
               </Route>
-
-              {/* Promotional video preview */}
-              <Route path="/promo-video" element={<VideoTemplate />} />
 
               {/* Auth pages (no layout) */}
               <Route path="/login" element={<LoginPage />} />
