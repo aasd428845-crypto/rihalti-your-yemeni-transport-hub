@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DeliverySidebar from "./DeliverySidebar";
 import SubscriptionBanner from "./SubscriptionBanner";
-import { Menu, Sun, Moon } from "lucide-react";
+import DeliveryOnboarding, { useDeliveryOnboardingKey } from "./DeliveryOnboarding";
+import { Menu, Sun, Moon, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -11,6 +13,14 @@ import NotificationBell from "@/components/notifications/NotificationBell";
 const DeliveryLayout = () => {
   const { role, loading, user } = useAuth();
   const { theme, setTheme } = useTheme();
+  const [helpOpen, setHelpOpen] = useState(false);
+  const onboardingKey = useDeliveryOnboardingKey(user?.id);
+
+  useEffect(() => {
+    if (!user) return;
+    const seen = localStorage.getItem(onboardingKey);
+    if (!seen) setHelpOpen(true);
+  }, [user, onboardingKey]);
 
   if (loading || (user && role === null)) {
     return (
@@ -37,6 +47,9 @@ const DeliveryLayout = () => {
               notificationsPath="/delivery/notifications"
               notificationTypes={["new_order", "order_assigned", "driver_update", "payment"]}
             />
+            <Button variant="ghost" size="icon" onClick={() => setHelpOpen(true)} title="دليل الاستخدام">
+              <HelpCircle className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
@@ -47,6 +60,7 @@ const DeliveryLayout = () => {
           </div>
         </main>
       </div>
+      <DeliveryOnboarding open={helpOpen} onOpenChange={setHelpOpen} />
     </SidebarProvider>
   );
 };
