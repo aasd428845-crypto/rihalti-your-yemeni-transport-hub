@@ -21,6 +21,14 @@ All other promo columns (image_url, badge_text, etc.) are absent — sending the
 ## delivery_banners
 Single source of truth for customer carousel: `image_url`, `tile_action`, `link_url`, `banner_type`.
 
+## payment_transactions / financial_transactions approval flow
+`entity_type` and `related_entity_id` on `payment_transactions` are NOT NULL — any insert/test data needs both set (e.g. `entity_type='delivery'`, `related_entity_id=gen_random_uuid()`).
+Approve/reject now go through `public.approve_payment_transaction(p_transaction_id, p_approver_id)` / `reject_payment_transaction(...)` SECURITY DEFINER RPCs (see `supabase/migrations/021_payment_approval_functions.sql`) — never re-add direct client `.update()` chains on `payment_transactions`/`financial_transactions` for this flow, it defeats the atomicity + ownership checks.
+
+**Why:** frontend previously did 3-4 sequential unguarded updates across `payment_transactions`, `financial_transactions`, `delivery_orders`/`bookings`, `notifications` — partial failure left inconsistent state, and it silently broke once `financial_transactions` was RLS-locked to service_role.
+
+**How to apply:** any new payment-approval-like flow should follow the same pattern — one SECURITY DEFINER function per action, ownership check against `auth.uid()` inside the function (never trust a client-passed approver id alone), `SET search_path = public`, and explicit `REVOKE ... FROM PUBLIC, anon` + `GRANT EXECUTE ... TO authenticated` (Supabase grants EXECUTE to `anon` by default on new functions — must revoke it explicitly, not just from PUBLIC).
+
 ## app_settings
 Table is NOT in Supabase type definitions — always query via `(supabase as any).from("app_settings")`.
 

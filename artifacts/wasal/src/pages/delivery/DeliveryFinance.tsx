@@ -120,32 +120,16 @@ const DeliveryFinance = () => {
   const handleApprove = async (tx: any) => {
     setProcessing(true);
     try {
-      await supabase
-        .from("payment_transactions")
-        .update({ status: "verified", verified_by: user!.id, verified_at: new Date().toISOString() })
-        .eq("id", tx.id);
-      await supabase
-        .from("financial_transactions")
-        .update({ payment_status: "paid", paid_at: new Date().toISOString() } as any)
-        .eq("payment_transaction_id", tx.id);
-      if (tx.related_entity_id) {
-        if (tx.entity_type === "delivery") {
-          await supabase.from("delivery_orders").update({ payment_status: "confirmed" } as any).eq("id", tx.related_entity_id);
-        } else if (tx.entity_type === "booking") {
-          await supabase.from("bookings").update({ status: "confirmed" } as any).eq("id", tx.related_entity_id);
-        }
-      }
-      await supabase.from("notifications").insert({
-        user_id: tx.user_id,
-        title: "تمت الموافقة على دفعتك ✅",
-        body: `تم قبول دفعتك بقيمة ${Number(tx.amount).toLocaleString()} ر.ي.`,
-        data: { type: "payment_verified" } as any,
+      const { error } = await supabase.rpc("approve_payment_transaction", {
+        p_transaction_id: tx.id,
+        p_approver_id: user!.id,
       });
+      if (error) throw error;
       toast({ title: "تمت الموافقة" });
       setSelectedTx(null);
       loadData();
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      toast({ title: "تعذّرت الموافقة على المعاملة", description: err.message, variant: "destructive" });
     } finally { setProcessing(false); }
   };
 
@@ -153,23 +137,19 @@ const DeliveryFinance = () => {
     if (!selectedTx) return;
     setProcessing(true);
     try {
-      await supabase
-        .from("payment_transactions")
-        .update({ status: "rejected", verified_by: user!.id, verified_at: new Date().toISOString(), notes: rejectReason } as any)
-        .eq("id", selectedTx.id);
-      await supabase.from("notifications").insert({
-        user_id: selectedTx.user_id,
-        title: "تم رفض الدفعة ❌",
-        body: rejectReason || "تم رفض الدفعة.",
-        data: { type: "payment_rejected" } as any,
+      const { error } = await supabase.rpc("reject_payment_transaction", {
+        p_transaction_id: selectedTx.id,
+        p_approver_id: user!.id,
+        p_reason: rejectReason,
       });
+      if (error) throw error;
       toast({ title: "تم الرفض" });
       setShowRejectDialog(false);
       setSelectedTx(null);
       setRejectReason("");
       loadData();
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      toast({ title: "تعذّر رفض المعاملة", description: err.message, variant: "destructive" });
     } finally { setProcessing(false); }
   };
 
