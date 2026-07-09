@@ -172,28 +172,12 @@ export const assignRiderToOrder = async (orderId: string, riderId: string) => {
 };
 
 export const updateOrderStatus = async (orderId: string, status: string, note?: string) => {
-  const updates: any = { status, updated_at: new Date().toISOString() };
-  if (status === "picked_up") updates.picked_up_at = new Date().toISOString();
-  if (status === "delivered") updates.delivered_at = new Date().toISOString();
-  const { data, error } = await supabase.from("delivery_orders").update(updates).eq("id", orderId).select().single();
+  const { data, error } = await supabase.rpc("update_delivery_order_status", {
+    p_order_id: orderId,
+    p_status: status,
+    p_note: note ?? null,
+  } as any);
   if (error) throw error;
-  await supabase.from("order_tracking").insert({ order_id: orderId, status, note });
-
-  // Sync rider cash collection status
-  try {
-    if (status === "delivered") {
-      await supabase.from("rider_cash_collections")
-        .update({ status: "collected", collected_at: new Date().toISOString() })
-        .eq("order_id", orderId)
-        .eq("status", "pending_pickup");
-    } else if (status === "cancelled") {
-      await supabase.from("rider_cash_collections")
-        .update({ status: "cancelled", notes: "تم إلغاء الطلب" })
-        .eq("order_id", orderId)
-        .in("status", ["pending_pickup", "collected"]);
-    }
-  } catch (_) {}
-
   return data;
 };
 
