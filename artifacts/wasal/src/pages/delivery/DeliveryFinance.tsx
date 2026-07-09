@@ -12,7 +12,7 @@ import {
   Clock, X, Phone, User, Hash, Calendar, Image, Store, Share2, MessageCircle,
   FileText, ChevronDown, ChevronUp
 } from "lucide-react";
-import { getDeliveryOrders, getRiders } from "@/lib/deliveryApi";
+import { getDeliveryOrders, getRiders, getRestaurantCommissionSummary, type RestaurantCommissionSummary } from "@/lib/deliveryApi";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -77,6 +77,8 @@ const DeliveryFinance = () => {
   // Restaurant stats
   const [restaurantPeriod, setRestaurantPeriod] = useState<"daily" | "weekly" | "monthly">("monthly");
   const [expandedRestaurant, setExpandedRestaurant] = useState<string | null>(null);
+  // Commission summaries from DB (source of truth — replaces JS Math.floor calculation)
+  const [commissionSummaries, setCommissionSummaries] = useState<Map<string, RestaurantCommissionSummary>>(new Map());
 
   const loadData = async () => {
     if (!user) return;
@@ -107,6 +109,16 @@ const DeliveryFinance = () => {
   };
 
   useEffect(() => { loadData(); }, [user]);
+
+  // Load commission summaries from DB whenever period or user changes
+  useEffect(() => {
+    if (!user) return;
+    getRestaurantCommissionSummary(user.id, restaurantPeriod)
+      .then(rows => {
+        setCommissionSummaries(new Map(rows.map(r => [r.restaurant_id, r])));
+      })
+      .catch(() => {/* silent — JS fallback stays active */});
+  }, [user, restaurantPeriod]);
 
   useEffect(() => {
     if (!user) return;
@@ -197,9 +209,12 @@ const DeliveryFinance = () => {
       const periodSubsidy = periodOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
 
       // عمولة شركة التوصيل المستحقة من المطعم
-      const commissionRate = Number((rest as any).commission_rate || 0);
-      const totalCommissionCut = Math.floor(totalFoodRevenue * commissionRate / 100);
-      const periodCommissionCut = Math.floor(periodFoodRevenue * commissionRate / 100);
+      // المصدر: دالة DB get_company_restaurant_commission_summary (FLOOR مطابق للصيغة الأصلية)
+      // يوجد fallback للحساب اليدوي في حال لم تُحمَّل البيانات من DB بعد
+      const cs = commissionSummaries.get(rest.id);
+      const commissionRate   = cs ? Number(cs.commission_rate)       : Number((rest as any).commission_rate || 0);
+      const totalCommissionCut  = cs ? Number(cs.total_commission_cut)  : Math.floor(totalFoodRevenue * commissionRate / 100);
+      const periodCommissionCut = cs ? Number(cs.period_commission_cut) : Math.floor(periodFoodRevenue * commissionRate / 100);
 
       // صافي إيرادات المطعم = إيرادات الطعام - عمولة شركة التوصيل - مديونية التوصيل
       const totalRevenue = totalFoodRevenue - totalCommissionCut - totalSubsidy;
@@ -240,7 +255,7 @@ const DeliveryFinance = () => {
         recentOrders: allRelevantOrders.slice(0, 15),
       };
     }).sort((a, b) => b.totalRevenue - a.totalRevenue);
-  }, [restaurants, deliveredOrders, activeCodOrders, restaurantPeriod]);
+  }, [restaurants, deliveredOrders, activeCodOrders, restaurantPeriod, commissionSummaries]);
 
   const buildRestaurantShareText = (r: typeof restaurantStats[0]) => {
     const periodLabel = restaurantPeriod === "daily" ? "اليوم" : restaurantPeriod === "weekly" ? "هذا الأسبوع" : "هذا الشهر";

@@ -403,6 +403,30 @@ export const getDeliveryStats = async (companyId: string) => {
   };
 };
 
+// ===== Restaurant Commission Summary (DB source of truth) =====
+export interface RestaurantCommissionSummary {
+  restaurant_id: string;
+  commission_rate: number;
+  total_food_revenue: number;
+  total_commission_cut: number;
+  period_food_revenue: number;
+  period_commission_cut: number;
+  total_orders: number;
+  period_orders: number;
+}
+
+export const getRestaurantCommissionSummary = async (
+  companyId: string,
+  period: "daily" | "weekly" | "monthly" = "monthly",
+): Promise<RestaurantCommissionSummary[]> => {
+  const { data, error } = await (supabase.rpc as any)(
+    "get_company_restaurant_commission_summary",
+    { p_company_id: companyId, p_period: period },
+  );
+  if (error) throw error;
+  return (data || []) as RestaurantCommissionSummary[];
+};
+
 // ===== Delivery Banners =====
 export const getDeliveryBanners = async (companyId?: string, city?: string) => {
   let q = supabase.from("delivery_banners").select("*").eq("is_active", true).order("sort_order");
