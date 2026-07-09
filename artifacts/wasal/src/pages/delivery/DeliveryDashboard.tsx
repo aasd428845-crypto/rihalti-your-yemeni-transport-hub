@@ -20,7 +20,7 @@ const DeliveryDashboard = () => {
     if (!user) return;
     const load = async () => {
       try {
-        const [statsData, ordersData] = await Promise.all([
+        const [statsData, { data: ordersData }] = await Promise.all([
           getDeliveryStats(user.id),
           getDeliveryOrders(user.id),
         ]);

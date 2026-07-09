@@ -88,8 +88,8 @@ const DeliveryRestaurants = () => {
   const load = async () => {
     if (!user) return;
     try {
-      const data = await getRestaurants(user.id);
-      setRestaurants(data || []);
+      const { data } = await getRestaurants(user.id);
+      setRestaurants(data);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally { setLoading(false); }

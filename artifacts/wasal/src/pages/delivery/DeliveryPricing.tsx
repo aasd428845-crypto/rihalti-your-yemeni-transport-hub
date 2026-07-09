@@ -70,7 +70,7 @@ const DeliveryPricing = () => {
   const loadAll = async () => {
     if (!user) return;
     try {
-      const [{ data: settings }, rests, { data: orders }] = await Promise.all([
+      const [{ data: settings }, { data: rests }, { data: orders }] = await Promise.all([
         supabase.from("partner_settings" as any).select("*").eq("partner_id", user.id).maybeSingle(),
         getRestaurants(user.id),
         supabase.from("delivery_orders")

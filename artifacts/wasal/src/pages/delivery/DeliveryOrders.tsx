@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Search, UserCheck, Eye, XCircle, CreditCard, CheckCircle2, ExternalLink, MessageCircle, MapPin, Package, Truck } from "lucide-react";
+import { Search, UserCheck, Eye, XCircle, CreditCard, CheckCircle2, ExternalLink, MessageCircle, MapPin, Package, Truck, ChevronRight, ChevronLeft } from "lucide-react";
 import { getDeliveryOrders, updateOrderStatus, assignRiderToOrder, getRiders, getOrderTracking, getRiderOutstandingCash } from "@/lib/deliveryApi";
 import { ORDER_STATUS_MAP } from "@/types/delivery.types";
 import { supabase } from "@/integrations/supabase/client";
@@ -161,10 +161,14 @@ const buildRiderTelegram = (order: any): string => {
   return `https://t.me/share/url?text=${encodeURIComponent(text)}`;
 };
 
+const PAGE_SIZE = 25;
+
 const DeliveryOrders = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [riders, setRiders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -178,21 +182,27 @@ const DeliveryOrders = () => {
   const [riderOutstanding, setRiderOutstanding] = useState<number>(0);
   const [assigning, setAssigning] = useState(false);
 
-  const load = async () => {
+  const load = async (currentPage = page) => {
     if (!user) return;
     try {
-      const [ordersData, ridersData] = await Promise.all([
-        getDeliveryOrders(user.id, statusFilter),
+      const [{ data: ordersData, count }, ridersData] = await Promise.all([
+        getDeliveryOrders(user.id, statusFilter, currentPage, PAGE_SIZE, search),
         getRiders(user.id),
       ]);
-      setOrders(ordersData || []);
+      setOrders(ordersData);
+      setTotalCount(count);
       setRiders(ridersData || []);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, [user, statusFilter]);
+  // Single data-loading effect — fires whenever any dependency changes
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    load(page);
+  }, [user, statusFilter, search, page]);
 
   // Load outstanding cash for selected rider in assign dialog
   useEffect(() => {
@@ -348,7 +358,7 @@ const DeliveryOrders = () => {
     }
   };
 
-  // ── Realtime: reload orders list when a new order arrives ──
+  // ── Realtime: reload page 1 when a new order arrives ──
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -356,7 +366,7 @@ const DeliveryOrders = () => {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "delivery_orders", filter: `delivery_company_id=eq.${user.id}` },
-        () => load()
+        () => { setPage(1); load(1); }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -381,9 +391,7 @@ const DeliveryOrders = () => {
     } catch {}
   };
 
-  const filtered = orders.filter(o =>
-    o.customer_name?.includes(search) || o.customer_phone?.includes(search) || o.id.includes(search)
-  );
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const renderActions = (order: any) => (
     <div className="flex flex-wrap gap-1">
@@ -435,8 +443,6 @@ const DeliveryOrders = () => {
     </div>
   );
 
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
-
   return (
     <div className="space-y-4 md:space-y-6" dir="rtl">
       <h2 className="text-xl md:text-2xl font-bold">إدارة الطلبات</h2>
@@ -444,9 +450,9 @@ const DeliveryOrders = () => {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute right-3 top-2.5 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="بحث بالاسم أو الهاتف..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
+          <Input placeholder="بحث بالاسم أو الهاتف..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pr-9" />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
           <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="الحالة" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">الكل</SelectItem>
@@ -457,13 +463,15 @@ const DeliveryOrders = () => {
         </Select>
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-12"><div className="animate-spin w-7 h-7 border-4 border-primary border-t-transparent rounded-full" /></div>
+      ) : orders.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">لا توجد طلبات</CardContent></Card>
       ) : (
         <>
           {/* Mobile Cards */}
           <div className="md:hidden space-y-3">
-            {filtered.map((order: any) => (
+            {orders.map((order: any) => (
               <Card key={order.id}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between">
@@ -515,7 +523,7 @@ const DeliveryOrders = () => {
                 <th className="text-right p-3">إجراءات</th>
               </tr></thead>
               <tbody>
-                {filtered.map((order: any) => (
+                {orders.map((order: any) => (
                   <tr key={order.id} className="border-b hover:bg-muted/30">
                     <td className="p-3 font-mono text-xs">{order.id.slice(0, 8)}</td>
                     <td className="p-3">
@@ -536,6 +544,37 @@ const DeliveryOrders = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2" dir="rtl">
+              <span className="text-sm text-muted-foreground">
+                صفحة {page} من {totalPages} · {totalCount.toLocaleString()} طلب
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="gap-1"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                  السابق
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                  className="gap-1"
+                >
+                  التالي
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

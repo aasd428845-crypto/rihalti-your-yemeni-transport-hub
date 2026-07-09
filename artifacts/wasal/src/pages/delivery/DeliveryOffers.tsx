@@ -118,9 +118,9 @@ const DeliveryOffers = () => {
       getDeliveryOffers(user.id),
       getRestaurants(user.id),
     ])
-      .then(([offersData, restaurantsData]) => {
+      .then(([offersData, restaurantsResult]) => {
         setOffers(offersData);
-        setRestaurants(restaurantsData || []);
+        setRestaurants(restaurantsResult.data || []);
       })
       .catch(err => toast({ title: "خطأ", description: err.message, variant: "destructive" }))
       .finally(() => setLoading(false));

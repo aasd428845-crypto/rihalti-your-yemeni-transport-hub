@@ -81,7 +81,7 @@ const DeliveryFinance = () => {
   const loadData = async () => {
     if (!user) return;
     try {
-      const [o, r, txRes, restRes] = await Promise.all([
+      const [{ data: o }, r, txRes, restRes] = await Promise.all([
         getDeliveryOrders(user.id),
         getRiders(user.id),
         supabase

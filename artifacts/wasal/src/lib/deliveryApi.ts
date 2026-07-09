@@ -1,14 +1,17 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // ===== Restaurants =====
-export const getRestaurants = async (companyId: string) => {
-  const { data, error } = await supabase
+export const getRestaurants = async (companyId: string, page = 1, pageSize = 50) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const { data, error, count } = await supabase
     .from("restaurants")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("delivery_company_id", companyId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(from, to);
   if (error) throw error;
-  return data;
+  return { data: data || [], count: count ?? 0 };
 };
 
 export const createRestaurant = async (restaurant: any) => {
@@ -118,30 +121,57 @@ export const deleteRider = async (id: string) => {
 };
 
 // ===== Delivery Orders =====
-export const getDeliveryOrders = async (companyId: string, status?: string) => {
+export const getDeliveryOrders = async (
+  companyId: string,
+  status?: string,
+  page = 1,
+  pageSize = 25,
+  search?: string,
+): Promise<{ data: any[]; count: number }> => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
   let query = supabase
     .from("delivery_orders")
-    .select("*, restaurant:restaurants(*)")
+    .select("*, restaurant:restaurants(*)", { count: "exact" })
     .eq("delivery_company_id", companyId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
   if (status && status !== "all") query = query.eq("status", status);
-  const { data, error } = await query;
+  if (search?.trim()) {
+    query = query.or(
+      `customer_name.ilike.%${search.trim()}%,customer_phone.ilike.%${search.trim()}%`,
+    );
+  }
+
+  const { data, error, count } = await query;
   if (error) throw error;
-  if (!data?.length) return data;
+  if (!data?.length) return { data: [], count: count ?? 0 };
 
   // Enrich orders with rider data via a separate query (no FK in schema cache)
-  const riderIds = [...new Set(data.filter((o: any) => o.rider_id).map((o: any) => o.rider_id as string))];
+  const riderIds = [
+    ...new Set(data.filter((o: any) => o.rider_id).map((o: any) => o.rider_id as string)),
+  ];
   if (riderIds.length > 0) {
     const { data: riders } = await supabase
       .from("riders")
       .select("id, full_name, phone, vehicle_type, vehicle_plate")
       .in("id", riderIds);
     if (riders) {
-      const riderMap: Record<string, any> = Object.fromEntries(riders.map((r: any) => [r.id, r]));
-      return data.map((o: any) => ({ ...o, rider: o.rider_id ? (riderMap[o.rider_id] ?? null) : null }));
+      const riderMap: Record<string, any> = Object.fromEntries(
+        riders.map((r: any) => [r.id, r]),
+      );
+      return {
+        data: data.map((o: any) => ({
+          ...o,
+          rider: o.rider_id ? (riderMap[o.rider_id] ?? null) : null,
+        })),
+        count: count ?? 0,
+      };
     }
   }
-  return data.map((o: any) => ({ ...o, rider: null }));
+  return { data: data.map((o: any) => ({ ...o, rider: null })), count: count ?? 0 };
 };
 
 export const createDeliveryOrder = async (order: any) => {
@@ -191,15 +221,27 @@ export const getRiderOutstandingCash = async (riderId: string): Promise<number> 
   return (data || []).reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0);
 };
 
-export const getRiderCashCollections = async (companyId: string, riderId?: string) => {
-  let q = supabase.from("rider_cash_collections")
-    .select("*, rider:riders(id, full_name, phone), order:delivery_orders(id, customer_name, customer_address, total, payment_method)")
+export const getRiderCashCollections = async (
+  companyId: string,
+  riderId?: string,
+  page = 1,
+  pageSize = 25,
+) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  let q = supabase
+    .from("rider_cash_collections")
+    .select(
+      "*, rider:riders(id, full_name, phone), order:delivery_orders(id, customer_name, customer_address, total, payment_method)",
+      { count: "exact" },
+    )
     .eq("delivery_company_id", companyId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(from, to);
   if (riderId) q = q.eq("rider_id", riderId);
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) throw error;
-  return data || [];
+  return { data: data || [], count: count ?? 0 };
 };
 
 export const settleRiderCash = async (collectionId: string, settledBy: string, notes?: string) => {
