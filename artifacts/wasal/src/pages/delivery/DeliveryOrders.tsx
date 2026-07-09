@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -181,8 +181,14 @@ const DeliveryOrders = () => {
   const [paymentTx, setPaymentTx] = useState<any>(null);
   const [riderOutstanding, setRiderOutstanding] = useState<number>(0);
   const [assigning, setAssigning] = useState(false);
+  const [flashedOrderIds, setFlashedOrderIds] = useState<Set<string>>(new Set());
 
-  const load = async (currentPage = page) => {
+  // Refs to avoid stale closures inside the realtime callback
+  const statusFilterRef = useRef(statusFilter);
+  const loadRef = useRef<(p?: number) => void>(() => {});
+  useEffect(() => { statusFilterRef.current = statusFilter; }, [statusFilter]);
+
+  const load = useCallback(async (currentPage = page) => {
     if (!user) return;
     try {
       const [{ data: ordersData, count }, ridersData] = await Promise.all([
@@ -195,7 +201,11 @@ const DeliveryOrders = () => {
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally { setLoading(false); }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, statusFilter, search]);
+
+  // Keep loadRef pointing to the latest load function
+  useEffect(() => { loadRef.current = load; }, [load]);
 
   // Single data-loading effect — fires whenever any dependency changes
   useEffect(() => {
@@ -358,19 +368,70 @@ const DeliveryOrders = () => {
     }
   };
 
-  // ── Realtime: reload page 1 when a new order arrives ──
+  // ── Flash helper ───────────────────────────────────────────────────────────
+  const flashOrder = useCallback((id: string) => {
+    setFlashedOrderIds(prev => new Set([...prev, id]));
+    setTimeout(() => {
+      setFlashedOrderIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+    }, 1500);
+  }, []);
+
+  // ── Realtime: smart per-event update ──────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     const channel = supabase
       .channel("delivery-orders-refresh")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "delivery_orders", filter: `delivery_company_id=eq.${user.id}` },
-        () => { setPage(1); load(1); }
+        { event: "*", schema: "public", table: "delivery_orders", filter: `delivery_company_id=eq.${user.id}` },
+        (payload: any) => {
+          const { eventType, new: newRow, old: oldRow } = payload;
+
+          if (eventType === "INSERT") {
+            // New order — go to page 1 so it appears at the top
+            setPage(1);
+            loadRef.current(1);
+            return;
+          }
+
+          if (eventType === "UPDATE") {
+            const id: string = newRow.id;
+            const matchesFilter =
+              statusFilterRef.current === "all" || statusFilterRef.current === newRow.status;
+
+            setOrders(prev => {
+              const idx = prev.findIndex(o => o.id === id);
+              if (idx === -1) {
+                // Order not on this page — ignore (no stale update)
+                return prev;
+              }
+              if (!matchesFilter) {
+                // Order moved out of current status filter — remove from list
+                setTotalCount(c => Math.max(0, c - 1));
+                return prev.filter(o => o.id !== id);
+              }
+              // Merge new DB values, keep locally-enriched rider object
+              const updated = [...prev];
+              updated[idx] = { ...prev[idx], ...newRow, rider: prev[idx].rider };
+              return updated;
+            });
+            flashOrder(id);
+            return;
+          }
+
+          if (eventType === "DELETE") {
+            const id: string = oldRow.id;
+            setOrders(prev => {
+              const existed = prev.some(o => o.id === id);
+              if (existed) setTotalCount(c => Math.max(0, c - 1));
+              return prev.filter(o => o.id !== id);
+            });
+          }
+        }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, flashOrder]);
 
   const viewDetails = async (order: any) => {
     setSelectedOrder(order);
@@ -472,7 +533,7 @@ const DeliveryOrders = () => {
           {/* Mobile Cards */}
           <div className="md:hidden space-y-3">
             {orders.map((order: any) => (
-              <Card key={order.id}>
+              <Card key={order.id} className={`transition-colors duration-700 ${flashedOrderIds.has(order.id) ? "bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-800" : ""}`}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
@@ -524,7 +585,7 @@ const DeliveryOrders = () => {
               </tr></thead>
               <tbody>
                 {orders.map((order: any) => (
-                  <tr key={order.id} className="border-b hover:bg-muted/30">
+                  <tr key={order.id} className={`border-b transition-colors duration-700 ${flashedOrderIds.has(order.id) ? "bg-green-50 dark:bg-green-950/30" : "hover:bg-muted/30"}`}>
                     <td className="p-3 font-mono text-xs">{order.id.slice(0, 8)}</td>
                     <td className="p-3">
                       <div>{order.customer_name}</div>
