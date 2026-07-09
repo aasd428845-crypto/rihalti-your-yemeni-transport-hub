@@ -29,6 +29,11 @@ Approve/reject now go through `public.approve_payment_transaction(p_transaction_
 
 **How to apply:** any new payment-approval-like flow should follow the same pattern — one SECURITY DEFINER function per action, ownership check against `auth.uid()` inside the function (never trust a client-passed approver id alone), `SET search_path = public`, and explicit `REVOKE ... FROM PUBLIC, anon` + `GRANT EXECUTE ... TO authenticated` (Supabase grants EXECUTE to `anon` by default on new functions — must revoke it explicitly, not just from PUBLIC).
 
+## delivery_orders rider assignment
+`assignRiderToOrder` in `deliveryApi.ts` now calls `public.assign_rider_to_order(p_order_id, p_rider_id, p_assigned_by)` SECURITY DEFINER RPC (see `supabase/migrations/022_assign_rider_to_order_function.sql`) instead of 4 separate client updates — same atomicity/ownership pattern as the payment approval RPCs above, plus a `FOR UPDATE` row lock + explicit "already assigned to a different active rider" rejection to close a dispatch race condition.
+`rider_cash_collections.delivery_company_id` FK references `auth.users(id)`, NOT `profiles.id` — use `profiles.user_id`/`riders.delivery_company_id` (the actual auth uid), not `profiles.id`, when testing or seeding this table.
+`riders.id` is its own PK distinct from `profiles.id`/`auth.users.id` — `rider_cash_collections.rider_id` FKs to `riders.id`.
+
 ## app_settings
 Table is NOT in Supabase type definitions — always query via `(supabase as any).from("app_settings")`.
 

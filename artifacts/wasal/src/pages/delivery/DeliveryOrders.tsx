@@ -282,7 +282,19 @@ const DeliveryOrders = () => {
       setSelectedRider("");
       load();
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      const alreadyAssigned = /تم تعيين مندوب آخر لهذا الطلب بالفعل/.test(err.message || "");
+      toast({
+        title: alreadyAssigned ? "لم يعد بالإمكان تعيين هذا المندوب" : "خطأ",
+        description: alreadyAssigned
+          ? "تم تعيين مندوب آخر لهذا الطلب بالفعل من قبل مستخدم آخر — جارٍ تحديث القائمة."
+          : err.message,
+        variant: "destructive",
+      });
+      if (alreadyAssigned) {
+        setShowAssign(false);
+        setSelectedRider("");
+        load();
+      }
     } finally {
       setAssigning(false);
     }

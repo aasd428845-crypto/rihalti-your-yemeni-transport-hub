@@ -157,38 +157,16 @@ export const updateDeliveryOrder = async (id: string, updates: any) => {
 };
 
 export const assignRiderToOrder = async (orderId: string, riderId: string) => {
-  // 1. Cancel any previously active cash collection for this order (re-assignment safety)
-  try {
-    await supabase.from("rider_cash_collections")
-      .update({ status: "cancelled", notes: "تم إعادة تعيين مندوب آخر" })
-      .eq("order_id", orderId)
-      .in("status", ["pending_pickup", "collected"]);
-  } catch (_) {}
+  const { data: userData } = await supabase.auth.getUser();
+  const assignedBy = userData?.user?.id;
+  if (!assignedBy) throw new Error("يجب تسجيل الدخول لتعيين مندوب");
 
-  // 2. Assign rider on the order
-  const { data, error } = await supabase
-    .from("delivery_orders")
-    .update({ rider_id: riderId, status: "assigned", assigned_at: new Date().toISOString() })
-    .eq("id", orderId)
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc("assign_rider_to_order", {
+    p_order_id: orderId,
+    p_rider_id: riderId,
+    p_assigned_by: assignedBy,
+  });
   if (error) throw error;
-
-  // 3. Add tracking entry
-  await supabase.from("order_tracking").insert({ order_id: orderId, status: "assigned", note: "تم تعيين مندوب" });
-
-  // 4. If payment is cash → record outstanding cash on rider
-  try {
-    if (data && data.payment_method === "cash" && Number(data.total) > 0) {
-      await supabase.from("rider_cash_collections").insert({
-        rider_id: riderId,
-        delivery_company_id: data.delivery_company_id,
-        order_id: orderId,
-        amount: Number(data.total),
-        status: "pending_pickup",
-      });
-    }
-  } catch (_) {}
 
   return data;
 };
