@@ -147,7 +147,8 @@ const DeliveryPricing = () => {
     setSavingRestId(restId);
     try {
       const newPrice = Number(restaurantPriceDraft[restId] || 0);
-      await updateRestaurant(restId, { price_per_km: newPrice });
+      // price_per_km is not in the restaurants DB schema — see MISSING FIELDS REPORT in deliveryApi.ts
+      await updateRestaurant(restId, { price_per_km: newPrice } as any);
       setRestaurants(rs => rs.map(r => r.id === restId ? { ...r, price_per_km: newPrice } : r));
       toast({ title: "تم حفظ سعر المطعم", description: `${newPrice} ر.ي/كم` });
     } catch (err: any) {

@@ -143,7 +143,9 @@ const DeliveryRestaurants = () => {
           await updateRestaurant(editItem.id, corePayload);
         }
       } else {
-        const created = await createRestaurant({ ...fullPayload, delivery_company_id: user.id });
+        // fullPayload contains price_per_km which is not in the restaurants DB schema
+        // (see MISSING FIELDS REPORT in deliveryApi.ts) — cast required
+        const created = await createRestaurant({ ...fullPayload, delivery_company_id: user.id } as any);
         savedId = created?.id;
       }
 
