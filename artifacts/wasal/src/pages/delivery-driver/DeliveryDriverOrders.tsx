@@ -139,11 +139,11 @@ const DeliveryDriverOrders = () => {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     setUpdatingOrder(orderId);
-    const updates: any = { status: newStatus, updated_at: new Date().toISOString() };
-    if (newStatus === "picked_up")  updates.picked_up_at  = new Date().toISOString();
-    if (newStatus === "delivered")  updates.delivered_at  = new Date().toISOString();
-
-    const { error } = await supabase.from("delivery_orders").update(updates).eq("id", orderId);
+    const { error } = await supabase.rpc("update_delivery_order_status", {
+      p_order_id: orderId,
+      p_status: newStatus,
+      p_note: null,
+    } as any);
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
@@ -151,7 +151,9 @@ const DeliveryDriverOrders = () => {
       if (newStatus === "delivered") {
         setActiveOrders((prev) => prev.filter((o) => o.id !== orderId));
       } else {
-        setActiveOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, ...updates } : o));
+        setActiveOrders((prev) =>
+          prev.map((o) => o.id === orderId ? { ...o, status: newStatus } : o)
+        );
       }
     }
     setUpdatingOrder(null);
