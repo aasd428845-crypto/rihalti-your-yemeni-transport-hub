@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
-import { getPaymentTransactions, updatePaymentTransaction } from "@/lib/paymentApi";
+import { getPaymentTransactions } from "@/lib/paymentApi";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -50,39 +50,13 @@ const AdminPaymentReview = () => {
     if (!user) return;
     setProcessing(true);
     try {
-      await updatePaymentTransaction(tx.id, {
-        status: "verified",
-        verified_by: user.id,
-        verified_at: new Date().toISOString(),
+      const { error } = await (supabase as any).rpc("admin_approve_payment_transaction", {
+        p_transaction_id: tx.id,
       });
+      if (error) throw error;
 
-      // Update financial_transactions payment_status
-      await supabase
-        .from("financial_transactions")
-        .update({ payment_status: "paid", paid_at: new Date().toISOString() } as any)
-        .eq("reference_id", tx.related_entity_id);
-
-      // Update the related order/booking status immediately upon approval
-      if (tx.related_entity_id) {
-        if (tx.entity_type === "booking") {
-          await supabase
-            .from("bookings")
-            .update({ status: "confirmed" } as any)
-            .eq("id", tx.related_entity_id);
-        } else if (tx.entity_type === "shipment") {
-          await supabase
-            .from("shipment_requests")
-            .update({ status: "approved" } as any)
-            .eq("id", tx.related_entity_id);
-        } else if (tx.entity_type === "delivery") {
-          await supabase
-            .from("delivery_orders")
-            .update({ status: "confirmed" } as any)
-            .eq("id", tx.related_entity_id);
-        }
-      }
-
-      // Notify customer
+      // Push notification is best-effort UX only; the notifications row
+      // itself is already inserted server-side inside the RPC above.
       try {
         await sendPushNotification({
           userId: tx.user_id,
@@ -106,12 +80,11 @@ const AdminPaymentReview = () => {
     if (!user || !selectedTx) return;
     setProcessing(true);
     try {
-      await updatePaymentTransaction(selectedTx.id, {
-        status: "rejected",
-        verified_by: user.id,
-        verified_at: new Date().toISOString(),
-        notes: rejectReason,
+      const { error } = await (supabase as any).rpc("admin_reject_payment_transaction", {
+        p_transaction_id: selectedTx.id,
+        p_reason: rejectReason,
       });
+      if (error) throw error;
 
       try {
         await sendPushNotification({
