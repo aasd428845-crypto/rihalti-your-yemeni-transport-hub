@@ -861,6 +861,7 @@ export type Database = {
       }
       delivery_orders: {
         Row: {
+          applied_offer_type: string | null
           assigned_at: string | null
           barcode: string | null
           cancellation_reason: string | null
@@ -890,6 +891,7 @@ export type Database = {
           price_offered_at: string | null
           proposed_price: number | null
           qr_code_url: string | null
+          restaurant_delivery_subsidy: number | null
           restaurant_id: string | null
           rider_id: string | null
           status: string | null
@@ -899,6 +901,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          applied_offer_type?: string | null
           assigned_at?: string | null
           barcode?: string | null
           cancellation_reason?: string | null
@@ -928,6 +931,7 @@ export type Database = {
           price_offered_at?: string | null
           proposed_price?: number | null
           qr_code_url?: string | null
+          restaurant_delivery_subsidy?: number | null
           restaurant_id?: string | null
           rider_id?: string | null
           status?: string | null
@@ -937,6 +941,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          applied_offer_type?: string | null
           assigned_at?: string | null
           barcode?: string | null
           cancellation_reason?: string | null
@@ -966,6 +971,7 @@ export type Database = {
           price_offered_at?: string | null
           proposed_price?: number | null
           qr_code_url?: string | null
+          restaurant_delivery_subsidy?: number | null
           restaurant_id?: string | null
           rider_id?: string | null
           status?: string | null
@@ -3999,6 +4005,55 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_approve_payment_transaction: {
+        Args: { p_transaction_id: string }
+        Returns: undefined
+      }
+      admin_reject_payment_transaction: {
+        Args: { p_reason: string; p_transaction_id: string }
+        Returns: undefined
+      }
+      approve_payment_transaction: {
+        Args: { p_approver_id: string; p_transaction_id: string }
+        Returns: undefined
+      }
+      assign_rider_to_order: {
+        Args: { p_assigned_by: string; p_order_id: string; p_rider_id: string }
+        Returns: Database["public"]["Tables"]["delivery_orders"]["Row"]
+      }
+      create_financial_transaction: {
+        Args: {
+          p_amount: number
+          p_customer_id: string
+          p_due_date?: string | null
+          p_metadata?: Json | null
+          p_partner_earning: number
+          p_partner_id: string
+          p_payment_method: string
+          p_payment_status?: string | null
+          p_platform_commission: number
+          p_reference_id: string
+          p_transaction_type: string
+        }
+        Returns: Database["public"]["Tables"]["financial_transactions"]["Row"]
+      }
+      create_rider_invitation: {
+        Args: { p_company_id: string; p_created_by: string; p_email: string }
+        Returns: string
+      }
+      get_company_restaurant_commission_summary: {
+        Args: { p_company_id: string; p_period?: string }
+        Returns: {
+          restaurant_id: string
+          commission_rate: number
+          total_food_revenue: number
+          total_commission_cut: number
+          period_food_revenue: number
+          period_commission_cut: number
+          total_orders: number
+          period_orders: number
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -4013,6 +4068,14 @@ export type Database = {
       redeem_loyalty_points: {
         Args: { _description?: string; _points: number; _user_id: string }
         Returns: boolean
+      }
+      reject_payment_transaction: {
+        Args: { p_approver_id: string; p_reason: string; p_transaction_id: string }
+        Returns: undefined
+      }
+      update_delivery_order_status: {
+        Args: { p_note?: string | null; p_order_id: string; p_status: string }
+        Returns: Database["public"]["Tables"]["delivery_orders"]["Row"]
       }
     }
     Enums: {

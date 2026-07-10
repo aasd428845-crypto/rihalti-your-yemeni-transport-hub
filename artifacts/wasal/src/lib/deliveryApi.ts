@@ -397,8 +397,7 @@ export const assignRiderToOrder = async (
   const assignedBy = userData?.user?.id;
   if (!assignedBy) throw new Error("يجب تسجيل الدخول لتعيين مندوب");
 
-  // RPC types not yet in generated types — cast required until `supabase gen types` is re-run
-  const { data, error } = await (supabase.rpc as Function)("assign_rider_to_order", {
+  const { data, error } = await supabase.rpc("assign_rider_to_order", {
     p_order_id:    orderId,
     p_rider_id:    riderId,
     p_assigned_by: assignedBy,
@@ -412,8 +411,7 @@ export const updateOrderStatus = async (
   status: string,
   note?: string,
 ): Promise<unknown> => {
-  // RPC types not yet in generated types — cast required until `supabase gen types` is re-run
-  const { data, error } = await (supabase.rpc as Function)(
+  const { data, error } = await supabase.rpc(
     "update_delivery_order_status",
     {
       p_order_id: orderId,
@@ -780,18 +778,3 @@ export const getRestaurantCommissionSummary = async (
   if (error) throw error;
   return (data ?? []) as RestaurantCommissionSummary[];
 };
-
-// =============================================================================
-// ── MISSING FIELDS REPORT ─────────────────────────────────────────────────────
-// The following field names appear in UI code but are NOT present in the
-// delivery_orders DB schema (types.ts).  They may be un-migrated columns,
-// legacy references, or computed values that were never persisted:
-//
-//   1. restaurant_delivery_subsidy  — accessed as (order as any).restaurant_delivery_subsidy
-//      in DeliveryFinance.tsx for "توصيل مجاني" subsidy calculations.
-//      Action: run a migration to add this column, or remove the UI references.
-//
-//   2. applied_offer_type  — accessed as (order as any).applied_offer_type
-//      in DeliveryFinance.tsx to detect discount order types.
-//      Action: run a migration to add this column, or remove the UI references.
-// =============================================================================

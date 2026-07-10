@@ -1,3 +1,4 @@
 - [Wasal DB schema](wasal-db-schema.md) — delivery_companies has only id/created_at/is_active; company names come from profiles.full_name
 - [Wasal commission system](wasal-commission.md) — 3-way financial split pattern; supabase `as any` for missing columns; pre-existing TS cast pattern
 - [Supabase DB connectivity](supabase-connectivity.md) — direct db.*.supabase.co is IPv6-only and unreachable here; use the Session Pooler URL instead
+- [Wasal types.ts staleness](wasal-types-staleness.md) — manual types.ts is missing live DB columns/FKs (e.g. delivery_orders subsidy fields, payment_transactions has no FK to profiles); verify against live schema via REST before trusting it

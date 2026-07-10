@@ -14,6 +14,14 @@ import { useToast } from "@/hooks/use-toast";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { PaymentReviewDialog, statusLabels, statusColors } from "@/components/delivery/PaymentReviewDialog";
 import { RestaurantCommissionCard } from "@/components/delivery/RestaurantCommissionCard";
+import type { Tables } from "@/integrations/supabase/types";
+
+type DeliveryOrderRow = Tables<"delivery_orders">;
+type RiderRow = Tables<"riders">;
+type RestaurantRow = Tables<"restaurants">;
+type PaymentTransactionRow = Tables<"payment_transactions"> & {
+  profiles: { full_name: string | null; phone: string | null } | null;
+};
 
 const getPeriodStart = (period: string): Date => {
   const now = new Date();
@@ -25,12 +33,12 @@ const getPeriodStart = (period: string): Date => {
 const DeliveryFinance = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [riders, setRiders] = useState<any[]>([]);
-  const [restaurants, setRestaurants] = useState<any[]>([]);
-  const [paymentTxns, setPaymentTxns] = useState<any[]>([]);
+  const [orders, setOrders] = useState<DeliveryOrderRow[]>([]);
+  const [riders, setRiders] = useState<RiderRow[]>([]);
+  const [restaurants, setRestaurants] = useState<RestaurantRow[]>([]);
+  const [paymentTxns, setPaymentTxns] = useState<PaymentTransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTx, setSelectedTx] = useState<any>(null);
+  const [selectedTx, setSelectedTx] = useState<PaymentTransactionRow | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -46,23 +54,33 @@ const DeliveryFinance = () => {
         getRiders(user.id),
         supabase
           .from("payment_transactions")
-          .select(`*, profiles:user_id ( full_name, phone, email )`)
+          .select("*")
           .eq("partner_id", user.id)
           .order("created_at", { ascending: false })
           .limit(100),
         supabase
           .from("restaurants")
-          .select("id, name_ar, name_en, logo_url, is_active, commission_rate")
+          .select("*")
           .eq("delivery_company_id", user.id)
           .eq("is_active", true)
           .order("created_at", { ascending: false }),
       ]);
       setOrders(o || []);
       setRiders(r || []);
-      setPaymentTxns(txRes.data || []);
+      const txRows = txRes.data || [];
+      const userIds = [...new Set(txRows.map(t => t.user_id).filter(Boolean))];
+      const profilesById = new Map<string, { full_name: string | null; phone: string | null }>();
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone")
+          .in("id", userIds);
+        (profilesData || []).forEach(p => profilesById.set(p.id, p));
+      }
+      setPaymentTxns(txRows.map(t => ({ ...t, profiles: profilesById.get(t.user_id) ?? null })));
       setRestaurants(restRes.data || []);
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ title: "خطأ", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
     } finally { setLoading(false); }
   };
 
@@ -84,10 +102,10 @@ const DeliveryFinance = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  const handleApprove = async (tx: any) => {
+  const handleApprove = async (tx: PaymentTransactionRow) => {
     setProcessing(true);
     try {
-      const { error } = await (supabase.rpc as any)("approve_payment_transaction", {
+      const { error } = await supabase.rpc("approve_payment_transaction", {
         p_transaction_id: tx.id,
         p_approver_id: user!.id,
       });
@@ -95,8 +113,8 @@ const DeliveryFinance = () => {
       toast({ title: "تمت الموافقة" });
       setSelectedTx(null);
       loadData();
-    } catch (err: any) {
-      toast({ title: "تعذّرت الموافقة على المعاملة", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ title: "تعذّرت الموافقة على المعاملة", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
     } finally { setProcessing(false); }
   };
 
@@ -104,7 +122,7 @@ const DeliveryFinance = () => {
     if (!selectedTx) return;
     setProcessing(true);
     try {
-      const { error } = await (supabase.rpc as any)("reject_payment_transaction", {
+      const { error } = await supabase.rpc("reject_payment_transaction", {
         p_transaction_id: selectedTx.id,
         p_approver_id: user!.id,
         p_reason: rejectReason,
@@ -115,20 +133,20 @@ const DeliveryFinance = () => {
       setSelectedTx(null);
       setRejectReason("");
       loadData();
-    } catch (err: any) {
-      toast({ title: "تعذّر رفض المعاملة", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ title: "تعذّر رفض المعاملة", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
     } finally { setProcessing(false); }
   };
 
   // ── Derived financial values ──
   const deliveredOrders = orders.filter(o => o.status === "delivered");
-  const activeCodOrders = orders.filter(o => o.payment_method === "cash" && !["delivered", "cancelled"].includes(o.status));
+  const activeCodOrders = orders.filter(o => o.payment_method === "cash" && !["delivered", "cancelled"].includes(o.status ?? ""));
   const bankDeliveredOrders = deliveredOrders.filter(o => o.payment_method !== "cash");
   const codDeliveredOrders = deliveredOrders.filter(o => o.payment_method === "cash");
   const totalBankDeliveryFees = bankDeliveredOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
   const totalCodDeliveryFees = codDeliveredOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
   const totalCustomerDeliveryFees = totalBankDeliveryFees + totalCodDeliveryFees;
-  const totalRestaurantSubsidies = deliveredOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
+  const totalRestaurantSubsidies = deliveredOrders.reduce((s, o) => s + Number(o.restaurant_delivery_subsidy || 0), 0);
   const totalDeliveryRevenue = totalCustomerDeliveryFees + totalRestaurantSubsidies;
   const totalRiderEarnings = riders.reduce((s, r) => s + Number(r.earnings || 0), 0);
   const pendingTx = paymentTxns.filter(t => t.status === "pending");
@@ -139,16 +157,16 @@ const DeliveryFinance = () => {
     return restaurants.map(rest => {
       const restOrders = deliveredOrders.filter(o => o.restaurant_id === rest.id);
       const restActiveCod = activeCodOrders.filter(o => o.restaurant_id === rest.id);
-      const periodOrders = restOrders.filter(o => new Date(o.created_at) >= periodStart);
+      const periodOrders = restOrders.filter(o => new Date(o.created_at ?? 0) >= periodStart);
 
       const totalFoodRevenue = restOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
       const periodFoodRevenue = periodOrders.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
       const pendingCodFoodRevenue = restActiveCod.reduce((s, o) => s + Number(o.total || 0) - Number(o.delivery_fee || 0), 0);
-      const totalSubsidy = restOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
-      const periodSubsidy = periodOrders.reduce((s, o) => s + Number((o as any).restaurant_delivery_subsidy || 0), 0);
+      const totalSubsidy = restOrders.reduce((s, o) => s + Number(o.restaurant_delivery_subsidy || 0), 0);
+      const periodSubsidy = periodOrders.reduce((s, o) => s + Number(o.restaurant_delivery_subsidy || 0), 0);
 
       const cs = commissionSummaries.get(rest.id);
-      const commissionRate   = cs ? Number(cs.commission_rate)       : Number((rest as any).commission_rate || 0);
+      const commissionRate   = cs ? Number(cs.commission_rate)       : Number(rest.commission_rate || 0);
       const totalCommissionCut  = cs ? Number(cs.total_commission_cut)  : Math.floor(totalFoodRevenue * commissionRate / 100);
       const periodCommissionCut = cs ? Number(cs.period_commission_cut) : Math.floor(periodFoodRevenue * commissionRate / 100);
 
@@ -156,12 +174,12 @@ const DeliveryFinance = () => {
       const periodRevenue = periodFoodRevenue - periodCommissionCut - periodSubsidy;
 
       const allRelevantOrders = [...restOrders, ...restActiveCod]
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
 
-      const freeDeliveryOrders = restOrders.filter(o => Number((o as any).restaurant_delivery_subsidy || 0) > 0);
+      const freeDeliveryOrders = restOrders.filter(o => Number(o.restaurant_delivery_subsidy || 0) > 0);
       const discountOrders = restOrders.filter(o =>
-        ['percent_off_order', 'fixed_off_order', 'percent_off_delivery'].includes((o as any).applied_offer_type || '')
-        && Number((o as any).restaurant_delivery_subsidy || 0) === 0
+        ['percent_off_order', 'fixed_off_order', 'percent_off_delivery'].includes(o.applied_offer_type || '')
+        && Number(o.restaurant_delivery_subsidy || 0) === 0
       );
       const totalDeliveryFeeRevenue = restOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
 
@@ -184,7 +202,7 @@ const DeliveryFinance = () => {
   const COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#ef4444"];
   const statusData = [
     { name: "مكتمل", value: orders.filter(o => o.status === "delivered").length },
-    { name: "نشط", value: orders.filter(o => !["delivered", "cancelled"].includes(o.status)).length },
+    { name: "نشط", value: orders.filter(o => !["delivered", "cancelled"].includes(o.status ?? "")).length },
     { name: "ملغي", value: orders.filter(o => o.status === "cancelled").length },
   ];
 
@@ -247,13 +265,13 @@ const DeliveryFinance = () => {
                       <div key={tx.id} className="bg-card border border-border rounded-xl p-4 space-y-3 cursor-pointer active:bg-muted/50 transition-colors" onClick={() => setSelectedTx(tx)}>
                         <div className="flex items-center justify-between">
                           <p className="font-bold text-base">{Number(tx.amount).toLocaleString()} ر.ي</p>
-                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[tx.status] || "bg-muted text-muted-foreground"}`}>
-                            {statusLabels[tx.status] || tx.status}
+                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[tx.status ?? ""] || "bg-muted text-muted-foreground"}`}>
+                            {statusLabels[tx.status ?? ""] || tx.status}
                           </span>
                         </div>
                         {tx.profiles && <p className="text-sm text-muted-foreground">{tx.profiles.full_name}</p>}
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{new Date(tx.created_at).toLocaleDateString("ar-YE")}</span>
+                          <span>{new Date(tx.created_at ?? 0).toLocaleDateString("ar-YE")}</span>
                           <span className="text-primary font-medium">اضغط للتفاصيل</span>
                         </div>
                       </div>
@@ -286,11 +304,11 @@ const DeliveryFinance = () => {
                               </Badge>
                             </td>
                             <td className="p-3">
-                              <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[tx.status] || "bg-muted"}`}>
-                                {statusLabels[tx.status] || tx.status}
+                              <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[tx.status ?? ""] || "bg-muted"}`}>
+                                {statusLabels[tx.status ?? ""] || tx.status}
                               </span>
                             </td>
-                            <td className="p-3 text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleDateString("ar-YE")}</td>
+                            <td className="p-3 text-xs text-muted-foreground">{new Date(tx.created_at ?? 0).toLocaleDateString("ar-YE")}</td>
                             <td className="p-3" onClick={e => e.stopPropagation()}>
                               {tx.status === "pending" && (
                                 <div className="flex gap-1">

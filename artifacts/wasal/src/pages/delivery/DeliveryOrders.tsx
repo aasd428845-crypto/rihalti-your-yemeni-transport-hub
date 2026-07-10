@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, UserCheck, Eye, XCircle, MessageCircle, ExternalLink, Truck, ChevronRight, ChevronLeft } from "lucide-react";
-import { getDeliveryOrders, updateOrderStatus, getRiders } from "@/lib/deliveryApi";
+import { getDeliveryOrders, updateOrderStatus, getRiders, type DeliveryOrderWithRelations, type RiderRow } from "@/lib/deliveryApi";
 import { ORDER_STATUS_MAP } from "@/types/delivery.types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,14 +20,14 @@ const PAGE_SIZE = 25;
 const DeliveryOrders = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<DeliveryOrderWithRelations[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [riders, setRiders] = useState<any[]>([]);
+  const [riders, setRiders] = useState<RiderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<DeliveryOrderWithRelations | null>(null);
   const [assignOrderId, setAssignOrderId] = useState("");
   const [showAssign, setShowAssign] = useState(false);
   const [flashedOrderIds, setFlashedOrderIds] = useState<Set<string>>(new Set());
@@ -46,8 +46,8 @@ const DeliveryOrders = () => {
       setOrders(ordersData);
       setTotalCount(count);
       setRiders(ridersData || []);
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ title: "خطأ", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
     } finally { setLoading(false); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, statusFilter, search]);
@@ -81,8 +81,8 @@ const DeliveryOrders = () => {
         }
       }
       load();
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ title: "خطأ", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
     }
   };
 
@@ -98,9 +98,10 @@ const DeliveryOrders = () => {
     if (!user) return;
     const channel = supabase
       .channel("delivery-orders-refresh")
-      .on("postgres_changes",
-        { event: "*", schema: "public", table: "delivery_orders", filter: `delivery_company_id=eq.${user.id}` },
-        (payload: any) => {
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "delivery_orders", filter: `delivery_company_id=eq.${user.id}` } as never,
+        (payload: { eventType: string; new: DeliveryOrderWithRelations; old: DeliveryOrderWithRelations }) => {
           const { eventType, new: newRow, old: oldRow } = payload;
           if (eventType === "INSERT") { setPage(1); loadRef.current(1); return; }
           if (eventType === "UPDATE") {
@@ -132,7 +133,7 @@ const DeliveryOrders = () => {
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  const renderActions = (order: any) => (
+  const renderActions = (order: DeliveryOrderWithRelations) => (
     <div className="flex flex-wrap gap-1">
       <Button size="sm" variant="ghost" onClick={() => setSelectedOrder(order)} className="min-h-[44px] md:min-h-0"><Eye className="w-3 h-3" /></Button>
       {!order.rider_id && order.status !== "cancelled" && (
@@ -140,11 +141,11 @@ const DeliveryOrders = () => {
           <UserCheck className="w-3 h-3 ml-1" /> تعيين
         </Button>
       )}
-      {order.rider_id && !["cancelled"].includes(order.status) && (
+      {order.rider_id && !["cancelled"].includes(order.status ?? "") && (
         <>
           {order.rider?.phone && (
             <Button size="sm" variant="outline" className="min-h-[44px] md:min-h-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
-              onClick={() => window.open(buildRiderWhatsApp(order, order.rider.phone), "_blank")} title="إرسال تفاصيل الطلب للمندوب عبر واتساب">
+              onClick={() => window.open(buildRiderWhatsApp(order, order.rider!.phone!), "_blank")} title="إرسال تفاصيل الطلب للمندوب عبر واتساب">
               <MessageCircle className="w-3 h-3" />
             </Button>
           )}
@@ -157,7 +158,7 @@ const DeliveryOrders = () => {
       {order.status === "assigned" && <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(order.id, "picked_up")} className="min-h-[44px] md:min-h-0">تم الاستلام</Button>}
       {order.status === "picked_up" && <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(order.id, "on_the_way")} className="min-h-[44px] md:min-h-0">في الطريق</Button>}
       {order.status === "on_the_way" && <Button size="sm" onClick={() => handleStatusUpdate(order.id, "delivered")} className="min-h-[44px] md:min-h-0">تم التوصيل</Button>}
-      {!["delivered", "cancelled"].includes(order.status) && (
+      {!["delivered", "cancelled"].includes(order.status ?? "") && (
         <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(order.id, "cancelled")} className="min-h-[44px] md:min-h-0">
           <XCircle className="w-3 h-3" />
         </Button>
@@ -193,7 +194,7 @@ const DeliveryOrders = () => {
         <>
           {/* Mobile Cards */}
           <div className="md:hidden space-y-3">
-            {orders.map((order: any) => (
+            {orders.map((order) => (
               <Card key={order.id} className={`transition-colors duration-700 ${flashedOrderIds.has(order.id) ? "bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-800" : ""}`}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between">
@@ -217,14 +218,14 @@ const DeliveryOrders = () => {
                         ) : null;
                       })()}
                     </div>
-                    <Badge variant="outline" className={ORDER_STATUS_MAP[order.status]?.color || ""}>
-                      {ORDER_STATUS_MAP[order.status]?.label || order.status}
+                    <Badge variant="outline" className={ORDER_STATUS_MAP[order.status ?? ""]?.color || ""}>
+                      {ORDER_STATUS_MAP[order.status ?? ""]?.label || order.status}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div><span className="text-muted-foreground">المبلغ:</span> <span className="font-medium">{Number(order.total).toLocaleString()} ر.ي</span></div>
                     <div><span className="text-muted-foreground">المندوب:</span> <span className="font-medium">{order.rider?.full_name || "غير معين"}</span></div>
-                    <div className="col-span-2"><span className="text-muted-foreground">التاريخ:</span> <span className="text-xs">{new Date(order.created_at).toLocaleDateString("ar")}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">التاريخ:</span> <span className="text-xs">{new Date(order.created_at ?? 0).toLocaleDateString("ar")}</span></div>
                   </div>
                   {renderActions(order)}
                 </CardContent>
@@ -245,18 +246,18 @@ const DeliveryOrders = () => {
                 <th className="text-right p-3">إجراءات</th>
               </tr></thead>
               <tbody>
-                {orders.map((order: any) => (
+                {orders.map((order) => (
                   <tr key={order.id} className={`border-b transition-colors duration-700 ${flashedOrderIds.has(order.id) ? "bg-green-50 dark:bg-green-950/30" : "hover:bg-muted/30"}`}>
                     <td className="p-3 font-mono text-xs">{order.id.slice(0, 8)}</td>
                     <td className="p-3"><div>{order.customer_name}</div><div className="text-xs text-muted-foreground">{order.customer_phone}</div></td>
                     <td className="p-3">{Number(order.total).toLocaleString()} ر.ي</td>
                     <td className="p-3">{order.rider?.full_name || <span className="text-muted-foreground">غير معين</span>}</td>
                     <td className="p-3">
-                      <Badge variant="outline" className={ORDER_STATUS_MAP[order.status]?.color || ""}>
-                        {ORDER_STATUS_MAP[order.status]?.label || order.status}
+                      <Badge variant="outline" className={ORDER_STATUS_MAP[order.status ?? ""]?.color || ""}>
+                        {ORDER_STATUS_MAP[order.status ?? ""]?.label || order.status}
                       </Badge>
                     </td>
-                    <td className="p-3 text-xs">{new Date(order.created_at).toLocaleDateString("ar")}</td>
+                    <td className="p-3 text-xs">{new Date(order.created_at ?? 0).toLocaleDateString("ar")}</td>
                     <td className="p-3">{renderActions(order)}</td>
                   </tr>
                 ))}

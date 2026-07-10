@@ -55,7 +55,7 @@ export const createFinancialTransaction = async (tx: {
   due_date?: string;
   metadata?: Record<string, unknown>;
 }) => {
-  return (supabase as any).rpc("create_financial_transaction", {
+  return supabase.rpc("create_financial_transaction", {
     p_transaction_type: tx.transaction_type,
     p_reference_id: tx.reference_id,
     p_customer_id: tx.customer_id,
@@ -66,7 +66,7 @@ export const createFinancialTransaction = async (tx: {
     p_payment_method: tx.payment_method,
     p_payment_status: tx.payment_status ?? "pending",
     p_due_date: tx.due_date ?? null,
-    p_metadata: tx.metadata ?? null,
+    p_metadata: tx.metadata ? JSON.parse(JSON.stringify(tx.metadata)) : null,
   });
 };
 

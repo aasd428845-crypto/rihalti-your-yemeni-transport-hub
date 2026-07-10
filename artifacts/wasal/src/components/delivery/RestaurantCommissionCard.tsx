@@ -6,7 +6,7 @@ import { Store, MessageCircle, FileText, Share2, ChevronDown, ChevronUp } from "
 type RestaurantStat = {
   id: string;
   name_ar: string;
-  logo_url?: string;
+  logo_url?: string | null;
   totalOrders: number;
   pendingCodCount: number;
   periodOrders: number;

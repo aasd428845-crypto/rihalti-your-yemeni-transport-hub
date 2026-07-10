@@ -50,7 +50,7 @@ const AdminPaymentReview = () => {
     if (!user) return;
     setProcessing(true);
     try {
-      const { error } = await (supabase as any).rpc("admin_approve_payment_transaction", {
+      const { error } = await supabase.rpc("admin_approve_payment_transaction", {
         p_transaction_id: tx.id,
       });
       if (error) throw error;
@@ -80,7 +80,7 @@ const AdminPaymentReview = () => {
     if (!user || !selectedTx) return;
     setProcessing(true);
     try {
-      const { error } = await (supabase as any).rpc("admin_reject_payment_transaction", {
+      const { error } = await supabase.rpc("admin_reject_payment_transaction", {
         p_transaction_id: selectedTx.id,
         p_reason: rejectReason,
       });
