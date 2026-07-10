@@ -55,7 +55,19 @@ export const createFinancialTransaction = async (tx: {
   due_date?: string;
   metadata?: Record<string, unknown>;
 }) => {
-  return supabase.from("financial_transactions").insert(tx as any);
+  return (supabase as any).rpc("create_financial_transaction", {
+    p_transaction_type: tx.transaction_type,
+    p_reference_id: tx.reference_id,
+    p_customer_id: tx.customer_id,
+    p_partner_id: tx.partner_id,
+    p_amount: tx.amount,
+    p_platform_commission: tx.platform_commission,
+    p_partner_earning: tx.partner_earning,
+    p_payment_method: tx.payment_method,
+    p_payment_status: tx.payment_status ?? "pending",
+    p_due_date: tx.due_date ?? null,
+    p_metadata: tx.metadata ?? null,
+  });
 };
 
 export const calculateCommission = async (

@@ -1,0 +1,15 @@
+migration 021 أعادت سياسة SELECT واحدة فقط على financial_transactions لدور الشريك (partner_id = auth.uid()). لكن جدول financial_transactions لا يزال بدون أي سياسة SELECT للعميل أو الأدمن أو سائق التوصيل، وبدون أي سياسة INSERT لأي دور. هذا يكسر فعلياً الملفات التالية التي لم تُعدَّل بعد:
+- src/pages/customer/PaymentPage.tsx (يحتاج العميل رؤية معاملاته المرتبطة بحجوزاته/طلباته)
+- src/pages/admin/AdminPaymentReview.tsx و src/pages/admin/AdminPartnerProfile.tsx (يحتاج الأدمن رؤية كل شيء)
+- src/pages/delivery-driver/DeliveryDriverEarnings.tsx و DeliveryDriverOrderDetails.tsx (يحتاج السائق رؤية ما يخص طلباته فقط)
+- src/lib/accountingApi.ts سطر 58 (supabase.from("financial_transactions").insert(tx as any)) — لا توجد أي سياسة INSERT حالياً لأي دور غير service_role، فهذا الإدراج يفشل حالياً أينما استُدعي.
+- src/lib/reportsApi.ts (تقارير الأدمن المجمّعة)
+
+المطلوب في ملف هجرة جديد supabase/migrations/027_financial_transactions_role_access.sql (لا تعدّل 020 أو 021):
+
+1. سياسة SELECT للأدمن: FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin')) — وصول كامل للقراءة فقط.
+2. سياسة SELECT للعميل: FOR SELECT TO authenticated USING (user_id = auth.uid()) — يرى فقط معاملاته الخاصة (تحقق أولاً من اسم العمود الفعلي الذي يربط المعاملة بالعميل في هذا الجدول، قد يكون user_id أو customer_id).
+3. سياسة SELECT لسائق التوصيل: تسمح للسائق برؤية المعاملات المرتبطة فقط بالطلبات المعيّن عليها هو (عبر EXISTS (SELECT 1 FROM delivery_orders WHERE delivery_orders.id = financial_transactions.reference_id AND delivery_orders.rider_id = auth.uid())) أو ما يعادل هذا حسب بنية الربط الفعلية بين الجدولين.
+4. لا تضف سياسة INSERT مفتوحة مباشرة على الجدول. بدلاً من ذلك، أنشئ دالة SECURITY DEFINER باسم public.create_financial_transaction(...) بنفس معاملات الإدراج التي يستخدمها accountingApi.ts حالياً، تتحقق داخلياً أن المستخدم المستدعي له علاقة فعلية بالكيان المرتبط (reference_id) قبل الإدراج (نفس نمط دوال payment_approval الموجودة أصلاً في migration 021)، وعدّل src/lib/accountingApi.ts لاستدعاء supabase.rpc('create_financial_transaction', {...}) بدلاً من .insert() المباشر.
+5. عدّل src/lib/reportsApi.ts إن احتاج أي دالة RPC مجمّعة إضافية لتفادي فحص صلاحية كل صف عند التجميع (اختياري، فقط إن كان أداء الاستعلام الحالي مقبولاً بعد إضافة سياسة الأدمن يمكنك تركه كما هو).
+6. اختبر: تسجيل دخول كعميل → فتح صفحة الدفع، كأدمن → مراجعة المدفوعات، كسائق → صفحة الأرباح — تأكد أن كل واحد يرى بياناته الخاصة فقط ولا يرى بيانات الأدوار الأخرى.
