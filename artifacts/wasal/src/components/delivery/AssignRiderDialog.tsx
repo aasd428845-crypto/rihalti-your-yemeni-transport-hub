@@ -9,6 +9,7 @@ import { assignRiderToOrder, getRiderOutstandingCash } from "@/lib/deliveryApi";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { isDeliveryRequest, getDeliveryRequestInfo, buildRiderWhatsApp, buildRiderTelegram } from "@/lib/riderMessageBuilder";
+import { logNotificationFailure } from "@/lib/notificationFailureLogger";
 
 interface Props {
   open: boolean;
@@ -66,27 +67,31 @@ export const AssignRiderDialog = ({ open, assignOrderId, orders, riders, onClose
           paymentMsg,
         ].filter(Boolean).join(" | ");
 
+        const pushPayload = {
+          userId: rider.user_id || rider.id,
+          title: "🚚 تم تعيينك في طلب جديد!",
+          body: notifBody,
+          sound: "delivery",
+          data: { type: "rider_assigned", orderId: assignOrderId },
+        };
         try {
-          await supabase.functions.invoke("send-push-notification", {
-            body: {
-              userId: rider.user_id || rider.id,
-              title: "🚚 تم تعيينك في طلب جديد!",
-              body: notifBody,
-              sound: "delivery",
-              data: { type: "rider_assigned", orderId: assignOrderId },
-            },
-          });
-        } catch (_) {}
+          await supabase.functions.invoke("send-push-notification", { body: pushPayload });
+        } catch (pushErr) {
+          logNotificationFailure("send-push-notification", pushPayload, pushErr);
+        }
 
+        const inAppPayload = {
+          user_id: rider.user_id || rider.id,
+          title: "🚚 تم تعيينك في طلب جديد!",
+          body: notifBody,
+          data: { type: "rider_assigned", order_id: assignOrderId },
+          is_read: false,
+        };
         try {
-          await (supabase.from as any)("notifications").insert({
-            user_id: rider.user_id || rider.id,
-            title: "🚚 تم تعيينك في طلب جديد!",
-            body: notifBody,
-            data: { type: "rider_assigned", order_id: assignOrderId },
-            is_read: false,
-          });
-        } catch (_) {}
+          await (supabase.from as any)("notifications").insert(inAppPayload);
+        } catch (inAppErr) {
+          logNotificationFailure("notifications.insert", inAppPayload, inAppErr);
+        }
       }
 
       toast({ title: "تم تعيين المندوب بنجاح", description: "تم إرسال إشعار للمندوب بتفاصيل الدفع" });

@@ -9,6 +9,7 @@ import { ORDER_STATUS_MAP } from "@/types/delivery.types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { isDeliveryRequest, getDeliveryRequestInfo } from "@/lib/riderMessageBuilder";
+import { logNotificationFailure } from "@/lib/notificationFailureLogger";
 
 interface Props {
   order: any | null;
@@ -50,25 +51,29 @@ export const OrderDetailsDialog = ({ order, onClose, onSuccess }: Props) => {
           .update({ status: "verified", verified_by: user.id, verified_at: new Date().toISOString() })
           .eq("id", paymentTx.id);
       }
+      const pushPayload = {
+        userId: order.customer_id,
+        title: "✅ تم تأكيد طلبك!",
+        body: `تم قبول طلبك من ${order.restaurant?.name_ar || "المطعم"}. جاري التحضير 🍳`,
+        sound: "order_confirmed",
+        data: { type: "order_confirmed", orderId: order.id },
+      };
       try {
-        await supabase.functions.invoke("send-push-notification", {
-          body: {
-            userId: order.customer_id,
-            title: "✅ تم تأكيد طلبك!",
-            body: `تم قبول طلبك من ${order.restaurant?.name_ar || "المطعم"}. جاري التحضير 🍳`,
-            sound: "order_confirmed",
-            data: { type: "order_confirmed", orderId: order.id },
-          },
-        });
-      } catch {}
+        await supabase.functions.invoke("send-push-notification", { body: pushPayload });
+      } catch (pushErr) {
+        logNotificationFailure("send-push-notification", pushPayload, pushErr);
+      }
+      const inAppPayload = {
+        user_id: order.customer_id,
+        title: "✅ تم تأكيد طلبك!",
+        body: `تم قبول طلبك. جاري التحضير...`,
+        data: { type: "order_confirmed", orderId: order.id },
+      };
       try {
-        await supabase.from("notifications").insert({
-          user_id: order.customer_id,
-          title: "✅ تم تأكيد طلبك!",
-          body: `تم قبول طلبك. جاري التحضير...`,
-          data: { type: "order_confirmed", orderId: order.id } as any,
-        });
-      } catch {}
+        await supabase.from("notifications").insert(inAppPayload as any);
+      } catch (inAppErr) {
+        logNotificationFailure("notifications.insert", inAppPayload, inAppErr);
+      }
       toast({ title: "✅ تم تأكيد الطلب", description: "تم إشعار العميل بصوت وإشعار فوري" });
       onClose();
       onSuccess();

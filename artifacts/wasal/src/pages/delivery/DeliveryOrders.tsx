@@ -11,6 +11,7 @@ import { ORDER_STATUS_MAP } from "@/types/delivery.types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { isDeliveryRequest, getDeliveryRequestInfo, buildRiderWhatsApp, buildRiderTelegram } from "@/lib/riderMessageBuilder";
+import { logNotificationFailure } from "@/lib/notificationFailureLogger";
 import { OrderDetailsDialog } from "@/components/delivery/OrderDetailsDialog";
 import { AssignRiderDialog } from "@/components/delivery/AssignRiderDialog";
 
@@ -66,11 +67,18 @@ const DeliveryOrders = () => {
       const order = orders.find(o => o.id === orderId);
       if (order?.customer_id) {
         const statusLabel = ORDER_STATUS_MAP[status]?.label || status;
+        const pushPayload = {
+          userId: order.customer_id,
+          title: "تحديث حالة الطلب 📦",
+          body: `حالة طلبك: ${statusLabel}`,
+          sound: "delivery",
+          data: { type: "order_status", orderId },
+        };
         try {
-          await supabase.functions.invoke("send-push-notification", {
-            body: { userId: order.customer_id, title: "تحديث حالة الطلب 📦", body: `حالة طلبك: ${statusLabel}`, sound: "delivery", data: { type: "order_status", orderId } },
-          });
-        } catch {}
+          await supabase.functions.invoke("send-push-notification", { body: pushPayload });
+        } catch (pushErr) {
+          logNotificationFailure("send-push-notification", pushPayload, pushErr);
+        }
       }
       load();
     } catch (err: any) {
