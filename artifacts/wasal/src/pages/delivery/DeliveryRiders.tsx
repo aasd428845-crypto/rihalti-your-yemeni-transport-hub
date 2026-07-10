@@ -108,31 +108,16 @@ const DeliveryRiders = () => {
           toast({ title: "البريد الإلكتروني غير صالح", description: "أدخل بريد إلكتروني صحيح للمندوب.", variant: "destructive" });
           return;
         }
-        const token = crypto.randomUUID();
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
-        const { error: tokErr } = await supabase.from("invitation_tokens").insert({
-          email,
-          role: "delivery_driver",
-          token,
-          created_by: user.id,
-          expires_at: expiresAt.toISOString(),
-        });
-        if (tokErr) throw tokErr;
+        // Atomic: creates invitation_tokens + riders placeholder in one DB transaction.
+        // If a non-approved placeholder already exists for this email/company, it
+        // is reused (re-invite) instead of creating a duplicate.
+        const { data: rpcToken, error: rpcErr } = await (supabase.rpc as any)(
+          "create_rider_invitation",
+          { p_email: email, p_company_id: user.id, p_created_by: user.id },
+        );
+        if (rpcErr) throw rpcErr;
 
-        // Pre-create a rider row (placeholder) so it's ready when the driver registers
-        try {
-          await supabase.from("riders").insert({
-            delivery_company_id: user.id,
-            email,
-            full_name: email.split("@")[0],
-            phone: "",
-            is_active: false,
-            is_approved: false,
-          } as any);
-        } catch (_) {}
-
-        const link = `${window.location.origin}/invite/${token}`;
+        const link = `${window.location.origin}/invite/${rpcToken}`;
         setShowAdd(false);
         setNewRiderEmail("");
         setInviteLink(link);
