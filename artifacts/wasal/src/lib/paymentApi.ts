@@ -46,17 +46,7 @@ export const getCashOnDeliverySetting = async (): Promise<boolean> => {
   return data.value === "true";
 };
 
-// ==================== Trip & Supplier Details ====================
-export const getTripDetails = async (tripId: string) => {
-  const { data, error } = await supabase
-    .from("trips")
-    .select("*")
-    .eq("id", tripId)
-    .single();
-  if (error) throw error;
-  return data;
-};
-
+// ==================== Partner Profile ====================
 export const getSupplierProfile = async (supplierId: string) => {
   const { data } = await supabase
     .from("profiles")
@@ -140,10 +130,8 @@ export const updatePaymentTransaction = async (
 // ==================== Helpers ====================
 export const getEntityDetails = async (entityType: string, entityId: string) => {
   const tableMap: Record<string, string> = {
-    booking: "bookings",
-    shipment: "shipment_requests",
     delivery: "delivery_orders",
-    ride: "ride_requests",
+    shipment: "shipment_requests",
   };
   const table = tableMap[entityType];
   if (!table) return null;

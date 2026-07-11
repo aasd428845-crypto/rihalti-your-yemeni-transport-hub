@@ -74,10 +74,6 @@ const DeliveryBanners = lazy(() => import("./pages/delivery/DeliveryBanners"));
 const DeliveryOffers = lazy(() => import("./pages/delivery/DeliveryOffers"));
 const DeliveryPricing = lazy(() => import("./pages/delivery/DeliveryPricing"));
 // Customer Pages (lazy loaded)
-const CheckoutPage = lazy(() => import("./pages/customer/CheckoutPage"));
-// ShipmentsPage was the old supplier-based parcel flow. It is intentionally
-// no longer routed; /shipments now redirects to /delivery-request which uses
-// the delivery-company flow.
 const DeliveryRequestPage = lazy(() => import("./pages/customer/DeliveryRequestPage"));
 const DeliveriesPage = lazy(() => import("./pages/customer/DeliveriesPage"));
 const HistoryPage = lazy(() => import("./pages/customer/HistoryPage"));
@@ -163,10 +159,7 @@ const App = () => (
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/terms/company" element={<CompanyTermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
-                <Route path="/checkout/:tripId" element={<CheckoutPage />} />
-                {/* /shipments was the old supplier-based page; redirect to the
-                   delivery-company flow so all existing tiles/links land on the
-                   correct page. */}
+                <Route path="/checkout/:tripId" element={<Navigate to="/delivery-request" replace />} />
                 <Route path="/shipments" element={<Navigate to="/delivery-request" replace />} />
                 <Route path="/delivery-request" element={<DeliveryRequestPage />} />
                 <Route path="/deliveries" element={<DeliveriesPage />} />

@@ -16,22 +16,19 @@ import {
   createFinancialTransaction,
   uploadPaymentReceipt,
   getEntityDetails,
-  getTripDetails,
   getSupplierProfile,
   getAccountingSettings,
   getCashOnDeliverySetting,
 } from "@/lib/paymentApi";
 import { getPartnerSettings, PartnerSettings } from "@/lib/partnerSettingsApi";
 import { fetchSupplierBankAccounts } from "@/lib/customerApi";
-import { Upload, CreditCard, Building2, CheckCircle, Loader2, Banknote, MapPin, Calendar, Users, Bus, StickyNote } from "lucide-react";
+import { Upload, CreditCard, Building2, CheckCircle, Loader2, Banknote, StickyNote } from "lucide-react";
 import BackButton from "@/components/common/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 
 const entityLabels: Record<string, string> = {
-  booking: "حجز رحلة",
-  shipment: "طرد",
   delivery: "طلب توصيل",
-  ride: "رحلة أجرة",
+  shipment: "طلب شحن",
 };
 
 const PaymentPage = () => {
@@ -59,8 +56,6 @@ const PaymentPage = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [customerNotes, setCustomerNotes] = useState("");
 
-  // Booking-specific state
-  const [tripDetails, setTripDetails] = useState<any>(null);
   const [supplierInfo, setSupplierInfo] = useState<any>(null);
   const [commissionRate, setCommissionRate] = useState<number>(10);
   const [cashEnabled, setCashEnabled] = useState<boolean>(true);
@@ -80,40 +75,20 @@ const PaymentPage = () => {
         const accSettings = await getAccountingSettings();
         if (accSettings) {
           const rateMap: Record<string, number> = {
-            booking: accSettings.global_commission_booking,
-            shipment: accSettings.global_commission_shipment,
             delivery: accSettings.global_commission_delivery,
-            ride: accSettings.global_commission_ride,
+            shipment: accSettings.global_commission_shipment,
           };
           setCommissionRate(rateMap[entityType] ?? 10);
         }
 
         // Determine partner ID
-        let partnerId: string | null = null;
-
-          if (entityType === "booking" && entityData?.trip_id) {
-            const trip = await getTripDetails(entityData.trip_id);
-            setTripDetails(trip);
-            partnerId = trip?.supplier_id;
-
-            if (partnerId) {
-              const profile = await getSupplierProfile(partnerId);
-              // Remove phone from supplier info shown to customer (privacy)
-              setSupplierInfo(profile ? { full_name: profile.full_name, company_name: profile.company_name } : null);
-              // Fetch partner's bank accounts
-              const banks = await fetchSupplierBankAccounts(partnerId);
-              setPartnerBankAccounts(banks || []);
-            }
-          } else {
-            partnerId = entityData?.supplier_id || entityData?.delivery_company_id || entityData?.driver_id;
-            if (partnerId) {
-              const banks = await fetchSupplierBankAccounts(partnerId);
-              setPartnerBankAccounts(banks || []);
-              // Fetch partner profile without phone
-              const profile = await getSupplierProfile(partnerId);
-              setSupplierInfo(profile ? { full_name: profile.full_name, company_name: profile.company_name } : null);
-            }
-          }
+        const partnerId = entityData?.delivery_company_id || entityData?.supplier_id || entityData?.driver_id;
+        if (partnerId) {
+          const banks = await fetchSupplierBankAccounts(partnerId);
+          setPartnerBankAccounts(banks || []);
+          const profile = await getSupplierProfile(partnerId);
+          setSupplierInfo(profile ? { full_name: profile.full_name, company_name: profile.company_name } : null);
+        }
 
         // Fetch platform bank accounts as fallback
         const platAccs = await getPlatformBankAccounts();
@@ -156,44 +131,20 @@ const PaymentPage = () => {
   };
 
   const getPartnerId = () => {
-    if (entityType === "booking" && tripDetails) return tripDetails.supplier_id;
-    return entity?.supplier_id || entity?.delivery_company_id || entity?.driver_id;
+    return entity?.delivery_company_id || entity?.supplier_id || entity?.driver_id;
   };
 
   // Determine available payment methods
   const getAvailableMethods = () => {
     const methods: { value: string; label: string; description: string }[] = [];
 
-    const isRide = entityType === "ride";
-    const isBooking = entityType === "booking";
-
     // Cash option
-    if (cashEnabled) {
-      if (isRide) {
-        if (partnerSettings?.cash_on_ride_enabled !== false) {
-          methods.push({
-            value: "cash",
-            label: "نقداً عند الركوب",
-            description: "ادفع نقداً للسائق مباشرة",
-          });
-        }
-      } else if (isBooking) {
-        if (partnerSettings?.cash_on_delivery_enabled !== false) {
-          methods.push({
-            value: "cash",
-            label: "نقداً عند الصعود",
-            description: "ادفع نقداً عند صعود الحافلة",
-          });
-        }
-      } else {
-        if (partnerSettings?.cash_on_delivery_enabled !== false) {
-          methods.push({
-            value: "cash",
-            label: "نقداً عند الاستلام",
-            description: "ادفع نقداً عند استلام الطلب",
-          });
-        }
-      }
+    if (cashEnabled && partnerSettings?.cash_on_delivery_enabled !== false) {
+      methods.push({
+        value: "cash",
+        label: "نقداً عند الاستلام",
+        description: "ادفع نقداً عند استلام الطلب",
+      });
     }
 
     // Partner bank transfer (partner's own accounts)
@@ -201,16 +152,10 @@ const PaymentPage = () => {
       const isDelivery = entityType === "delivery";
       methods.push({
         value: "partner_transfer",
-        label: isBooking
-          ? "تحويل إلى حساب صاحب المكتب"
-          : isDelivery
-            ? "تحويل بنكي إلى شركة التوصيل"
-            : "تحويل بنكي إلى الشريك",
-        description: isBooking
-          ? "حوّل المبلغ إلى الحساب البنكي لصاحب المكتب"
-          : isDelivery
-            ? "حوّل المبلغ مباشرة إلى حساب شركة التوصيل"
-            : "حوّل المبلغ مباشرة إلى حساب مقدم الخدمة",
+        label: isDelivery ? "تحويل بنكي إلى شركة التوصيل" : "تحويل بنكي إلى الشريك",
+        description: isDelivery
+          ? "حوّل المبلغ مباشرة إلى حساب شركة التوصيل"
+          : "حوّل المبلغ مباشرة إلى حساب مقدم الخدمة",
       });
     }
 
@@ -282,17 +227,6 @@ const PaymentPage = () => {
       });
 
       // Update entity with payment info & barcode
-      if (entityType === "booking") {
-        await supabase.from("bookings").update({
-          payment_method: payMethodDb,
-          payment_status: "pending",
-          payer_name: payerName.trim() || null,
-          payer_phone: payerPhone.trim() || null,
-          payment_receipt_url: receiptUrl || null,
-          customer_notes: customerNotes.trim() || null,
-        } as any).eq("id", entityId);
-      }
-
       if (entityType === "delivery") {
         const updates: any = {
           payment_method: payMethodDb,
@@ -368,7 +302,7 @@ const PaymentPage = () => {
             });
           } catch {}
         }
-        toast({ title: "تم بنجاح", description: entityType === "booking" ? "تم تأكيد الدفع نقداً عند الصعود" : "تم تأكيد الدفع نقداً عند الاستلام" });
+        toast({ title: "تم بنجاح", description: "تم تأكيد الدفع نقداً عند الاستلام" });
       }
 
       navigate("/payment-success");
@@ -415,43 +349,6 @@ const PaymentPage = () => {
               <Badge variant="outline">{entityLabels[entityType || ""] || entityType}</Badge>
             </div>
 
-            {entityType === "booking" && entity && (
-              <>
-                {tripDetails && (
-                  <>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> من</span>
-                      <span className="font-medium">{tripDetails.from_city}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> إلى</span>
-                      <span className="font-medium">{tripDetails.to_city}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> موعد الانطلاق</span>
-                      <span className="font-medium">{new Date(tripDetails.departure_time).toLocaleString("ar")}</span>
-                    </div>
-                    {tripDetails.bus_company && (
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground flex items-center gap-1"><Bus className="w-3 h-3" /> شركة النقل</span>
-                        <span className="font-medium">{tripDetails.bus_company}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" /> عدد المقاعد</span>
-                  <span className="font-medium">{entity.seat_count}</span>
-                </div>
-                {supplierInfo && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">صاحب المكتب</span>
-                    <span className="font-medium">{supplierInfo.full_name || supplierInfo.company_name}</span>
-                  </div>
-                )}
-              </>
-            )}
-
             {entityType === "delivery" && entity && (
               <>
                 <div className="flex justify-between items-center text-sm">
@@ -463,13 +360,6 @@ const PaymentPage = () => {
                   <span className="font-medium text-xs max-w-[200px] truncate">{entity.customer_address}</span>
                 </div>
               </>
-            )}
-
-            {entityType === "shipment" && entity && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">نوع الشحنة</span>
-                <span className="font-medium">{entity.shipment_type}</span>
-              </div>
             )}
 
             <div className="border-t pt-3 flex justify-between items-center">
@@ -614,7 +504,7 @@ const PaymentPage = () => {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder={entityType === "booking" ? "مثال: أريد أن ينتظرني السائق أمام المنزل / مكان الانتظار..." : "أضف أي ملاحظة تريد إبلاغها لمقدم الخدمة"}
+                placeholder="أضف أي ملاحظة تريد إبلاغها لمقدم الخدمة"
                 value={customerNotes}
                 onChange={(e) => setCustomerNotes(e.target.value)}
                 rows={3}

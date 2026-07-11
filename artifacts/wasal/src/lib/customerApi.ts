@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { TripSearchParams, BookingFormData, ShipmentFormData, DeliveryFormData } from "@/types/customer.types";
+import type { DeliveryFormData } from "@/types/customer.types";
 
 // Helper: check auto-approve setting
 const getAutoApproveSetting = async (key: string): Promise<boolean> => {
@@ -121,110 +121,7 @@ export const fetchCountries = async () => {
   return data;
 };
 
-// ---- Trips ----
-export const searchTrips = async (params: TripSearchParams) => {
-  let query = supabase
-    .from("trips")
-    .select("*")
-    .eq("status", "approved")
-    .gte("available_seats", 1)
-    .gte("departure_time", new Date().toISOString());
-
-  if (params.from_city) query = query.ilike("from_city", `%${params.from_city}%`);
-  if (params.to_city) query = query.ilike("to_city", `%${params.to_city}%`);
-  if (params.date) {
-    const start = new Date(params.date);
-    const end = new Date(params.date);
-    end.setDate(end.getDate() + 1);
-    query = query.gte("departure_time", start.toISOString()).lt("departure_time", end.toISOString());
-  }
-  if (params.period) query = query.eq("period", params.period);
-  if (params.min_price) query = query.gte("price", params.min_price);
-  if (params.max_price) query = query.lte("price", params.max_price);
-  if (params.bus_company) query = query.ilike("bus_company", `%${params.bus_company}%`);
-
-  const { data: trips, error } = await query.order("departure_time", { ascending: true });
-  if (error) throw error;
-  if (!trips || trips.length === 0) return [];
-
-  // Fetch supplier profiles
-  const supplierIds = [...new Set(trips.map(t => t.supplier_id))];
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("user_id, full_name, logo_url, phone, city")
-    .in("user_id", supplierIds);
-
-  const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
-  return trips.map(t => ({ ...t, supplier: profileMap.get(t.supplier_id) || null }));
-};
-
-export const fetchFeaturedTrips = async () => {
-  const { data: trips, error } = await supabase
-    .from("trips")
-    .select("*")
-    .eq("status", "approved")
-    .gte("available_seats", 1)
-    .gte("departure_time", new Date().toISOString())
-    .order("created_at", { ascending: false })
-    .limit(6);
-  if (error) throw error;
-  if (!trips || trips.length === 0) return [];
-
-  const supplierIds = [...new Set(trips.map(t => t.supplier_id))];
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("user_id, full_name, logo_url")
-    .in("user_id", supplierIds);
-  const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
-  return trips.map(t => ({ ...t, supplier: profileMap.get(t.supplier_id) || null }));
-};
-
-export const fetchTripById = async (id: string) => {
-  const { data: trip, error } = await supabase
-    .from("trips")
-    .select("*")
-    .eq("id", id)
-    .single();
-  if (error) throw error;
-
-  // Fetch supplier profile separately
-  const { data: supplierProfile } = await supabase
-    .from("profiles")
-    .select("user_id, full_name, logo_url, phone, city")
-    .eq("user_id", trip.supplier_id)
-    .single();
-
-  return { ...trip, supplier: supplierProfile || null };
-};
-
-// ---- Bookings ----
-export const createBooking = async (booking: BookingFormData & { customer_id: string }) => {
-  const autoApprove = await getAutoApproveSetting("auto_approve_bookings");
-  const status = autoApprove ? "confirmed" : "pending_approval";
-
-  const { data, error } = await supabase.from("bookings").insert({
-    trip_id: booking.trip_id,
-    customer_id: booking.customer_id,
-    seat_count: booking.seat_count,
-    total_amount: booking.total_amount,
-    payment_method: null,
-    status,
-    payment_status: "pending",
-  }).select().single();
-  if (error) throw error;
-
-  // Decrease available seats
-  const trip = await fetchTripById(booking.trip_id);
-  if (trip) {
-    await supabase
-      .from("trips")
-      .update({ available_seats: Math.max(0, trip.available_seats - booking.seat_count) })
-      .eq("id", booking.trip_id);
-  }
-
-  return data;
-};
-
+// ---- Bookings (read-only history) ----
 export const fetchMyBookings = async (customerId: string) => {
   const { data, error } = await supabase
     .from("bookings")
@@ -235,53 +132,7 @@ export const fetchMyBookings = async (customerId: string) => {
   return data;
 };
 
-// ---- Shipments ----
-export const fetchSuppliers = async () => {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("user_id")
-    .eq("role", "supplier");
-  if (error) throw error;
-
-  if (!data || data.length === 0) return [];
-
-  const userIds = data.map((r) => r.user_id);
-  const { data: profiles, error: pErr } = await supabase
-    .from("profiles")
-    .select("*")
-    .in("user_id", userIds);
-  if (pErr) throw pErr;
-  return profiles || [];
-};
-
-export const createShipmentRequest = async (shipment: ShipmentFormData & { customer_id: string }) => {
-  const autoApprove = await getAutoApproveSetting("auto_approve_shipments");
-  const status = autoApprove ? "pending_pricing" : "pending_approval";
-
-  const { data, error } = await supabase.from("shipment_requests").insert({
-    customer_id: shipment.customer_id,
-    supplier_id: shipment.supplier_id,
-    shipment_type: shipment.shipment_type,
-    pickup_address: shipment.pickup_address,
-    pickup_lat: shipment.pickup_lat,
-    pickup_lng: shipment.pickup_lng,
-    delivery_address: shipment.delivery_address,
-    delivery_lat: shipment.delivery_lat,
-    delivery_lng: shipment.delivery_lng,
-    pickup_landmark: shipment.pickup_landmark,
-    delivery_landmark: shipment.delivery_landmark,
-    recipient_name: shipment.recipient_name,
-    recipient_phone: shipment.recipient_phone,
-    item_description: shipment.item_description,
-    item_weight: shipment.item_weight,
-    item_dimensions: shipment.item_dimensions,
-    payment_method: shipment.payment_method,
-    status,
-  }).select().single();
-  if (error) throw error;
-  return data;
-};
-
+// ---- Shipments (read-only history) ----
 export const fetchMyShipments = async (customerId: string) => {
   const { data, error } = await supabase
     .from("shipment_requests")
