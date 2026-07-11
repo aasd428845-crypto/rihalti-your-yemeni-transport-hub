@@ -74,18 +74,42 @@ const DeliveryDriverOrderDetails = () => {
   const acceptOrder = async () => {
     if (!order || !driverData) return;
     setUpdating(true);
-    const { error } = await supabase
-      .from("delivery_orders")
-      .update({ rider_id: driverData.id, status: "assigned", assigned_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq("id", order.id)
-      .eq("status", "pending");
 
-    if (error) {
-      toast({ title: "خطأ", description: "تعذر قبول الطلب. ربما تم قبوله من مندوب آخر.", variant: "destructive" });
+    const { data: accepted, error } = await supabase
+      .from("delivery_orders")
+      .update({
+        rider_id: driverData.id,
+        status: "assigned",
+        assigned_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", order.id)
+      .eq("status", "pending")   // atomic guard — only matches if still pending
+      .select()
+      .single();
+
+    if (error || !accepted) {
+      // PGRST116 = "no rows returned" → another rider won the race.
+      // Any other error is also a failure — show the same clear message.
+      toast({
+        title: "لم يتم قبول الطلب",
+        description: "تم قبول هذا الطلب من مندوب آخر للتو",
+        variant: "destructive",
+      });
+      // Reload the order immediately so the UI reflects the real state
+      const { data: fresh } = await supabase
+        .from("delivery_orders")
+        .select("*")
+        .eq("id", order.id)
+        .maybeSingle();
+      if (fresh) setOrder(fresh);
     } else {
+      setOrder(accepted);
       toast({ title: "تم قبول الطلب ✅", description: "توجه لاستلام الطلب" });
-      if (order.customer_id) sendNotification(order.customer_id, "تم تعيين مندوب لطلبك 🚚", "مندوب التوصيل في طريقه لاستلام طلبك", { type: "delivery_assigned", orderId: order.id });
-      if (order.delivery_company_id) sendNotification(order.delivery_company_id, "تم قبول طلب من مندوب", `المندوب قبل الطلب #${order.id.slice(0, 8)}`, { type: "order_accepted", orderId: order.id });
+      if (order.customer_id)
+        sendNotification(order.customer_id, "تم تعيين مندوب لطلبك 🚚", "مندوب التوصيل في طريقه لاستلام طلبك", { type: "delivery_assigned", orderId: order.id });
+      if (order.delivery_company_id)
+        sendNotification(order.delivery_company_id, "تم قبول طلب من مندوب", `المندوب قبل الطلب #${order.id.slice(0, 8)}`, { type: "order_accepted", orderId: order.id });
     }
     setUpdating(false);
   };
