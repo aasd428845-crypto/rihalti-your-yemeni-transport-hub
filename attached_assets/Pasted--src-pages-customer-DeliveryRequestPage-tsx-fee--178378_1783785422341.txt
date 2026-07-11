@@ -1,0 +1,17 @@
+في src/pages/customer/DeliveryRequestPage.tsx، السعر النهائي (fee) يُحسب بالكامل في متصفح العميل (بناءً على pricePerKm والمسافة المحسوبة محلياً)، ثم يُرسل ضمن orderPayload (يحتوي على الحقلين total وdelivery_fee بقيمة fee نفسها) مباشرة عبر createDeliveryOrder() في src/lib/deliveryApi.ts، والتي تنفذ supabase.from("delivery_orders").insert(order) مباشرة من المتصفح دون أي إعادة تحقق من السيرفر. هذا يعني أن أي عميل يستطيع تعديل قيمة الطلب (عبر اعتراض الطلب أو أدوات المطوّر) وإرسال أي سعر يريده، بما في ذلك صفر.
+
+قارن هذا بالنمط الصحيح الموجود فعلاً في api/orders/create.ts (خاص بطلبات المطاعم)، والذي: يستقبل من العميل فقط بيانات غير حساسة (معرّفات، كميات)، ثم يعيد حساب السعر الحقيقي بالكامل من جانب السيرفر باستخدام service_role key قبل الإدراج.
+
+المطلوب: طبّق نفس النمط بالضبط على طلبات التوصيل العامة:
+
+1. أنشئ ملف serverless function جديد في api/delivery-requests/create.ts (بنفس بنية api/orders/create.ts وبنفس آلية التحقق من هوية المستخدم عبر Authorization header وsupabase.auth.getUser).
+2. يجب أن يستقبل من العميل فقط البيانات غير السعرية: delivery_company_id, customer_name, customer_phone, customer_address, delivery_lat, delivery_lng, pickup_address, pickup_lat, pickup_lng, service_type, item_size, item_description, image_url, notes, sender/recipient info, applied_offer_id (إن وُجد). لا يستقبل price أو fee أو total أو delivery_fee كقيمة نهائية موثوقة من العميل — فقط pickup_lat/pickup_lng وdelivery_lat/delivery_lng لحساب المسافة.
+3. على السيرفر: 
+   - اجلب price_per_km الفعلي لشركة التوصيل (delivery_company_id) من جدول partner_settings (أو الجدول الصحيح المستخدم فعلياً، تحقق من الاسم الدقيق في الكود الحالي).
+   - أعد حساب المسافة الحقيقية بين pickup وdelivery lat/lng على السيرفر (استخدم نفس صيغة الـ haversine الموجودة في src/lib/distanceUtils.ts، انسخها أو أعد استخدامها في الدالة الخلفية).
+   - احسب السعر النهائي = المسافة الحقيقية × price_per_km الحقيقي (مع تطبيق أي عرض ترويجي فعّال يُتحقق منه أيضاً من قاعدة البيانات مباشرة، وليس من قيمة يرسلها العميل).
+   - إن كان هناك سيناريو awaitingPricing (السعر يُحدَّد لاحقاً من شركة التوصيل يدوياً)، حافظ على هذا المسار كما هو (السماح بإنشاء الطلب بدون سعر نهائي في هذه الحالة فقط)، لكن في أي حالة أخرى يجب أن يكون السعر محسوباً من السيرفر حصراً.
+   - أدرج الطلب في delivery_orders باستخدام service_role key.
+4. عدّل src/pages/customer/DeliveryRequestPage.tsx لاستدعاء fetch("/api/delivery-requests/create", {...}) بدلاً من createDeliveryOrder() المباشرة، بنفس أسلوب RestaurantCheckoutPage.tsx تماماً (إرسال Authorization header بتوكن الجلسة).
+5. احتفظ بنفس تجربة المستخدم الحالية تماماً (نفس الشاشات، نفس الحقول)، فقط غيّر مصدر حساب السعر النهائي وطريقة إرسال الطلب.
+6. اختبر: أنشئ طلب توصيل فعلياً بعد التعديل وتأكد أن السعر المعروض للعميل قبل الإرسال يطابق السعر الفعلي المخزَّن في قاعدة البيانات بعد الإرسال، وحاول (كاختبار أمني) تعديل قيمة delivery_fee/total في الطلب المُرسَل يدوياً عبر أدوات المطوّر وتأكد أن السيرفر يتجاهلها تماماً ويحسب السعر الحقيقي بنفسه.

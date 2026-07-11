@@ -19,7 +19,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { fetchDeliveryCompanies } from "@/lib/customerApi";
-import { createDeliveryOrder } from "@/lib/deliveryApi";
 import { calcDistanceDeliveryFee } from "@/lib/distanceUtils";
 import { getDeliveryOffers } from "@/lib/deliveryOffersApi";
 import type { DeliveryOffer } from "@/lib/deliveryOffersApi";
@@ -344,75 +343,55 @@ const DeliveryRequestPage = () => {
     setSubmitting(true);
 
     try {
-      const svcLabel = SERVICE_TYPES.find(s => s.key === serviceType)?.label || serviceType;
-      const sizeLabel = SIZES.find(s => s.key === item.size)?.label || item.size;
-      const fee = finalFee ?? 0;
+      // Get session token for server-side auth verification
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({ title: "انتهت الجلسة، يرجى تسجيل الدخول مجدداً", variant: "destructive" });
+        navigate("/login");
+        return;
+      }
 
-      // Build items JSON — rich data for the delivery company
-      const orderItems = [{
-        name_ar: `${svcLabel} — ${sizeLabel}`,
-        name: serviceType,
-        quantity: 1,
-        price: fee,
-        // Delivery request specific
-        order_type: "delivery_request",
-        service_type: serviceType,
-        item_size: item.size,
-        item_description: item.description || "",
-        image_url: item.image_url || "",
-        notes: item.notes || "",
-        pickup_address: pickup.address,
-        pickup_landmark: pickup.landmark || "",
-        pickup_lat: pickup.lat || null,
-        pickup_lng: pickup.lng || null,
-        delivery_landmark: dropoff.landmark || "",
-        sender_name: sender.name,
-        sender_phone: sender.phone,
-        recipient_name: receiver.name,
-        recipient_phone: receiver.phone,
-        item_weight: item.weight || "",
-        item_dimensions: item.dimensions || "",
-        offer_applied: selectedOffer?.title || null,
-        price_per_km: pricePerKm,
-        distance_km: distanceKm?.toFixed(2) || null,
-        awaiting_pricing: awaitingPricing,
-      }];
-
-      const orderPayload: any = {
+      // Send only non-price fields — server computes the real price
+      const payload = {
         delivery_company_id: selectedCompany.user_id,
-        customer_id: user.id,
         customer_name: sender.name,
         customer_phone: sender.phone,
         customer_address: dropoff.address,
         delivery_lat: dropoff.lat || null,
         delivery_lng: dropoff.lng || null,
-        total: fee,
-        delivery_fee: fee,
-        payment_method: awaitingPricing ? null : item.payment_method,
-        payment_status: "pending",
-        status: "pending",
-        items: orderItems,
+        pickup_address: pickup.address,
+        pickup_lat: pickup.lat || null,
+        pickup_lng: pickup.lng || null,
+        service_type: serviceType,
+        item_size: item.size,
+        item_description: item.description || null,
+        image_url: item.image_url || null,
         notes: item.notes || null,
+        sender_name: sender.name,
+        sender_phone: sender.phone,
+        recipient_name: receiver.name,
+        recipient_phone: receiver.phone,
+        item_weight: item.weight || null,
+        item_dimensions: item.dimensions || null,
+        payment_method: item.payment_method,
+        applied_offer_id: selectedOffer?.id || null,
       };
 
-      const result = await createDeliveryOrder(orderPayload);
+      const response = await fetch("/api/delivery-requests/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
-      // Notify delivery company — send to pricing center if awaiting pricing
-      try {
-        await (supabase.from as any)("notifications").insert({
-          user_id: selectedCompany.user_id,
-          title: awaitingPricing ? "💰 طلب تسعير جديد!" : "🚚 طلب توصيل جديد!",
-          body: awaitingPricing
-            ? `${sender.name} يطلب تسعير ${svcLabel} من ${pickup.address || "موقع غير محدد"}`
-            : `${sender.name} — ${svcLabel} من ${pickup.address}`,
-          data: {
-            type: awaitingPricing ? "pricing_request" : "new_delivery_request",
-            url: awaitingPricing ? "/delivery/pricing" : "/delivery/orders",
-            order_id: result.id,
-          },
-          is_read: false,
-        });
-      } catch (_) {}
+      const json = await response.json() as { order?: { id: string }; error?: string; computedFee?: number; awaitingPricing?: boolean };
+      if (!response.ok) throw new Error(json.error || "فشل إنشاء الطلب");
+
+      const result = json.order!;
+      // Use server-computed fee for the WhatsApp message
+      const serverFee = json.computedFee ?? finalFee ?? 0;
 
       // Build WhatsApp message
       const whatsappMsg = buildWhatsAppMessage({
@@ -423,7 +402,7 @@ const DeliveryRequestPage = () => {
         receiver,
         item: { description: item.description, size: item.size, notes: item.notes },
         paymentMethod: item.payment_method,
-        fee: finalFee,
+        fee: json.awaitingPricing ? null : serverFee,
       });
 
       const companyPhone = (selectedCompany.phone || "").replace(/\D/g, "");
