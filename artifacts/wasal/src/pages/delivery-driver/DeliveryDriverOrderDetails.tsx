@@ -93,11 +93,18 @@ const DeliveryDriverOrderDetails = () => {
   const updateStatus = async (newStatus: string) => {
     if (!order) return;
     setUpdating(true);
-    const updates: any = { status: newStatus, updated_at: new Date().toISOString() };
-    if (newStatus === "picked_up") updates.picked_up_at = new Date().toISOString();
-    if (newStatus === "delivered") updates.delivered_at = new Date().toISOString();
 
-    const { error } = await supabase.from("delivery_orders").update(updates).eq("id", order.id);
+    // Use the SECURITY DEFINER RPC — it validates ownership, updates
+    // delivery_orders + order_tracking + rider_cash_collections atomically,
+    // and on 'delivered' inserts financial_transactions with the correct
+    // partner_id (delivery company) and rider_id, using the commission rate
+    // from accounting_settings server-side.
+    const { error } = await supabase.rpc("update_delivery_order_status", {
+      p_order_id: order.id,
+      p_status: newStatus,
+      p_note: null,
+    } as any);
+
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
@@ -109,18 +116,12 @@ const DeliveryDriverOrderDetails = () => {
         delivered: "تم توصيل طلبك بنجاح ✅",
       };
       if (order.customer_id && statusMessages[newStatus]) {
-        sendNotification(order.customer_id, statusMessages[newStatus], statusMessages[newStatus], { type: "delivery_status", orderId: order.id, status: newStatus });
-      }
-      if (newStatus === "delivered" && driverData) {
-        const { data: settings } = await supabase.from("accounting_settings").select("global_commission_delivery").limit(1).maybeSingle();
-        const commRate = settings?.global_commission_delivery || 12;
-        const amount = order.delivery_fee || order.total || 0;
-        const commission = Math.floor(amount * commRate / 100);
-        await supabase.from("financial_transactions").insert({
-          partner_id: user!.id, customer_id: order.customer_id || user!.id, reference_id: order.id,
-          amount, platform_commission: commission, partner_earning: amount - commission,
-          transaction_type: "delivery", payment_method: order.payment_method || "cash",
-        });
+        sendNotification(
+          order.customer_id,
+          statusMessages[newStatus],
+          statusMessages[newStatus],
+          { type: "delivery_status", orderId: order.id, status: newStatus },
+        );
       }
     }
     setUpdating(false);
