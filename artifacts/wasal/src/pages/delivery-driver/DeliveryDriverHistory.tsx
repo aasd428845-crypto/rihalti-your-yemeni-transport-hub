@@ -17,9 +17,9 @@ const DeliveryDriverHistory = () => {
     const load = async () => {
       // Get driver record first
       const { data: driver } = await supabase
-        .from("delivery_drivers")
+        .from("riders")
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id" as any, user.id)
         .maybeSingle();
 
       if (!driver) { setLoading(false); return; }

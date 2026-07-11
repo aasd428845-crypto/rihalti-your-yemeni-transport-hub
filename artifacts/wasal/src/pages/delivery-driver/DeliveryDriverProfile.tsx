@@ -2,7 +2,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,10 +19,15 @@ const DeliveryDriverProfile = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("delivery_drivers").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
-      setDriverData(data);
-      setLoading(false);
-    });
+    supabase
+      .from("riders")
+      .select("*")
+      .eq("user_id" as any, user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setDriverData(data);
+        setLoading(false);
+      });
   }, [user]);
 
   const handleChangePassword = async () => {
@@ -48,16 +52,21 @@ const DeliveryDriverProfile = () => {
   }
 
   const vehicleTypeLabels: Record<string, string> = {
-    car: "سيارة", motorcycle: "دراجة نارية", tuktuk: "توك توك", bicycle: "دراجة هوائية",
+    car: "سيارة", سيارة: "سيارة",
+    motorcycle: "دراجة نارية", دراجة_نارية: "دراجة نارية",
+    tuktuk: "توك توك",
+    bicycle: "دراجة هوائية",
+    حافلة_صغيرة: "حافلة صغيرة",
+    شاحنة: "شاحنة",
   };
 
   const infoItems = [
-    { icon: User, label: "الاسم", value: profile?.full_name || "—" },
-    { icon: Phone, label: "رقم الهاتف", value: profile?.phone || "—" },
-    { icon: Mail, label: "البريد الإلكتروني", value: user?.email || "—" },
-    { icon: Calendar, label: "تاريخ التسجيل", value: driverData?.created_at ? new Date(driverData.created_at).toLocaleDateString("ar-YE") : "—" },
-    { icon: Star, label: "التقييم", value: driverData?.rating || "0" },
-    { icon: Shield, label: "حالة الحساب", value: driverData?.is_approved ? "معتمد" : "قيد المراجعة" },
+    { icon: User,     label: "الاسم",              value: driverData?.full_name  || profile?.full_name || "—" },
+    { icon: Phone,    label: "رقم الهاتف",          value: driverData?.phone      || profile?.phone    || "—" },
+    { icon: Mail,     label: "البريد الإلكتروني",   value: user?.email                                 || "—" },
+    { icon: Calendar, label: "تاريخ التسجيل",       value: driverData?.created_at ? new Date(driverData.created_at).toLocaleDateString("ar-YE") : "—" },
+    { icon: Star,     label: "التقييم",             value: driverData?.rating     ?? "0" },
+    { icon: Shield,   label: "حالة الحساب",         value: driverData?.is_approved ? "معتمد" : "قيد المراجعة" },
   ];
 
   return (
@@ -84,16 +93,20 @@ const DeliveryDriverProfile = () => {
             <div className="flex items-center gap-3 py-2 border-b border-border">
               <Car className="w-5 h-5 text-primary" />
               <span className="text-sm text-muted-foreground w-32">نوع المركبة</span>
-              <span className="text-sm font-medium text-foreground">{vehicleTypeLabels[driverData.vehicle_type] || driverData.vehicle_type || "—"}</span>
+              <span className="text-sm font-medium text-foreground">
+                {vehicleTypeLabels[driverData.vehicle_type] || driverData.vehicle_type || "—"}
+              </span>
             </div>
             <div className="flex items-center gap-3 py-2 border-b border-border">
               <span className="text-sm text-muted-foreground w-32 mr-8">رقم اللوحة</span>
               <span className="text-sm font-medium text-foreground">{driverData.vehicle_plate || "—"}</span>
             </div>
-            <div className="flex items-center gap-3 py-2">
-              <span className="text-sm text-muted-foreground w-32 mr-8">رقم الرخصة</span>
-              <span className="text-sm font-medium text-foreground">{driverData.license_number || "—"}</span>
-            </div>
+            {driverData.id_number && (
+              <div className="flex items-center gap-3 py-2">
+                <span className="text-sm text-muted-foreground w-32 mr-8">رقم الهوية</span>
+                <span className="text-sm font-medium text-foreground">{driverData.id_number}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -152,7 +165,7 @@ const DeliveryDriverProfile = () => {
                 <p className="text-xs text-muted-foreground">التقييم</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-primary">{driverData.total_earnings || 0}</p>
+                <p className="text-2xl font-bold text-primary">{driverData.earnings || 0}</p>
                 <p className="text-xs text-muted-foreground">ر.ي</p>
               </div>
             </div>

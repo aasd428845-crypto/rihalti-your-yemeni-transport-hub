@@ -46,7 +46,7 @@ const DeliveryDriverOrderDetails = () => {
     const load = async () => {
       const [orderRes, driverRes] = await Promise.all([
         supabase.from("delivery_orders").select("*").eq("id", id).maybeSingle(),
-        supabase.from("delivery_drivers").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("riders").select("*").eq("user_id" as any, user.id).maybeSingle(),
       ]);
       setOrder(orderRes.data);
       setDriverData(driverRes.data);
