@@ -5,8 +5,66 @@ const SUPABASE_URL =
   process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
+// ── Inlined haversine + fee calc (cannot import cross-package in Vercel) ──────
+function haversineDistance(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function calcServerDeliveryFee(
+  restaurantLat: number, restaurantLng: number,
+  customerLat: number, customerLng: number,
+  pricePerKm: number,
+  minFee = 0
+): { fee: number; distanceKm: number } {
+  const distanceKm = haversineDistance(restaurantLat, restaurantLng, customerLat, customerLng);
+  const fee = Math.max(minFee, Math.ceil(distanceKm * pricePerKm));
+  return { fee, distanceKm };
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Offer validity check (mirrors isOfferCurrentlyActive on the client) ───────
+function isOfferCurrentlyActive(offer: Record<string, unknown>): boolean {
+  const now = new Date();
+  const ARABIC_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  const todayName = ARABIC_DAYS[now.getDay()];
+  const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  if (!offer.is_active) return false;
+  if (offer.starts_at && new Date(offer.starts_at as string) > now) return false;
+  if (offer.ends_at   && new Date(offer.ends_at   as string) < now) return false;
+  if (Array.isArray(offer.active_days) && offer.active_days.length && !offer.active_days.includes(todayName)) return false;
+  if (offer.start_time && currentTime < (offer.start_time as string)) return false;
+  if (offer.end_time   && currentTime > (offer.end_time   as string)) return false;
+  return true;
+}
+
+// Apply delivery-fee offer discount (mirrors buildFeeDiscount on the client)
+function applyOfferToDeliveryFee(fee: number, offer: Record<string, unknown>): number {
+  const t = offer.offer_type as string;
+  if (t === "free_delivery") return 0;
+  if (t === "percent_off_delivery") {
+    const pct = Number(offer.discount_percent ?? 0);
+    return Math.max(0, Math.round(fee * (1 - pct / 100)));
+  }
+  if (t === "fixed_off_delivery") {
+    return Math.max(0, fee - Number(offer.discount_amount ?? 0));
+  }
+  return fee; // order-level or custom offers don't affect delivery fee
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ── Inlined calculateCommission ──────────────────────────────────────────────
-// (Cannot dynamically import cross-package from a Vercel serverless function)
 async function calculateCommission(
   supabase: any,
   amount: number,
@@ -108,14 +166,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     delivery_lat,
     delivery_lng,
     items, // [{ id: menu_item_id, quantity }]
-    delivery_fee,
+    // delivery_fee & restaurant_delivery_subsidy from client are intentionally
+    // NOT trusted — we recompute both server-side below.
     tax,
     payment_method,
     notes,
-    restaurant_delivery_subsidy,
     applied_offer_id,
-    applied_offer_type,
-    applied_offer_title,
+    // applied_offer_type / applied_offer_title from client are not trusted either;
+    // we re-verify the offer from the DB.
   } = req.body ?? {};
 
   if (
@@ -127,12 +185,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "بيانات الطلب غير مكتملة" });
   }
 
-  // 2. Authoritatively recompute subtotal from REAL menu_items prices
+  // 2. Authoritatively recompute subtotal from REAL menu_items prices +
+  //    fetch restaurant data (lat, lng, price_per_km, commission_rate) in parallel.
   const itemIds = items.map((i: any) => i.id);
-  const { data: realItems, error: itemsErr } = await supabase
-    .from("menu_items")
-    .select("id, name_ar, name_en, price, discounted_price, is_available, restaurant_id")
-    .in("id", itemIds);
+  const [
+    { data: realItems, error: itemsErr },
+    { data: restaurantRow },
+    { data: partnerSettingsRow },
+  ] = await Promise.all([
+    supabase
+      .from("menu_items")
+      .select("id, name_ar, name_en, price, discounted_price, is_available, restaurant_id")
+      .in("id", itemIds),
+    supabase
+      .from("restaurants")
+      .select("latitude, longitude, price_per_km, commission_rate, name_ar, delivery_company_id")
+      .eq("id", restaurant_id)
+      .maybeSingle(),
+    supabase
+      .from("partner_settings" as any)
+      .select("price_per_km, min_delivery_fee")
+      .eq("partner_id", delivery_company_id)
+      .maybeSingle(),
+  ]);
 
   if (itemsErr || !realItems || realItems.length !== itemIds.length) {
     return res
@@ -161,7 +236,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "كمية غير صالحة" });
     const unitPrice = Number(real.discounted_price ?? real.price);
     subtotal += unitPrice * qty;
-    // Build enriched item with name + price for display in order management
     enrichedItems.push({
       id: reqItem.id,
       name_ar: real.name_ar || real.name_en || "",
@@ -173,12 +247,83 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  // 3. Sanity-check delivery_fee / tax
-  const safeDeliveryFee = Math.max(0, Number(delivery_fee) || 0);
-  const safeTax = Math.max(0, Number(tax) || 0);
-  const total = subtotal + safeDeliveryFee + safeTax;
+  // 3. Compute delivery fee server-side
+  //    Priority: restaurant.price_per_km (if > 0) → partner_settings.price_per_km → 0
+  const restRow = restaurantRow as Record<string, unknown> | null;
+  const settingsRow = partnerSettingsRow as Record<string, unknown> | null;
 
-  // 4. Insert the order using the service role (bypasses RLS)
+  const restaurantPricePerKm = Number(restRow?.price_per_km ?? 0);
+  const companyPricePerKm    = Number(settingsRow?.price_per_km ?? 0);
+  const effectivePricePerKm  = restaurantPricePerKm > 0 ? restaurantPricePerKm : companyPricePerKm;
+  const minDeliveryFee       = Number(settingsRow?.min_delivery_fee ?? 0);
+
+  const restLat   = restRow?.latitude   != null ? Number(restRow.latitude)   : null;
+  const restLng   = restRow?.longitude  != null ? Number(restRow.longitude)  : null;
+  const custLat   = delivery_lat  != null ? Number(delivery_lat)  : null;
+  const custLng   = delivery_lng  != null ? Number(delivery_lng)  : null;
+  const canCompute =
+    effectivePricePerKm > 0 &&
+    restLat !== null && restLng !== null &&
+    custLat !== null && custLng !== null;
+
+  let rawDeliveryFee = 0;
+  if (canCompute) {
+    rawDeliveryFee = calcServerDeliveryFee(
+      restLat!, restLng!, custLat!, custLng!,
+      effectivePricePerKm, minDeliveryFee
+    ).fee;
+  }
+
+  // 4. Verify and apply offer server-side — ignore any offer data from client
+  let serverDeliveryFee = rawDeliveryFee;
+  let verifiedOfferType: string | null = null;
+  let verifiedOfferTitle: string | null = null;
+  let verifiedOfferId: string | null = null;
+
+  if (applied_offer_id) {
+    const { data: offerRow } = await supabase
+      .from("delivery_company_offers" as any)
+      .select("*")
+      .eq("id", applied_offer_id)
+      .eq("delivery_company_id", delivery_company_id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const offer = offerRow as Record<string, unknown> | null;
+    if (offer && isOfferCurrentlyActive(offer)) {
+      // Check minimum order amount against server-computed subtotal
+      const minOrder = Number(offer.min_order_amount ?? 0);
+      if (minOrder === 0 || subtotal >= minOrder) {
+        serverDeliveryFee = applyOfferToDeliveryFee(rawDeliveryFee, offer);
+        verifiedOfferType  = offer.offer_type  as string;
+        verifiedOfferTitle = (offer.title ?? null) as string | null;
+        verifiedOfferId    = applied_offer_id;
+      }
+    }
+  }
+
+  // 5. Compute restaurant_delivery_subsidy server-side:
+  //    When the offer is restaurant-sponsored, the restaurant owes the gap
+  //    between the raw fee and the discounted fee.
+  //    For non-restaurant sponsors (external/platform) the subsidy is 0.
+  let serverSubsidy = 0;
+  if (verifiedOfferId) {
+    const { data: offerForSubsidy } = await supabase
+      .from("delivery_company_offers" as any)
+      .select("sponsor_type")
+      .eq("id", verifiedOfferId)
+      .maybeSingle();
+    const sponsorType = (offerForSubsidy as Record<string, unknown> | null)?.sponsor_type as string | null;
+    const restaurantIsResponsible = !sponsorType || sponsorType === "restaurant";
+    if (restaurantIsResponsible) {
+      serverSubsidy = Math.max(0, rawDeliveryFee - serverDeliveryFee);
+    }
+  }
+
+  const safeTax = Math.max(0, Number(tax) || 0);
+  const total = subtotal + serverDeliveryFee + safeTax;
+
+  // 6. Insert the order using the service role (bypasses RLS)
   const orderInsert: any = {
     customer_id: authenticatedUserId,
     restaurant_id,
@@ -190,20 +335,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     delivery_lng,
     items: enrichedItems,
     subtotal,
-    delivery_fee: safeDeliveryFee,
+    delivery_fee: serverDeliveryFee,
     tax: safeTax,
     total,
     payment_method,
     status: "pending",
     payment_status: "pending",
     order_type: "restaurant",
-    restaurant_delivery_subsidy: restaurant_delivery_subsidy ?? 0,
+    restaurant_delivery_subsidy: serverSubsidy,
   };
   if (notes) orderInsert.notes = notes;
-  if (applied_offer_id) {
-    orderInsert.applied_offer_id = applied_offer_id;
-    orderInsert.applied_offer_type = applied_offer_type;
-    orderInsert.applied_offer_title = applied_offer_title;
+  if (verifiedOfferId) {
+    orderInsert.applied_offer_id    = verifiedOfferId;
+    orderInsert.applied_offer_type  = verifiedOfferType;
+    orderInsert.applied_offer_title = verifiedOfferTitle;
   }
 
   const { data: orderRows, error: orderErr } = await supabase
@@ -219,10 +364,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const order = orderRows[0];
 
-  // 5. Create the financial_transactions split (server-trusted)
+  // 7. Create the financial_transactions split (server-trusted)
   try {
-    const subsidy = Number(restaurant_delivery_subsidy) || 0;
-    const deliveryRevenueBase = safeDeliveryFee + subsidy;
+    const deliveryRevenueBase = serverDeliveryFee + serverSubsidy;
 
     const { commission: platformCommission, earning: companyDeliveryEarning } =
       await calculateCommission(
@@ -232,15 +376,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         delivery_company_id
       );
 
-    const { data: restRow } = await supabase
-      .from("restaurants")
-      .select("commission_rate, name_ar")
-      .eq("id", restaurant_id)
-      .maybeSingle();
-
-    const restCommissionRate = Number((restRow as any)?.commission_rate ?? 0);
-    const restCommissionCut = Math.floor(subtotal * restCommissionRate / 100);
-    const restaurantNetEarning = subtotal - restCommissionCut - subsidy;
+    // restRow already fetched above — reuse it (commission_rate, name_ar)
+    const restCommissionRate = Number(restRow?.commission_rate ?? 0);
+    const restCommissionCut  = Math.floor(subtotal * restCommissionRate / 100);
+    const restaurantNetEarning = subtotal - restCommissionCut - serverSubsidy;
 
     const { data: companyRow } = await supabase
       .from("profiles")
@@ -271,7 +410,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       partner_type: "restaurant",
       customer_id: authenticatedUserId,
       partner_id: restaurant_id,
-      partner_name: (restRow as any)?.name_ar ?? null,
+      partner_name: restRow?.name_ar as string ?? null,
       amount: subtotal,
       platform_commission: 0,
       partner_earning: restaurantNetEarning,
