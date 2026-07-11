@@ -289,7 +289,7 @@ const InvitePage = () => {
           await fetch(`${API_BASE}/api/auth/confirm-email`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId }),
+            body: JSON.stringify({ userId, token: inviteData.token }),
           });
         } catch {
           // Non-critical: proceed and attempt sign-in anyway
