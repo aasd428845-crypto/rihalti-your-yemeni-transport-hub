@@ -3,7 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import { rm, cp } from "node:fs/promises";
+import { execSync } from "node:child_process";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -13,6 +14,16 @@ const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 async function buildAll() {
   const distDir = path.resolve(artifactDir, "dist");
   await rm(distDir, { recursive: true, force: true });
+
+  // If FULL_BUILD=1, also build the frontend and copy it into dist/public
+  const fullBuild = process.env.FULL_BUILD === "1";
+  if (fullBuild) {
+    console.log("📦 Building frontend (wasal)...");
+    execSync("pnpm --filter @workspace/wasal run build", {
+      stdio: "inherit",
+      cwd: path.resolve(artifactDir, "../.."),
+    });
+  }
 
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/index.ts")],
@@ -118,6 +129,15 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
   });
+
+  // After building the server, copy the frontend dist into dist/public
+  if (fullBuild) {
+    const frontendDist = path.resolve(artifactDir, "../wasal/dist/public");
+    const serverPublic = path.resolve(distDir, "public");
+    console.log("📂 Copying frontend build → dist/public...");
+    await cp(frontendDist, serverPublic, { recursive: true });
+    console.log("✅ Full build complete. Run with: NODE_ENV=production node dist/index.mjs");
+  }
 }
 
 buildAll().catch((err) => {
