@@ -17,7 +17,7 @@ import { ar } from "date-fns/locale";
 import { DollarSign, TrendingUp, Hash, Users, Phone, Eye, CalendarIcon, Search, Building2, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const typeLabels: Record<string, string> = { booking: "حجز", shipment: "شحن", delivery: "توصيل", ride: "أجرة" };
+const typeLabels: Record<string, string> = { delivery: "توصيل" };
 const statusLabels: Record<string, string> = { pending: "قيد الانتظار", paid: "مدفوع", overdue: "متأخر", cancelled: "ملغي" };
 const paymentLabels: Record<string, string> = { cash: "نقدي", later: "مؤجل", transfer: "تحويل" };
 
@@ -115,10 +115,7 @@ const AdminTransactions = () => {
           <SelectTrigger className="w-32"><SelectValue placeholder="النوع" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">الكل</SelectItem>
-            <SelectItem value="booking">حجز</SelectItem>
-            <SelectItem value="shipment">شحن</SelectItem>
             <SelectItem value="delivery">توصيل</SelectItem>
-            <SelectItem value="ride">أجرة</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>

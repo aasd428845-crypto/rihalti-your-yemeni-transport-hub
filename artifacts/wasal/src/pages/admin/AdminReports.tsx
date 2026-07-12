@@ -11,7 +11,7 @@ import type { AuditLog } from "@/types/admin.types";
 import { Input } from "@/components/ui/input";
 import {
   FileText, Search, Download, Trash2, RefreshCw, Users, TrendingUp, DollarSign,
-  AlertTriangle, Plane, Package, Truck, Car, BarChart3, PieChart as PieIcon, Loader2
+  AlertTriangle, Truck, BarChart3, PieChart as PieIcon, Loader2
 } from "lucide-react";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis,
@@ -79,9 +79,9 @@ const AdminReports = () => {
 
   const exportCSV = () => {
     if (!dailyStats.length) return;
-    const headers = ["التاريخ", "المستخدمون", "جدد", "رحلات", "طرود", "توصيلات", "أجرة", "معاملات", "الإيرادات", "العمولة", "أخطاء"];
+    const headers = ["التاريخ", "المستخدمون", "جدد", "توصيلات", "معاملات", "الإيرادات", "العمولة", "أخطاء"];
     const rows = dailyStats.map((d) =>
-      [d.stat_date, d.total_users, d.new_users, d.total_trips, d.total_shipments, d.total_deliveries, d.total_rides, d.total_transactions, d.total_revenue, d.platform_commission, d.error_count].join(",")
+      [d.stat_date, d.total_users, d.new_users, d.total_deliveries, d.total_transactions, d.total_revenue, d.platform_commission, d.error_count].join(",")
     );
     const csv = "\uFEFF" + [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -98,10 +98,7 @@ const AdminReports = () => {
 
   const servicesPieData = stats
     ? [
-        { name: "رحلات", value: stats.trips },
-        { name: "طرود", value: stats.shipments },
         { name: "توصيلات", value: stats.deliveries },
-        { name: "أجرة", value: stats.rides },
       ]
     : [];
 
@@ -136,27 +133,13 @@ const AdminReports = () => {
 
       {/* KPI Cards */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
               <Users className="w-5 h-5 mx-auto text-primary mb-1" />
               <p className="text-2xl font-bold">{stats.totalUsers}</p>
               <p className="text-[10px] text-muted-foreground">إجمالي المستخدمين</p>
               <p className="text-xs text-green-600">+{stats.newUsers} جديد</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Plane className="w-5 h-5 mx-auto text-primary mb-1" />
-              <p className="text-2xl font-bold">{stats.trips}</p>
-              <p className="text-[10px] text-muted-foreground">رحلات</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Package className="w-5 h-5 mx-auto text-primary mb-1" />
-              <p className="text-2xl font-bold">{stats.shipments}</p>
-              <p className="text-[10px] text-muted-foreground">طرود</p>
             </CardContent>
           </Card>
           <Card>
@@ -256,10 +239,7 @@ const AdminReports = () => {
                     <YAxis fontSize={11} />
                     <Tooltip labelFormatter={(v) => `التاريخ: ${v}`} />
                     <Legend />
-                    <Bar dataKey="total_trips" name="رحلات" fill="hsl(var(--primary))" stackId="a" />
-                    <Bar dataKey="total_shipments" name="طرود" fill="hsl(42,76%,50%)" stackId="a" />
                     <Bar dataKey="total_deliveries" name="توصيلات" fill="hsl(150,60%,40%)" stackId="a" />
-                    <Bar dataKey="total_rides" name="أجرة" fill="hsl(0,84%,60%)" stackId="a" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>

@@ -24,13 +24,9 @@ const SEVERITY_COLORS: Record<string, string> = {
 };
 
 const EVENT_LABELS: Record<string, string> = {
-  trip_created: "رحلة جديدة ✈️",
-  shipment_requested: "طلب شحن 📦",
   delivery_created: "طلب توصيل 🛵",
-  ride_requested: "طلب أجرة 🚖",
   user_registered: "تسجيل مستخدم 👤",
   payment_completed: "معاملة مالية 💰",
-  booking_created: "حجز جديد 🎫",
   error_occurred: "خطأ ⚠️",
   alert_triggered: "تنبيه 🔔",
 };
@@ -311,10 +307,7 @@ const AdminMonitoring = () => {
                     <XAxis dataKey="stat_date" fontSize={10} tickFormatter={(v) => v?.slice(5)} />
                     <YAxis fontSize={11} />
                     <Tooltip labelFormatter={(v) => `التاريخ: ${v}`} />
-                    <Bar dataKey="total_trips" name="رحلات" fill="hsl(var(--primary))" stackId="a" />
-                    <Bar dataKey="total_shipments" name="طرود" fill="hsl(42,76%,50%)" stackId="a" />
                     <Bar dataKey="total_deliveries" name="توصيلات" fill="hsl(150,60%,40%)" stackId="a" />
-                    <Bar dataKey="total_rides" name="أجرة" fill="hsl(0,84%,60%)" stackId="a" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -352,10 +345,7 @@ const AdminMonitoring = () => {
                     <th className="px-3 py-2 text-right">التاريخ</th>
                     <th className="px-3 py-2 text-right">المستخدمون</th>
                     <th className="px-3 py-2 text-right">جدد</th>
-                    <th className="px-3 py-2 text-right">رحلات</th>
-                    <th className="px-3 py-2 text-right">طرود</th>
                     <th className="px-3 py-2 text-right">توصيلات</th>
-                    <th className="px-3 py-2 text-right">أجرة</th>
                     <th className="px-3 py-2 text-right">معاملات</th>
                     <th className="px-3 py-2 text-right">الإيرادات</th>
                     <th className="px-3 py-2 text-right">العمولة</th>
@@ -364,17 +354,14 @@ const AdminMonitoring = () => {
                 </thead>
                 <tbody>
                   {dailyStats.length === 0 ? (
-                    <tr><td colSpan={11} className="text-center py-8 text-muted-foreground">لا توجد بيانات</td></tr>
+                    <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">لا توجد بيانات</td></tr>
                   ) : (
                     [...dailyStats].reverse().map((d) => (
                       <tr key={d.id} className="border-b hover:bg-muted/30">
                         <td className="px-3 py-2 font-mono text-xs">{d.stat_date}</td>
                         <td className="px-3 py-2">{d.total_users}</td>
                         <td className="px-3 py-2">{d.new_users}</td>
-                        <td className="px-3 py-2">{d.total_trips}</td>
-                        <td className="px-3 py-2">{d.total_shipments}</td>
                         <td className="px-3 py-2">{d.total_deliveries}</td>
-                        <td className="px-3 py-2">{d.total_rides}</td>
                         <td className="px-3 py-2">{d.total_transactions}</td>
                         <td className="px-3 py-2">{Number(d.total_revenue).toLocaleString()}</td>
                         <td className="px-3 py-2">{Number(d.platform_commission).toLocaleString()}</td>

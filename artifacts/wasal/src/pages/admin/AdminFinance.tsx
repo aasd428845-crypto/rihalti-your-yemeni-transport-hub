@@ -50,7 +50,7 @@ const AdminFinance = () => {
     fetchData();
   };
 
-  const typeLabels: Record<string, string> = { booking: "حجز", shipment: "شحن", delivery: "توصيل", ride: "أجرة" };
+  const typeLabels: Record<string, string> = { delivery: "توصيل" };
   const statusLabels: Record<string, string> = { pending: "قيد الانتظار", paid: "مدفوع", overdue: "متأخر", cancelled: "ملغي" };
 
   return (
@@ -61,7 +61,7 @@ const AdminFinance = () => {
         <StatCard title="إجمالي الإيرادات" value={`${totalRevenue.toLocaleString()} ر.ي`} icon={DollarSign} />
         <StatCard title="أرباح المنصة" value={`${platformEarnings.toLocaleString()} ر.ي`} icon={TrendingUp} />
         <StatCard title="مستحقات الشركاء" value={`${pendingPayouts.toLocaleString()} ر.ي`} icon={CreditCard} />
-        <StatCard title="عمولة الحجوزات" value={`${commissions?.global_commission_booking || 10}%`} icon={Percent} />
+        <StatCard title="عمولة التوصيل" value={`${commissions?.global_commission_delivery || 10}%`} icon={Percent} />
       </div>
 
       <Tabs defaultValue="transactions">
@@ -76,10 +76,7 @@ const AdminFinance = () => {
               <SelectTrigger className="w-36"><SelectValue placeholder="النوع" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">جميع الأنواع</SelectItem>
-                <SelectItem value="booking">حجز</SelectItem>
-                <SelectItem value="shipment">طرد</SelectItem>
                 <SelectItem value="delivery">توصيل</SelectItem>
-                <SelectItem value="ride">أجرة</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>

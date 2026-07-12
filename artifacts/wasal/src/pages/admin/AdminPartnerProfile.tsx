@@ -18,7 +18,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { ChartContainer } from "@/components/ui/chart";
 import { toast } from "@/hooks/use-toast";
 
-const typeLabels: Record<string, string> = { booking: "حجز", shipment: "شحن", delivery: "توصيل", ride: "أجرة" };
+const typeLabels: Record<string, string> = { delivery: "توصيل" };
 const statusLabels: Record<string, string> = { pending: "قيد الانتظار", paid: "مدفوع", overdue: "متأخر", cancelled: "ملغي" };
 const accountStatusLabels: Record<string, string> = { approved: "نشط", suspended: "موقوف", pending: "معلق", rejected: "مرفوض" };
 const accountStatusColors: Record<string, string> = {

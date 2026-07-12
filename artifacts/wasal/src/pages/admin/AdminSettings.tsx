@@ -106,10 +106,7 @@ const AdminSettings = () => {
     if (!user || !acctSettings) return;
     setSavingAcct(true);
     const { error } = await updateAccountingSettings({
-      global_commission_booking: acctSettings.global_commission_booking,
       global_commission_delivery: acctSettings.global_commission_delivery,
-      global_commission_shipment: acctSettings.global_commission_shipment,
-      global_commission_ride: acctSettings.global_commission_ride,
       payment_due_days: acctSettings.payment_due_days,
       auto_suspend_days: acctSettings.auto_suspend_days,
       currency: acctSettings.currency,
@@ -340,10 +337,7 @@ const AdminSettings = () => {
               <CardHeader><CardTitle className="text-base">نسب العمولة لكل خدمة</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 {[
-                  { key: "global_commission_booking", label: "عمولة الحجوزات" },
                   { key: "global_commission_delivery", label: "عمولة التوصيل" },
-                  { key: "global_commission_shipment", label: "عمولة الطرود" },
-                  { key: "global_commission_ride", label: "عمولة الأجرة" },
                 ].map((item) => (
                   <div key={item.key} className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <Label className="sm:w-48 text-sm">{item.label}</Label>

@@ -74,8 +74,7 @@ const AdminNotificationLogs = () => {
     const map: Record<string, string> = {
       admin: "إداري",
       system: "نظام",
-      booking: "حجز",
-      shipment: "شحن",
+      delivery: "توصيل",
       promotion: "ترويج",
     };
     return map[type || "system"] || type || "نظام";

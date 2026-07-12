@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Clock, Map, Package, Truck, Users, Bus, MapPin, Calendar } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Truck, Users, Bus, MapPin, Calendar } from "lucide-react";
 import StatusBadge from "@/components/admin/common/StatusBadge";
 import { createAuditLog } from "@/lib/adminApi";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 type UnifiedRequest = {
   id: string;
-  source: "trip" | "shipment" | "delivery_order" | "partner_join" | "approval_request" | "booking";
+  source: "trip" | "delivery_order" | "partner_join" | "approval_request";
   type_label: string;
   status: string;
   created_at: string;
@@ -22,11 +22,9 @@ type UnifiedRequest = {
 
 const sourceIcons: Record<string, any> = {
   trip: Bus,
-  shipment: Package,
   delivery_order: Truck,
   partner_join: Users,
   approval_request: Clock,
-  booking: Users,
 };
 
 const AdminApprovals = () => {
@@ -79,27 +77,7 @@ const AdminApprovals = () => {
       }
     }
 
-    // 2. Pending shipment requests
-    const { data: shipments } = await supabase
-      .from("shipment_requests")
-      .select("id, pickup_address, delivery_address, shipment_type, status, created_at, customer_id, supplier_id")
-      .eq("status", "pending_approval")
-      .order("created_at", { ascending: false });
-
-    if (shipments) {
-      for (const s of shipments) {
-        unified.push({
-          id: s.id,
-          source: "shipment",
-          type_label: "طلب شحن معلق",
-          status: "pending",
-          created_at: s.created_at || "",
-          details: { from: s.pickup_address, to: s.delivery_address, type: s.shipment_type },
-        });
-      }
-    }
-
-    // 3. Pending delivery orders (pending_approval only)
+    // 2. Pending delivery orders (pending_approval only)
     const { data: deliveryOrders } = await supabase
       .from("delivery_orders")
       .select("id, customer_name, customer_address, total, status, created_at")
@@ -119,40 +97,7 @@ const AdminApprovals = () => {
       }
     }
 
-    // 3b. Pending bookings (pending_approval)
-    const { data: pendingBookings } = await supabase
-      .from("bookings")
-      .select("id, customer_id, trip_id, seat_count, total_amount, status, created_at")
-      .eq("status", "pending_approval")
-      .order("created_at", { ascending: false });
-
-    if (pendingBookings) {
-      // fetch trip info for labels
-      const tripIds = [...new Set(pendingBookings.map(b => b.trip_id))];
-      const tripMap: Record<string, any> = {};
-      if (tripIds.length > 0) {
-        const { data: tripData } = await supabase.from("trips").select("id, from_city, to_city").in("id", tripIds);
-        for (const t of (tripData || [])) { tripMap[t.id] = t; }
-      }
-      for (const b of pendingBookings) {
-        const trip = tripMap[b.trip_id];
-        unified.push({
-          id: b.id,
-          source: "booking" as any,
-          type_label: "حجز معلق",
-          status: "pending",
-          created_at: b.created_at || "",
-          details: {
-            seats: b.seat_count,
-            amount: b.total_amount,
-            from: trip?.from_city,
-            to: trip?.to_city,
-          },
-        });
-      }
-    }
-
-    // 4. Partner join requests
+    // 3b. Partner join requests
     const { data: partners } = await supabase
       .from("partner_join_requests")
       .select("id, business_name, contact_phone, business_type, status, created_at")
@@ -207,17 +152,11 @@ const AdminApprovals = () => {
     if (req.source === "trip") {
       const res = await supabase.from("trips").update({ status: "approved" }).eq("id", req.id);
       error = res.error;
-    } else if (req.source === "shipment") {
-      const res = await supabase.from("shipment_requests").update({ status: "pending_pricing", admin_approved: true }).eq("id", req.id);
-      error = res.error;
     } else if (req.source === "delivery_order") {
       const res = await supabase.from("delivery_orders").update({ status: "pending" }).eq("id", req.id);
       error = res.error;
     } else if (req.source === "partner_join") {
       const res = await supabase.from("partner_join_requests").update({ status: "approved" }).eq("id", req.id);
-      error = res.error;
-    } else if ((req.source as string) === "booking") {
-      const res = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", req.id);
       error = res.error;
     } else {
       const res = await supabase.from("approval_requests").update({
@@ -240,17 +179,11 @@ const AdminApprovals = () => {
     if (req.source === "trip") {
       const res = await supabase.from("trips").update({ status: "rejected", notes: rejectReason }).eq("id", req.id);
       error = res.error;
-    } else if (req.source === "shipment") {
-      const res = await supabase.from("shipment_requests").update({ status: "rejected" }).eq("id", req.id);
-      error = res.error;
     } else if (req.source === "delivery_order") {
       const res = await supabase.from("delivery_orders").update({ status: "cancelled", cancellation_reason: rejectReason }).eq("id", req.id);
       error = res.error;
     } else if (req.source === "partner_join") {
       const res = await supabase.from("partner_join_requests").update({ status: "rejected", notes: rejectReason }).eq("id", req.id);
-      error = res.error;
-    } else if ((req.source as string) === "booking") {
-      const res = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", req.id);
       error = res.error;
     } else {
       const res = await supabase.from("approval_requests").update({
@@ -281,17 +214,11 @@ const AdminApprovals = () => {
         </div>
       );
     }
-    if (req.source === "shipment") {
-      return <p className="text-sm text-muted-foreground">من: {d.from} → إلى: {d.to} | النوع: {d.type}</p>;
-    }
     if (req.source === "delivery_order") {
       return <p className="text-sm text-muted-foreground">العميل: {d.customer} | العنوان: {d.address} | الإجمالي: {d.total} ر.ي</p>;
     }
     if (req.source === "partner_join") {
       return <p className="text-sm text-muted-foreground">الاسم: {d.name} | الهاتف: {d.phone} | النوع: {d.type}</p>;
-    }
-    if (req.source === "booking") {
-      return <p className="text-sm text-muted-foreground">{d.from} → {d.to} | المقاعد: {d.seats} | المبلغ: {d.amount?.toLocaleString()} ر.ي</p>;
     }
     return null;
   };
@@ -311,8 +238,6 @@ const AdminApprovals = () => {
         <TabsList className="flex flex-wrap gap-1 w-full max-w-3xl h-auto">
           <TabsTrigger value="all">الكل ({requests.length})</TabsTrigger>
           <TabsTrigger value="trip">رحلات ({requests.filter(r => r.source === "trip").length})</TabsTrigger>
-          <TabsTrigger value="booking">حجوزات ({requests.filter(r => r.source === "booking").length})</TabsTrigger>
-          <TabsTrigger value="shipment">طرود ({requests.filter(r => r.source === "shipment").length})</TabsTrigger>
           <TabsTrigger value="delivery_order">توصيل ({requests.filter(r => r.source === "delivery_order").length})</TabsTrigger>
           <TabsTrigger value="partner_join">شركاء ({requests.filter(r => r.source === "partner_join").length})</TabsTrigger>
         </TabsList>

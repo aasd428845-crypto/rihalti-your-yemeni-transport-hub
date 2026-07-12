@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, TrendingUp, Truck, DollarSign, Clock, Receipt, Headphones, UserPlus, Car, ShoppingBag, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Users, TrendingUp, Truck, DollarSign, Clock, Receipt, Headphones, UserPlus, ShoppingBag, AlertTriangle, ArrowLeft } from "lucide-react";
 import { getDashboardStats } from "@/lib/adminApi";
 import StatCard from "@/components/admin/dashboard/StatsCards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,7 +63,6 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="طلبات معلقة" value={stats.pendingApprovals} icon={Clock} />
         <StatCard title="رسائل الدعم" value={stats.unreadSupport} icon={Headphones} description="محادثات مفتوحة" />
-        <StatCard title="الرحلات" value={stats.totalTrips} icon={Car} />
         <StatCard title="التوصيلات" value={stats.totalDeliveries} icon={ShoppingBag} />
       </div>
 
@@ -143,7 +142,7 @@ const AdminDashboard = () => {
                     <div className="text-left">
                       <p className="font-bold">{Number(tx.amount).toLocaleString()} ر.ي</p>
                       <Badge variant="outline" className="text-[10px]">
-                        {tx.transaction_type === "booking" ? "حجز" : tx.transaction_type === "shipment" ? "طرد" : tx.transaction_type === "delivery" ? "توصيل" : "أجرة"}
+                        {tx.transaction_type === "delivery" ? "توصيل" : tx.transaction_type}
                       </Badge>
                     </div>
                   </div>

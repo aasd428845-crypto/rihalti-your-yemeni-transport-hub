@@ -17,7 +17,7 @@ import { CheckCircle, XCircle, Eye, Loader2, CreditCard, Image } from "lucide-re
 
 const statusLabels: Record<string, string> = { pending: "قيد المراجعة", verified: "مؤكد", rejected: "مرفوض", completed: "مكتمل" };
 const statusColors: Record<string, string> = { pending: "bg-yellow-100 text-yellow-800", verified: "bg-green-100 text-green-800", rejected: "bg-red-100 text-red-800", completed: "bg-blue-100 text-blue-800" };
-const entityLabels: Record<string, string> = { booking: "حجز", shipment: "شحن", delivery: "توصيل", ride: "أجرة" };
+const entityLabels: Record<string, string> = { delivery: "توصيل" };
 
 const AdminPaymentReview = () => {
   const { user } = useAuth();
