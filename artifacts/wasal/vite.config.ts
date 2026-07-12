@@ -18,32 +18,19 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       registerType: "autoUpdate",
       base: basePath,
       includeAssets: ["favicon.ico", "icons/icon-192x192.png", "icons/icon-512x512.png"],
-      workbox: {
-        navigateFallbackDenylist: [/^\/~oauth/, /^\/api/],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+      injectManifest: {
+        injectionPoint: "self.__WB_MANIFEST",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-cache",
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "gstatic-fonts-cache",
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        globIgnores: [
+          "**/~oauth/**",
+          "**/api/**",
         ],
       },
       manifest: {

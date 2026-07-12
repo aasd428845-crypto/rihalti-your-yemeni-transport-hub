@@ -91,6 +91,9 @@ VITE_SUPABASE_URL = "https://hhqhoqwpebnmfuhwhllw.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_muPrRQdPNSwY0pCK8OJ7eQ_cdCTXJHa"
 VITE_SUPABASE_PROJECT_ID = "hhqhoqwpebnmfuhwhllw"
 SUPABASE_URL = "https://hhqhoqwpebnmfuhwhllw.supabase.co"
+VITE_VAPID_PUBLIC_KEY = "BPINxosDLoyxnb3NDmPnxkLaekAnl_TdMaNMeF-NxI-J82_2GiXLPplPSjmK2UOwykebmZWazuF4m8p8qIwuD1g"
+VAPID_PUBLIC_KEY = "BPINxosDLoyxnb3NDmPnxkLaekAnl_TdMaNMeF-NxI-J82_2GiXLPplPSjmK2UOwykebmZWazuF4m8p8qIwuD1g"
+VAPID_PRIVATE_KEY = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgug1/yyiVIKYrdp32q2blywNoxxiU5C5QUIyrqXkN5n+hRANCAATyDcaLAy6MsZ29zQ5j58ZC2npAJ5f03TGjTHhfjcSPifNv9holyz6ZT0o5itlDsMpHm5mVms7heJvKfKiMLg9Y"
 
 [nix]
 channel = "stable-25_05"

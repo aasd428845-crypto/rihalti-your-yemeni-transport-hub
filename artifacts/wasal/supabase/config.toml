@@ -1,0 +1,6 @@
+[project]
+id = "hhqhoqwpebnmfuhwhllw"
+
+[functions.send-push-notification]
+enabled = true
+verify_jwt = true

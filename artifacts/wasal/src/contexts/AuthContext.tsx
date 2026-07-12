@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { initOneSignal, registerUserForPush, logoutFromPush } from "@/lib/onesignal";
+import { subscribeToPush, unsubscribeFromPush } from "@/lib/pushSubscription";
 
 type AppRole = "customer" | "supplier" | "delivery_company" | "admin" | "driver" | "delivery_driver";
 
@@ -39,8 +39,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         supabase.from("profiles").select("full_name, phone, city, account_status, avatar_url").eq("user_id", userId).maybeSingle(),
       ]);
 
-      // Always set a role — "customer" is the default so guards never stay
-      // in a permanent null/loading limbo after fetchUserData finishes.
       setRole((roleRes.data?.role ?? "customer") as AppRole);
 
       if (profileRes.data) {
@@ -52,16 +50,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (err) {
       console.error("Error fetching user data:", err);
-      // On error fall back to customer so guards can redirect instead of spinning
       setRole("customer");
     }
   };
 
   useEffect(() => {
     let mounted = true;
-    initOneSignal();
 
-    // Load initial session — await role/profile BEFORE clearing the loading state
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
       setSession(session);
@@ -79,20 +74,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Only do a full role-reset on SIGNED_IN (fresh login).
-          // INITIAL_SESSION is handled by getSession() above (with await).
-          // TOKEN_REFRESHED / USER_UPDATED must NOT reset the role — that
-          // would cause an unnecessary loading flicker and navigation loops.
           if (event === "SIGNED_IN") {
-            // عند تسجيل الدخول، يُعتبر المستخدم ضمن التغطية تلقائياً
-            // (يمسح حالة "guest" حتى لا يُمنع من الطلب)
             const prevCoverage = localStorage.getItem("wasal_coverage_status");
             if (prevCoverage === "guest" || prevCoverage === null) {
               localStorage.setItem("wasal_coverage_status", "covered");
             }
             setLoading(true);
             setRole(null);
-            // Use setTimeout to avoid Supabase client deadlock inside the callback.
             setTimeout(async () => {
               if (!mounted) return;
               await fetchUserData(session.user.id);
@@ -113,15 +101,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Register for push when both user and role are available
   useEffect(() => {
     if (user && role) {
-      registerUserForPush(user.id, user.email ?? undefined, role);
+      subscribeToPush(user.id);
     }
   }, [user?.id, role]);
 
   const signOut = async () => {
-    await logoutFromPush();
+    if (user) {
+      await unsubscribeFromPush(user.id);
+    }
     await supabase.auth.signOut();
     setRole(null);
     setProfile(null);
