@@ -1,0 +1,17 @@
+انقل صفحة الدعم/الدردشة مع العملاء (src/pages/admin/AdminSupportMessages.tsx) من لوحة المشرف إلى لوحة شركة التوصيل، بحيث تصبح متاحة لشركة التوصيل بدلاً من المشرف فقط.
+
+المطلوب بالتفصيل:
+
+1. أنشئ src/pages/delivery/DeliverySupportChat.tsx بنفس منطق ومظهر AdminSupportMessages.tsx تماماً (قائمة محادثات على اليمين، نافذة دردشة، حالة "مفتوحة/مغلقة")، مع نفس آلية جلب conversations حيث subject = "support" ومطابقة messages، ونفس التزامن اللحظي عبر postgres_changes على جدول messages.
+
+2. أضف مساراً جديداً /delivery/support في src/App.tsx تحت مجموعة مسارات <Route path="/delivery" element={<DeliveryLayout />}> الموجودة فعلاً، يعرض DeliverySupportChat.
+
+3. أضف رابطاً جديداً في القائمة الجانبية src/components/delivery/DeliverySidebar.tsx بعنوان "الدعم والدردشة" (أيقونة MessageCircle مثلاً) يوصل لـ /delivery/support.
+
+4. احذف الرابط المقابل لهذه الصفحة من قائمة تنقّل المشرف (لا تحذف الملف الأصلي src/pages/admin/AdminSupportMessages.tsx نفسه من الكود، فقط أزل رابط الوصول إليه من التنقّل، إبقاءً على الكود موجوداً كمرجع محتمل لاحقاً) — تحقق أولاً من ملف التنقّل الفعلي المستخدم في AdminLayout.tsx واحذف الرابط منه بدقة.
+
+5. أصلح مشكلة رقم واتساب: حالياً الصفحة تطلب من المستخدم تنفيذ SQL يدوياً بنفسه لإنشاء جدول app_settings عند أول استخدام. أنشئ migration جديد يضمن وجود هذا الجدول تلقائياً (CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT); مع تفعيل RLS وسياسة تسمح لدور delivery_company بقراءة وتعديل المفتاح الخاص برقم واتساب فقط)، بحيث لا يحتاج أي مستخدم لفتح Supabase SQL Editor بنفسه إطلاقاً — أزل الرسالة والزر الخاصين بهذا التعليمات اليدوية من DeliverySupportChat.tsx بعد ضمان وجود الجدول تلقائياً.
+
+6. تأكد أن الوصول للمحادثات في هذه الصفحة الجديدة يعمل بشكل صحيح ضمن صلاحيات شركة التوصيل الحالية (راجع سياسات RLS على جدولي conversations وmessages، وتأكد أن دور delivery_company يملك صلاحية SELECT/INSERT/UPDATE عليهما بما يكفي لهذه الصفحة، أضف سياسة جديدة إن كانت الصلاحية الحالية مقيّدة فقط بدور admin).
+
+7. اختبر: افتح /delivery/support بحساب شركة توصيل حقيقي، تأكد من ظهور محادثات العملاء وإمكانية الرد عليها، وتحديث رقم واتساب الدعم وحفظه دون أي رسالة تطلب تنفيذ SQL يدوي.

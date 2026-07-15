@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, CheckCircle, DollarSign, Settings, LogOut, Shield,
   Mail, XCircle, FileText, Send, Home, UserPlus, Receipt, ShieldAlert,
-  MessageCircle, QrCode, CreditCard, Headphones, Bell, BarChart3, Wallet, Activity, Store, Percent, Package
+  MessageCircle, QrCode, CreditCard, Bell, BarChart3, Wallet, Activity, Store, Percent, Package
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,7 +54,6 @@ const menuGroups = [
     items: [
       { title: "الرسائل", url: "/admin/messages", icon: Mail },
       { title: "مراقبة المحادثات", url: "/admin/chat-monitoring", icon: MessageCircle },
-      { title: "رسائل الدعم", url: "/admin/support-messages", icon: Headphones },
       { title: "إرسال إشعار", url: "/admin/send-notification", icon: Bell },
       { title: "سجل الإشعارات", url: "/admin/notification-logs", icon: FileText },
     ],
