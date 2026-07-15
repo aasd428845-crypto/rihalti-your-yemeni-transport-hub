@@ -15,12 +15,14 @@ ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.app_settings TO anon, authenticated;
 
 -- Policy: any authenticated user can read all app_settings (needed for WhatsApp number display)
-CREATE POLICY IF NOT EXISTS "Authenticated users can read app_settings"
+DROP POLICY IF EXISTS "Authenticated users can read app_settings" ON public.app_settings;
+CREATE POLICY "Authenticated users can read app_settings"
   ON public.app_settings FOR SELECT
   USING (auth.role() = 'authenticated' OR auth.role() = 'anon');
 
 -- Policy: delivery_company and admin roles can upsert app_settings (for WhatsApp config)
-CREATE POLICY IF NOT EXISTS "Staff can manage app_settings"
+DROP POLICY IF EXISTS "Staff can manage app_settings" ON public.app_settings;
+CREATE POLICY "Staff can manage app_settings"
   ON public.app_settings FOR ALL
   USING (
     EXISTS (
@@ -43,7 +45,8 @@ CREATE POLICY IF NOT EXISTS "Staff can manage app_settings"
 ALTER TABLE IF EXISTS public.conversations ENABLE ROW LEVEL SECURITY;
 
 -- Policy: delivery_company can read all support conversations
-CREATE POLICY IF NOT EXISTS "Delivery companies can view support conversations"
+DROP POLICY IF EXISTS "Delivery companies can view support conversations" ON public.conversations;
+CREATE POLICY "Delivery companies can view support conversations"
   ON public.conversations FOR SELECT
   USING (
     subject = 'support'
@@ -54,7 +57,8 @@ CREATE POLICY IF NOT EXISTS "Delivery companies can view support conversations"
   );
 
 -- Policy: delivery_company can update conversation timestamps
-CREATE POLICY IF NOT EXISTS "Delivery companies can update support conversations"
+DROP POLICY IF EXISTS "Delivery companies can update support conversations" ON public.conversations;
+CREATE POLICY "Delivery companies can update support conversations"
   ON public.conversations FOR UPDATE
   USING (
     subject = 'support'
@@ -76,7 +80,8 @@ CREATE POLICY IF NOT EXISTS "Delivery companies can update support conversations
 ALTER TABLE IF EXISTS public.messages ENABLE ROW LEVEL SECURITY;
 
 -- Policy: delivery_company can read all messages in support conversations
-CREATE POLICY IF NOT EXISTS "Delivery companies can view support messages"
+DROP POLICY IF EXISTS "Delivery companies can view support messages" ON public.messages;
+CREATE POLICY "Delivery companies can view support messages"
   ON public.messages FOR SELECT
   USING (
     EXISTS (
@@ -90,7 +95,8 @@ CREATE POLICY IF NOT EXISTS "Delivery companies can view support messages"
   );
 
 -- Policy: delivery_company can insert replies to support conversations
-CREATE POLICY IF NOT EXISTS "Delivery companies can reply to support conversations"
+DROP POLICY IF EXISTS "Delivery companies can reply to support conversations" ON public.messages;
+CREATE POLICY "Delivery companies can reply to support conversations"
   ON public.messages FOR INSERT
   WITH CHECK (
     EXISTS (
@@ -104,7 +110,8 @@ CREATE POLICY IF NOT EXISTS "Delivery companies can reply to support conversatio
   );
 
 -- Policy: delivery_company can update their own messages (e.g. edit/delete)
-CREATE POLICY IF NOT EXISTS "Delivery companies can update own support messages"
+DROP POLICY IF EXISTS "Delivery companies can update own support messages" ON public.messages;
+CREATE POLICY "Delivery companies can update own support messages"
   ON public.messages FOR UPDATE
   USING (
     sender_id = auth.uid()
