@@ -185,7 +185,7 @@ const DeliveryOffers = () => {
         sponsor_name: (isDeliveryOfferType && form.sponsor_type === "external") ? (form.sponsor_name || null) : null,
       };
       if (editItem) {
-        await updateDeliveryOffer(editItem.id, payload);
+        await updateDeliveryOffer(editItem.id, payload, editItem);
         toast({ title: "تم تحديث العرض ✓" });
       } else {
         await createDeliveryOffer(payload);

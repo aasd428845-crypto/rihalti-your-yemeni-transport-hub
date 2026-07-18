@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, ImageIcon, Tag, MonitorPlay, LayoutGrid, X, Bike } from "lucide-react";
-import { getBannersForPortal, createBanner, updateBanner, deleteBanner } from "@/lib/deliveryApi";
+import { getBannersForPortal, createBanner, updateBanner, deleteBanner, type DeliveryBannerRow } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/common/ImageUpload";
 import { logNotificationFailure } from "@/lib/notificationFailureLogger";
@@ -138,6 +138,23 @@ const DeliveryBanners = () => {
       load();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const sendBannerPushNotification = async (banner: any) => {
+    try {
+      await supabase.functions.invoke("send-push-notification", {
+        body: {
+          targetRole: "customer",
+          title: banner.title || "عرض جديد 🎉",
+          body: banner.subtitle || banner.badge_text || "فرصة جديدة لا تفوّتها!",
+          sound: "default",
+          data: { type: "banner_offer", banner_id: banner.id },
+          url: "/food",
+        },
+      });
+    } catch (e) {
+      logNotificationFailure("send-push-notification", { type: "banner_offer", banner_id: banner.id }, e);
     }
   };
 
