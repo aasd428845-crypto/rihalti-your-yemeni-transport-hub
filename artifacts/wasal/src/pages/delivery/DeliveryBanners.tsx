@@ -12,6 +12,8 @@ import { Plus, Pencil, Trash2, ImageIcon, Tag, MonitorPlay, LayoutGrid, X, Bike 
 import { getBannersForPortal, createBanner, updateBanner, deleteBanner } from "@/lib/deliveryApi";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/common/ImageUpload";
+import { logNotificationFailure } from "@/lib/notificationFailureLogger";
+import { supabase } from "@/integrations/supabase/client";
 
 const CITIES = ["الكل", "صنعاء", "عدن", "تعز", "المكلا", "إب", "الحديدة", "ذمار", "سيئون"];
 
@@ -115,8 +117,12 @@ const DeliveryBanners = () => {
         await updateBanner(editItem.id, payload);
         toast({ title: "تم التحديث بنجاح ✓" });
       } else {
-        await createBanner(payload);
+        const created = await createBanner(payload);
         toast({ title: "تمت الإضافة بنجاح ✓" });
+        // Send push for new offer-type banner only
+        if (created.banner_type === "offer" && created.is_active) {
+          sendBannerPushNotification(created).catch(() => {});
+        }
       }
       setShowDialog(false); setEditItem(null); load();
     } catch (err: any) {
@@ -137,7 +143,10 @@ const DeliveryBanners = () => {
 
   const toggleActive = async (b: any) => {
     try {
-      await updateBanner(b.id, { is_active: !b.is_active });
+      const updated = await updateBanner(b.id, { is_active: !b.is_active });
+      if (!b.is_active && updated.banner_type === "offer" && updated.is_active) {
+        sendBannerPushNotification(updated).catch(() => {});
+      }
       load();
     } catch {}
   };

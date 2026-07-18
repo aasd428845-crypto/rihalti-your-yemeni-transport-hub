@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logNotificationFailure } from "@/lib/notificationFailureLogger";
 
 export type OfferType =
   | "free_delivery"
@@ -56,17 +57,60 @@ export const getDeliveryOffers = async (companyId: string): Promise<DeliveryOffe
 export const createDeliveryOffer = async (offer: Omit<DeliveryOffer, "id" | "created_at" | "restaurant">) => {
   const { data, error } = await supabase.from(TABLE).insert(offer).select().single();
   if (error) throw error;
-  return data as unknown as DeliveryOffer;
+  const created = data as unknown as DeliveryOffer;
+  // Fire-and-forget push notification for new active offer
+  if (created.is_active) {
+    sendOfferPushNotification(created).catch(() => {});
+  }
+  return created;
 };
 
-export const updateDeliveryOffer = async (id: string, updates: Partial<DeliveryOffer>) => {
+export const updateDeliveryOffer = async (id: string, updates: Partial<DeliveryOffer>, previous?: DeliveryOffer) => {
   const { error } = await supabase.from(TABLE).update(updates).eq("id", id);
   if (error) throw error;
+  // If previously inactive and now active, send push
+  if (previous && !previous.is_active && updates.is_active === true) {
+    const { data } = await supabase.from(TABLE).select("*").eq("id", id).single();
+    if (data) {
+      sendOfferPushNotification(data as unknown as DeliveryOffer).catch(() => {});
+    }
+  }
 };
 
 export const deleteDeliveryOffer = async (id: string) => {
   const { error } = await supabase.from(TABLE).delete().eq("id", id);
   if (error) throw error;
+};
+
+// ─── Push notification helper for delivery offers ─────────────────────
+export const sendOfferPushNotification = async (offer: DeliveryOffer) => {
+  try {
+    const bodyParts: string[] = [];
+    if (offer.offer_type === "free_delivery") bodyParts.push("توصيل مجاني!");
+    else if (offer.offer_type === "percent_off_delivery") bodyParts.push(`خصم ${offer.discount_percent}% على التوصيل`);
+    else if (offer.offer_type === "fixed_off_delivery") bodyParts.push(`خصم ${offer.discount_amount} ر.ي على التوصيل`);
+    else if (offer.offer_type === "percent_off_order") bodyParts.push(`خصم ${offer.discount_percent}% على الطلب`);
+    else if (offer.offer_type === "fixed_off_order") bodyParts.push(`خصم ${offer.discount_amount} ر.ي على الطلب`);
+    else if (offer.offer_type === "buy_x_get_y") bodyParts.push("عرض كومبو مميز");
+    else bodyParts.push(offer.description || "عرض جديد");
+
+    if (offer.min_order_amount) bodyParts.push(`بحد أدنى ${offer.min_order_amount} ر.ي`);
+    if (offer.restaurant_id) bodyParts.push("للمطعم المحدد");
+
+    const body = bodyParts.join(" — ");
+    await supabase.functions.invoke("send-push-notification", {
+      body: {
+        targetRole: "customer",
+        title: offer.title || "عرض توصيل جديد \uD83C\udf89",
+        body,
+        sound: "default",
+        data: { type: "delivery_offer", offer_id: offer.id },
+        url: "/food",
+      },
+    });
+  } catch (e) {
+    logNotificationFailure("send-push-notification", { type: "delivery_offer", offer_id: offer.id }, e);
+  }
 };
 
 // ─── Shared: time/day validity check ──────────────────────────────────────

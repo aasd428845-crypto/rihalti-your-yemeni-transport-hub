@@ -212,7 +212,7 @@ const DeliveryOffers = () => {
 
   const toggleActive = async (o: DeliveryOffer) => {
     try {
-      await updateDeliveryOffer(o.id, { is_active: !o.is_active });
+      await updateDeliveryOffer(o.id, { is_active: !o.is_active }, o);
       setOffers(prev => prev.map(x => x.id === o.id ? { ...x, is_active: !x.is_active } : x));
     } catch {}
   };
