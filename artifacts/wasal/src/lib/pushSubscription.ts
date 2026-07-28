@@ -77,6 +77,44 @@ export const subscribeToPush = async (userId: string): Promise<void> => {
   }
 };
 
+export const refreshPushSubscription = async (userId: string): Promise<void> => {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  if (!VAPID_PUBLIC_KEY) throw new Error("VITE_VAPID_PUBLIC_KEY not configured");
+
+  const registration = await navigator.serviceWorker.ready;
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) {
+    await existing.unsubscribe();
+    await (supabase.from as any)("push_subscriptions")
+      .delete()
+      .eq("user_id", userId)
+      .eq("endpoint", existing.endpoint);
+  }
+
+  localStorage.removeItem(`wasal_push_${userId}`);
+  await subscribeToPush(userId);
+};
+
+export const getPushStatus = async (): Promise<{
+  supported: boolean;
+  permission: NotificationPermission | "unsupported";
+  subscribed: boolean;
+  endpoint?: string;
+}> => {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    return { supported: false, permission: "unsupported", subscribed: false };
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+  const subscription = await registration.pushManager.getSubscription();
+  return {
+    supported: true,
+    permission: Notification.permission,
+    subscribed: Boolean(subscription),
+    endpoint: subscription?.endpoint,
+  };
+};
+
 export const unsubscribeFromPush = async (userId: string): Promise<void> => {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 

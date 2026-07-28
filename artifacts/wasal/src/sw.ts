@@ -38,8 +38,6 @@ registerRoute(
 );
 
 self.addEventListener("push", (event: PushEvent) => {
-  if (!event.data) return;
-
   let payload: {
     title?: string;
     body?: string;
@@ -48,10 +46,14 @@ self.addEventListener("push", (event: PushEvent) => {
     data?: Record<string, unknown>;
   };
 
-  try {
-    payload = event.data.json();
-  } catch {
-    payload = { title: "وصال", body: event.data.text() };
+  if (!event.data) {
+    payload = { title: "وصال", body: "لديك إشعار جديد" };
+  } else {
+    try {
+      payload = event.data.json();
+    } catch {
+      payload = { title: "وصال", body: event.data.text() };
+    }
   }
 
   const title = payload.title ?? "وصال";
@@ -71,7 +73,11 @@ self.addEventListener("push", (event: PushEvent) => {
     },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options).catch((error) => {
+      console.error("[Push] Failed to display notification:", error);
+    })
+  );
 });
 
 self.addEventListener("notificationclick", (event: NotificationClickEvent) => {

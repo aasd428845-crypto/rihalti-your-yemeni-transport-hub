@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     );
 
     const reqBody = await req.json();
-    const { userId, userIds, targetRole, title, body: msgBody, data: _data, url, image } = reqBody;
+    const { userId, userIds, targetRole, title, body: msgBody, data, url, image } = reqBody;
 
     const client = createClient(supabaseUrl, supabaseKey);
 
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const payload = JSON.stringify({ title, body: msgBody, url, image });
+    const payload = JSON.stringify({ title, body: msgBody, data, url, image });
     let sent = 0;
     const expired: string[] = [];
 

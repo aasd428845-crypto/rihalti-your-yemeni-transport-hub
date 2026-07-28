@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, Volume2, Smartphone, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { getPushStatus, refreshPushSubscription } from "@/lib/pushSubscription";
 
 
 interface NotificationSettings {
@@ -43,6 +44,8 @@ const NotificationSettingsPage = () => {
   const [settings, setSettings] = useState<NotificationSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshingPush, setRefreshingPush] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -71,6 +74,37 @@ const NotificationSettingsPage = () => {
     };
     fetch();
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    getPushStatus()
+      .then((status) => {
+        setPushStatus(
+          !status.supported
+            ? "غير مدعوم على هذا الجهاز"
+            : status.permission === "denied"
+            ? "تم حظر الإشعارات من إعدادات المتصفح"
+            : status.subscribed
+            ? "الجهاز مشترك لاستلام الإشعارات"
+            : "الجهاز غير مشترك حالياً"
+        );
+      })
+      .catch(() => setPushStatus("تعذر التحقق من حالة الإشعارات"));
+  }, [user]);
+
+  const handleRefreshPush = async () => {
+    if (!user) return;
+    setRefreshingPush(true);
+    try {
+      await refreshPushSubscription(user.id);
+      setPushStatus("تم تفعيل اشتراك جديد لهذا الجهاز");
+      toast.success("تم تفعيل الإشعارات على هذا الجهاز");
+    } catch (error: any) {
+      toast.error(error?.message || "تعذر تفعيل الإشعارات");
+    } finally {
+      setRefreshingPush(false);
+    }
+  };
 
   const updateSetting = <K extends keyof NotificationSettings>(key: K, value: NotificationSettings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -131,6 +165,19 @@ const NotificationSettingsPage = () => {
               <div className="flex items-center justify-between">
                 <Label htmlFor="push">استلام الإشعارات</Label>
                 <Switch id="push" checked={settings.enable_push_notifications} onCheckedChange={(v) => updateSetting("enable_push_notifications", v)} />
+              </div>
+              <div className="mt-4 rounded-lg border p-3 space-y-2">
+                <p className="text-xs text-muted-foreground">{pushStatus ?? "جاري التحقق من حالة الجهاز..."}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={refreshingPush}
+                  onClick={handleRefreshPush}
+                >
+                  {refreshingPush ? "جاري إعادة التفعيل..." : "إعادة تفعيل إشعارات هذا الجهاز"}
+                </Button>
               </div>
             </CardContent>
           </Card>
