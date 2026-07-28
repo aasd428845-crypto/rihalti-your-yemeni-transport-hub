@@ -28,7 +28,10 @@ async function saveSubscriptionToDb(
   }
 }
 
-export const subscribeToPush = async (userId: string): Promise<void> => {
+export const subscribeToPush = async (
+  userId: string,
+  options: { requestPermission?: boolean } = {},
+): Promise<void> => {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     return;
   }
@@ -55,7 +58,9 @@ export const subscribeToPush = async (userId: string): Promise<void> => {
 
     if (storedState === "subscribed") return;
 
-    const permission = await Notification.requestPermission();
+    const permission = options.requestPermission
+      ? await Notification.requestPermission()
+      : Notification.permission;
 
     if (permission === "denied") {
       localStorage.setItem(storageKey, "denied");
@@ -81,6 +86,17 @@ export const refreshPushSubscription = async (userId: string): Promise<void> => 
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
   if (!VAPID_PUBLIC_KEY) throw new Error("VITE_VAPID_PUBLIC_KEY not configured");
 
+  // Must happen directly from the button click. Browsers suppress permission
+  // prompts initiated later from an effect or after an awaited operation.
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    throw new Error(
+      permission === "denied"
+        ? "تم حظر الإشعارات. اسمح بها من إعدادات الموقع في المتصفح ثم أعد المحاولة."
+        : "لم يتم السماح بالإشعارات."
+    );
+  }
+
   const registration = await navigator.serviceWorker.ready;
   const existing = await registration.pushManager.getSubscription();
   if (existing) {
@@ -92,7 +108,7 @@ export const refreshPushSubscription = async (userId: string): Promise<void> => 
   }
 
   localStorage.removeItem(`wasal_push_${userId}`);
-  await subscribeToPush(userId);
+  await subscribeToPush(userId, { requestPermission: false });
 };
 
 export const getPushStatus = async (): Promise<{

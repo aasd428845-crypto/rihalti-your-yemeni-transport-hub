@@ -80,7 +80,11 @@ const NotificationSettingsPage = () => {
     getPushStatus()
       .then((status) => {
         setPushStatus(
-          !status.supported
+          status.reason === "iframe"
+            ? "افتح التطبيق في تبويب مستقل لتفعيل الإشعارات"
+            : status.reason === "insecure-context"
+            ? "الإشعارات تحتاج إلى HTTPS"
+            : !status.supported
             ? "غير مدعوم على هذا الجهاز"
             : status.permission === "denied"
             ? "تم حظر الإشعارات من إعدادات المتصفح"
